@@ -1,0 +1,14 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+complexity:
+  LongMethod:
+    threshold: 60

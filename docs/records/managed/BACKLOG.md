@@ -4,15 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-001
-  区分: 実装基盤
-  タスク内容: Android/Wear OSマルチモジュールプロジェクトの雛形を作成する（mobile/wear/共通モジュール分割、Gradle Wrapper、ktlint/detekt/lint設定を含む）
-  優先度: P1
-  状態: 未着手
-  担当: 共通
-  完了条件: ./gradlew tasks が成功し、ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebug が空実装に対して成功する
-  依存: []
-
 - id: BL-002
   区分: 実装
   タスク内容: AES-CMAC署名処理をKotlinで実装する（RFC 4493準拠、Sesame APIコマンドのバイト列組み立てを含む）
