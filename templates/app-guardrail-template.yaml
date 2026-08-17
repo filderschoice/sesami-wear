@@ -1,0 +1,47 @@
+application:
+  name: sample-app
+  owner: team-name
+  risk_tier: medium
+  last_reviewed: 2026-05-12
+
+model:
+  provider: replace-me
+  model_name: replace-me
+  region: replace-me
+  no_training_mode: true
+
+data:
+  allowed_classes:
+    - P2
+    - P3
+  blocked_classes:
+    - P0
+  masking_required: true
+  retention_days:
+    prompts: 30
+    outputs: 30
+    logs: 90
+
+security:
+  tool_allowlist:
+    - get_status
+    - read_catalog
+  high_risk_actions_require_confirmation: true
+  prompt_injection_protection: true
+
+evaluation:
+  safety_violation_rate_max: 0.005
+  injection_success_rate_max: 0.01
+  hallucination_rate_max: 0.03
+  p95_latency_ms_max: 2500
+
+operations:
+  incident_contact: replace-me@example.com
+  sev1_response_minutes: 30
+  runbook_link: replace-me
+
+exceptions:
+  enabled: false
+  reason: ""
+  owner: ""
+  expires_on: ""

@@ -1,0 +1,3 @@
+id,created_at,owner,model_provider,model_name,risk_type,description,severity,likelihood,mitigation,status,target_date
+RISK-001,2026-05-12,team-name,replace-me,replace-me,prompt-injection,信頼できないコンテキストが挙動を上書きする可能性,high,medium,指示階層の厳格化と入力フィルタリング,open,2026-06-01
+RISK-002,2026-05-12,team-name,replace-me,replace-me,data-leakage,出力に個人データが露出する可能性,high,low,マスキングと出力フィルタリング,open,2026-06-01

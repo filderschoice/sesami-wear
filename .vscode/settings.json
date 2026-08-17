@@ -1,0 +1,13 @@
+{
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    {
+      "file": ".github/instructions/pr.instructions.md"
+    }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    {
+      "file": ".github/instructions/pr.instructions.md"
+    }
+  ],
+  "markdownlint.run": "onSave"
+}
