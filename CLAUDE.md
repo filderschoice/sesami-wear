@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 このリポジトリでは、Claude Code の応答生成と実装提案に本ガイドを適用します。
 `CLAUDE.md` はリポジトリルートに配置されているため、Claude Code はセッション開始時に本ファイルを自動読み込みします。
 
@@ -24,6 +26,55 @@
 **注記**: guardrails-unified.v1.md のセクション11「開発プロセス統制」は削除済み。
 開発プロセス・ブランチ管理は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください（上記 import 済み）。
 **注記**: `git add` / `git commit` / `git push` はユーザーが任意実行し、Claude Code は明示的な依頼がない限り実行しません。
+
+## リポジトリの現状とアーキテクチャ概要
+
+### 現状（未実装であることに注意）
+
+このリポジトリには、アプリケーションのソースコードはまだ存在しません（コミットは `feat: :sparkles: init
+commit` の1件のみ）。現状の中身は、Copilot / Claude Code などのAIコーディングエージェント向けガードレール
+一式を管理し、他リポジトリへ配布するための「ルール定義リポジトリ」です。
+
+このリポジトリで将来実装予定のプロダクトは `PLAN.md` に記載されています（Pixel WatchからSesami
+スマートロックを操作するAndroid/Wear OSアプリ）。ソースコード追加・実装作業を依頼された場合は、まず
+`PLAN.md` を読み、対象コード・ビルド設定・アプリの雛形がまだ何も存在しない前提で着手してください。
+
+### ディレクトリと参照関係
+
+- `CLAUDE.md`（本ファイル）: Claude Code 向け運用ルールのエントリポイント。冒頭の `@import` で
+  `rules/guardrails-unified.v1.md` / `docs/guidelines/RULE.md` / `CONTRIBUTING.md` をセッション開始時に
+  自動読み込みする。矛盾時の優先順位は上記「指示参照の優先順位」を参照。
+- `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
+  基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある
+  （本ファイル末尾「ガイドライン更新」参照）。
+- `.github/instructions/pr.instructions.md`: Copilot Chat のPR説明文生成・レビュー生成にパス限定で
+  適用される指示（`.vscode/settings.json` から参照）。
+- `docs/records/`: AIエージェントが自動更新する記録群。`spec/FORMAT.md` が記述仕様の唯一の参照元。
+  `managed/BACKLOG.md` / `DESIGN.md` / `EXECUTE.md` はユーザーの手動編集を想定しておらず、
+  `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する（現時点ではすべて空）。
+- `docs/guidelines/`: 本ガードレール一式を他リポジトリへ配布・導入するための汎用ガイド
+  （`RULE.md` はルール本体、`ADOPTION.md` は導入手順）。
+- `templates/`: 配布先プロジェクトが複製して使うテンプレート
+  （`app-guardrail-template.yaml`、`model-risk-register-template.csv`）。
+- `PLAN.md`: 本リポジトリで今後実装予定のアプリの要件・API仕様メモ・アーキテクチャ方針。
+  CLAUDE.md 本体の運用ルールとは独立した、実装対象そのものに関するコンテキスト。
+
+### よく使うコマンド
+
+現状ビルド・テストフレームワークは存在せず、実行可能な自動チェックはMarkdown品質チェックのみです。
+
+```bash
+# 全Markdownファイルをlint（PR作成前に必ず実行、CONTRIBUTING.md 参照）
+npx markdownlint-cli2 "**/*.md"
+
+# 設定ファイルを明示指定する場合
+npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
+```
+
+- 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効）。
+- `CONTRIBUTING.md` はCIワークフロー `.github/workflows/markdown-quality.yml.disabled` に言及していますが、
+  本リポジトリの `.github/` 配下には `workflows/` ディレクトリ自体が存在しません（未確認の差異）。
+  そのためMarkdownlintのCI自動実行は現状なく、上記コマンドのローカル実行が唯一の品質ゲートです。
 
 ## セキュリティ要件（MUST）
 
