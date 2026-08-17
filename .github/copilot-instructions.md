@@ -23,6 +23,9 @@ Claude Code を利用する場合は、同一のガードレール・運用規�
 **注記**: guardrails-unified.v1.md のセクション11「開発プロセス統制」は削除済み。
 開発プロセス・ブランチ管理は [CONTRIBUTING.md](../CONTRIBUTING.md) を参照してください。
 **注記**: `git add` / `git commit` / `git push` はユーザーが任意実行し、Copilot は実行しません。
+**注記**: `rules/guardrails-unified.v1.md` セクション12「自律ループ実行モード統制」および
+`CLAUDE.md`「自律ループ実行モード（Loop Engineering）」は Claude Code 固有の運用モードです。
+Copilot は本モードの対象外であり、git操作の例外規定も適用されません（上記のとおり常に実行しません）。
 
 ## セキュリティ要件（MUST）
 
@@ -77,6 +80,8 @@ Claude Code を利用する場合は、同一のガードレール・運用規�
 - フォーマット、静的解析、型検査、テストを実行可能にする
 - 脆弱性チェック（`cargo audit` / `npm audit` など）手順を用意する
 - 実行結果（成功/失敗と根拠）を提示する
+- 本リポジトリで実行するコマンドの定義は `CLAUDE.md`「本リポジトリの品質ゲート定義」に集約する
+  （エージェント間で同一のコマンドを使用する）
 
 ### データ保護（MUST）
 

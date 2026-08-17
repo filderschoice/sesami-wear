@@ -1,0 +1,26 @@
+# 資格情報・秘密情報（自律ループ実行モードでの誤コミット防止）
+local.properties
+secrets.properties
+*.jks
+*.keystore
+.env
+.env.*
+
+# Gradle / Android
+.gradle/
+build/
+captures/
+.cxx/
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node（markdownlint-cli2 をローカル導入する場合）
+node_modules/
