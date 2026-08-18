@@ -5,6 +5,44 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 01:10
+  summary: Data Layer APIメッセージングのコアロジックを実装(WearableListenerService結線はBL-013へ分離)
+  details:
+    変更内容: >
+      core.SesameMessageSender（送信抽象化インターフェース）とcore.SesameCommandResult
+      （成功/失敗の1バイトペイロード変換）を追加。wear.messaging.SesameCommandSender
+      （lock/unlock意図の送信ロジック、Android非依存）、mobile.messaging.SesameCommandHandler
+      （受信パス判定→SesameApiClient実行→結果返却、Android非依存）を実装し、それぞれフェイク実装
+      /MockWebServerで単体テストした。wear.messaging.MessageClientSesameMessageSender
+      （MessageClient.sendMessage().await()の薄いアダプタ）も実装したが、Android Google Play
+      Services依存のためユニットテスト対象外とした。
+      Mobile側のWearableListenerService実サービスクラスとAndroidManifest登録、
+      apikey/secretKey/uuidの取得元との結線は、BL-005（シークレット保存）が未完了で
+      資格情報取得方式が確定していないため、新規タスクBL-013へ切り出しBACKLOGへ登録した
+      （BL-011の依存にもBL-013を追加）。あわせてBL-010のタスク内容からBL-012で削除済みの
+      isBatteryCriticalへの言及を除去し、施錠/解錠仕様の確認事項を追記した。
+      detektのSwallowedExceptionルールがSesameCommandHandlerの例外握りつぶしに反応したため、
+      仕様上意図的である旨のコメントと@Suppressを付与した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameMessageSender.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCommandResult.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCommandResultTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandlerTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/MessageClientSesameMessageSender.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderTest.kt
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。core 3件、mobile 4件、wear 2件（計9件）の新規テストを含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-006
+
 - date: 2026-08-19 00:54
   summary: Sesame API施錠/解錠(POST, AES-CMAC署名付き)クライアントを実装
   details:

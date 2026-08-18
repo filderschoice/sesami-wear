@@ -14,16 +14,22 @@
   依存:
     - BL-001
 
-- id: BL-006
+- id: BL-013
   区分: 実装
-  タスク内容: Wearable Data Layer API（MessageClient）でWatch側からスマホ側へlock/unlock意図を送信し、実行結果を返すメッセージングを実装する
+  タスク内容: BL-005（シークレット保存）完了後、SesameMessageListenerService（WearableListenerServiceの実装）を
+    mobile側に実装し、保存されたapikey/secretKey/uuidからSesameCommandHandlerを構築してAndroidManifestへ
+    登録する。Wear側もMessageClientSesameMessageSenderをアプリ起動時に結線する
+    （BL-006では資格情報取得手段が未確定のため、ロジック本体とMessageClientアダプタの実装に留め、
+    実サービスクラスとの結線は本タスクへ切り出した）
   優先度: P1
   状態: 未着手
   担当: 共通
-  完了条件: メッセージ送受信ロジックの単体テストが成功する
+  完了条件: WearableListenerServiceの実装がktlint/detekt/lintDebugを通過してAndroidManifestに登録され、
+    mobile/wear双方でSesameCommandHandler/SesameCommandSenderが実インスタンスとして結線される
+    （実際の送受信動作の確認はBL-011、人手検証）
   依存:
-    - BL-001
-    - BL-004
+    - BL-005
+    - BL-006
 
 - id: BL-007
   区分: 実装
@@ -58,8 +64,10 @@
 - id: BL-010
   区分: 人手検証
   タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。
-    SesameStatus（batteryVoltage/isBatteryCritical/position/CHSesame2Status/isInLockRange/
-    isInUnlockRange）のフィールド構成が実際のレスポンスと一致するかもあわせて確認する（未確認事項、DESIGN.md参照）
+    SesameStatus（batteryVoltage/position/CHSesame2Status。isInLockRange/isInUnlockRangeは
+    CHSesame2Statusからの導出値）のフィールド構成が実際のレスポンスと一致するか、
+    施錠/解錠コマンドの署名・ペイロード仕様（DESIGN.md記載、pysesame3参照で判明した推測）が
+    実際に通るかもあわせて確認する（未確認事項、DESIGN.md参照）
   優先度: P2
   状態: 未着手
   担当: ユーザー
@@ -81,5 +89,6 @@
     - BL-008
     - BL-009
     - BL-010
+    - BL-013
 ```
 <!-- COPILOT_RECORDS:END -->

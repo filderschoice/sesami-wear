@@ -44,6 +44,19 @@
   固定タイムスタンプのテストで確認済み（鍵はRFC 4493のダミー鍵、実資格情報ではない）。
   MockWebServerでリクエストボディ（cmd/history/sign）・HTTPメソッド・パス・ヘッダーを検証し、
   HTTP非成功時は`SesameApiException`を送出することを確認済み。
+- REQ-005（BL-006）: Data Layer APIメッセージングのコアロジックを実装。
+  `core.SesameMessageSender`（送信抽象化インターフェース）、`core.SesameCommandResult`
+  （成功/失敗を1バイトのペイロードへ変換）、`wear.messaging.SesameCommandSender`
+  （lock/unlock意図の送信、Android非依存）、`mobile.messaging.SesameCommandHandler`
+  （受信パスからコマンド判定しSesameApiClientで実行、Android非依存）を実装し、単体テスト9件
+  （core 3件、mobile 4件、wear 2件）で検証済み。`wear.messaging.MessageClientSesameMessageSender`
+  （MessageClientベースの薄いアダプタ）も実装したが、これ自体はAndroid Google Play Services依存の
+  ためユニットテスト対象外（BL-011で人手検証）。
+  **未完了**: Mobile側の`WearableListenerService`実サービスクラス（`onMessageReceived`から
+  `SesameCommandHandler`を呼び出しWear側へ結果を返す部分）とAndroidManifestへの登録、
+  apikey/secretKey/uuidの取得元（BL-005実装後に確定）との結線はBL-013へ切り出した
+  （BL-006時点では資格情報の永続化方式が未確定のため、ロジック本体とMessageClientアダプタの
+  実装に限定し、実サービスとの統合は後続タスクとした）。
 
 ## 設計方針
 

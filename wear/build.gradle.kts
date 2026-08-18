@@ -58,7 +58,9 @@ dependencies {
     implementation(libs.androidx.wear.tiles.material)
     implementation(libs.androidx.wear.watchface.complications.datasource)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.ui.tooling)
 }
