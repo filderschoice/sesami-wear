@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 00:27
+  summary: AES-CMAC（RFC 4493）署名処理をcoreモジュールへ実装
+  details:
+    変更内容: >
+      RFC 4493準拠のAES-CMACをcom.sesamiwear.core.crypto.AesCmacとして実装した。
+      javax.crypto.Cipher（AES/ECB/NoPadding）でAES-128の単一ブロック暗号化を行い、
+      サブキー生成（K1/K2）・メッセージのブロック分割・最終ブロックのパディング/XOR処理を
+      RFC 4493 Section 2.3〜2.4のアルゴリズムに忠実に実装した。
+      Sesame APIコマンド固有のバイト列組み立て（cmd種別・タイムスタンプ等の直列化）は
+      BL-004（施錠/解錠API実装）側で本関数を呼び出す形で実装する（本タスクの範囲外）。
+      単体テストはRFC 4493 Appendix Aの公開テストベクタ4件（空メッセージ/16/40/64バイト）と、
+      鍵長不正時にIllegalArgumentExceptionを送出することを検証する異常系1件の計5件。
+      実装中にBOM/Kotlin標準ライブラリの誤認識（Byte型にxor中置関数が存在しない）による
+      コンパイルエラーが発生したためInt経由のXOR処理に修正し、ktlintFormatでの
+      フォーマット違反（複数行式の改行位置）も解消した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/crypto/AesCmac.kt
+      - core/src/test/kotlin/com/sesamiwear/core/crypto/AesCmacTest.kt
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。AesCmacTestの5件（RFC 4493テストベクタ4件＋異常系1件）を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-002
+
 - date: 2026-08-18 07:23
   summary: Android/Wear OSマルチモジュールプロジェクトの雛形を作成（段階A→段階B移行）
   details:

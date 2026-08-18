@@ -23,6 +23,12 @@
 - REQ-001（BL-001）: Android/Wear OSマルチモジュールGradleプロジェクトの雛形。
   `core`（純Kotlin/JVMライブラリ）・`mobile`（Android application）・`wear`（Android application,
   Wear OS）の3モジュール構成。ktlint/detekt/lintの品質ゲートが空実装に対して成功することを確認済み。
+- REQ-002（BL-002）: `com.sesamiwear.core.crypto.AesCmac`としてRFC 4493準拠のAES-CMACを実装。
+  `javax.crypto.Cipher`（AES/ECB/NoPadding）でAES-128単一ブロック暗号化を行い、サブキー生成・
+  メッセージのブロック分割・最終ブロックのパディング/XORをRFC仕様どおりに実装した。
+  RFC 4493 Appendix Aの公開テストベクタ4件と、鍵長不正時の異常系1件で検証済み。
+  Sesame APIコマンド固有のバイト列組み立て（cmd種別・タイムスタンプの直列化）はBL-004で
+  `AesCmac.compute()`を呼び出す形で実装する（本関数はSesame非依存の汎用CMAC実装）。
 
 ## 設計方針
 

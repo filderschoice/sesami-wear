@@ -4,16 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-002
-  区分: 実装
-  タスク内容: AES-CMAC署名処理をKotlinで実装する（RFC 4493準拠、Sesame APIコマンドのバイト列組み立てを含む）
-  優先度: P1
-  状態: 未着手
-  担当: Mobile
-  完了条件: RFC 4493公開テストベクタを用いた単体テストが全て成功する
-  依存:
-    - BL-001
-
 - id: BL-003
   区分: 実装
   タスク内容: CANDY HOUSE Sesame APIクライアントの状態取得（GET）処理を実装する
