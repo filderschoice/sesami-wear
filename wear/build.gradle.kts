@@ -56,9 +56,11 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.androidx.wear.tiles)
     implementation(libs.androidx.wear.tiles.material)
+    implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.wear.watchface.complications.datasource)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.guava)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

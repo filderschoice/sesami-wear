@@ -5,6 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 07:36
+  summary: Wear OS Tile UI(状態表示)を実装(クリックアクションはBL-014へ分離)
+  details:
+    変更内容: >
+      core.TileDisplayState（LOCKED/UNLOCKED/IN_PROGRESS/DISCONNECTED/UNKNOWN）と
+      core.TileDisplayStateResolver（スマホ接続状態・コマンド実行中フラグ・ロック状態から
+      表示状態を決定）、wear.tile.SesameTileContent（状態→表示文言マッピング）を実装し、
+      単体テスト9件で検証した。wear.tile.SesameTileService（TileService実装、ステータステキストの
+      みを表示する最小構成）を実装し、AndroidManifestへBIND_TILE_PROVIDERのintent-filter付きで登録した。
+      実装中、androidx.wear.tiles:tiles:1.4.1が内部でandroidx.wear.protolayoutパッケージへ移行済み
+      であることが判明し、LayoutElementBuilders/TimelineBuilders/ResourceBuilders/material.Textの
+      importをprotolayoutパッケージへ修正し、protolayout-material依存を追加した。また
+      Futures.immediateFuture()の解決にはcom.google.guava:guavaの明示的な追加が必要だった
+      （推移的に入るlistenablefuture:1.0はFuturesヘルパーを含まないため）。
+      Tileタップ時のクリックアクション（施錠ワンタップ、解錠ホールド確認）と実データとの結線は、
+      BL-013（資格情報結線）が前提となるため新規タスクBL-014へ切り出しBACKLOGへ登録した
+      （BL-011の依存にも追加）。Android Studioでのプレビュー確認は本環境で自動実行できないため
+      完了条件から除外し、実機確認はBL-011（人手検証）に委ねることをDESIGN.mdへ明記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayState.kt
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayStateResolver.kt
+      - core/src/test/kotlin/com/sesamiwear/core/TileDisplayStateResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - wear/src/main/AndroidManifest.xml
+      - gradle/libs.versions.toml
+      - wear/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。core 6件、wear 3件（計9件）の新規テストを含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-007
+
 - date: 2026-08-19 01:10
   summary: Data Layer APIメッセージングのコアロジックを実装(WearableListenerService結線はBL-013へ分離)
   details:

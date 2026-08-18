@@ -57,6 +57,23 @@
   apikey/secretKey/uuidの取得元（BL-005実装後に確定）との結線はBL-013へ切り出した
   （BL-006時点では資格情報の永続化方式が未確定のため、ロジック本体とMessageClientアダプタの
   実装に限定し、実サービスとの統合は後続タスクとした）。
+- REQ-006（BL-007）: Wear OS Tileを実装。`core.TileDisplayState`（LOCKED/UNLOCKED/IN_PROGRESS/
+  DISCONNECTED/UNKNOWNの5状態）と`core.TileDisplayStateResolver`（スマホ接続状態・コマンド実行中
+  フラグ・ロック状態から表示状態を決定）、`wear.tile.SesameTileContent`（状態→表示文言マッピング）を
+  Android非依存で実装し単体テスト9件（core 6件、wear 3件）で検証済み。`wear.tile.SesameTileService`
+  （`androidx.wear.tiles.TileService`実装）も実装し、AndroidManifestへ
+  `androidx.wear.tiles.action.BIND_TILE_PROVIDER`のintent-filter付きで登録した。
+  **技術メモ**: `androidx.wear.tiles:tiles:1.4.1`は内部で`androidx.wear.protolayout`パッケージへ
+  移行済みで、`LayoutElementBuilders`/`TimelineBuilders`/`ResourceBuilders`/`material.Text`等は
+  `androidx.wear.protolayout`（`tiles-material`とは別に`protolayout-material`依存が必要）を使う必要が
+  あった。`TileBuilders`/`RequestBuilders`/`TileService`自体は引き続き`androidx.wear.tiles`パッケージ。
+  `ListenableFuture`の`Futures.immediateFuture()`には`com.google.guava:guava`（推移的に入る
+  `listenablefuture:1.0`は`Futures`ヘルパーを含まないため）の明示的な追加が必要だった。
+  **未完了**: 本タスクではステータス表示のみを実装し、Tileタップ時のクリックアクション
+  （施錠ワンタップ実行、解錠ホールド確認）はBL-013の資格情報結線を前提とするためBL-014へ切り出した。
+  また、実データ（スマホ接続状態・実際のロック状態）との結線もBL-013/BL-014で行う（現状は常に
+  `UNKNOWN`状態を表示するプレースホルダー実装）。Android Studioでのプレビュー確認は本環境で
+  自動実行できないため対象外とし、実機確認はBL-011（人手検証）に委ねる。
 
 ## 設計方針
 
