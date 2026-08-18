@@ -4,16 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-003
-  区分: 実装
-  タスク内容: CANDY HOUSE Sesame APIクライアントの状態取得（GET）処理を実装する
-  優先度: P1
-  状態: 未着手
-  担当: Mobile
-  完了条件: モックHTTPサーバを用いた単体テストでレスポンスパースが成功する
-  依存:
-    - BL-001
-
 - id: BL-004
   区分: 実装
   タスク内容: CANDY HOUSE Sesame APIクライアントの施錠/解錠（POST、AES-CMAC署名付き）処理を実装する
@@ -78,11 +68,14 @@
 
 - id: BL-010
   区分: 人手検証
-  タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する
+  タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。
+    SesameStatus（batteryVoltage/isBatteryCritical/position/CHSesame2Status/isInLockRange/
+    isInUnlockRange）のフィールド構成が実際のレスポンスと一致するかもあわせて確認する（未確認事項、DESIGN.md参照）
   優先度: P2
   状態: 未着手
   担当: ユーザー
-  完了条件: 実際のSesame 5 + Hub 3に対してGET状態取得・POST施錠/解錠が成功する
+  完了条件: 実際のSesame 5 + Hub 3に対してGET状態取得・POST施錠/解錠が成功し、
+    SesameStatusのデコードエラーが発生しないことを確認する
   依存:
     - BL-003
     - BL-004

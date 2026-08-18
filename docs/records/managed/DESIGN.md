@@ -29,6 +29,14 @@
   RFC 4493 Appendix Aの公開テストベクタ4件と、鍵長不正時の異常系1件で検証済み。
   Sesame APIコマンド固有のバイト列組み立て（cmd種別・タイムスタンプの直列化）はBL-004で
   `AesCmac.compute()`を呼び出す形で実装する（本関数はSesame非依存の汎用CMAC実装）。
+- REQ-003（BL-003）: `com.sesamiwear.core.api.SesameApiClient`としてSesame状態取得（GET）を実装。
+  OkHttp + kotlinx.serialization.jsonでx-api-keyヘッダー付きGETリクエストを送信し、
+  `SesameStatus`（batteryVoltage/isBatteryCritical/position/CHSesame2Status/isInLockRange/
+  isInUnlockRange）へデコードする。HTTP非成功時は`SesameApiException`を送出する。
+  MockWebServerを用いた単体テスト2件（正常系のレスポンスパース、異常系の例外送出）で検証済み。
+  **未確認事項**: `SesameStatus`のフィールド構成は公式APIドキュメント未参照のため一般的な
+  Sesame API実装からの推測であり、実機疎通確認（BL-010、人手検証）で実際のレスポンスとの
+  整合を確認する必要がある。
 
 ## 設計方針
 

@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 00:37
+  summary: Sesame API状態取得（GET）クライアントをcoreモジュールへ実装
+  details:
+    変更内容: >
+      com.sesamiwear.core.api.SesameApiClientとして状態取得（GET）処理を実装した。
+      OkHttpでx-api-keyヘッダー付きリクエストを送信し、kotlinx.serialization.jsonで
+      SesameStatus（batteryVoltage/isBatteryCritical/position/CHSesame2Status/
+      isInLockRange/isInUnlockRange）へデコードする。HTTP非成功時はSesameApiExceptionを送出する。
+      SesameStatusのフィールド構成はCANDY HOUSE公式APIドキュメント未参照のため一般的な
+      Sesame API実装からの推測であり、未確認事項としてDESIGN.mdとBL-010（人手検証）に明記した
+      （安全性に関わらない実装詳細のため、既定値を採用し確認質問を挟まず続行）。
+      テストはMockWebServerを用い、正常系のレスポンスパースとリクエストヘッダー検証、
+      異常系（HTTP 401）でのSesameApiException送出を確認した。
+      実装中にkotlin.test.assertFailsWithが未解決（kotlin-test依存が未追加）となったため、
+      追加依存を避けJUnit標準のtry-catchへ書き換えた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiException.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameApiClientTestの2件（正常系/異常系）を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-003
+
 - date: 2026-08-19 00:27
   summary: AES-CMAC（RFC 4493）署名処理をcoreモジュールへ実装
   details:
