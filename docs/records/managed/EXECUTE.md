@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 00:45
+  summary: pysesame3実装を参照しSesameStatusのフィールド構成を実仕様に合わせて修正
+  details:
+    変更内容: >
+      BL-004（施錠/解錠API実装）着手前に、参考実装pysesame3のソースコード
+      （pysesame3/helper.py, cloud.py, const.py, auth.py）をGitHub API経由で確認した。
+      Web APIのGETレスポンスは実際にはbatteryVoltage/position/CHSesame2Statusの3フィールドのみで、
+      BL-003で実装したisBatteryCritical/isInLockRange/isInUnlockRangeを直接デコードする設計は
+      誤りだったため、isInLockRange/isInUnlockRangeをCHSesame2Statusからの計算プロパティへ変更し、
+      Web APIレスポンスに存在しないisBatteryCriticalフィールドを削除した。
+      あわせてBL-004で使う施錠/解錠APIの正確な仕様（POSTエンドポイントが`/cmd`サフィックス付きである
+      こと、cmd/history/signのペイロード構造、署名対象バイト列がUnixタイムスタンプ4バイト
+      リトルエンディアンの[1:4]でありCMAC出力16バイト全体をhex化して使うこと）をDESIGN.mdへ記録した。
+      テストはロック中/未ロック中のステータス導出、未知フィールドの無視、異常系の計4件に拡充。
+      修正中、@Serializableアノテーションが要求するcompanion objectをprivateにしたことで
+      SesameStatus.serializer()の呼び出しがコンパイルエラーになったため、companion object自体は
+      公開のまま内部定数のみprivateにする形に修正した。detektのForbiddenCommentルールが
+      引用コメント中の"TODO"文字列に反応したため文言も修正した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameApiClientTestの4件を含む全モジュールのテストが成功
+    関連ID:
+      - BL-012
+
 - date: 2026-08-19 00:37
   summary: Sesame API状態取得（GET）クライアントをcoreモジュールへ実装
   details:

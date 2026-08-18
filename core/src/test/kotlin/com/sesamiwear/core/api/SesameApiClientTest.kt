@@ -33,17 +33,14 @@ class SesameApiClientTest {
     }
 
     @Test
-    fun `parses successful status response`() =
+    fun `parses locked status response`() =
         runTest {
             val responseJson =
                 """
                 {
                   "batteryVoltage": 5.85,
-                  "isBatteryCritical": false,
                   "position": 42,
-                  "CHSesame2Status": "locked",
-                  "isInLockRange": true,
-                  "isInUnlockRange": false
+                  "CHSesame2Status": "locked"
                 }
                 """.trimIndent()
             server.enqueue(MockResponse().setBody(responseJson).setResponseCode(HTTP_OK))
@@ -51,7 +48,6 @@ class SesameApiClientTest {
             val status = client.getStatus()
 
             assertEquals(5.85, status.batteryVoltage, DELTA)
-            assertEquals(false, status.isBatteryCritical)
             assertEquals(42, status.position)
             assertEquals("locked", status.lockStatus)
             assertEquals(true, status.isInLockRange)
@@ -60,6 +56,45 @@ class SesameApiClientTest {
             val recordedRequest = server.takeRequest()
             assertEquals("test-api-key", recordedRequest.headers["x-api-key"])
             assertEquals("/test-uuid", recordedRequest.path)
+        }
+
+    @Test
+    fun `derives isInUnlockRange when status is not locked`() =
+        runTest {
+            val responseJson =
+                """
+                {
+                  "batteryVoltage": 5.2,
+                  "position": -10,
+                  "CHSesame2Status": "unlocked"
+                }
+                """.trimIndent()
+            server.enqueue(MockResponse().setBody(responseJson).setResponseCode(HTTP_OK))
+
+            val status = client.getStatus()
+
+            assertEquals(false, status.isInLockRange)
+            assertEquals(true, status.isInUnlockRange)
+        }
+
+    @Test
+    fun `ignores unknown response fields`() =
+        runTest {
+            val responseJson =
+                """
+                {
+                  "batteryVoltage": 5.85,
+                  "position": 42,
+                  "CHSesame2Status": "locked",
+                  "isBatteryCritical": false,
+                  "unexpectedField": "should be ignored"
+                }
+                """.trimIndent()
+            server.enqueue(MockResponse().setBody(responseJson).setResponseCode(HTTP_OK))
+
+            val status = client.getStatus()
+
+            assertEquals(true, status.isInLockRange)
         }
 
     @Test

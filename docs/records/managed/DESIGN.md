@@ -29,14 +29,15 @@
   RFC 4493 Appendix Aの公開テストベクタ4件と、鍵長不正時の異常系1件で検証済み。
   Sesame APIコマンド固有のバイト列組み立て（cmd種別・タイムスタンプの直列化）はBL-004で
   `AesCmac.compute()`を呼び出す形で実装する（本関数はSesame非依存の汎用CMAC実装）。
-- REQ-003（BL-003）: `com.sesamiwear.core.api.SesameApiClient`としてSesame状態取得（GET）を実装。
+- REQ-003（BL-003, BL-012）: `com.sesamiwear.core.api.SesameApiClient`としてSesame状態取得（GET）を実装。
   OkHttp + kotlinx.serialization.jsonでx-api-keyヘッダー付きGETリクエストを送信し、
-  `SesameStatus`（batteryVoltage/isBatteryCritical/position/CHSesame2Status/isInLockRange/
-  isInUnlockRange）へデコードする。HTTP非成功時は`SesameApiException`を送出する。
-  MockWebServerを用いた単体テスト2件（正常系のレスポンスパース、異常系の例外送出）で検証済み。
-  **未確認事項**: `SesameStatus`のフィールド構成は公式APIドキュメント未参照のため一般的な
-  Sesame API実装からの推測であり、実機疎通確認（BL-010、人手検証）で実際のレスポンスとの
-  整合を確認する必要がある。
+  `SesameStatus`（batteryVoltage/position/CHSesame2Status。isInLockRange/isInUnlockRangeは
+  CHSesame2Statusからの計算プロパティ）へデコードする。HTTP非成功時は`SesameApiException`を送出する。
+  MockWebServerを用いた単体テスト4件（施錠中/解錠中のレスポンスパース、未知フィールドの無視、
+  異常系の例外送出）で検証済み。フィールド構成は参考実装pysesame3
+  （https://github.com/mochipon/pysesame3）のソースを参照して修正した（BL-012）。
+  **未確認事項**: pysesame3自体もこのレスポンス構造を将来変更されうるものとして注意書きしており、
+  実機疎通確認（BL-010、人手検証）で最終確認する必要がある。
 
 ## 設計方針
 
@@ -86,8 +87,22 @@
 
 - Wear API: 施錠/解錠（POST）はsecretKeyによるAES-CMAC署名付きコマンドが必須。素のJSON送信では
   通らない（PLAN.md記載）。状態取得（GET）はx-api-keyヘッダーのみで可能。
-- 参考実装: pysesame3、chanshige/sesame（PHP）などのOSSにCMAC署名ロジックの実装例があり、
-  Kotlin/Java向けの軽量ラッパーが少ないためロジック移植が前提（BL-002で対応）。
+- 参考実装: pysesame3（https://github.com/mochipon/pysesame3）、chanshige/sesame（PHP）などのOSSに
+  CMAC署名ロジックの実装例があり、Kotlin/Java向けの軽量ラッパーが少ないためロジック移植が前提
+  （BL-002で対応）。
+- 施錠/解錠APIの詳細仕様（pysesame3 pysesame3/cloud.py `SesameCloud.getSign`/`sendCmd`、
+  pysesame3/const.py `CHSesame2CMD`のソースを参照して判明。BL-004実装時の根拠）:
+  - エンドポイント: `POST {OFFICIALAPI_URL}/{uuid}/cmd`（状態取得のGETと異なり`/cmd`サフィックスが付く）
+  - ヘッダー: `x-api-key`（GETと共通）
+  - リクエストボディ（JSON）: `cmd`（int、LOCK=82 / UNLOCK=83 / TOGGLE=88 / CLICK=89）、
+    `history`（任意の文字列タグをBase64エンコードしたもの、履歴に残る）、`sign`（後述の署名、32文字hex文字列）
+  - 署名生成: 現在のUnixタイムスタンプ（秒、Int）を4バイト・リトルエンディアンにエンコードし、
+    そのうちインデックス1〜3（先頭バイトを除いた3バイト、約256秒単位に丸められたタイムスタンプ）を
+    メッセージとしてAES-CMAC（secretKeyを鍵）を計算し、その結果16バイト全体を32文字のhex文字列化した
+    ものが`sign`（先頭バイトのみを使う実装ではなく、CMAC出力全体をそのまま使う点に注意）。
+  - **未確認事項**: 上記はpysesame3（2026-08-19時点のmainブランチ）のPythonソースコードを読んで判明した
+    内容であり、CANDY HOUSE公式ドキュメントそのものは未参照。実機疎通確認（BL-010、人手検証）で
+    最終確認する必要がある。
 - Androidアイコンリソース: `mobile`/`wear`とも実アイコン（mipmap）は未作成で、暫定的に
   `@android:drawable/sym_def_app_icon`（システム標準アイコン）を参照している。配布前に専用アイコンへの
   差し替えが必要（自動検証の対象外、Play Store提出前の対応事項として残る）。
