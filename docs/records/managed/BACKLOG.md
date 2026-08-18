@@ -4,17 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-004
-  区分: 実装
-  タスク内容: CANDY HOUSE Sesame APIクライアントの施錠/解錠（POST、AES-CMAC署名付き）処理を実装する
-  優先度: P1
-  状態: 未着手
-  担当: Mobile
-  完了条件: ダミー鍵を用いたモックHTTPサーバでの単体テストが成功する（署名生成ロジックを含む）
-  依存:
-    - BL-002
-    - BL-003
-
 - id: BL-005
   区分: 実装
   タスク内容: apikey/secretKey/uuidをスマホ側で安全に保存する機能（EncryptedSharedPreferences等）と設定画面を実装する

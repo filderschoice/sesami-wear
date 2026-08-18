@@ -1,6 +1,10 @@
 package com.sesamiwear.core.api
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -113,9 +117,45 @@ class SesameApiClientTest {
             assertNotNull(thrown)
         }
 
+    @Test
+    fun `sends lock command with cmd, base64 history and hex sign`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+            val dummySecretKey = ByteArray(16) // AES-CMAC鍵長(16バイト)を満たすダミー鍵、実資格情報ではない
+
+            client.sendCommand(SesameCommand.LOCK, dummySecretKey)
+
+            val recordedRequest = server.takeRequest()
+            assertEquals("POST", recordedRequest.method)
+            assertEquals("/test-uuid/cmd", recordedRequest.path)
+            assertEquals("test-api-key", recordedRequest.headers["x-api-key"])
+
+            val bodyJson = Json.parseToJsonElement(recordedRequest.body.readUtf8()).jsonObject
+            assertEquals(LOCK_CMD_CODE, bodyJson.getValue("cmd").jsonPrimitive.int)
+            assertEquals(SIGN_HEX_LENGTH, bodyJson.getValue("sign").jsonPrimitive.content.length)
+        }
+
+    @Test
+    fun `throws SesameApiException when send command fails`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("""{"code":"forbidden"}""").setResponseCode(HTTP_FORBIDDEN))
+            val dummySecretKey = ByteArray(16)
+
+            var thrown: SesameApiException? = null
+            try {
+                client.sendCommand(SesameCommand.UNLOCK, dummySecretKey)
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertNotNull(thrown)
+        }
+
     private companion object {
         const val HTTP_OK = 200
         const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
         const val DELTA = 0.0001
+        const val LOCK_CMD_CODE = 82
+        const val SIGN_HEX_LENGTH = 32
     }
 }

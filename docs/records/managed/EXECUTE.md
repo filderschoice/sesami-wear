@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 00:54
+  summary: Sesame API施錠/解錠(POST, AES-CMAC署名付き)クライアントを実装
+  details:
+    変更内容: >
+      SesameCommand（LOCK=82/UNLOCK=83、pysesame3のCHSesame2CMDを参照）、SesameCommandSigner
+      （現在時刻を4バイト・リトルエンディアン化した[1:4]をAesCmac.computeで署名し16バイト全体を
+      hex化する、internal実装）、SesameApiClient.sendCommand()（POST {baseUrl}/{uuid}/cmd、
+      cmd/history/signのJSONボディ、x-api-keyヘッダー）を実装した。
+      署名生成の正確性を独立検証するため、pip経由でpycryptodomeを導入し、
+      CMAC.new(key, ciphermod=AES)による計算結果とKotlin実装の出力が固定タイムスタンプで
+      一致することをテストで確認した（鍵はRFC 4493のダミー鍵）。
+      MockWebServerでPOSTリクエストのメソッド・パス・ヘッダー・ボディ（cmd値、sign長）を検証し、
+      HTTP非成功時にSesameApiExceptionを送出することも確認した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommand.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandSigner.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandSignerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameCommandSignerTest 2件、SesameApiClientTest 6件を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-004
+
 - date: 2026-08-19 00:45
   summary: pysesame3実装を参照しSesameStatusのフィールド構成を実仕様に合わせて修正
   details:

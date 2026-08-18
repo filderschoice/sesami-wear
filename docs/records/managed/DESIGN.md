@@ -38,6 +38,12 @@
   （https://github.com/mochipon/pysesame3）のソースを参照して修正した（BL-012）。
   **未確認事項**: pysesame3自体もこのレスポンス構造を将来変更されうるものとして注意書きしており、
   実機疎通確認（BL-010、人手検証）で最終確認する必要がある。
+- REQ-004（BL-004）: `SesameApiClient.sendCommand()`として施錠/解錠（POST）を実装。
+  `SesameCommand`（LOCK=82 / UNLOCK=83）と`SesameCommandSigner`（internal、署名生成）を追加した。
+  署名生成ロジックはpycryptodome（`CMAC.new(key, ciphermod=AES)`）による独立計算と一致することを
+  固定タイムスタンプのテストで確認済み（鍵はRFC 4493のダミー鍵、実資格情報ではない）。
+  MockWebServerでリクエストボディ（cmd/history/sign）・HTTPメソッド・パス・ヘッダーを検証し、
+  HTTP非成功時は`SesameApiException`を送出することを確認済み。
 
 ## 設計方針
 
