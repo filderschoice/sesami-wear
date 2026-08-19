@@ -88,7 +88,7 @@ private fun SesameActionScreen(
                 awaitingConfirmation = false
                 sending = true
             }) {
-                Text(text = "ホールドで解錠")
+                Text(text = "タップして解錠")
             }
         } else {
             Text(text = "送信中...")

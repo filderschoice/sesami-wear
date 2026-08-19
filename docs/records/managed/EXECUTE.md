@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:32
+  summary: 解錠確認ボタンのラベルを実際の操作方法に一致させて修正
+  details:
+    変更内容: >
+      BL-019のUI/UXレビューで発見した表記不整合を修正した。SesameActionActivity.ktの
+      解錠確認ボタンのラベルを「ホールドで解錠」（実装はワンタップ確認のため実態と不一致だった）
+      から「タップして解錠」へ変更した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。全モジュールのテストが成功
+    関連ID:
+      - BL-022
+```
+
+```yaml
 - date: 2026-08-20 00:26
   summary: UI/UXレビューを実施しBACKLOGへ改善タスクを分解登録
   details:
