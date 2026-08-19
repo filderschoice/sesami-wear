@@ -18,19 +18,6 @@
     Claude Codeへの追記許可を明示する。不可の場合は既知の制約として本タスクをクローズする）
   依存: []
 
-- id: BL-025
-  区分: 実装
-  タスク内容: Wear OS Tileのテキスト要素（SesameTileService.buildStatusBox内のText.Builder）に
-    contentDescriptionが設定されておらず、スクリーンリーダー等のアクセシビリティ機能で状態が
-    正しく読み上げられない可能性がある（BL-019 UI/UXレビューで発見）。Tileのテキスト要素へ
-    contentDescriptionを設定する
-  優先度: P3
-  状態: 未着手
-  担当: Wear
-  完了条件: Tileのレイアウト要素にcontentDescriptionが設定され、ビルドが成功する
-  依存:
-    - BL-007
-
 - id: BL-010
   区分: 人手検証
   タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。

@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:47
+  summary: Tileにアクセシビリティ用のcontentDescriptionを追加
+  details:
+    変更内容: >
+      BL-019のUI/UXレビューで発見したTileのアクセシビリティ不足を修正した。
+      SesameTileService.buildStatusBoxのModifiersへModifiersBuilders.Semanticsを追加し、
+      SesameTileContent.statusLabel(state)をcontentDescriptionとして設定した。
+      これによりBL-019のレビュー観点（視認性・誤操作防止・セキュリティ/プライバシー・
+      フィードバックの分かりやすさ・アクセシビリティ）で挙げた指摘事項（BL-022〜BL-025）が
+      すべて対応済みとなった。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。全モジュールのテストが成功
+    関連ID:
+      - BL-025
+```
+
+```yaml
 - date: 2026-08-20 00:42
   summary: 設定画面へ保存フィードバックと入力バリデーションを追加
   details:

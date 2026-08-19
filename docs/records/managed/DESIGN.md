@@ -192,6 +192,11 @@
   `enabled = isInputValid`として組み込んだ。保存成功時は「保存しました」というテキストを
   `LaunchedEffect` + `delay`で2秒間表示するフィードバックを追加した（Snackbar等の恒久的な
   UI基盤導入は見送り、シンプルな状態表示に留めた）。
+- REQ-020（BL-025）: BL-019のUI/UXレビューで判明したTileのアクセシビリティ不足を修正。
+  `SesameTileService.buildStatusBox`のModifiersへ`ModifiersBuilders.Semantics`を追加し、
+  `SesameTileContent.statusLabel(state)`をcontentDescriptionとして設定した。これにより
+  BL-019で挙げたレビュー観点（視認性・誤操作防止・セキュリティ/プライバシー・
+  フィードバックの分かりやすさ・アクセシビリティ）の指摘事項（BL-022〜BL-025）はすべて対応済み。
 
 ## 設計方針
 

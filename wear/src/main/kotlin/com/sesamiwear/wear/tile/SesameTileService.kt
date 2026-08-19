@@ -84,6 +84,11 @@ class SesameTileService : TileService() {
                         .setColor(ColorBuilders.argb(SesameTileContent.backgroundColorArgb(state)))
                         .build(),
                 )
+                .setSemantics(
+                    ModifiersBuilders.Semantics.Builder()
+                        .setContentDescription(SesameTileContent.statusLabel(state))
+                        .build(),
+                )
 
         val command = SesameTileActions.commandForState(state)
         if (command != null) {
