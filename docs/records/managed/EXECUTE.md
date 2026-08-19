@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 07:48
+  summary: 資格情報(uuid/apikey/secretKey)の保存機能と設定画面を実装
+  details:
+    変更内容: >
+      core.SesameCredentials（secretKeyはBase64文字列保持、secretKeyBytesで復号）、
+      core.SesameKeyValueStore（永続化抽象インターフェース）、core.SesameCredentialsStore
+      （save/load/clearロジック本体、Android非依存）を実装し単体テスト4件で検証した。
+      mobile.credentials.EncryptedSharedPreferencesKeyValueStore（EncryptedSharedPreferences+
+      MasterKeyベースの実装アダプタ）とmobile.credentials.CredentialsSettingsScreen
+      （uuid/apikey/secretKey入力・保存のCompose画面）を実装し、MainActivityから呼び出す構成に
+      置き換えた。detektのReturnCountルールがSesameCredentialsStore.load()の早期return4連続に
+      反応したため、null合成条件式1つのreturnへ書き換えた。ログ出力は一切実装しておらず、
+      平文資格情報がログへ出力される経路がないことをコードレビューで確認した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameKeyValueStore.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentialsStore.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/EncryptedSharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameCredentialsStoreTest 4件を含む全モジュールのテストが成功
+    関連ID:
+      - BL-005
+
 - date: 2026-08-19 07:36
   summary: Wear OS Tile UI(状態表示)を実装(クリックアクションはBL-014へ分離)
   details:

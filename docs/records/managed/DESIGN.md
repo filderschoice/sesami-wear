@@ -74,6 +74,15 @@
   また、実データ（スマホ接続状態・実際のロック状態）との結線もBL-013/BL-014で行う（現状は常に
   `UNKNOWN`状態を表示するプレースホルダー実装）。Android Studioでのプレビュー確認は本環境で
   自動実行できないため対象外とし、実機確認はBL-011（人手検証）に委ねる。
+- REQ-007（BL-005）: 資格情報（uuid/apikey/secretKey）の保存機能と設定画面を実装。
+  `core.SesameCredentials`（secretKeyはBase64文字列で保持し`secretKeyBytes`で復号）、
+  `core.SesameKeyValueStore`（永続化抽象インターフェース）、`core.SesameCredentialsStore`
+  （save/load/clearロジック本体、Android非依存）を実装し単体テスト4件で検証済み。
+  `mobile.credentials.EncryptedSharedPreferencesKeyValueStore`（`androidx.security.crypto`の
+  `EncryptedSharedPreferences`＋`MasterKey`ベースの実装、薄いアダプタのためテスト対象外）と
+  `mobile.credentials.CredentialsSettingsScreen`（uuid/apikey/secretKeyの入力・保存Compose画面）を
+  実装し、`MainActivity`から呼び出す構成にした。ログ出力（`android.util.Log`等）は一切使用しておらず、
+  平文の資格情報がログへ出力される経路はない。
 
 ## 設計方針
 

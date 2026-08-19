@@ -4,16 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-005
-  区分: 実装
-  タスク内容: apikey/secretKey/uuidをスマホ側で安全に保存する機能（EncryptedSharedPreferences等）と設定画面を実装する
-  優先度: P2
-  状態: 未着手
-  担当: Mobile
-  完了条件: 保存/読み出しの単体テストが成功し、ログへ平文出力しないことをコードレビューで確認する
-  依存:
-    - BL-001
-
 - id: BL-013
   区分: 実装
   タスク内容: BL-005（シークレット保存）完了後、SesameMessageListenerService（WearableListenerServiceの実装）を
