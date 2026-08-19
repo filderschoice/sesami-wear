@@ -18,18 +18,6 @@
     Claude Codeへの追記許可を明示する。不可の場合は既知の制約として本タスクをクローズする）
   依存: []
 
-- id: BL-023
-  区分: 実装
-  タスク内容: CredentialsSettingsScreenのsecretKey入力フィールドが平文表示されており、
-    肩越しの盗み見リスクがある（BL-019 UI/UXレビューで発見）。VisualTransformation
-    （PasswordVisualTransformation等）でマスキング表示にする
-  優先度: P2
-  状態: 未着手
-  担当: Mobile
-  完了条件: secretKey入力フィールドがマスキング表示され、ビルドが成功する
-  依存:
-    - BL-005
-
 - id: BL-024
   区分: 実装
   タスク内容: CredentialsSettingsScreenで保存ボタン押下後の成功フィードバック（Toast等）がなく、

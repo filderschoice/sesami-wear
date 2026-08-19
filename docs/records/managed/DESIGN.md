@@ -183,6 +183,9 @@
 - REQ-017（BL-022）: BL-019のUI/UXレビューで判明した表記不整合を修正。`SesameActionActivity.kt`の
   解錠確認ボタンのラベルを「ホールドで解錠」から「タップして解錠」へ変更し、実際の操作方法
   （ワンタップ確認）と文言を一致させた。
+- REQ-018（BL-023）: BL-019のUI/UXレビューで判明したセキュリティ/プライバシー上の指摘を修正。
+  `CredentialsSettingsScreen`のsecretKey入力フィールドへ`PasswordVisualTransformation`を設定し、
+  肩越しの盗み見を防ぐマスキング表示にした（表示/非表示切り替えトグルは今回のスコープ外）。
 
 ## 設計方針
 

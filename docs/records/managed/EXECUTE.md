@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:38
+  summary: secretKey入力欄をマスキング表示に変更
+  details:
+    変更内容: >
+      BL-019のUI/UXレビューで発見したセキュリティ/プライバシー上の指摘を修正した。
+      CredentialsSettingsScreenのsecretKey入力フィールドへPasswordVisualTransformationを設定し、
+      平文表示による肩越しの盗み見リスクを解消した。表示/非表示切り替えトグルは今回のスコープ外とした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。全モジュールのテストが成功
+    関連ID:
+      - BL-023
+```
+
+```yaml
 - date: 2026-08-20 00:32
   summary: 解錠確認ボタンのラベルを実際の操作方法に一致させて修正
   details:
