@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:08
+  summary: Tileの背景色による状態表示を実装
+  details:
+    変更内容: >
+      PLAN.mdのUX要件「Tileはロック状態をアイコン・色でひと目表示」のうち、BL-007時点で
+      テキスト表示のみに留まっていた色分けを追加した。wear.tile.SesameTileContentへ
+      backgroundColorArgb(state)（施錠中=緑/解錠中=赤/通信中=黄/未接続・不明=グレー）を追加し
+      単体テスト2件で検証した（3状態が異なる色であること、未接続/不明が同色であること）。
+      SesameTileServiceのBoxにModifiersBuilders.Backgroundとして組み込み、既存のクリック
+      アクション用Modifiersと統合した（Boxが持てるModifiersは1つのため、背景色とクリック設定を
+      同一のModifiers.Builderにまとめる形に既存コードをリファクタリングした）。
+      アイコン自体は未実装のままで、テキスト+背景色による表現に留まる。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameTileContentTest 5件（新規2件含む）を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-017
+
 - date: 2026-08-20 00:03
   summary: Wear側の結果受信とハプティクス再生の橋渡しを実装
   details:

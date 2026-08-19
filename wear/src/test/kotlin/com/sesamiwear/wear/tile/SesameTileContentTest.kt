@@ -25,4 +25,21 @@ class SesameTileContentTest {
         assertNull(SesameTileContent.actionLabel(TileDisplayState.DISCONNECTED))
         assertNull(SesameTileContent.actionLabel(TileDisplayState.UNKNOWN))
     }
+
+    @Test
+    fun `background color distinguishes locked, unlocked and in-progress`() {
+        val locked = SesameTileContent.backgroundColorArgb(TileDisplayState.LOCKED)
+        val unlocked = SesameTileContent.backgroundColorArgb(TileDisplayState.UNLOCKED)
+        val inProgress = SesameTileContent.backgroundColorArgb(TileDisplayState.IN_PROGRESS)
+
+        assertEquals(setOf(locked, unlocked, inProgress).size, 3)
+    }
+
+    @Test
+    fun `disconnected and unknown share the same neutral color`() {
+        assertEquals(
+            SesameTileContent.backgroundColorArgb(TileDisplayState.DISCONNECTED),
+            SesameTileContent.backgroundColorArgb(TileDisplayState.UNKNOWN),
+        )
+    }
 }

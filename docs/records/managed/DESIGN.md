@@ -143,6 +143,12 @@
   `MESSAGE_RECEIVED`アクション・`pathPrefix="/sesami-wear/result"`のintent-filter付きで登録した。
   これによりBL-008で実装したハプティクス再生ロジックの呼び出し元が揃い、施錠/解錠の
   Data Layer APIメッセージングとハプティクスフィードバックの結線が完了した。
+- REQ-014（BL-017）: Tileの背景色による状態表示を実装。`wear.tile.SesameTileContent`に
+  `backgroundColorArgb(state)`（施錠中=緑/解錠中=赤/通信中=黄/未接続・不明=グレー、単体テスト2件追加）
+  を追加し、`SesameTileService`のBoxに`ModifiersBuilders.Background`として組み込んだ
+  （クリックアクションと同じModifiersへ統合）。これによりPLAN.mdのUX要件
+  「Tileはロック状態をアイコン・色でひと目表示」の色分け部分を満たした
+  （アイコン自体は未実装、テキスト+背景色による表現に留まる）。
 
 ## 設計方針
 

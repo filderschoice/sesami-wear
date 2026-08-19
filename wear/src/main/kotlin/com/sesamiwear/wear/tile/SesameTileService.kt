@@ -1,6 +1,7 @@
 package com.sesamiwear.wear.tile
 
 import androidx.wear.protolayout.ActionBuilders
+import androidx.wear.protolayout.ColorBuilders
 import androidx.wear.protolayout.LayoutElementBuilders
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
@@ -76,22 +77,30 @@ class SesameTileService : TileService() {
         )
 
     private fun buildStatusBox(state: TileDisplayState): LayoutElementBuilders.LayoutElement {
-        val boxBuilder =
-            LayoutElementBuilders.Box.Builder()
-                .addContent(
-                    Text.Builder(this, SesameTileContent.statusLabel(state))
-                        .setTypography(Typography.TYPOGRAPHY_BODY1)
+        val modifiersBuilder =
+            ModifiersBuilders.Modifiers.Builder()
+                .setBackground(
+                    ModifiersBuilders.Background.Builder()
+                        .setColor(ColorBuilders.argb(SesameTileContent.backgroundColorArgb(state)))
                         .build(),
                 )
 
         val command = SesameTileActions.commandForState(state)
         if (command != null) {
-            boxBuilder.setModifiers(clickableModifiers(command))
+            modifiersBuilder.setClickable(buildClickable(command))
         }
-        return boxBuilder.build()
+
+        return LayoutElementBuilders.Box.Builder()
+            .addContent(
+                Text.Builder(this, SesameTileContent.statusLabel(state))
+                    .setTypography(Typography.TYPOGRAPHY_BODY1)
+                    .build(),
+            )
+            .setModifiers(modifiersBuilder.build())
+            .build()
     }
 
-    private fun clickableModifiers(command: SesameCommand): ModifiersBuilders.Modifiers {
+    private fun buildClickable(command: SesameCommand): ModifiersBuilders.Clickable {
         val launchAction =
             ActionBuilders.LaunchAction.Builder()
                 .setAndroidActivity(
@@ -105,13 +114,9 @@ class SesameTileService : TileService() {
                         .build(),
                 )
                 .build()
-        return ModifiersBuilders.Modifiers.Builder()
-            .setClickable(
-                ModifiersBuilders.Clickable.Builder()
-                    .setId(command.name)
-                    .setOnClick(launchAction)
-                    .build(),
-            )
+        return ModifiersBuilders.Clickable.Builder()
+            .setId(command.name)
+            .setOnClick(launchAction)
             .build()
     }
 
