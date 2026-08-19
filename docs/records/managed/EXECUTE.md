@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 20:58
+  summary: Complicationでロック状態を文字盤表示する機能を実装
+  details:
+    変更内容: >
+      wear.complication.SesameComplicationContent（TileDisplayState→短い表示文言「施錠」
+      「解錠」「通信中」「未接続」「不明」、Android非依存）を実装し単体テスト2件で検証した。
+      wear.complication.SesameComplicationDataSourceService（ComplicationDataSourceService実装、
+      ShortTextComplicationDataを返す、getPreviewDataも実装）を追加し、AndroidManifestへ
+      BIND_COMPLICATION_PROVIDER権限・ACTION_COMPLICATION_UPDATE_REQUEST intent-filter・
+      SUPPORTED_TYPES=SHORT_TEXTのmeta-data付きで登録した。SesameTileServiceと同様、実データ
+      （スマホ接続状態・ロック状態）との結線は未実装で常にUNKNOWN状態を表示するプレースホルダーの
+      ままであり、この点はBL-015へ統合される。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameComplicationContentTest 2件を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-009
+
 - date: 2026-08-19 18:48
   summary: ハプティクスフィードバック(成功/失敗の振動パターン)を実装
   details:

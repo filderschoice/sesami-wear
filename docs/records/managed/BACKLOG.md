@@ -36,16 +36,6 @@
     - BL-006
     - BL-008
 
-- id: BL-009
-  区分: 実装
-  タスク内容: Complicationで常時ロック状態を文字盤表示する機能を実装する
-  優先度: P2
-  状態: 未着手
-  担当: Wear
-  完了条件: ComplicationDataSourceServiceのデータ生成ロジック単体テストが成功する
-  依存:
-    - BL-006
-
 - id: BL-010
   区分: 人手検証
   タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。

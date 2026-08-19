@@ -111,6 +111,14 @@
   **未完了**: `SesameHapticPlayer`を呼び出す箇所（Wear側でのPATH_COMMAND_RESULT受信リスナー）が
   まだ存在しない。BL-014でコマンド送信をFire-and-forgetにしたため、結果受信の仕組み自体が未実装で
   あることに起因する。受信リスナーとハプティクス再生の橋渡しはBL-016へ切り出した。
+- REQ-011（BL-009）: Complicationでロック状態を文字盤表示する機能を実装。
+  `wear.complication.SesameComplicationContent`（`TileDisplayState`→短い表示文言、Android非依存、
+  単体テスト2件）と`wear.complication.SesameComplicationDataSourceService`
+  （`ComplicationDataSourceService`実装、`ShortTextComplicationData`を返す）を実装し、
+  AndroidManifestへ`BIND_COMPLICATION_PROVIDER`権限・`ACTION_COMPLICATION_UPDATE_REQUEST`
+  intent-filter・`SUPPORTED_TYPES=SHORT_TEXT`のmeta-data付きで登録した。
+  **未完了**: SesameTileServiceと同様、実データ（スマホ接続状態・ロック状態）との結線はBL-015で
+  行う（現状は常にUNKNOWN状態を表示するプレースホルダー）。
 
 ## 設計方針
 
