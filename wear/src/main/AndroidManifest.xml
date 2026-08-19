@@ -21,6 +21,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".action.SesameActionActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
         <service
             android:name=".tile.SesameTileService"
             android:exported="true"

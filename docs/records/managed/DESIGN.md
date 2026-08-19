@@ -93,6 +93,17 @@
   **技術メモ**: `core.SesameApiClient`のコンストラクタが`OkHttpClient`型をデフォルト引数として公開APIに
   含んでいたため、`core/build.gradle.kts`のokhttp依存を`implementation`から`api`へ変更する必要があった
   （`implementation`のままだとmobileモジュールから`OkHttpClient`型が解決できずコンパイルエラーになった）。
+- REQ-009（BL-014）: Tileのクリックアクションを実装。`core.api.SesameCommandConfirmation`
+  （UNLOCKのみ確認要求、単体テスト2件）、`wear.tile.SesameTileActions`（Tile状態→提示コマンドの決定、
+  単体テスト3件）、`wear.action.SesameActionCommandParser`（Intent Extra文字列→SesameCommand、
+  単体テスト3件）をAndroid非依存で実装。`wear.action.SesameActionActivity`（Tileタップで起動、
+  LOCKはワンタップ即送信・UNLOCKは確認ボタン後に送信、Fire-and-forget方式でコマンド送信して終了）、
+  `wear.messaging.SesameConnectedNodeProvider`（`NodeClient.connectedNodes`から接続先ノードID取得、
+  薄いアダプタ）を実装し、AndroidManifestへ`SesameActionActivity`（`exported=false`）を登録した。
+  `SesameTileService`にも`ActionBuilders.LaunchAction`によるクリック設定を組み込んだ。
+  **未完了**: 現状Tileは常に`UNKNOWN`状態を返すプレースホルダーのため、`SesameTileActions`が
+  `null`（タップ不可）を返し続け、実際にはまだタップできない。Tileへの実データ結線はBL-015へ切り出した。
+  また、コマンド送信はFire-and-forgetのため、成功/失敗のリアルタイム反映とハプティクスはBL-008で扱う。
 
 ## 設計方針
 

@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 13:04
+  summary: Tileのクリックアクション(施錠ワンタップ/解錠確認)を実装
+  details:
+    変更内容: >
+      core.api.SesameCommandConfirmation（UNLOCKのみ確認要求）、wear.tile.SesameTileActions
+      （Tile状態→提示コマンド決定）、wear.action.SesameActionCommandParser（Intent Extra文字列→
+      SesameCommand）をAndroid非依存で実装し単体テスト計8件で検証した。
+      wear.action.SesameActionActivity（LOCKはワンタップ即送信、UNLOCKは確認ボタン後に送信する
+      Fire-and-forget方式のTrampoline的Activity）、wear.messaging.SesameConnectedNodeProvider
+      （NodeClient.connectedNodesから接続先ノードID取得）を実装し、AndroidManifestへ
+      SesameActionActivity（exported=false）を登録した。SesameTileServiceにも
+      ActionBuilders.LaunchActionによるクリック設定を組み込んだ。
+      現状Tileは常にUNKNOWN状態を返すプレースホルダーのため実際にはまだタップできず、
+      Tileへの実データ結線を新規タスクBL-015へ切り出しBACKLOGへ登録した（BL-011の依存にも追加）。
+      コマンド送信はFire-and-forgetのため、成功/失敗のリアルタイム反映とハプティクスはBL-008に委ねる。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandConfirmation.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandConfirmationTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileActions.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileActionsTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/action/SesameActionCommandParserTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameConnectedNodeProvider.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。core 2件、wear 6件（計8件）の新規テストを含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-014
+
 - date: 2026-08-19 09:09
   summary: WearableListenerServiceの実サービス化と資格情報結線を実装
   details:
