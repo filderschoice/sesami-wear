@@ -5,6 +5,29 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:23
+  summary: README.mdを新規作成し、DESIGN.mdのMarkdownlint違反を修正
+  details:
+    変更内容: >
+      アーキテクチャ概要（core/mobile/wearの役割分担）、前提環境、資格情報の取得・設定手順、
+      品質ゲート5コマンド、プロジェクト構成、既知の未確認事項・制約をまとめたREADME.mdを新規作成した。
+      npx markdownlint-cli2 "**/*.md" 実行時に既存ファイルのDESIGN.md（bare URL、MD034）と
+      BACKLOG.md（先頭見出し欠落、MD041）の違反を発見した。DESIGN.mdの違反はマーカー内の変更で
+      修正可能だったためbare URLをMarkdownリンク形式へ修正した。BACKLOG.mdの違反修正には
+      マーカー外（COPILOT_RECORDS:BEGINより前）への追記が必要でCLAUDE.mdの規約に抵触する可能性が
+      あるため、修正はせずBL-021として要確認登録した。
+    変更ファイル:
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: 成功 - README.md/DESIGN.mdの違反解消を確認（BACKLOG.mdの1件はBL-021として要確認のまま残存）
+    関連ID:
+      - BL-018
+```
+
+```yaml
 - date: 2026-08-20 00:08
   summary: Tileの背景色による状態表示を実装
   details:

@@ -4,6 +4,20 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-021
+  区分: ドキュメント
+  タスク内容: 本ファイル（BACKLOG.md）冒頭にmarkdownlint-disable-file MD041コメントが欠落しており、
+    npx markdownlint-cli2 "**/*.md" 実行時にエラーとなる（DESIGN.md/EXECUTE.mdには同コメントが
+    付与済みで、BACKLOG.mdのみinit commit時点から欠落している模様、BL-018のREADME.md作成時に発見）。
+    修正にはCOPILOT_RECORDS:BEGINより前（マーカー外）への追記が必要で、CLAUDE.md「records自動更新規約」
+    の「マーカー外の本文変更は行わない」に抵触する可能性があるため、対応可否をユーザーへ確認する
+  優先度: P3
+  状態: 要確認
+  担当: ユーザー
+  完了条件: マーカー外への追記可否をユーザーが判断する（可の場合はユーザー自身が追記するか、
+    Claude Codeへの追記許可を明示する。不可の場合は既知の制約として本タスクをクローズする）
+  依存: []
+
 - id: BL-018
   区分: ドキュメント
   タスク内容: アプリのセットアップ・ビルド・実行・テスト手順、モジュール構成（core/mobile/wear）、

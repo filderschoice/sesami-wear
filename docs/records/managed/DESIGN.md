@@ -35,7 +35,7 @@
   CHSesame2Statusからの計算プロパティ）へデコードする。HTTP非成功時は`SesameApiException`を送出する。
   MockWebServerを用いた単体テスト4件（施錠中/解錠中のレスポンスパース、未知フィールドの無視、
   異常系の例外送出）で検証済み。フィールド構成は参考実装pysesame3
-  （https://github.com/mochipon/pysesame3）のソースを参照して修正した（BL-012）。
+  (<https://github.com/mochipon/pysesame3>)のソースを参照して修正した（BL-012）。
   **未確認事項**: pysesame3自体もこのレスポンス構造を将来変更されうるものとして注意書きしており、
   実機疎通確認（BL-010、人手検証）で最終確認する必要がある。
 - REQ-004（BL-004）: `SesameApiClient.sendCommand()`として施錠/解錠（POST）を実装。
@@ -149,6 +149,13 @@
   （クリックアクションと同じModifiersへ統合）。これによりPLAN.mdのUX要件
   「Tileはロック状態をアイコン・色でひと目表示」の色分け部分を満たした
   （アイコン自体は未実装、テキスト+背景色による表現に留まる）。
+- REQ-015（BL-018）: README.mdを新規作成。アーキテクチャ概要（core/mobile/wearの役割分担）、
+  前提環境、資格情報の取得・設定手順、品質ゲート5コマンド（`ktlintCheck`/`detekt`/`lintDebug`/
+  `testDebugUnitTest`・`test`/`assembleDebug`）、プロジェクト構成、既知の未確認事項・制約
+  （pysesame3参照によるAPI仕様推測、状態同期の限定範囲、アイコン未作成等）を記載した。
+  `npx markdownlint-cli2 "**/*.md"`で検証済み。あわせてDESIGN.md内のbare URL（MD034違反）を
+  Markdownリンク形式へ修正した。BACKLOG.md冒頭の`markdownlint-disable-file MD041`欠落は
+  マーカー外の変更が必要なためBL-021として要確認登録に留めた。
 
 ## 設計方針
 
@@ -198,7 +205,7 @@
 
 - Wear API: 施錠/解錠（POST）はsecretKeyによるAES-CMAC署名付きコマンドが必須。素のJSON送信では
   通らない（PLAN.md記載）。状態取得（GET）はx-api-keyヘッダーのみで可能。
-- 参考実装: pysesame3（https://github.com/mochipon/pysesame3）、chanshige/sesame（PHP）などのOSSに
+- 参考実装: pysesame3(<https://github.com/mochipon/pysesame3>)、chanshige/sesame（PHP）などのOSSに
   CMAC署名ロジックの実装例があり、Kotlin/Java向けの軽量ラッパーが少ないためロジック移植が前提
   （BL-002で対応）。
 - 施錠/解錠APIの詳細仕様（pysesame3 pysesame3/cloud.py `SesameCloud.getSign`/`sendCmd`、
