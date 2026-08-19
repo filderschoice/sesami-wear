@@ -10,7 +10,8 @@ kotlin {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.okhttp)
+    // SesameApiClientのコンストラクタ引数(デフォルト値)としてOkHttpClient型を公開しているためapiとする
+    api(libs.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

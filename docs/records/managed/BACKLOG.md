@@ -4,23 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-013
-  区分: 実装
-  タスク内容: BL-005（シークレット保存）完了後、SesameMessageListenerService（WearableListenerServiceの実装）を
-    mobile側に実装し、保存されたapikey/secretKey/uuidからSesameCommandHandlerを構築してAndroidManifestへ
-    登録する。Wear側もMessageClientSesameMessageSenderをアプリ起動時に結線する
-    （BL-006では資格情報取得手段が未確定のため、ロジック本体とMessageClientアダプタの実装に留め、
-    実サービスクラスとの結線は本タスクへ切り出した）
-  優先度: P1
-  状態: 未着手
-  担当: 共通
-  完了条件: WearableListenerServiceの実装がktlint/detekt/lintDebugを通過してAndroidManifestに登録され、
-    mobile/wear双方でSesameCommandHandler/SesameCommandSenderが実インスタンスとして結線される
-    （実際の送受信動作の確認はBL-011、人手検証）
-  依存:
-    - BL-005
-    - BL-006
-
 - id: BL-014
   区分: 実装
   タスク内容: Tileのクリックアクション（施錠ワンタップ即実行、解錠ホールド確認 or 確認ダイアログ）を実装する。

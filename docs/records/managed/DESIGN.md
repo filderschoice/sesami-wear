@@ -83,6 +83,16 @@
   `mobile.credentials.CredentialsSettingsScreen`（uuid/apikey/secretKeyの入力・保存Compose画面）を
   実装し、`MainActivity`から呼び出す構成にした。ログ出力（`android.util.Log`等）は一切使用しておらず、
   平文の資格情報がログへ出力される経路はない。
+- REQ-008（BL-013）: BL-006で切り出していたWearableListenerServiceの実サービス化と資格情報結線を実装。
+  `mobile.messaging.SesameMessageListenerService`（`WearableListenerService`実装、
+  `SesameCredentialsStore`から資格情報を読み込み`SesameCommandHandler`を構築、資格情報未設定時は
+  `FAILURE`を返す）をAndroidManifestへ`MESSAGE_RECEIVED`アクション・`pathPrefix="/sesami-wear/"`の
+  intent-filter付きで登録した。`wear.messaging.SesameCommandSenderProvider`
+  （`Wearable.getMessageClient(context)`から`SesameCommandSender`を構築するファクトリ）も実装した。
+  いずれもAndroid依存の薄いアダプタのためユニットテスト対象外（BL-011で人手検証）。
+  **技術メモ**: `core.SesameApiClient`のコンストラクタが`OkHttpClient`型をデフォルト引数として公開APIに
+  含んでいたため、`core/build.gradle.kts`のokhttp依存を`implementation`から`api`へ変更する必要があった
+  （`implementation`のままだとmobileモジュールから`OkHttpClient`型が解決できずコンパイルエラーになった）。
 
 ## 設計方針
 

@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 09:09
+  summary: WearableListenerServiceの実サービス化と資格情報結線を実装
+  details:
+    変更内容: >
+      mobile.messaging.SesameMessageListenerService（WearableListenerService実装）を追加。
+      onMessageReceivedでSesameCredentialsStore経由の資格情報からSesameCommandHandlerを構築し
+      （未設定時はFAILURE）、実行結果をWearable.getMessageClient経由でWear側へ返す。
+      AndroidManifestへMESSAGE_RECEIVEDアクション・pathPrefix="/sesami-wear/"のintent-filter付きで
+      登録した。wear.messaging.SesameCommandSenderProvider（Wearable.getMessageClient(context)から
+      SesameCommandSenderを構築するファクトリ）も実装した。
+      実装中、core.SesameApiClientのコンストラクタがOkHttpClient型をデフォルト引数として公開APIに
+      含んでいたため、core/build.gradle.ktsのokhttp依存をimplementationからapiへ変更する必要があった
+      （implementationのままだとmobileモジュールでCannot access class 'okhttp3.OkHttpClient'
+      コンパイルエラーになった）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderProvider.kt
+      - core/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL（本イテレーションは薄いアダプタ実装のため新規ユニットテストなし。
+      既存の全モジュールテストが引き続き成功）
+    関連ID:
+      - BL-013
+
 - date: 2026-08-19 07:48
   summary: 資格情報(uuid/apikey/secretKey)の保存機能と設定画面を実装
   details:
