@@ -186,6 +186,12 @@
 - REQ-018（BL-023）: BL-019のUI/UXレビューで判明したセキュリティ/プライバシー上の指摘を修正。
   `CredentialsSettingsScreen`のsecretKey入力フィールドへ`PasswordVisualTransformation`を設定し、
   肩越しの盗み見を防ぐマスキング表示にした（表示/非表示切り替えトグルは今回のスコープ外）。
+- REQ-019（BL-024）: BL-019のUI/UXレビューで判明した設定画面のフィードバック・バリデーション不足を修正。
+  `mobile.credentials.CredentialsInputValidator`（uuid/apikey/secretKeyBase64のいずれかが空欄なら
+  無効と判定、Android非依存、単体テスト5件）を実装し、`CredentialsSettingsScreen`の保存ボタンへ
+  `enabled = isInputValid`として組み込んだ。保存成功時は「保存しました」というテキストを
+  `LaunchedEffect` + `delay`で2秒間表示するフィードバックを追加した（Snackbar等の恒久的な
+  UI基盤導入は見送り、シンプルな状態表示に留めた）。
 
 ## 設計方針
 

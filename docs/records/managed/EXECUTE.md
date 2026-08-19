@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:42
+  summary: 設定画面へ保存フィードバックと入力バリデーションを追加
+  details:
+    変更内容: >
+      BL-019のUI/UXレビューで発見した設定画面のフィードバック・バリデーション不足を修正した。
+      mobile.credentials.CredentialsInputValidator（uuid/apikey/secretKeyBase64のいずれかが
+      空欄なら無効と判定、Android非依存）を実装し単体テスト5件で検証した。
+      CredentialsSettingsScreenの保存ボタンへenabled=isInputValidとして組み込み、
+      空欄のまま保存できないようにした。保存成功時は「保存しました」というテキストを
+      LaunchedEffect+delayで2秒間表示するフィードバックを追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidator.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidatorTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。CredentialsInputValidatorTest 5件を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-024
+```
+
+```yaml
 - date: 2026-08-20 00:38
   summary: secretKey入力欄をマスキング表示に変更
   details:

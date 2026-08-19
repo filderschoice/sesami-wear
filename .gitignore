@@ -13,6 +13,7 @@ captures/
 .cxx/
 *.apk
 *.aab
+.kotlin/
 
 # IDE
 .idea/
