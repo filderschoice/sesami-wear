@@ -104,6 +104,13 @@
   **未完了**: 現状Tileは常に`UNKNOWN`状態を返すプレースホルダーのため、`SesameTileActions`が
   `null`（タップ不可）を返し続け、実際にはまだタップできない。Tileへの実データ結線はBL-015へ切り出した。
   また、コマンド送信はFire-and-forgetのため、成功/失敗のリアルタイム反映とハプティクスはBL-008で扱う。
+- REQ-010（BL-008）: ハプティクスフィードバックを実装。`wear.haptics.HapticPattern`（SUCCESS/FAILURE）、
+  `wear.haptics.SesameHapticPatternResolver`（`SesameCommandResult`→`HapticPattern`、Android非依存、
+  単体テスト2件）、`wear.haptics.SesameHapticPlayer`（`Vibrator`/`VibratorManager`ベースの振動再生、
+  Android依存の薄いアダプタ）を実装し、`android.permission.VIBRATE`をAndroidManifestへ追加した。
+  **未完了**: `SesameHapticPlayer`を呼び出す箇所（Wear側でのPATH_COMMAND_RESULT受信リスナー）が
+  まだ存在しない。BL-014でコマンド送信をFire-and-forgetにしたため、結果受信の仕組み自体が未実装で
+  あることに起因する。受信リスナーとハプティクス再生の橋渡しはBL-016へ切り出した。
 
 ## 設計方針
 

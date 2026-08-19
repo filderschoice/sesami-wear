@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 18:48
+  summary: ハプティクスフィードバック(成功/失敗の振動パターン)を実装
+  details:
+    変更内容: >
+      wear.haptics.HapticPattern（SUCCESS/FAILURE）とwear.haptics.SesameHapticPatternResolver
+      （SesameCommandResultからHapticPatternを決定、Android非依存）を実装し単体テスト2件で検証した。
+      wear.haptics.SesameHapticPlayer（Vibrator/VibratorManagerベースの振動再生、API31分岐を含む
+      薄いアダプタ）を実装し、android.permission.VIBRATEをAndroidManifestへ追加した
+      （lintDebugがMissingPermissionエラーで検出、追加により解消）。
+      SesameHapticPlayerを呼び出す箇所（Wear側でのPATH_COMMAND_RESULT受信リスナー）はまだ存在せず、
+      BL-014でコマンド送信をFire-and-forgetにしたため結果受信の仕組み自体が未実装であることに起因する。
+      受信リスナーとハプティクス再生の橋渡しを新規タスクBL-016へ切り出しBACKLOGへ登録した
+      （BL-011の依存にも追加）。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/HapticPattern.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolver.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPlayer.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameHapticPatternResolverTest 2件を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-008
+
 - date: 2026-08-19 13:04
   summary: Tileのクリックアクション(施錠ワンタップ/解錠確認)を実装
   details:
