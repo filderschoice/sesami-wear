@@ -5,6 +5,29 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:03
+  summary: Wear側の結果受信とハプティクス再生の橋渡しを実装
+  details:
+    変更内容: >
+      wear.messaging.SesameResultHandler（path/payloadからHapticPatternを決定、
+      PATH_COMMAND_RESULT以外はnull、Android非依存）を実装し単体テスト3件で検証した。
+      wear.messaging.SesameResultListenerService（WearableListenerService実装、判定結果を
+      SesameHapticPlayerへ渡す薄いアダプタ）を実装し、AndroidManifestへMESSAGE_RECEIVED
+      アクション・pathPrefix="/sesami-wear/result"のintent-filter付きで登録した。
+      これによりBL-008で実装済みだったハプティクス再生ロジックの呼び出し元が揃い、
+      施錠/解錠のData Layer APIメッセージングとハプティクスフィードバックの結線が完了した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultHandler.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameResultHandlerTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameResultHandlerTest 3件を含む全モジュールのテストが成功
+    関連ID:
+      - BL-016
+
 - date: 2026-08-19 23:57
   summary: TileとComplicationへの実データ結線(DataClient同期)を実装
   details:

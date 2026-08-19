@@ -135,6 +135,14 @@
   **未確認事項**: Mobile側の状態同期はコマンド送信成功時のみに限定しており、アプリ起動時や
   他経路（Sesame純正アプリでの操作等）による状態変化は反映されない。定期ポーリングやGET結果に
   基づく同期は将来の改善事項として残る。
+- REQ-013（BL-016）: Wear側での結果受信とハプティクス再生の橋渡しを実装。
+  `wear.messaging.SesameResultHandler`（path・payloadから`HapticPattern`を決定、
+  PATH_COMMAND_RESULT以外はnull、Android非依存、単体テスト3件）と
+  `wear.messaging.SesameResultListenerService`（`WearableListenerService`実装、判定結果を
+  `SesameHapticPlayer`へ渡す薄いアダプタ）を実装し、AndroidManifestへ
+  `MESSAGE_RECEIVED`アクション・`pathPrefix="/sesami-wear/result"`のintent-filter付きで登録した。
+  これによりBL-008で実装したハプティクス再生ロジックの呼び出し元が揃い、施錠/解錠の
+  Data Layer APIメッセージングとハプティクスフィードバックの結線が完了した。
 
 ## 設計方針
 

@@ -4,20 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-016
-  区分: 実装
-  タスク内容: Wear側でPATH_COMMAND_RESULTメッセージを受信するWearableListenerServiceを実装し、
-    受信結果をSesameHapticPlayer.play()（BL-008実装）へ橋渡しする。現状SesameHapticPlayerは
-    実装済みだが、呼び出し元となる結果受信の仕組みが存在せず未接続のため本タスクへ切り出した
-  優先度: P2
-  状態: 未着手
-  担当: Wear
-  完了条件: 受信メッセージからHapticPatternを再生するまでの接続ロジックの単体テストが成功する
-    （受信サービス自体は薄いアダプタのためビルド確認まで）
-  依存:
-    - BL-006
-    - BL-008
-
 - id: BL-010
   区分: 人手検証
   タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。
