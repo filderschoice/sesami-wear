@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 00:26
+  summary: UI/UXレビューを実施しBACKLOGへ改善タスクを分解登録
+  details:
+    変更内容: >
+      実装済みUI/UX（SesameTileService/SesameTileContent、SesameActionActivity、
+      CredentialsSettingsScreen、SesameComplicationDataSourceService）をPLAN.mdのUX要件と
+      突き合わせてコードベース上でレビューした。視認性・誤操作防止・セキュリティ/プライバシー・
+      フィードバックの分かりやすさ・アクセシビリティの観点で所見をまとめDESIGN.mdへ記録した。
+      特に重要な指摘として、SesameActionScreenの解錠確認ボタンのラベル「ホールドで解錠」が
+      実際のワンタップ動作と食い違っている点（ユーザーの長押し試行による誤操作リスク）と、
+      CredentialsSettingsScreenのsecretKey入力欄が平文表示のままである点（盗み見リスク）を
+      発見し、それぞれBL-022・BL-023として要修正登録した。設定画面の保存フィードバック欠如・
+      入力バリデーション欠如をBL-024、Tileのアクセシビリティ（contentDescription未設定）を
+      BL-025として登録した。器のみだったBL-020はこの分解をもって完了とした。
+    変更ファイル:
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: 検証対象のコード変更なし（レビュー作業のみ）
+    検証結果: 該当なし
+    関連ID:
+      - BL-019
+      - BL-020
+```
+
+```yaml
 - date: 2026-08-20 00:23
   summary: README.mdを新規作成し、DESIGN.mdのMarkdownlint違反を修正
   details:

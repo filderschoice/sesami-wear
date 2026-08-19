@@ -156,6 +156,30 @@
   `npx markdownlint-cli2 "**/*.md"`で検証済み。あわせてDESIGN.md内のbare URL（MD034違反）を
   Markdownリンク形式へ修正した。BACKLOG.md冒頭の`markdownlint-disable-file MD041`欠落は
   マーカー外の変更が必要なためBL-021として要確認登録に留めた。
+- REQ-016（BL-019）: 実装済みUI/UX（`SesameTileService`/`SesameTileContent`、`SesameActionActivity`、
+  `CredentialsSettingsScreen`、`SesameComplicationDataSourceService`）をPLAN.mdのUX要件と
+  突き合わせてレビューした（実機を伴わないコードベース上のレビュー）。観点別の所見は以下のとおり。
+
+  - **視認性**: Tileはテキスト＋背景色（BL-017）で状態を表現しているが、アイコンは未実装のまま
+    （制約として許容、DESIGN.md既存記載のとおり）。Complicationは短いテキストのみで、
+    `ShortTextComplicationData`の性質上これ以上の視覚的差別化は困難と判断し、対応不要とした。
+  - **誤操作防止**: `SesameActionScreen`（`SesameActionActivity.kt`）の解錠確認ボタンのラベルが
+    「ホールドで解錠」だが、実装は`Button(onClick = {...})`によるワンタップ確認であり、
+    実際の操作方法（タップ）とラベルの文言（ホールド＝長押し）が食い違っている。
+    ユーザーが長押しを試みて誤操作するリスクがあるため**要修正**と判定した（BL-022）。
+  - **セキュリティ/プライバシー**: `CredentialsSettingsScreen`のsecretKey入力欄が
+    `visualTransformation`未指定のため平文表示されており、肩越しの盗み見リスクがある。
+    **要修正**と判定した（BL-023）。
+  - **フィードバックの分かりやすさ**: `CredentialsSettingsScreen`の保存ボタンに、保存成功を示す
+    フィードバック（トースト等）がなく、ユーザーが保存されたか判断できない。また
+    uuid/apikey/secretKeyが空文字列のままでも保存できてしまい、入力バリデーションがない。
+    **要改善**と判定した（BL-024）。`SesameActionActivity`側は送信中表示→ハプティクスという
+    設計（BL-008/BL-016）がPLAN.mdの要件を満たしており、追加対応不要と判断した。
+  - **アクセシビリティ**: Tileの`Text.Builder`にcontentDescriptionが設定されておらず、
+    スクリーンリーダー等での状態読み上げに支障がある可能性がある。**要改善**と判定した（BL-025）。
+
+  対応が必要と判定した項目はBL-022〜BL-025として個別タスクに分解しBACKLOGへ登録した
+  （BL-020は本レビューによるタスク分解をもって完了とする）。
 
 ## 設計方針
 
