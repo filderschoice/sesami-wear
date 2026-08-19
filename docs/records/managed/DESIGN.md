@@ -119,6 +119,22 @@
   intent-filter・`SUPPORTED_TYPES=SHORT_TEXT`のmeta-data付きで登録した。
   **未完了**: SesameTileServiceと同様、実データ（スマホ接続状態・ロック状態）との結線はBL-015で
   行う（現状は常にUNKNOWN状態を表示するプレースホルダー）。
+- REQ-012（BL-015）: TileとComplicationへの実データ結線を実装。DataClient（DataItem）で
+  Mobile→Wear間にロック状態を同期する方式を採用: `core.SesameWearProtocol`に
+  `STATUS_DATA_ITEM_PATH`/`KEY_IS_LOCKED`/`KEY_UPDATED_AT_EPOCH_MILLIS`を追加し、
+  `core.SesameStatusSnapshot`（同期スナップショット）と`core.SesameStatusSnapshotFactory`
+  （DataMapの生値からスナップショットを構築、Android非依存、単体テスト2件）を実装した。
+  Mobile側は`mobile.messaging.SesameStatusSyncer`（`DataClient.putDataItem`ラッパー）を追加し、
+  `SesameMessageListenerService`でコマンド送信成功時に「送信したコマンドが意図した状態」
+  （LOCK成功→施錠、UNLOCK成功→解錠）をそのまま同期する簡略化ロジックとした
+  （実際のCHSesame2Statusとの整合はBL-010で確認する）。Wear側は
+  `wear.messaging.SesameStatusSnapshotReader`（DataClient経由の読み取り、`SesameStatusSnapshotFactory`
+  を利用）を追加し、`SesameTileService`と`SesameComplicationDataSourceService`の両方を
+  `SesameConnectedNodeProvider`（接続確認）と組み合わせた実データ表示に置き換えた
+  （`TileService.onTileRequest`はGuavaの`SettableFuture`でコルーチン結果をブリッジしている）。
+  **未確認事項**: Mobile側の状態同期はコマンド送信成功時のみに限定しており、アプリ起動時や
+  他経路（Sesame純正アプリでの操作等）による状態変化は反映されない。定期ポーリングやGET結果に
+  基づく同期は将来の改善事項として残る。
 
 ## 設計方針
 

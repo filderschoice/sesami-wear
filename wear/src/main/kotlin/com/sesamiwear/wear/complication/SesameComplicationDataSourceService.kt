@@ -8,10 +8,16 @@ import androidx.wear.watchface.complications.datasource.ComplicationDataSourceSe
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
+import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
+import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 文字盤にSesame 5のロック状態を常時表示するComplication。
- * 実データ（スマホ接続状態・ロック状態）との結線はBL-015で行う（現状は常にUNKNOWN状態）。
+ * スマホ接続状態・ロック状態は[SesameTileService]と同じ仕組み（[SesameConnectedNodeProvider]・
+ * [SesameStatusSnapshotReader]）から取得する（BL-015）。
  * Android Complications APIへの依存のためユニットテスト対象外
  * （表示文言ロジックは[SesameComplicationContent]でテスト済み、実機表示確認はBL-011で人手検証）。
  */
@@ -20,13 +26,17 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         request: ComplicationRequest,
         listener: ComplicationRequestListener,
     ) {
-        val state =
-            TileDisplayStateResolver.resolve(
-                isPhoneConnected = false,
-                isCommandInProgress = false,
-                isLocked = null,
-            )
-        listener.onComplicationData(buildComplicationData(state))
+        CoroutineScope(Dispatchers.IO).launch {
+            val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
+            val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext)
+            val state =
+                TileDisplayStateResolver.resolve(
+                    isPhoneConnected = isPhoneConnected,
+                    isCommandInProgress = false,
+                    isLocked = snapshot?.isLocked,
+                )
+            listener.onComplicationData(buildComplicationData(state))
+        }
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? {

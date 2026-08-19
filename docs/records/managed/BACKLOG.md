@@ -4,24 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-015
-  区分: 実装
-  タスク内容: SesameTileServiceのonTileRequestが常に固定値（isPhoneConnected=false,
-    isCommandInProgress=false, isLocked=null → 常にUNKNOWN状態）を使っているプレースホルダー実装を、
-    実際のスマホ接続状態・Sesame API状態取得結果に基づく表示へ置き換える。Mobile側からWear側への
-    状態通知（PATH_COMMAND_RESULTとは別の状態同期メッセージ、またはDataLayerのDataClient/
-    TileService.getUpdater()による定期更新）を実装する
-    （BL-014時点ではクリックアクション自体の技術実装のみを完了させ、Tileが常にUNKNOWNのため
-    実際にはタップできない状態が残っている。DESIGN.md記載の未完了事項を引き継いだ）
-  優先度: P2
-  状態: 未着手
-  担当: 共通
-  完了条件: Tileが実際のロック状態・スマホ接続状態を反映するロジックの単体テストが成功する
-  依存:
-    - BL-003
-    - BL-013
-    - BL-014
-
 - id: BL-016
   区分: 実装
   タスク内容: Wear側でPATH_COMMAND_RESULTメッセージを受信するWearableListenerServiceを実装し、

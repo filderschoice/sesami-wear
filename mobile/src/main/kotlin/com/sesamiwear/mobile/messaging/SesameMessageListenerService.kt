@@ -25,6 +25,9 @@ class SesameMessageListenerService : WearableListenerService() {
         CoroutineScope(Dispatchers.IO).launch {
             val handler = createHandler(applicationContext)
             val result = handler?.handle(messageEvent.path) ?: SesameCommandResult.FAILURE
+            if (result == SesameCommandResult.SUCCESS) {
+                syncLockedStateFromPath(messageEvent.path)
+            }
             Wearable.getMessageClient(this@SesameMessageListenerService)
                 .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
                 .await()
@@ -36,5 +39,15 @@ class SesameMessageListenerService : WearableListenerService() {
         val credentials = credentialsStore.load() ?: return null
         val apiClient = SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
         return SesameCommandHandler(apiClient, credentials.secretKeyBytes)
+    }
+
+    private suspend fun syncLockedStateFromPath(path: String) {
+        val isLocked =
+            when (path) {
+                SesameWearProtocol.PATH_LOCK_REQUEST -> true
+                SesameWearProtocol.PATH_UNLOCK_REQUEST -> false
+                else -> return
+            }
+        SesameStatusSyncer(applicationContext).syncLocked(isLocked)
     }
 }

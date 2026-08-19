@@ -5,6 +5,41 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-19 23:57
+  summary: TileとComplicationへの実データ結線(DataClient同期)を実装
+  details:
+    変更内容: >
+      DataClient（DataItem）でMobile→Wear間にロック状態を同期する方式を採用した。
+      core.SesameWearProtocolへSTATUS_DATA_ITEM_PATH/KEY_IS_LOCKED/KEY_UPDATED_AT_EPOCH_MILLIS
+      を追加し、core.SesameStatusSnapshot（スナップショット型）とcore.SesameStatusSnapshotFactory
+      （DataMapの生値からスナップショットを構築するAndroid非依存ロジック、単体テスト2件）を実装した。
+      mobile.messaging.SesameStatusSyncer（DataClient.putDataItemラッパー）を追加し、
+      SesameMessageListenerServiceでコマンド送信成功時に意図した状態（LOCK成功→施錠、
+      UNLOCK成功→解錠）を同期する簡略化ロジックとした。wear.messaging.SesameStatusSnapshotReader
+      （DataClient経由の読み取り）を追加し、SesameTileServiceとSesameComplicationDataSourceService
+      の両方をSesameConnectedNodeProviderと組み合わせた実データ表示に置き換えた。
+      TileService.onTileRequestはコールバック形式でListenableFutureを返す必要があるため、
+      Guavaの新規依存を避けSettableFutureで手動ブリッジした。
+      実際のCHSesame2Statusとの整合、アプリ起動時や他経路での状態変化の反映漏れは
+      未確認事項としてDESIGN.mdに明記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactory.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactoryTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameStatusSnapshotFactoryTest 2件を含む
+      全モジュールのテストが成功
+    関連ID:
+      - BL-015
+
 - date: 2026-08-19 20:58
   summary: Complicationでロック状態を文字盤表示する機能を実装
   details:
