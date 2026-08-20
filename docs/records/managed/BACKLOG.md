@@ -4,20 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-029
-  区分: 実装
-  タスク内容: Google Play提出前提でmobile/wearのリリースビルドのProGuard/R8設定を見直す。
-    現状isMinifyEnabled=falseだが、Google Playはリリースビルドでのコード縮小・難読化を推奨する。
-    kotlinx.serializationのシリアライザ等リフレクションを使うクラスのkeepルールを整備した上で
-    isMinifyEnabled=trueへ変更する
-  優先度: P2
-  状態: 未着手
-  担当: 共通
-  完了条件: isMinifyEnabled=trueでもassembleReleaseが成功し、コアロジックの単体テストが
-    （難読化の影響を受けないdebug/testビルドで）引き続き成功する
-  依存:
-    - BL-001
-
 - id: BL-030
   区分: ドキュメント
   タスク内容: Google Play Console提出に必要なストア掲載情報（アプリ名・短い説明・詳細な説明）と

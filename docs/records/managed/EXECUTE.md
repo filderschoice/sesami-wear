@@ -5,6 +5,29 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-21 00:37
+  summary: リリースビルドのProGuard/R8設定を整備しisMinifyEnabledを有効化
+  details:
+    変更内容: >
+      mobile/proguard-rules.pro・wear/proguard-rules.pro（build.gradle.ktsから参照されていたが
+      実体が存在しなかったため新規作成）へ、kotlinx.serializationの@Serializableクラス保護の
+      keepルールを追加した。mobile/wear双方のbuildTypes.releaseでisMinifyEnabledをfalseから
+      trueへ変更し、難読化・縮小を有効化した状態でassembleReleaseが成功することを確認した。
+    変更ファイル:
+      - mobile/proguard-rules.pro
+      - wear/proguard-rules.pro
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew :mobile:assembleRelease :wear:assembleRelease --no-daemon;
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。難読化有効なリリースビルドと全モジュールのテストが成功
+    関連ID:
+      - BL-029
+```
+
+```yaml
 - date: 2026-08-21 00:28
   summary: リリースビルド用の署名設定を追加
   details:

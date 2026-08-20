@@ -239,6 +239,13 @@
   `signingConfigs`自体を作成せず、`assembleDebug`はもちろん`assembleRelease`もunsignedの
   まま成功することを確認済み。README.mdへKeystore生成コマンド例と設定手順を追記した。
   Keystoreの実際の生成はBL-032（人手検証）で行う。
+- REQ-025（BL-029）: リリースビルドのProGuard/R8設定を整備。mobile/proguard-rules.pro・
+  wear/proguard-rules.pro（build.gradle.ktsから参照されていたが実体が存在しなかったため新規作成）
+  へ、kotlinx.serializationの`@Serializable`クラス・コンパイル時生成される`$$serializer`・
+  companionの`serializer()`を保護するkeepルールを追加し、mobile/wear双方のリリースビルドを
+  `isMinifyEnabled=true`へ変更した。難読化・縮小を有効化した状態で`assembleRelease`が
+  成功することを確認済み（実行時のシリアライズ動作そのものはユニットテストで検証できないため、
+  BL-010/BL-011の実機検証で最終確認する）。
 
 ## 設計方針
 
