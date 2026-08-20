@@ -4,6 +4,122 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-027
+  区分: 実装
+  タスク内容: Google Play限定公開に向けて、mobile/wear両アプリの実アイコンを作成・反映する。
+    現状は@android:drawable/sym_def_app_icon（システム標準アイコン）を暫定使用しており
+    （DESIGN.md記載の既知制約）、これをVectorDrawableベースのAdaptive Icon（背景レイヤー・
+    前景レイヤーのXML）で置き換える。ロック/鍵をモチーフにしたシンプルな図案とする。
+    Play Console提出用の高解像度アイコン画像（512x512 PNG）はXMLベースでの生成が技術的に
+    困難なためBL-034（人手検証）へ切り出す
+  優先度: P1
+  状態: 未着手
+  担当: 共通
+  完了条件: mobile/wearともAdaptive Icon（VectorDrawable背景+前景）がAndroidManifestから
+    参照され、@android:drawable/sym_def_app_iconへの依存が解消され、ビルドが成功する
+  依存:
+    - BL-001
+
+- id: BL-028
+  区分: 実装
+  タスク内容: リリースビルド用の署名設定（signingConfigs）をmobile/wearのbuild.gradle.ktsへ追加する。
+    Keystoreファイル・パスワードはlocal.properties経由（.gitignore対象）で注入し、
+    リポジトリにコミットしない設計にする。local.propertiesに署名情報が無い場合はassembleDebug等
+    通常のビルドに影響しないようにする。Keystore自体の生成はBL-032（人手検証、秘密鍵の生成を
+    伴うため自律ループ実行モードの対象外とする。rules/guardrails-unified.v1.md セクション12.5参照）
+    へ切り出す
+  優先度: P2
+  状態: 未着手
+  担当: 共通
+  完了条件: signingConfigsの雛形が追加され、local.properties未設定時でもassembleDebugへの影響が
+    ないことを確認する。README.mdに設定手順を追記する
+  依存:
+    - BL-001
+
+- id: BL-029
+  区分: 実装
+  タスク内容: Google Play提出前提でmobile/wearのリリースビルドのProGuard/R8設定を見直す。
+    現状isMinifyEnabled=falseだが、Google Playはリリースビルドでのコード縮小・難読化を推奨する。
+    kotlinx.serializationのシリアライザ等リフレクションを使うクラスのkeepルールを整備した上で
+    isMinifyEnabled=trueへ変更する
+  優先度: P2
+  状態: 未着手
+  担当: 共通
+  完了条件: isMinifyEnabled=trueでもassembleReleaseが成功し、コアロジックの単体テストが
+    （難読化の影響を受けないdebug/testビルドで）引き続き成功する
+  依存:
+    - BL-001
+
+- id: BL-030
+  区分: ドキュメント
+  タスク内容: Google Play Console提出に必要なストア掲載情報（アプリ名・短い説明・詳細な説明）と
+    プライバシーポリシーのドラフトをdocs/store/配下に作成する。プライバシーポリシーは収集する情報
+    （uuid/apikey/secretKeyをmobile側でのみ暗号化保存し、Sesame API通信以外への送信は行わない旨）
+    を明記する。実際のURLホスティングとPlay Consoleへの入力はBL-033（人手検証）で行う
+  優先度: P2
+  状態: 未着手
+  担当: 共通
+  完了条件: docs/store/配下にストア説明文・プライバシーポリシーのMarkdown文書が作成され、
+    markdownlint-cli2が成功する
+  依存: []
+
+- id: BL-031
+  区分: 実装
+  タスク内容: mobile/wearが別々のapplicationId（com.sesamiwear.mobile / com.sesamiwear.wear）を
+    持つ現行アーキテクチャは、Google Playが推奨するWear OSアプリの標準的な配布方式
+    （1つのAndroid App Bundleにwear feature moduleとして統合し単一のapplicationIdで公開する方式）
+    と異なり、2つの独立したアプリとしてPlay Consoleへ登録・限定公開することになる。この制約と
+    影響範囲（検索性・自動インストール推奨機能が使えない等）をDESIGN.mdの制約事項として明記し、
+    今回のタスクスコープでは統合構成への移行は行わないことを記録する
+  優先度: P3
+  状態: 未着手
+  担当: 共通
+  完了条件: DESIGN.mdへ本制約と、今後統合構成へ移行する場合の概要（wear feature module化）を
+    記載する
+  依存: []
+
+- id: BL-032
+  区分: 人手検証
+  タスク内容: keytoolコマンド（BL-028で整備した署名設定に対応する形でREADME.mdへ記載する手順）で
+    リリース署名用Keystoreを生成し、安全な場所（パスワードマネージャ等）に保管する。秘密鍵の生成・
+    保管は自律ループ実行モードの対象外（rules/guardrails-unified.v1.md セクション12.5「実資格情報の
+    取り扱い」参照）
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: Keystoreが生成され、BL-028で用意したlocal.properties経由の署名設定から参照できる
+    状態になる
+  依存:
+    - BL-028
+
+- id: BL-033
+  区分: 人手検証
+  タスク内容: BL-030で作成したプライバシーポリシーを公開可能なURLでホスティングし、Google Play
+    ConsoleのData safety（データ安全性）セクションへ申告する
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: プライバシーポリシーURLがPlay Consoleに登録され、データ安全性の申告が完了する
+  依存:
+    - BL-030
+
+- id: BL-034
+  区分: 人手検証
+  タスク内容: BL-032のKeystoreを使ってBL-029のリリース設定で署名付きAAB（mobile/wear）をビルドし、
+    Google Play Consoleでアプリを新規登録（Play Console提出用の高解像度アイコン画像512x512 PNGの
+    用意を含む）、限定公開（内部テストまたはクローズドテスト）トラックへアップロードし、
+    テスターを登録する。実機でのスクリーンショット撮影もあわせて行う
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: Google Play Consoleでテスタートラックにアップロードされ、テスターがインストールできる
+  依存:
+    - BL-011
+    - BL-029
+    - BL-030
+    - BL-032
+    - BL-033
+
 - id: BL-021
   区分: ドキュメント
   タスク内容: 本ファイル（BACKLOG.md）冒頭にmarkdownlint-disable-file MD041コメントが欠落しており、
