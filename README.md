@@ -75,6 +75,40 @@ Markdownドキュメントの品質チェックは別コマンドです（[CONTR
 npx markdownlint-cli2 "**/*.md"
 ```
 
+## リリースビルド・Google Play公開
+
+Google Play（限定公開含む）へ提出する署名付きビルドを作成するには、`local.properties`
+（`.gitignore`対象、コミットしないこと）へ以下のキーを追加してください。
+
+```properties
+RELEASE_STORE_FILE=/absolute/path/to/release-keystore.jks
+RELEASE_STORE_PASSWORD=<keystoreのパスワード>
+RELEASE_KEY_ALIAS=<key aliasの名前>
+RELEASE_KEY_PASSWORD=<keyのパスワード>
+```
+
+Keystore自体は以下のコマンドで生成できます（秘密鍵の生成のため、自律ループ実行モードの対象外・
+人手作業です。詳細は[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-032参照）。
+
+```bash
+keytool -genkeypair -v -keystore release-keystore.jks -alias <key aliasの名前> \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+生成したKeystoreファイルは、パスワードマネージャー等の安全な場所に保管し、**絶対にリポジトリへ
+コミットしないでください**。`local.properties`が存在しない、または上記キーが未設定の場合、
+`assembleDebug`等の通常のビルドには影響しません（リリースビルドの署名のみ未設定のままになります）。
+
+署名済みのAAB（Android App Bundle、Google Play提出用）は以下でビルドします。
+
+```bash
+./gradlew :mobile:bundleRelease :wear:bundleRelease
+```
+
+`mobile`と`wear`は別々の`applicationId`を持つ独立したアプリのため、Google Playには2つの別々の
+アプリとして登録することになります（標準的なWear OSアプリの単一AAB配布方式との違いについては
+[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。
+
 ## プロジェクト構成
 
 ```text
@@ -97,8 +131,9 @@ sesami-wear/
   最終確認が必要です。
 - Mobile側からWear側への状態同期（Tile / Complicationの表示更新）は、コマンド送信成功時にのみ行われます。
   Sesame純正アプリでの操作など他経路による状態変化は反映されません。
-- `mobile` / `wear` とも実アイコン（mipmap）は未作成で、システム標準アイコンを暫定的に使用しています。
-  配布前に専用アイコンへの差し替えが必要です。
+- `mobile` / `wear` の実アイコンはVectorDrawableベースのAdaptive Icon（簡易的な図案）です。
+  Google Play提出用の高解像度アイコン画像（512x512 PNG）は別途用意が必要です
+  （[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-034参照）。
 - 実機（Pixel Watch + Sesame 5 + Hub 3）を用いる動作確認は自動実行できないため、
   [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) に人手検証タスクとして記録しています。
 

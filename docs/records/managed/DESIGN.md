@@ -232,6 +232,13 @@
   （Adaptive Icon定義）を両モジュールへ追加し、AndroidManifestの`android:icon`/`android:roundIcon`
   （Wear側Complicationサービスの`android:icon`も含む）を`@android:drawable/sym_def_app_icon`から
   差し替えた。詳細と未確認事項は「実装制約」セクションのAndroidアイコンリソース項を参照。
+- REQ-024（BL-028）: リリースビルド用の署名設定を追加。mobile/wearのbuild.gradle.ktsで
+  `local.properties`（`.gitignore`対象）から`RELEASE_STORE_FILE`/`RELEASE_STORE_PASSWORD`/
+  `RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`を読み込み、存在する場合のみ`signingConfigs`の
+  `release`を構築してbuildTypesへ適用する設計にした。`local.properties`未設定時は
+  `signingConfigs`自体を作成せず、`assembleDebug`はもちろん`assembleRelease`もunsignedの
+  まま成功することを確認済み。README.mdへKeystore生成コマンド例と設定手順を追記した。
+  Keystoreの実際の生成はBL-032（人手検証）で行う。
 
 ## 設計方針
 

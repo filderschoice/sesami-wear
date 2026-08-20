@@ -4,22 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-028
-  区分: 実装
-  タスク内容: リリースビルド用の署名設定（signingConfigs）をmobile/wearのbuild.gradle.ktsへ追加する。
-    Keystoreファイル・パスワードはlocal.properties経由（.gitignore対象）で注入し、
-    リポジトリにコミットしない設計にする。local.propertiesに署名情報が無い場合はassembleDebug等
-    通常のビルドに影響しないようにする。Keystore自体の生成はBL-032（人手検証、秘密鍵の生成を
-    伴うため自律ループ実行モードの対象外とする。rules/guardrails-unified.v1.md セクション12.5参照）
-    へ切り出す
-  優先度: P2
-  状態: 未着手
-  担当: 共通
-  完了条件: signingConfigsの雛形が追加され、local.properties未設定時でもassembleDebugへの影響が
-    ないことを確認する。README.mdに設定手順を追記する
-  依存:
-    - BL-001
-
 - id: BL-029
   区分: 実装
   タスク内容: Google Play提出前提でmobile/wearのリリースビルドのProGuard/R8設定を見直す。

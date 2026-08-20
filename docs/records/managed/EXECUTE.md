@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-21 00:28
+  summary: リリースビルド用の署名設定を追加
+  details:
+    変更内容: >
+      mobile/wearのbuild.gradle.ktsへリリース署名設定を追加した。local.properties
+      （.gitignore対象）からRELEASE_STORE_FILE/RELEASE_STORE_PASSWORD/RELEASE_KEY_ALIAS/
+      RELEASE_KEY_PASSWORDを読み込み、存在する場合のみsigningConfigsのreleaseを構築して
+      buildTypesへ適用する設計にした。local.properties未設定時はassembleDebug/assembleRelease
+      いずれもunsignedのまま成功することをビルドで確認した。README.mdへKeystore生成コマンド
+      （keytool -genkeypair）と設定手順、bundleReleaseコマンドを追記し、mobile/wearが
+      別applicationIdであるためGoogle Playには2つの別アプリとして登録することになる旨も明記した。
+    変更ファイル:
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - README.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon;
+      ./gradlew :mobile:assembleRelease :wear:assembleRelease --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。unsigned releaseビルドを含め全モジュールが成功
+    関連ID:
+      - BL-028
+```
+
+```yaml
 - date: 2026-08-21 00:20
   summary: mobile/wearの実アイコン(Adaptive Icon)を作成し反映
   details:

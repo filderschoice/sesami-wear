@@ -1,8 +1,22 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// リリース署名情報はlocal.properties（.gitignore対象、BL-032でユーザーが作成）から読み込む。
+// 未設定でもassembleDebug等の通常ビルドには影響しない（release署名はunsignedのまま）。
+val releaseKeystoreProperties =
+    Properties().apply {
+        val propertiesFile = rootProject.file("local.properties")
+        if (propertiesFile.exists()) {
+            FileInputStream(propertiesFile).use { load(it) }
+        }
+    }
+val hasReleaseSigningConfig = releaseKeystoreProperties.containsKey("RELEASE_STORE_FILE")
 
 android {
     namespace = "com.sesamiwear.mobile"
@@ -18,6 +32,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(releaseKeystoreProperties.getProperty("RELEASE_STORE_FILE"))
+                storePassword = releaseKeystoreProperties.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = releaseKeystoreProperties.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = releaseKeystoreProperties.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -25,6 +50,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
