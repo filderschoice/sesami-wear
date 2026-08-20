@@ -197,6 +197,26 @@
   `SesameTileContent.statusLabel(state)`をcontentDescriptionとして設定した。これにより
   BL-019で挙げたレビュー観点（視認性・誤操作防止・セキュリティ/プライバシー・
   フィードバックの分かりやすさ・アクセシビリティ）の指摘事項（BL-022〜BL-025）はすべて対応済み。
+- REQ-021（コードレビュー、2026-08-20）: `/code-review`スキルのバックグラウンド実行が長時間応答不能に
+  なったため（詳細は`~/.claude/skills/managed-agent-execution/SKILL.md`参照）、サブエージェントを
+  使わず全モジュールの主要ソースを直接読み通す形でレビューを実施した。最重要の指摘は
+  `CredentialsInputValidator`のsecretKey検証不足によるクラッシュリスクで、BL-026として登録した
+  （詳細は同タスクの記載を参照）。
+  その他、緊急度は低いが認識しておくべき軽微な指摘:
+  - `SesameMessageListenerService.createHandler`が、メッセージ受信のたびに
+    `EncryptedSharedPreferencesKeyValueStore.create(context)`（`MasterKey`構築を含む）を
+    毎回実行しており、非効率。資格情報が変わるのは設定画面での保存時のみなので、キャッシュ化の
+    余地がある。
+  - Mobile/Wear双方の複数箇所（`SesameMessageListenerService`、`SesameTileService`、
+    `SesameComplicationDataSourceService`）で`CoroutineScope(Dispatchers.IO).launch { ... }`を
+    呼び出しのたびに使い捨てで生成しており、各Androidコンポーネントのライフサイクルに紐付いていない。
+    通常は各コンポーネントが非同期処理の完了まで生存するため実害は限定的だが、将来的には
+    lifecycle-aware なスコープ管理への置き換えが望ましい。
+  - `CredentialsSettingsScreen`の`credentialsStore.load()`呼び出しがComposeの`remember`ブロック内
+    （コンポジション時、メインスレッド）で同期的に行われている。EncryptedSharedPreferencesの
+    読み込みは軽量なため実用上の問題は小さいが、原則としてI/Oはメインスレッド外が望ましい。
+  これら3点は現時点では新規タスク化せず、将来の改善事項として本記載に留める
+  （CLAUDE.mdの「過剰実装を避ける」原則を踏まえ、実害の小さい指摘まで機械的にタスク化しない）。
 
 ## 設計方針
 
