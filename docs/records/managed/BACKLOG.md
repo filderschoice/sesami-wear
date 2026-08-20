@@ -4,27 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-026
-  区分: 実装
-  タスク内容: コードレビューで発見。CredentialsInputValidatorはuuid/apikey/secretKeyBase64の非空
-    チェックのみを行っており、secretKeyBase64が有効なBase64文字列か、デコード後に16バイト
-    （AES-128鍵長）かを検証していない。ユーザーが誤った文字列を保存した場合、
-    SesameMessageListenerService.createHandler内のcredentials.secretKeyBytes（Base64デコード）や
-    AesCmac.compute内のrequire(key.size==16)で例外が発生し、onMessageReceived内の
-    CoroutineScope(Dispatchers.IO).launchで未処理コルーチン例外としてアプリがクラッシュするリスクが
-    ある。CredentialsInputValidatorへBase64形式・デコード後16バイトの検証を追加し、設定画面で
-    不正な鍵は保存できないようにする。あわせてSesameCommandHandler側でもBase64デコード・
-    AesCmac.compute呼び出しを例外安全にし、不正な鍵の場合はFAILUREを返すようフォールバックする
-  優先度: P1
-  状態: 未着手
-  担当: 共通
-  完了条件: 不正なBase64文字列・不正な長さの鍵に対してCredentialsInputValidator.isValidがfalseを
-    返す単体テストが成功し、SesameCommandHandler.handle（またはその呼び出し経路）が不正な鍵に対して
-    例外を送出せずFAILUREを返すことを確認する単体テストが成功する
-  依存:
-    - BL-005
-    - BL-024
-
 - id: BL-021
   区分: ドキュメント
   タスク内容: 本ファイル（BACKLOG.md）冒頭にmarkdownlint-disable-file MD041コメントが欠落しており、

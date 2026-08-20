@@ -217,6 +217,15 @@
     読み込みは軽量なため実用上の問題は小さいが、原則としてI/Oはメインスレッド外が望ましい。
   これら3点は現時点では新規タスク化せず、将来の改善事項として本記載に留める
   （CLAUDE.mdの「過剰実装を避ける」原則を踏まえ、実害の小さい指摘まで機械的にタスク化しない）。
+- REQ-022（BL-026）: コードレビューで発見したsecretKey検証不足によるクラッシュリスクを修正。
+  `core.SesameCredentials`へ`secretKeyBytesOrNull`（Base64デコード失敗時・デコード後16バイト
+  （AES-128鍵長）でない場合にnullを返す、例外を投げない安全なアクセサ、単体テスト4件）を追加した。
+  `mobile.credentials.CredentialsInputValidator`をこの`secretKeyBytesOrNull`を使う実装へ変更し、
+  不正な鍵は設定画面で保存できないようにした（既存テストのダミー値`"secret"`は新しい検証で
+  不正と判定されるため、有効な16バイトBase64値へ差し替えた）。
+  `mobile.messaging.SesameMessageListenerService.createHandler`も同じ`secretKeyBytesOrNull`を
+  使うよう修正し、過去に保存された不正な鍵が万一残っていても例外でクラッシュせず`FAILURE`へ
+  フォールバックするようにした（防御的プログラミング、保存時バリデーションと二重の防御）。
 
 ## 設計方針
 

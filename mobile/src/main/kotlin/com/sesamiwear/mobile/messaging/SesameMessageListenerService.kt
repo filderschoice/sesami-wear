@@ -36,9 +36,16 @@ class SesameMessageListenerService : WearableListenerService() {
 
     private fun createHandler(context: Context): SesameCommandHandler? {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(context))
-        val credentials = credentialsStore.load() ?: return null
-        val apiClient = SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
-        return SesameCommandHandler(apiClient, credentials.secretKeyBytes)
+        val credentials = credentialsStore.load()
+        // secretKeyBytesOrNullを使い、不正なBase64/鍵長の資格情報が保存されていても例外で
+        // クラッシュせずFAILUREへフォールバックする（BL-026、コードレビューで発見）。
+        val secretKeyBytes = credentials?.secretKeyBytesOrNull
+        return if (credentials != null && secretKeyBytes != null) {
+            val apiClient = SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
+            SesameCommandHandler(apiClient, secretKeyBytes)
+        } else {
+            null
+        }
     }
 
     private suspend fun syncLockedStateFromPath(path: String) {

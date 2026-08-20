@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-20 23:40
+  summary: secretKey検証不足によるクラッシュリスクを修正
+  details:
+    変更内容: >
+      コードレビューで発見したsecretKeyの検証不足を修正した。core.SesameCredentialsへ
+      secretKeyBytesOrNull（Base64デコード失敗時・デコード後16バイトでない場合にnullを返す、
+      例外を投げない安全なアクセサ）を追加し単体テスト4件で検証した。
+      mobile.credentials.CredentialsInputValidatorをこのsecretKeyBytesOrNullを使う実装へ変更し、
+      不正な鍵は設定画面で保存できないようにした（既存テストのダミー値"secret"は新しい検証で
+      不正と判定されるため、有効な16バイトBase64値へ差し替え、不正なBase64・不正な鍵長のテスト
+      ケースを追加）。mobile.messaging.SesameMessageListenerService.createHandlerも同じ
+      secretKeyBytesOrNullを使うよう修正し、過去に保存された不正な鍵が万一残っていても
+      例外でクラッシュせずFAILUREへフォールバックするようにした。
+      detektのReturnCountルールがcreateHandlerの早期return3連続に反応したため、
+      null合成条件式1つのreturnへ書き換えた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidator.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidatorTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。SesameCredentialsTest 4件、CredentialsInputValidatorTest 7件
+      （新規3件含む）を含む全モジュールのテストが成功
+    関連ID:
+      - BL-026
+```
+
+```yaml
 - date: 2026-08-20 00:47
   summary: Tileにアクセシビリティ用のcontentDescriptionを追加
   details:
