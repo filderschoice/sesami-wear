@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-21 01:05
+  summary: ストア掲載情報・プライバシーポリシーのドラフトを作成
+  details:
+    変更内容: >
+      Google Play Console提出に必要なストア掲載情報とプライバシーポリシーのドラフトを
+      docs/store/配下に新規作成した。STORE_LISTING.mdにはアプリ名・短い説明・詳細な説明・
+      カテゴリ案・対象デバイスを記載し、mobile/wearが別applicationIdの独立アプリである
+      制約（BL-031）に言及した。PRIVACY_POLICY.mdには収集する情報（uuid/apikey/secretKey、
+      利用者本人が入力しサーバー側では収集しない）、保存方法（mobile側の
+      EncryptedSharedPreferencesのみ、wear側は非保持）、送信先（CANDY HOUSE Sesame APIのみ、
+      広告/分析SDK不使用）、削除方法を記載した。お問い合わせ先メールアドレスは本人確認なしに
+      個人情報をドラフトへ記入することを避け、プレースホルダーのまま「未確認」と明記した。
+      実際の公開URLでのホスティングとPlay ConsoleのData safety申告への反映はBL-033
+      （人手検証）で行う。
+    変更ファイル:
+      - docs/store/STORE_LISTING.md
+      - docs/store/PRIVACY_POLICY.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: npx markdownlint-cli2 "**/*.md"
+    検証結果: 成功 - docs/store配下の新規ファイルは0件、リポジトリ全体でも新規issueなし
+      （既知のBL-021・BACKLOG.md MD041のみ残存、対象外）
+    関連ID:
+      - BL-030
+```
+
+```yaml
 - date: 2026-08-21 01:00
   summary: リリースビルド用バッチファイルとバージョン管理を実装
   details:

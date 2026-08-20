@@ -4,19 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-030
-  区分: ドキュメント
-  タスク内容: Google Play Console提出に必要なストア掲載情報（アプリ名・短い説明・詳細な説明）と
-    プライバシーポリシーのドラフトをdocs/store/配下に作成する。プライバシーポリシーは収集する情報
-    （uuid/apikey/secretKeyをmobile側でのみ暗号化保存し、Sesame API通信以外への送信は行わない旨）
-    を明記する。実際のURLホスティングとPlay Consoleへの入力はBL-033（人手検証）で行う
-  優先度: P2
-  状態: 未着手
-  担当: 共通
-  完了条件: docs/store/配下にストア説明文・プライバシーポリシーのMarkdown文書が作成され、
-    markdownlint-cli2が成功する
-  依存: []
-
 - id: BL-031
   区分: 実装
   タスク内容: mobile/wearが別々のapplicationId（com.sesamiwear.mobile / com.sesamiwear.wear）を

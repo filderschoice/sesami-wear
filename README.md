@@ -127,6 +127,10 @@ scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
 アプリとして登録することになります（標準的なWear OSアプリの単一AAB配布方式との違いについては
 [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。
 
+Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトは
+[docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md) /
+[docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md) を参照してください。
+
 ## プロジェクト構成
 
 ```text

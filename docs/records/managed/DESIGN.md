@@ -260,6 +260,17 @@
   動作確認はPowerShellツールが本セッションで機能しなかったため、Bashツール経由での
   `powershell.exe`/`pwsh`直接呼び出しとGit Bashからの`.bat`直接実行で代替検証した
   （インクリメント・固定値指定の両方でversion.propertiesの更新とAABビルドの成功を確認済み）。
+- REQ-027（BL-030）: Google Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトを
+  `docs/store/STORE_LISTING.md`・`docs/store/PRIVACY_POLICY.md`として新規作成した。
+  ストア掲載情報にはアプリ名・短い説明（80文字以内）・詳細な説明（4000文字以内）・カテゴリ案・
+  対象デバイスを記載し、mobile/wearが別applicationIdの独立アプリである制約（BL-031参照）に
+  言及した。プライバシーポリシーには収集する情報（uuid/apikey/secretKey、利用者本人が入力する
+  情報でありサーバー側では収集しない）、保存方法（mobile側のEncryptedSharedPreferencesのみ、
+  wear側は保持しない）、送信先（CANDY HOUSE Sesame APIのみ、広告/分析SDK不使用）、削除方法、
+  お問い合わせ先を記載した。お問い合わせ先は実際のメールアドレス確定前のため、
+  プレースホルダーのまま「未確認」と明記した（本人確認なしに個人のメールアドレスを
+  ドラフトへ記入することを避けた）。実際の公開URLでのホスティングとPlay ConsoleのData safety
+  申告への反映はBL-033（人手検証）で行う。
 
 ## 設計方針
 
