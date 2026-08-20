@@ -344,6 +344,29 @@
   簡易的なものであり、視覚的な洗練度はデザイナーによる調整を前提としていない。また、Google Play
   Console提出に必要な高解像度アイコン画像（512x512 PNG、Play Storeの掲載用アイコン）は
   XMLベースでの生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
+- Google Play配布方式（BL-031で記録、対応済み）: 本アプリは`mobile`（`com.sesamiwear.mobile`）と
+  `wear`（`com.sesamiwear.wear`）が別々の`applicationId`を持つ、互いに独立した2つのAndroidアプリ
+  として構成されている。これはGoogle Playが推奨するWear OSアプリの標準的な配布方式（1つの
+  Android App Bundleに`wear`をfeature module（`com.android.dynamic-feature`かつ
+  `android:isFeatureSplit`/Wear向け設定）として統合し、単一の`applicationId`・単一のPlay Store
+  掲載ページで公開する方式）とは異なる。
+  - **影響範囲**: (1) Play Storeの検索結果・掲載ページがmobile用/wear用の2ページに分かれ、
+    利用者から見た製品としての一体感が損なわれる。(2) 標準配布方式で得られる「スマートフォンへ
+    インストール後、ペアリング済みのWearデバイスへ自動的にwearアプリをインストールする」機能
+    （Google Playの自動プッシュインストール）が使えず、利用者はmobile/wear双方を手動で
+    インストールする必要がある。(3) Play Consoleでのリリース管理（審査・段階公開・Data safety
+    申告等）もアプリ単位で2回必要になる。
+  - **今回のタスクスコープでの方針**: 本リポジトリの実装（`mobile`/`wear`の別モジュール・別
+    applicationId構成）は変更せず、上記制約を既知の制約として記録するにとどめる。統合構成
+    （wear feature module化）への移行は本タスクスコープの対象外とし、将来的に必要になった場合の
+    概要のみ以下に残す。
+  - **将来統合する場合の概要（未実装、参考情報）**: (a) `wear`モジュールを
+    `com.android.application`から`com.android.dynamic-feature`（Wear向け設定を含む）へ変更し、
+    `mobile`モジュールの`bundle { }`ブロックで`wear`をfeatureとして取り込む。(b) `wear`の
+    `applicationId`を`mobile`と統一し、`AndroidManifest.xml`の`dist:module`要素でWear向け
+    feature宣言を追加する。(c) Data Layer API（`MessageClient`）による通信部分の実装は
+    変更不要と見込まれる。(d) 本変更はビルド構成・Play Console提出物双方に影響する破壊的変更のため、
+    着手する場合は別タスクとして計画・レビューする。
 
 ### 運用制約
 

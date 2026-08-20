@@ -4,21 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-031
-  区分: 実装
-  タスク内容: mobile/wearが別々のapplicationId（com.sesamiwear.mobile / com.sesamiwear.wear）を
-    持つ現行アーキテクチャは、Google Playが推奨するWear OSアプリの標準的な配布方式
-    （1つのAndroid App Bundleにwear feature moduleとして統合し単一のapplicationIdで公開する方式）
-    と異なり、2つの独立したアプリとしてPlay Consoleへ登録・限定公開することになる。この制約と
-    影響範囲（検索性・自動インストール推奨機能が使えない等）をDESIGN.mdの制約事項として明記し、
-    今回のタスクスコープでは統合構成への移行は行わないことを記録する
-  優先度: P3
-  状態: 未着手
-  担当: 共通
-  完了条件: DESIGN.mdへ本制約と、今後統合構成へ移行する場合の概要（wear feature module化）を
-    記載する
-  依存: []
-
 - id: BL-032
   区分: 人手検証
   タスク内容: keytoolコマンド（BL-028で整備した署名設定に対応する形でREADME.mdへ記載する手順）で
