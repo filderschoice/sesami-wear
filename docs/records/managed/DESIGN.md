@@ -226,6 +226,12 @@
   `mobile.messaging.SesameMessageListenerService.createHandler`も同じ`secretKeyBytesOrNull`を
   使うよう修正し、過去に保存された不正な鍵が万一残っていても例外でクラッシュせず`FAILURE`へ
   フォールバックするようにした（防御的プログラミング、保存時バリデーションと二重の防御）。
+- REQ-023（BL-027）: Google Play限定公開に向けてmobile/wearの実アイコンを作成した。南京錠をモチーフに
+  した`drawable/ic_launcher_background.xml`（背景、単色`#1E3A5F`）・`ic_launcher_foreground.xml`
+  （前景、白いシルエット）と、`mipmap-anydpi-v26/ic_launcher.xml`・`ic_launcher_round.xml`
+  （Adaptive Icon定義）を両モジュールへ追加し、AndroidManifestの`android:icon`/`android:roundIcon`
+  （Wear側Complicationサービスの`android:icon`も含む）を`@android:drawable/sym_def_app_icon`から
+  差し替えた。詳細と未確認事項は「実装制約」セクションのAndroidアイコンリソース項を参照。
 
 ## 設計方針
 
@@ -291,9 +297,14 @@
   - **未確認事項**: 上記はpysesame3（2026-08-19時点のmainブランチ）のPythonソースコードを読んで判明した
     内容であり、CANDY HOUSE公式ドキュメントそのものは未参照。実機疎通確認（BL-010、人手検証）で
     最終確認する必要がある。
-- Androidアイコンリソース: `mobile`/`wear`とも実アイコン（mipmap）は未作成で、暫定的に
-  `@android:drawable/sym_def_app_icon`（システム標準アイコン）を参照している。配布前に専用アイコンへの
-  差し替えが必要（自動検証の対象外、Play Store提出前の対応事項として残る）。
+- Androidアイコンリソース（BL-027で対応済み）: `mobile`/`wear`とも、南京錠をモチーフにした
+  VectorDrawableベースのAdaptive Icon（`drawable/ic_launcher_background.xml`・
+  `ic_launcher_foreground.xml`、`mipmap-anydpi-v26/ic_launcher.xml`・`ic_launcher_round.xml`）を
+  作成し、AndroidManifestの`android:icon`/`android:roundIcon`から参照する形へ置き換えた。
+  背景色`#1E3A5F`（濃紺）、前景は白い南京錠のシルエット。**未確認事項**: 図案はXMLパスの手書きによる
+  簡易的なものであり、視覚的な洗練度はデザイナーによる調整を前提としていない。また、Google Play
+  Console提出に必要な高解像度アイコン画像（512x512 PNG、Play Storeの掲載用アイコン）は
+  XMLベースでの生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
 
 ### 運用制約
 

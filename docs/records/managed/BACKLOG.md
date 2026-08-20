@@ -4,22 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-027
-  区分: 実装
-  タスク内容: Google Play限定公開に向けて、mobile/wear両アプリの実アイコンを作成・反映する。
-    現状は@android:drawable/sym_def_app_icon（システム標準アイコン）を暫定使用しており
-    （DESIGN.md記載の既知制約）、これをVectorDrawableベースのAdaptive Icon（背景レイヤー・
-    前景レイヤーのXML）で置き換える。ロック/鍵をモチーフにしたシンプルな図案とする。
-    Play Console提出用の高解像度アイコン画像（512x512 PNG）はXMLベースでの生成が技術的に
-    困難なためBL-034（人手検証）へ切り出す
-  優先度: P1
-  状態: 未着手
-  担当: 共通
-  完了条件: mobile/wearともAdaptive Icon（VectorDrawable背景+前景）がAndroidManifestから
-    参照され、@android:drawable/sym_def_app_iconへの依存が解消され、ビルドが成功する
-  依存:
-    - BL-001
-
 - id: BL-028
   区分: 実装
   タスク内容: リリースビルド用の署名設定（signingConfigs）をmobile/wearのbuild.gradle.ktsへ追加する。

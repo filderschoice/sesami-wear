@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 南京錠のシャックル（弧の部分）。ストロークのみで描画する。 -->
+    <path
+        android:pathData="M43,58 L43,49 A11,11 0 0 1 65,49 L65,58"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- 南京錠の本体（角丸四角形）。 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,58 L66,58 Q71,58 71,63 L71,81 Q71,86 66,86 L42,86 Q37,86 37,81 L37,63 Q37,58 42,58 Z" />
+    <!-- 鍵穴（円+縦棒）。 -->
+    <path
+        android:fillColor="#1E3A5F"
+        android:pathData="M54,63.5 A3.5,3.5 0 1 1 53.99,63.5 Z" />
+    <path
+        android:fillColor="#1E3A5F"
+        android:pathData="M52.5,67 L55.5,67 L56.5,78 L51.5,78 Z" />
+</vector>

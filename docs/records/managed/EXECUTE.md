@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-21 00:20
+  summary: mobile/wearの実アイコン(Adaptive Icon)を作成し反映
+  details:
+    変更内容: >
+      Google Play限定公開に向けて、南京錠をモチーフにしたVectorDrawableベースのAdaptive Iconを
+      mobile/wear両モジュールへ追加した。drawable/ic_launcher_background.xml（背景、単色
+      #1E3A5F）・ic_launcher_foreground.xml（前景、白い南京錠のシルエット、シャックル+本体+鍵穴）、
+      mipmap-anydpi-v26/ic_launcher.xml・ic_launcher_round.xml（Adaptive Icon定義）を作成し、
+      AndroidManifestのandroid:icon/android:roundIcon（Wear側Complicationサービスの
+      android:iconも含む）を@android:drawable/sym_def_app_iconから差し替えた。
+      図案はXMLパスの手書きによる簡易的なものであり、視覚的な洗練度はデザイナーによる調整を
+      前提としていない。Play Console提出用の高解像度アイコン画像(512x512 PNG)はXMLベースでの
+      生成が技術的に困難なため未対応（BL-034、人手検証）。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_background.xml
+      - mobile/src/main/res/drawable/ic_launcher_foreground.xml
+      - mobile/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+      - mobile/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+      - mobile/src/main/AndroidManifest.xml
+      - wear/src/main/res/drawable/ic_launcher_background.xml
+      - wear/src/main/res/drawable/ic_launcher_foreground.xml
+      - wear/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+      - wear/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - BUILD SUCCESSFUL。全モジュールのテストが成功
+    関連ID:
+      - BL-027
+```
+
+```yaml
 - date: 2026-08-20 23:40
   summary: secretKey検証不足によるクラッシュリスクを修正
   details:
