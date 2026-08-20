@@ -4,27 +4,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-035
-  区分: 実装
-  タスク内容: リリースビルド（署名付きAAB、mobile/wear）を簡易的に実施するためのバッチファイル
-    （scripts/release-build.bat）を作成する。バージョンコード・バージョン名を引数で指定でき、
-    指定がない場合はscripts/version.properties（新規、リポジトリに永続化する現在値）を基準に
-    バージョンコードを1インクリメントする。引数で固定値を指定した場合はその値をそのまま使用する。
-    bat自体は複雑な文字列処理を避けるためPowerShellスクリプト（scripts/release-build.ps1）への
-    薄いエントリポイントとし、実処理はPowerShell側に実装する。mobile/wearのbuild.gradle.ktsは
-    Gradleプロパティ（-PappVersionCode/-PappVersionName）でversionCode/versionNameを
-    上書きできるように変更する（未指定時は現状のデフォルト値を維持し既存ビルドに影響しない）
-  優先度: P2
-  状態: 未着手
-  担当: 共通
-  完了条件: scripts/release-build.batを引数なしで実行するとversion.propertiesのversionCodeが
-    1インクリメントされてbundleReleaseが実行され、-VersionCode/-VersionName引数指定時は
-    その値が固定で使用されることをPowerShellツールでの実行確認で検証する。README.mdに使い方を
-    追記する
-  依存:
-    - BL-028
-    - BL-029
-
 - id: BL-030
   区分: ドキュメント
   タスク内容: Google Play Console提出に必要なストア掲載情報（アプリ名・短い説明・詳細な説明）と

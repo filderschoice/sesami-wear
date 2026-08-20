@@ -246,6 +246,20 @@
   `isMinifyEnabled=true`へ変更した。難読化・縮小を有効化した状態で`assembleRelease`が
   成功することを確認済み（実行時のシリアライズ動作そのものはユニットテストで検証できないため、
   BL-010/BL-011の実機検証で最終確認する）。
+- REQ-026（BL-035、ユーザー依頼）: リリースビルドを簡易実施するための`scripts/release-build.bat`を
+  作成した。`scripts/version.properties`に現在のversionCode/versionNameを永続化し、引数なし実行時は
+  versionCodeを1インクリメント、`-VersionCode`/`-VersionName`指定時はその値を固定使用する。
+  bat自体は複雑な文字列処理を避けるため`scripts/release-build.ps1`（PowerShell）への薄い
+  エントリポイントとし、`pwsh`が使える場合は優先、無ければWindows PowerShellへフォールバックする。
+  mobile/wearのbuild.gradle.ktsは`findProperty("appVersionCode"/"appVersionName")`で
+  Gradleプロパティによる上書きに対応させ（未指定時は既定値を維持し既存ビルドに影響しない）、
+  release-build.ps1から`-PappVersionCode`/`-PappVersionName`として渡す。
+  **技術メモ**: Windows PowerShell 5.1（`powershell.exe`）はBOM無しUTF-8のスクリプトファイル内の
+  日本語コメントを正しく解釈できず、`} finally {`付近で構文エラー（トークン不正）になった。
+  スクリプトへUTF-8 BOMを付与することで解消した（`pwsh`優先呼び出しに変更した上での保険的対応）。
+  動作確認はPowerShellツールが本セッションで機能しなかったため、Bashツール経由での
+  `powershell.exe`/`pwsh`直接呼び出しとGit Bashからの`.bat`直接実行で代替検証した
+  （インクリメント・固定値指定の両方でversion.propertiesの更新とAABビルドの成功を確認済み）。
 
 ## 設計方針
 

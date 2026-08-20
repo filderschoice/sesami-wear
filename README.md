@@ -105,6 +105,24 @@ keytool -genkeypair -v -keystore release-keystore.jks -alias <key aliasの名前
 ./gradlew :mobile:bundleRelease :wear:bundleRelease
 ```
 
+### バージョン管理付きの簡易リリースビルド（`scripts/release-build.bat`）
+
+`versionCode`/`versionName`の管理を含めてリリースビルドを簡易に行うバッチファイルを用意しています。
+現在のバージョンは`scripts/version.properties`に記録され、ビルド成功時のみ更新されます。
+
+```bat
+rem versionCodeを1インクリメントしてビルドする（versionNameは維持）
+scripts\release-build.bat
+
+rem versionCode/versionNameを固定値で指定してビルドする（インクリメントしない）
+scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
+```
+
+`pwsh`（PowerShell 7）が利用可能な場合はそちらを優先して実行します（無い場合はWindows PowerShellへ
+フォールバックします）。ビルドが失敗した場合、`scripts/version.properties`は更新されません。
+`-PappVersionCode`/`-PappVersionName`のGradleプロパティで`mobile`/`wear`双方の
+`versionCode`/`versionName`を上書きしており、通常の`./gradlew assembleDebug`等には影響しません。
+
 `mobile`と`wear`は別々の`applicationId`を持つ独立したアプリのため、Google Playには2つの別々の
 アプリとして登録することになります（標準的なWear OSアプリの単一AAB配布方式との違いについては
 [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。

@@ -5,6 +5,46 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-21 01:00
+  summary: リリースビルド用バッチファイルとバージョン管理を実装
+  details:
+    変更内容: >
+      ユーザー依頼により、リリースビルドを簡易実施するscripts/release-build.batを作成した。
+      scripts/version.propertiesに現在のversionCode/versionNameを永続化し、引数なし実行時は
+      versionCodeを1インクリメント、-VersionCode/-VersionName指定時はその値を固定使用する
+      scripts/release-build.ps1（PowerShell）を実装した。mobile/wearのbuild.gradle.ktsへ
+      findProperty("appVersionCode"/"appVersionName")によるGradleプロパティ上書き対応を追加し
+      （未指定時は既定値のまま）、release-build.ps1から-PappVersionCode/-PappVersionNameとして
+      gradlewへ渡す設計にした。
+      実装中、Windows PowerShell 5.1（powershell.exe）がBOM無しUTF-8スクリプト内の日本語コメントを
+      正しく解釈できず「} finally {」付近で構文エラーになる問題が発生し、スクリプトへUTF-8 BOMを
+      付与し、かつ.batからpwsh（PowerShell 7）を優先呼び出しするよう変更して解消した。
+      PowerShellツールが本セッションで機能しなかった（単純なWrite-Hostでもexit code 1）ため、
+      Bashツール経由でのpowershell.exe/pwsh直接呼び出しとGit Bashからの.bat直接実行で
+      代替検証した。インクリメント・固定値指定の両パターンでversion.propertiesの更新と
+      AABビルド（bundleRelease）の成功、versionCode/versionNameがoutput-metadata.jsonへ
+      正しく反映されることを確認した。README.mdに使い方を追記した。
+    変更ファイル:
+      - scripts/release-build.bat
+      - scripts/release-build.ps1
+      - scripts/version.properties
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - README.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew :mobile:assembleDebug --no-daemon -PappVersionCode=42 -PappVersionName=1.2.3;
+      pwsh -NoProfile -File scripts/release-build.ps1 -VersionCode 999 -VersionName 9.9.9;
+      powershell.exe -NoProfile -File scripts/release-build.ps1 -VersionCode 5 -VersionName 0.2.0;
+      ./scripts/release-build.bat（引数なし、インクリメント確認）;
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug --no-daemon
+    検証結果: 成功 - すべてのビルド・実行確認がBUILD SUCCESSFULまたは正常終了。
+      全モジュールのテストも成功
+    関連ID:
+      - BL-035
+```
+
+```yaml
 - date: 2026-08-21 00:37
   summary: リリースビルドのProGuard/R8設定を整備しisMinifyEnabledを有効化
   details:
