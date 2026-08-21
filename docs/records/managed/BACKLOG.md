@@ -5,6 +5,53 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-036
+  区分: 実装
+  タスク内容: wearモジュールをcom.android.applicationからcom.android.dynamic-featureへ変更し、
+    applicationIdをmobileと統一する（DESIGN.md「Google Play配布方式」将来統合する場合の概要(a)(b)を
+    実施）。wear/build.gradle.ktsのplugins・defaultConfig（applicationId削除、
+    signingConfigs/buildTypes.release.signingConfigはbase側継承のため削除）、
+    mobile/build.gradle.ktsのandroidブロックへのdynamicFeatures設定追加、
+    wear/src/main/AndroidManifest.xmlへのdist:module宣言追加（xmlns:dist名前空間、
+    dist:module/dist:fusing/dist:delivery）を行う。AGP 8.7.3時点のWear OS向け
+    dynamic-feature構文はドキュメント確度が低いため、ビルド失敗時は公式相当の設定へ調整しながら
+    品質ゲートが通るまで試行する（rules/guardrails-unified.v1.md セクション12.3の
+    3回連続失敗ルールを適用）
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code（自律ループ）
+  完了条件: "./gradlew ktlintCheck detekt lintDebug testDebugUnitTest"が成功し、
+    統合後の構成でmobile側の配布物（AAB等）がビルドできる
+  依存: []
+
+- id: BL-037
+  区分: 実装
+  タスク内容: BL-036のGradle/Manifest変更に合わせて、DESIGN.md「Google Play配布方式」の記述を
+    実装済み内容へ更新し、README.md「ビルド・実行・テスト」「プロジェクト構成」および
+    docs/INSTALL.mdの手動インストール手順（mobile/wear別々にインストールする記述）を
+    統合後の構成に合わせて修正する
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code（自律ループ）
+  完了条件: DESIGN.md/README.md/docs/INSTALL.mdの記述が、統合後のビルド・配布・インストール
+    手順と矛盾しない
+  依存:
+    - BL-036
+
+- id: BL-038
+  区分: 人手検証
+  タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
+    AABをアップロードし、スマホへインストール後にペアリング済みPixel Watchへ自動的にwearアプリが
+    プッシュインストールされることを実機で確認する
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: スマホへのインストールのみでPixel Watch側にもwearアプリが自動導入されることを確認する
+  依存:
+    - BL-036
+    - BL-037
+    - BL-034
+
 - id: BL-032
   区分: 人手検証
   タスク内容: keytoolコマンド（BL-028で整備した署名設定に対応する形でREADME.mdへ記載する手順）で
