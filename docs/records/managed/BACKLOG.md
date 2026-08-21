@@ -5,25 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-036
-  区分: 実装
-  タスク内容: wearモジュールをcom.android.applicationからcom.android.dynamic-featureへ変更し、
-    applicationIdをmobileと統一する（DESIGN.md「Google Play配布方式」将来統合する場合の概要(a)(b)を
-    実施）。wear/build.gradle.ktsのplugins・defaultConfig（applicationId削除、
-    signingConfigs/buildTypes.release.signingConfigはbase側継承のため削除）、
-    mobile/build.gradle.ktsのandroidブロックへのdynamicFeatures設定追加、
-    wear/src/main/AndroidManifest.xmlへのdist:module宣言追加（xmlns:dist名前空間、
-    dist:module/dist:fusing/dist:delivery）を行う。AGP 8.7.3時点のWear OS向け
-    dynamic-feature構文はドキュメント確度が低いため、ビルド失敗時は公式相当の設定へ調整しながら
-    品質ゲートが通るまで試行する（rules/guardrails-unified.v1.md セクション12.3の
-    3回連続失敗ルールを適用）
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code（自律ループ）
-  完了条件: "./gradlew ktlintCheck detekt lintDebug testDebugUnitTest"が成功し、
-    統合後の構成でmobile側の配布物（AAB等）がビルドできる
-  依存: []
-
 - id: BL-037
   区分: 実装
   タスク内容: BL-036のGradle/Manifest変更に合わせて、DESIGN.md「Google Play配布方式」の記述を
