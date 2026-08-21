@@ -1,10 +1,12 @@
 # アプリのインストール方法（スマホ・スマートウォッチ）
 
 本ドキュメントは、`mobile`（スマホ側）と`wear`（スマートウォッチ側）のアプリを実機へインストールする
-手順をまとめたものです。両者は別々の`applicationId`を持つ独立したAndroidアプリのため
-（[docs/records/managed/DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）、
-Wear OS標準の「スマホにインストールすると、ペアリング済みのWatchへ自動的にインストールされる」機能は
-使えません。**mobile / wear の両方を、それぞれ個別にインストールする必要があります。**
+手順をまとめたものです。`wear`は`mobile`のdynamic feature（BL-036）として統合されており、
+`applicationId`・署名・バージョンは`mobile`から継承する単一のAndroid App Bundle（AAB）です
+（[docs/records/managed/DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）。
+Google Play経由の配布では、標準的なWear OSアプリの配布方式（スマホへのインストール後、
+ペアリング済みのWatchへ自動的にwear分がプッシュインストールされる）が利用できる見込みです
+（**未確認**: 実機・Play Console経由での動作確認はBL-038、人手検証）。
 
 ## 現状（2026-08-22時点）
 
@@ -54,30 +56,36 @@ adb devices
 
 ### 1.5 アプリをビルド・インストールする
 
-リポジトリルートでGradle Wrapper経由で実行します（`gradlew.bat`はWindows用）。
-`mobile` / `wear` はいずれも Android Application Gradle Plugin を使用しているため、
-モジュールごとに `installDebug` タスクが利用できます。
+`wear`は`mobile`のdynamic feature（BL-036）のため、`:wear:installDebug`という独立タスクは
+存在しません（feature モジュール単体ではbaseのapplicationId解決に失敗しビルドできません）。
+インストールは`:mobile:installDebug`経由で行います。
 
 ```bash
-# スマホ側にmobileアプリをインストール
 ./gradlew :mobile:installDebug
-
-# スマートウォッチ側にwearアプリをインストール
-./gradlew :wear:installDebug
 ```
 
-`adb devices` に複数台が同時接続されている場合、`installDebug` はインストール先を一意に
-決定できず失敗することがあります。その場合はAPKを個別にビルドし、デバイスIDを指定して
-`adb install` してください。
+> **未確認**: dynamic feature構成でのローカルインストール時、接続中のスマホとスマートウォッチ
+> 双方へ自動的に適切なモジュール（base/wear feature）が振り分けられるかは、本リポジトリでは
+> 実機未検証です（BL-038）。最も確実な方法はAndroid Studioで`mobile`の実行構成を開き、
+> 実行対象デバイスとしてスマホとスマートウォッチの両方を指定して「Run」することです。
+
+コマンドラインのみで両方へインストールしたい場合、Googleの[bundletool]公式ツールで
+AABからデバイス構成ごとのAPK Setを生成し、`install-apks`で接続デバイスへ配信する方法があります
+（未検証、参考情報。`bundletool`は別途入手が必要です）。
 
 ```bash
-./gradlew :mobile:assembleDebug :wear:assembleDebug
-adb -s <スマホのデバイスID> install -r mobile/build/outputs/apk/debug/mobile-debug.apk
-adb -s <スマートウォッチのデバイスID> install -r wear/build/outputs/apk/debug/wear-debug.apk
+./gradlew :mobile:bundleDebug
+bundletool build-apks --bundle=mobile/build/outputs/bundle/debug/mobile-debug.aab --output=mobile-debug.apks
+bundletool install-apks --apks=mobile-debug.apks --device-id=<スマホのデバイスID>
+bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォッチのデバイスID>
 ```
+
+[bundletool]: https://developer.android.com/tools/bundletool
 
 デバイスIDは `adb devices` の出力の1列目（`List of devices attached` の下に並ぶ識別子）で
-確認できます。
+確認できます。`adb devices` に複数台が同時接続されている場合、`:mobile:installDebug`は
+インストール先を一意に決定できず失敗することがあります。その場合は上記bundletool経由での
+個別インストール、またはAndroid Studioでのデバイス選択を使ってください。
 
 ### 1.6 インストール後の初期設定
 
@@ -91,15 +99,17 @@ adb -s <スマートウォッチのデバイスID> install -r wear/build/outputs
 （[BL-034](records/managed/BACKLOG.md)が未着手）。以下は公開後を想定した手順であり、
 実際の画面・文言は公開時の設定により変わり得ます（未確認）。
 
-公開後も`mobile`と`wear`は別々のPlay Storeページ（別々の`applicationId`）として登録される制約が
-あるため（[DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）、Wear OSアプリ標準の
-自動プッシュインストールは使えません。利用者は以下の手順で両方を個別にインストールする必要が
-あります。
+`mobile`と`wear`は単一の`applicationId`・単一AABとして登録されるため（BL-036、
+[DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）、標準的なWear OSアプリの
+配布方式に従います。
 
-1. スマホのGoogle Playストアで本アプリ（mobile版）のページを開き、インストールする
-2. スマートウォッチのPlay Store（Wear OS上のGoogle Playストア、またはスマホのWear OS companion app
-   経由）で本アプリ（wear版）のページを開き、インストールする
+1. スマホのGoogle Playストアで本アプリのページを開き、インストールする
+2. ペアリング済みのスマートウォッチへ、wear部分が自動的にプッシュインストールされる見込み
+   （**未確認**: 実機・Play Console経由での動作確認はBL-038、人手検証）
 3. インストール後の初期設定は [1.6](#16-インストール後の初期設定) と同様
+
+自動プッシュインストールが行われない場合でも、スマートウォッチのPlay Store
+（Wear OS上のGoogle Playストア）から本アプリを直接検索してインストールできる想定です（未確認）。
 
 限定公開（内部テスト・クローズドテスト）中は、Google Play Consoleが発行するテスターリンクを開き、
 テスト参加への同意を行った上で、上記と同じ手順でインストールします。
@@ -107,6 +117,6 @@ adb -s <スマートウォッチのデバイスID> install -r wear/build/outputs
 ## 関連ドキュメント
 
 - [README.md](../README.md): 前提環境・セットアップ・ビルド手順
-- [docs/records/managed/DESIGN.md](records/managed/DESIGN.md): Google Play配布方式の制約の詳細
+- [docs/records/managed/DESIGN.md](records/managed/DESIGN.md): Google Play配布方式の実装詳細
 - [docs/records/managed/BACKLOG.md](records/managed/BACKLOG.md): BL-011（実機Tile操作の人手検証）、
-  BL-034（Google Play限定公開の人手検証）
+  BL-034（Google Play限定公開の人手検証）、BL-038（dynamic feature統合後の実機インストール確認）

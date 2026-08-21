@@ -6,8 +6,10 @@ Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid / Wear 
 
 ## アーキテクチャ概要
 
-Android application（`mobile`）とWear OS application（`wear`）、両者が参照する純Kotlin/JVM
-ライブラリ（`core`）の3モジュール構成です。
+Android application（`mobile`）とWear OS向けdynamic feature（`wear`）、両者が参照する純Kotlin/JVM
+ライブラリ（`core`）の3モジュール構成です。`wear`は`mobile`の`applicationId`・署名・バージョンを
+継承する単一のAndroid App Bundleとしてビルドされます
+（[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) 参照）。
 
 - `mobile`: apikey / secretKey / uuidを保持し、AES-CMAC署名生成とSesame APIへのHTTP通信を担当する。
 - `wear`: Tile / Complicationの表示と、施錠/解錠の意図（コマンド種別のみ）をWearable Data Layer API
@@ -100,9 +102,11 @@ keytool -genkeypair -v -keystore release-keystore.jks -alias <key aliasの名前
 `assembleDebug`等の通常のビルドには影響しません（リリースビルドの署名のみ未設定のままになります）。
 
 署名済みのAAB（Android App Bundle、Google Play提出用）は以下でビルドします。
+`wear`は`mobile`のdynamic featureのため、`:mobile:bundleRelease`1本でwear分も含めてビルドされます
+（`:wear:bundleRelease`という独立タスクはfeatureモジュール単体では実行できません）。
 
 ```bash
-./gradlew :mobile:bundleRelease :wear:bundleRelease
+./gradlew :mobile:bundleRelease
 ```
 
 ### バージョン管理付きの簡易リリースビルド（`scripts/release-build.bat`）
@@ -120,11 +124,12 @@ scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
 
 `pwsh`（PowerShell 7）が利用可能な場合はそちらを優先して実行します（無い場合はWindows PowerShellへ
 フォールバックします）。ビルドが失敗した場合、`scripts/version.properties`は更新されません。
-`-PappVersionCode`/`-PappVersionName`のGradleプロパティで`mobile`/`wear`双方の
-`versionCode`/`versionName`を上書きしており、通常の`./gradlew assembleDebug`等には影響しません。
+`-PappVersionCode`/`-PappVersionName`のGradleプロパティで`mobile`の`versionCode`/`versionName`を
+上書きしており（`wear`は`mobile`から継承するため個別指定不要）、通常の`./gradlew assembleDebug`等
+には影響しません。
 
-`mobile`と`wear`は別々の`applicationId`を持つ独立したアプリのため、Google Playには2つの別々の
-アプリとして登録することになります（標準的なWear OSアプリの単一AAB配布方式との違いについては
+`mobile`と`wear`は単一の`applicationId`・単一AABとしてGoogle Playへ登録します
+（Wear OSアプリの標準的な配布方式、詳細は
 [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。
 
 Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトは
@@ -136,8 +141,9 @@ Play Console提出用のストア掲載情報・プライバシーポリシー�
 ```text
 sesami-wear/
 ├── core/    # 純Kotlin/JVMライブラリ（AES-CMAC、APIクライアント、Data Layerプロトコル定義等）
-├── mobile/  # Androidアプリ（資格情報保存、Sesame API通信、Data Layer受信）
-├── wear/    # Wear OSアプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）
+├── mobile/  # Androidアプリ（資格情報保存、Sesame API通信、Data Layer受信）。base module
+├── wear/    # Wear OSアプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
+             # mobileのdynamic feature（applicationId/署名/バージョンをmobileから継承）
 ├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針
 └── docs/records/managed/
     ├── DESIGN.md    # 実装済み内容を統合した設計書（最新版）
@@ -158,6 +164,9 @@ sesami-wear/
   （[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-034参照）。
 - 実機（Pixel Watch + Sesame 5 + Hub 3）を用いる動作確認は自動実行できないため、
   [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) に人手検証タスクとして記録しています。
+- `wear`のdynamic feature化（BL-036）に伴い`minSdk`を30から26（`mobile`と統一）へ変更しました。
+  Wear OS向けライブラリが実機でminSdk26でも正常動作するか、Google Playの自動プッシュ
+  インストールが実際に機能するかは未検証です（BL-038、人手検証）。
 
 ## 関連ドキュメント
 

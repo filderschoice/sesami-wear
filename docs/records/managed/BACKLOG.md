@@ -5,20 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-037
-  区分: 実装
-  タスク内容: BL-036のGradle/Manifest変更に合わせて、DESIGN.md「Google Play配布方式」の記述を
-    実装済み内容へ更新し、README.md「ビルド・実行・テスト」「プロジェクト構成」および
-    docs/INSTALL.mdの手動インストール手順（mobile/wear別々にインストールする記述）を
-    統合後の構成に合わせて修正する
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code（自律ループ）
-  完了条件: DESIGN.md/README.md/docs/INSTALL.mdの記述が、統合後のビルド・配布・インストール
-    手順と矛盾しない
-  依存:
-    - BL-036
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
