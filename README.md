@@ -161,6 +161,7 @@ sesami-wear/
 
 ## 関連ドキュメント
 
+- [docs/INSTALL.md](docs/INSTALL.md): スマホ・スマートウォッチへのアプリインストール方法
 - [PLAN.md](PLAN.md): 要件・API仕様メモ・アーキテクチャ方針
 - [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md): 実装済み内容の統合設計書
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
