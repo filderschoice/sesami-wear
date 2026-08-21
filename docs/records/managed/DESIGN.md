@@ -336,14 +336,17 @@
   - **未確認事項**: 上記はpysesame3（2026-08-19時点のmainブランチ）のPythonソースコードを読んで判明した
     内容であり、CANDY HOUSE公式ドキュメントそのものは未参照。実機疎通確認（BL-010、人手検証）で
     最終確認する必要がある。
-- Androidアイコンリソース（BL-027で対応済み）: `mobile`/`wear`とも、南京錠をモチーフにした
+- Androidアイコンリソース（BL-027で対応済み、以降デザイン検討を経て意匠を更新済み）: `mobile`/`wear`とも、
   VectorDrawableベースのAdaptive Icon（`drawable/ic_launcher_background.xml`・
   `ic_launcher_foreground.xml`、`mipmap-anydpi-v26/ic_launcher.xml`・`ic_launcher_round.xml`）を
   作成し、AndroidManifestの`android:icon`/`android:roundIcon`から参照する形へ置き換えた。
-  背景色`#1E3A5F`（濃紺）、前景は白い南京錠のシルエット。**未確認事項**: 図案はXMLパスの手書きによる
-  簡易的なものであり、視覚的な洗練度はデザイナーによる調整を前提としていない。また、Google Play
-  Console提出に必要な高解像度アイコン画像（512x512 PNG、Play Storeの掲載用アイコン）は
-  XMLベースでの生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
+  背景色`#1E3A5F`（濃紺）は`mobile`/`wear`共通。前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」を
+  モチーフとし、無線で施解錠できるスマートロックであることを示す。`wear`のみ、Wear OSの
+  Tile/Complicationと地続きの意匠にするため、前景に下部が途切れたリング（`trimPathStart`/
+  `trimPathEnd`/`trimPathOffset`で描画、不透明度55%）を追加している。
+  **未確認事項**: 図案はXMLパスの手書きによるものであり、視覚的な洗練度はデザイナーによる最終調整を
+  前提としていない。また、Google Play Console提出に必要な高解像度アイコン画像（512x512 PNG、
+  Play Storeの掲載用アイコン）はXMLベースでの生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
 - Google Play配布方式（BL-031で記録、対応済み）: 本アプリは`mobile`（`com.sesamiwear.mobile`）と
   `wear`（`com.sesamiwear.wear`）が別々の`applicationId`を持つ、互いに独立した2つのAndroidアプリ
   として構成されている。これはGoogle Playが推奨するWear OSアプリの標準的な配布方式（1つの

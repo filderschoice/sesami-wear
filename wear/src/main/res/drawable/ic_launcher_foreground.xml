@@ -4,22 +4,46 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- コンプリケーション風のリング（下部に隙間）。Wear OSのTile/Complicationと地続きの意匠にする装飾。 -->
+    <path
+        android:pathData="M94,54 A40,40 0 1 1 14,54 A40,40 0 1 1 94,54"
+        android:strokeColor="#C99A46"
+        android:strokeWidth="5"
+        android:strokeAlpha="0.55"
+        android:strokeLineCap="round"
+        android:trimPathStart="0"
+        android:trimPathEnd="0.72"
+        android:trimPathOffset="0.39"
+        android:fillColor="#00000000" />
     <!-- 南京錠のシャックル（弧の部分）。ストロークのみで描画する。 -->
     <path
         android:pathData="M43,58 L43,49 A11,11 0 0 1 65,49 L65,58"
-        android:strokeColor="#FFFFFF"
+        android:strokeColor="#C99A46"
         android:strokeWidth="6"
         android:strokeLineCap="round"
         android:fillColor="#00000000" />
     <!-- 南京錠の本体（角丸四角形）。 -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#C99A46"
         android:pathData="M42,58 L66,58 Q71,58 71,63 L71,81 Q71,86 66,86 L42,86 Q37,86 37,81 L37,63 Q37,58 42,58 Z" />
-    <!-- 鍵穴（円+縦棒）。 -->
+    <!-- 鍵穴（円+縦棒）。背景色でくり抜く。 -->
     <path
         android:fillColor="#1E3A5F"
         android:pathData="M54,63.5 A3.5,3.5 0 1 1 53.99,63.5 Z" />
     <path
         android:fillColor="#1E3A5F"
         android:pathData="M52.5,67 L55.5,67 L56.5,78 L51.5,78 Z" />
+    <!-- ワイヤレス波（無線で施解錠できるスマートロックであることを示す）。 -->
+    <path
+        android:pathData="M72,40 A7,7 0 0 1 79,47"
+        android:strokeColor="#C99A46"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M74,31 A13,13 0 0 1 83,41"
+        android:strokeColor="#C99A46"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
 </vector>
