@@ -31,21 +31,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの現状とアーキテクチャ概要
 
-### 現状（未実装であることに注意）
+### 現状
 
-このリポジトリには、アプリケーションのソースコードはまだ存在しません（コミットは `feat: :sparkles: init
-commit` の1件のみ）。現状の中身は、Copilot / Claude Code などのAIコーディングエージェント向けガードレール
-一式を管理し、他リポジトリへ配布するための「ルール定義リポジトリ」です。
+Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid/Wear OSアプリの実装が進行中です
+（品質ゲート「本リポジトリの品質ゲート定義」でいう段階Bの状態。`core` / `mobile` / `wear`
+の3モジュールGradleプロジェクトが存在し、主要機能は実装済み）。実装済み内容・設計意図・制約は
+[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) に、セットアップ・ビルド・実行手順は
+[README.md](README.md) にまとまっています。未対応事項・人手検証待ち項目は
+[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) を参照してください。
 
-このリポジトリで将来実装予定のプロダクトは `PLAN.md` に記載されています（Pixel WatchからSesami
-スマートロックを操作するAndroid/Wear OSアプリ）。ソースコード追加・実装作業を依頼された場合は、まず
-`PLAN.md` を読み、対象コード・ビルド設定・アプリの雛形がまだ何も存在しない前提で着手してください。
+実装作業を依頼された場合は、まず上記3ファイル（DESIGN.md / BACKLOG.md / README.md）で現在の実装状況を
+確認してから着手してください。要件・API仕様の背景（元の依頼内容）は `PLAN.md` に残っていますが、
+実装済み内容の最新版は DESIGN.md が優先します。
+
+### モジュール構成
+
+- `core`: `mobile` / `wear` 双方から参照する非機密の純Kotlin/JVMロジック（AES-CMAC実装、
+  Sesame APIクライアント、Data Layer APIのメッセージパス定数、状態解決ロジック等）。
+  Android依存コードは置かない。
+- `mobile`: apikey / secretKey / uuidを保持し、AES-CMAC署名生成とSesame APIへのHTTP通信を担当する
+  Androidアプリ。
+- `wear`: Tile / Complicationの表示と、施錠/解錠の意図（コマンド種別のみ）をWearable Data Layer API
+  （`MessageClient`）でスマホ側へ送信するWear OSアプリ。secretKeyは保持しない。
+
+secretKeyは機密性が高いためWatch単体には保持させず、施錠/解錠の実行は常にスマホ側で行う方針です
+（詳細は DESIGN.md「アーキテクチャ方針」参照）。
 
 ### ディレクトリと参照関係
 
 - `CLAUDE.md`（本ファイル）: Claude Code 向け運用ルールのエントリポイント。冒頭の `@import` で
   `rules/guardrails-unified.v1.md` / `docs/guidelines/RULE.md` / `CONTRIBUTING.md` をセッション開始時に
   自動読み込みする。矛盾時の優先順位は上記「指示参照の優先順位」を参照。
+- `README.md`: セットアップ・ビルド・実行・テスト手順、リリースビルド手順、プロジェクト構成、
+  既知の未確認事項・制約の一次情報源。
+- `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
 - `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
   基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある
   （本ファイル末尾「ガイドライン更新」参照）。
@@ -53,17 +72,34 @@ commit` の1件のみ）。現状の中身は、Copilot / Claude Code などのA
   適用される指示（`.vscode/settings.json` から参照）。
 - `docs/records/`: AIエージェントが自動更新する記録群。`spec/FORMAT.md` が記述仕様の唯一の参照元。
   `managed/BACKLOG.md` / `DESIGN.md` / `EXECUTE.md` はユーザーの手動編集を想定しておらず、
-  `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する（現時点ではすべて空）。
+  `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する。
 - `docs/guidelines/`: 本ガードレール一式を他リポジトリへ配布・導入するための汎用ガイド
   （`RULE.md` はルール本体、`ADOPTION.md` は導入手順）。
+- `docs/store/`: Google Play Console提出用のストア掲載情報・プライバシーポリシーのドラフト
+  （`STORE_LISTING.md` / `PRIVACY_POLICY.md`）。
+- `scripts/`: バージョン管理付きリリースビルド用スクリプト（`release-build.bat` / `.ps1`、
+  `version.properties`）。詳細は README.md「リリースビルド・Google Play公開」参照。
+- `config/detekt/detekt.yml`: detekt静的解析の設定（`buildUponDefaultConfig = true`）。
 - `templates/`: 配布先プロジェクトが複製して使うテンプレート
   （`app-guardrail-template.yaml`、`model-risk-register-template.csv`）。
-- `PLAN.md`: 本リポジトリで今後実装予定のアプリの要件・API仕様メモ・アーキテクチャ方針。
-  CLAUDE.md 本体の運用ルールとは独立した、実装対象そのものに関するコンテキスト。
+- `PLAN.md`: このアプリの要件・API仕様メモ・アーキテクチャ方針の原初依頼内容。実装済み内容の
+  最新版は DESIGN.md を参照（矛盾する場合は DESIGN.md を優先する）。
 
 ### よく使うコマンド
 
-現状ビルド・テストフレームワークは存在せず、実行可能な自動チェックはMarkdown品質チェックのみです。
+Gradle Wrapper経由ですべてリポジトリルートから実行します（`gradlew.bat` はWindows用）。
+
+```bash
+./gradlew ktlintCheck              # コードスタイル（ktlint）
+./gradlew detekt                   # 静的解析（detekt）
+./gradlew lintDebug                # Android Lint
+./gradlew testDebugUnitTest test   # 単体テスト（core/mobile/wear全モジュール）
+./gradlew assembleDebug            # デバッグAPKビルド
+```
+
+上記5コマンドが本リポジトリの品質ゲート（後述「本リポジトリの品質ゲート定義」段階B）です。
+資格情報の設定手順、リリースビルド（署名・ProGuard/R8・`scripts/release-build.bat`）は
+[README.md](README.md) を参照してください。
 
 ```bash
 # 全Markdownファイルをlint（PR作成前に必ず実行、CONTRIBUTING.md 参照）
@@ -76,7 +112,8 @@ npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 - 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効）。
 - `CONTRIBUTING.md` はCIワークフロー `.github/workflows/markdown-quality.yml.disabled` に言及していますが、
   本リポジトリの `.github/` 配下には `workflows/` ディレクトリ自体が存在しません（未確認の差異）。
-  そのためMarkdownlintのCI自動実行は現状なく、上記コマンドのローカル実行が唯一の品質ゲートです。
+  そのためMarkdownlint/Gradle品質ゲートいずれもCI自動実行はなく、上記コマンドのローカル実行が
+  唯一の品質ゲートです。
 
 ## セキュリティ要件（MUST）
 
@@ -214,13 +251,13 @@ Claude Code の実行手順を定義します。
 
 自律ループ実行モードの合否判定に使用するコマンドを以下に定義します。段階に応じて有効な範囲が変わります。
 
-#### 段階A（現状 / Androidプロジェクト未作成）
+#### 段階A（Androidプロジェクト作成前の初期段階。本リポジトリでは完了済み、参考として保持）
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
 ```
 
-#### 段階B（Androidプロジェクト雛形作成後）
+#### 段階B（Androidプロジェクト雛形作成後。本リポジトリの現在の段階）
 
 ```bash
 ./gradlew ktlintCheck

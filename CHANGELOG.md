@@ -50,3 +50,14 @@ Claude Code による自律ループ実行（Loop Engineering）でアプリ実�
   と異なる制約であることを記録。影響範囲（掲載ページの分離、自動プッシュインストール不可、
   リリース管理が2アプリ分必要）と、今回のタスクスコープでは統合構成への移行を行わない方針、
   将来統合する場合の概要を明記した。コード変更を伴わないため`EXECUTE.md`は更新していない。
+
+## 2026-08-21（BL-021）
+
+- `docs/records/managed/BACKLOG.md` 冒頭（`COPILOT_RECORDS:BEGIN`より前、マーカー外）に
+  `<!-- markdownlint-disable-file MD041 -->` を追加。`DESIGN.md`/`EXECUTE.md`には
+  既に付与済みだったコメントが本ファイルのみinit commit時点から欠落しており、
+  `npx markdownlint-cli2 "**/*.md"` 実行時にエラーとなっていた（BL-021）。
+  マーカー外への追記はCLAUDE.md「records自動更新規約」の原則に抵触しうるため、
+  BL-021としてユーザーへ対応可否を確認したうえで、明示的な許可を得て追記した。
+  あわせてBACKLOG.mdの完了項目としてBL-021のレコード自体をマーカー内から削除した。
+  コード変更を伴わないため`EXECUTE.md`は更新していない。
