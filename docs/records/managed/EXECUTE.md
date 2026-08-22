@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:02
+  summary: mobile側CredentialsSettingsScreenがステータスバーと重なる表示崩れを修正した（BL-045）
+  details:
+    変更内容: >
+      ユーザー報告により、mobile側のCredentialsSettingsScreen（資格情報設定画面）が画面トップの
+      ステータスバーと重なって表示される問題を確認した。原因は
+      CredentialsSettingsScreen.ktのColumn(modifier = Modifier.padding(16.dp))に
+      WindowInsets対応が設定されておらず、Edge-to-edge表示によりコンテンツがステータスバーの
+      下（同じ座標）に描画されていたため。ColumnのmodifierへsafeDrawingPadding()を追加し
+      （.safeDrawingPadding().padding(16.dp)の順で適用、ステータスバー・ナビゲーションバー・
+      ディスプレイカットアウトを含む安全領域分のpaddingを内側の16dpパディングより外側に確保）、
+      重なりを解消した。Pixel 8 Pro実機でinstallDebug後にMainActivityを起動し、
+      スクリーンショットで時刻・通知アイコン等のステータスバーとコンテンツ
+      （「Sesame API設定」テキスト・uuid入力欄）が重ならず表示されることを目視確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでのスクリーンショット目視確認込み）
+    検証結果: 成功 - 全品質ゲートおよびinstallDebugがBUILD SUCCESSFUL。実機スクリーンショットで
+      ステータスバーとの重なり解消を確認した。
+    関連ID:
+      - BL-045
+
 - date: 2026-08-22 17:01
   summary: dist:titleの重複リソース参照によるAABパッケージング失敗を修正した（BL-043）
   details:

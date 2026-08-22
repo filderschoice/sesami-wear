@@ -3,6 +3,7 @@ package com.sesamiwear.mobile.credentials
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,7 +44,7 @@ fun CredentialsSettingsScreen(
         }
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
         Text(text = "Sesame API設定")
         OutlinedTextField(
             value = uuid,

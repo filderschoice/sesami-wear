@@ -293,6 +293,12 @@
   `com.sesamiwear.wear.MainActivity`がインストールされる現象を確認した。BL-039の
   `dist:device-feature`条件はGoogle Play正式配信でのみ評価されローカルの`installDebug`では
   評価されない制約による可能性があるが未確認のため、BL-044（人手検証）へ切り出した。
+- REQ-030（BL-045、ユーザー報告）: `mobile`側`CredentialsSettingsScreen`（資格情報設定画面）が
+  画面トップのステータスバーと重なって表示される問題を修正した。`Column`の`modifier`に
+  WindowInsets対応（`Modifier.padding(16.dp)`のみ）が設定されておらず、Edge-to-edge表示で
+  コンテンツがステータスバー下に描画されていたことが原因。`Modifier.safeDrawingPadding()`を
+  内側の`padding(16.dp)`より外側に適用し、ステータスバー・ナビゲーションバー・ディスプレイ
+  カットアウトを含む安全領域を確保した。Pixel 8 Pro実機での目視確認済み。
 
 ## 設計方針
 
