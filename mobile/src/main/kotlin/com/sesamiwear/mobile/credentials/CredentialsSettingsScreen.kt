@@ -1,5 +1,8 @@
 package com.sesamiwear.mobile.credentials
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,8 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,8 +37,9 @@ import kotlinx.coroutines.launch
 /**
  * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
  * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
- * secretKeyは16進数文字列（32文字）で入力する想定（BL-058、CANDY HOUSE公式ドキュメントの
- * コード例に合わせた形式。QRコードスキャン自体は本タスクの範囲外）。
+ * uuid/apikey/secretKeyはすべてbiz.candyhouse.co（SESAME Biz 開発者ページ）から取得する想定
+ * （BL-059、Sesameアプリの「鍵をシェア」QRコードは使わない）。secretKeyは16進数32文字（BL-058）。
+ * 取得元の詳細説明は初期表示せず、ヘルプボタンからのダイアログへ集約して情報量を抑える（BL-059）。
  */
 @Composable
 fun CredentialsSettingsScreen(
@@ -47,6 +51,7 @@ fun CredentialsSettingsScreen(
     var credentialsList by remember { mutableStateOf(credentialsStore.loadAll()) }
     val formState = rememberCredentialsFormState()
     var showSavedMessage by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
 
     if (showSavedMessage) {
         LaunchedEffect(Unit) {
@@ -61,10 +66,20 @@ fun CredentialsSettingsScreen(
         coroutineScope.launch { SesameDeviceListSyncer(context).sync(list) }
     }
 
+    if (showHelp) {
+        HelpDialog(onDismiss = { showHelp = false })
+    }
+
     Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
-        Text(text = "Sesame API設定（${credentialsList.size}台登録済み）")
-        SetupInstructions()
-        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Sesame API設定（${credentialsList.size}台登録済み）",
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = { showHelp = true }) {
+                Text("ヘルプ")
+            }
+        }
         DeviceList(
             credentialsList = credentialsList,
             onEdit = formState::startEditing,
@@ -97,20 +112,36 @@ fun CredentialsSettingsScreen(
 }
 
 /**
- * 資格情報3点（uuid/apikey/secretKey）の取得元をまとめた手順説明（BL-056）。
- * 詳細な取得元は各入力欄のsupportingTextでも重ねて案内する。
+ * uuid/apikey/secretKeyの取得元をまとめたヘルプ（BL-059）。
+ * 初期表示では出さず、ヘルプボタンからのみ開く。SESAME Biz開発者ページへのリンクを含む。
  */
 @Composable
-private fun SetupInstructions() {
-    Text(
-        text =
-            "① Sesameアプリの「鍵をシェア」からQRコードを表示し、uuidを確認する\n" +
-                "② biz.candyhouse.co（SESAME Biz 開発者ページ）でapikeyとsecretKey（16進数32文字）" +
-                "を発行する\n" +
-                "③ 下のフォームに入力して「追加」を押す（表示名は任意）",
-        style = MaterialTheme.typography.bodySmall,
+private fun HelpDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("値の取得方法") },
+        text = {
+            Column {
+                Text(
+                    "uuid・apikey・secretKeyは biz.candyhouse.co（SESAME Biz 開発者ページ）で" +
+                        "確認できます。\nsecretKeyは16進数32文字です。",
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SESAME_BIZ_DEVELOPER_URL)))
+                }) {
+                    Text("SESAME Biz 開発者ページを開く")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("閉じる") }
+        },
     )
 }
+
+private const val SESAME_BIZ_DEVELOPER_URL = "https://biz.candyhouse.co/biz/developer"
 
 @Composable
 private fun DeviceList(
@@ -147,42 +178,46 @@ private fun CredentialsForm(
 ) {
     val isInputValid = CredentialsInputValidator.isValid(formState.uuid, formState.apiKey, formState.secretKeyHex)
 
-    Text(text = if (formState.editingUuid == null) "新しいSesameを追加" else "Sesameを編集")
-    OutlinedTextField(
-        value = formState.displayName,
-        onValueChange = { formState.displayName = it },
-        label = { Text("表示名（任意）") },
-        supportingText = { Text("この端末で見分けるための名前（例: 玄関）") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = formState.uuid,
-        onValueChange = { formState.uuid = it },
-        label = { Text("uuid") },
-        supportingText = { Text("Sesameアプリの「鍵をシェア」QRコードに含まれるsesame2_uuid") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = formState.apiKey,
-        onValueChange = { formState.apiKey = it },
-        label = { Text("apikey") },
-        supportingText = { Text("biz.candyhouse.co（SESAME Biz 開発者ページ）で発行するx-api-key") },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = formState.secretKeyHex,
-        onValueChange = { formState.secretKeyHex = it },
-        label = { Text("secretKey (16進数)") },
-        supportingText = { Text("biz.candyhouse.co のデバイス情報から生成する16進数32文字の鍵") },
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Row {
-        Button(enabled = isInputValid, onClick = onSave) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = if (formState.editingUuid == null) "新しいSesameを追加" else "Sesameを編集")
+        OutlinedTextField(
+            value = formState.displayName,
+            onValueChange = { formState.displayName = it },
+            label = { Text("表示名（任意）") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = formState.uuid,
+            onValueChange = { formState.uuid = it },
+            label = { Text("uuid") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = formState.apiKey,
+            onValueChange = { formState.apiKey = it },
+            label = { Text("apikey") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = formState.secretKeyHex,
+            onValueChange = { formState.secretKeyHex = it },
+            label = { Text("secretKey (16進数32文字)") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            enabled = isInputValid,
+            onClick = onSave,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text(if (formState.editingUuid == null) "追加" else "更新")
         }
         if (formState.editingUuid != null) {
-            TextButton(onClick = { formState.startEditing(null) }) {
+            TextButton(
+                onClick = { formState.startEditing(null) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("キャンセル")
             }
         }

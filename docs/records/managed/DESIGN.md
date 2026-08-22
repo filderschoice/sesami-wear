@@ -339,6 +339,23 @@
   共に`biz.candyhouse.co`から取得できる可能性があり、正確な取得手順（画面遷移）は
   実際にユーザーが確認した範囲（デバイス情報からsecretKeyを生成できること）以上には
   未確認。実機での施錠/解錠疎通確認（BL-010）で最終検証する。
+- REQ-034（BL-059、ユーザー報告）: ユーザーからuuid・apikeyも`biz.candyhouse.co`から取得する
+  値であるとの報告を受け（Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
+  `CredentialsSettingsScreen`の案内文言を修正した。あわせて、手順説明
+  （旧`SetupInstructions`の3行テキスト）と各入力欄の`supportingText`により初期表示の
+  情報量が多いという指摘を受け、詳細説明をヘルプボタン（`TextButton`）タップで開く
+  `AlertDialog`（`HelpDialog`）へ集約し、初期表示は入力欄（表示名/uuid/apikey/secretKey）を
+  ラベルのみのシンプルな見た目にした。`androidx.compose.material.icons`系の依存が
+  プロジェクトになかったため、アイコンボタンではなくテキストボタンで実装した。
+  README.md/docs/store/STORE_LISTING.md/docs/store/PRIVACY_POLICY.mdの取得元説明も
+  `biz.candyhouse.co`に統一した。`HelpDialog`にはSESAME Biz開発者ページ
+  （`https://biz.candyhouse.co/biz/developer`）へ遷移する`TextButton`（`Intent.ACTION_VIEW`）
+  も追加した（ユーザー追加依頼）。あわせて`CredentialsForm`のレイアウトを
+  `Column(verticalArrangement = Arrangement.spacedBy(8.dp))`で統一し、入力欄同士および
+  secretKey欄と「追加」ボタンの間隔が狭すぎるという指摘（ユーザー追加依頼）を受け、
+  ボタン群の前に追加のスペーサーを挟み、ボタン自体も`Modifier.fillMaxWidth()`で
+  横幅いっぱいの目立つ形状に変更した。Pixel 8 Pro実機でヘルプダイアログ・リンク遷移・
+  レイアウト調整後の表示をすべて確認済み。
 
 ## 設計方針
 

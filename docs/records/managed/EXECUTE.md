@@ -5,6 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 22:55
+  summary: 資格情報設定画面の案内文言をbiz.candyhouse.co前提に統一し情報量を削減した（BL-059）
+  details:
+    変更内容: >
+      ユーザーからuuid・apikeyもbiz.candyhouse.coから取得する値であるとの報告を受け
+      （Sesameアプリの「鍵をシェア」QRコードは使わない運用）、CredentialsSettingsScreenの
+      案内文言を修正した。あわせて、旧SetupInstructions（3行の手順テキスト）と各入力欄の
+      supportingTextにより初期表示の情報量が多いという指摘を受け、詳細説明をヘルプボタン
+      （TextButton）タップで開くAlertDialog（HelpDialog、「uuid・apikey・secretKeyは
+      biz.candyhouse.coで確認できます。secretKeyは16進数32文字です。」の1つにまとめた
+      文言）へ集約し、初期表示は入力欄（表示名/uuid/apikey/secretKey）をラベルのみの
+      シンプルな見た目にした。material-icons系ライブラリの依存がプロジェクトになかったため
+      アイコンボタンではなくテキストボタンで実装した。README.md/
+      docs/store/STORE_LISTING.md/docs/store/PRIVACY_POLICY.mdの取得元説明も
+      biz.candyhouse.coに統一した。
+      追加のユーザー依頼により、HelpDialogへSESAME Biz開発者ページ
+      （https://biz.candyhouse.co/biz/developer）へIntent.ACTION_VIEWで遷移するTextButtonを
+      追加した。さらに「追加」ボタンがsecretKey入力欄と近すぎる」という指摘を受け、
+      CredentialsFormをColumn(verticalArrangement = Arrangement.spacedBy(8.dp))で統一し、
+      ボタン群の前に追加スペーサーを挟み、ボタンをModifier.fillMaxWidth()で横幅いっぱいの
+      目立つ形状に変更した。
+      Pixel 8 Pro実機でシンプル化後の画面表示、ヘルプダイアログの表示、リンクボタンタップ時の
+      ブラウザ遷移（biz.candyhouse.co/biz/developerへの正常な遷移を確認）、レイアウト調整後の
+      余白をすべて確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - docs/store/PRIVACY_POLICY.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      npx markdownlint-cli2 "**/*.md" &&
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでの画面・ダイアログ・リンク遷移・
+      レイアウトの目視確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機スクリーンショットで初期表示の簡素化、
+      ヘルプダイアログの表示、開発者ページへのブラウザ遷移、レイアウト調整をすべて確認した。
+    関連ID:
+      - BL-059
+
 - date: 2026-08-22 22:30
   summary: secretKeyのデコード方式をBase64からhexへ修正した重大バグ修正（BL-058）
   details:

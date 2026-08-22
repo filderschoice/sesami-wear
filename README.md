@@ -29,12 +29,13 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 
 ### 1. Sesame APIの資格情報を取得する
 
-施錠/解錠・状態取得には次の3点が必要です（詳細は [PLAN.md](PLAN.md) の「API仕様」を参照）。
+施錠/解錠・状態取得には次の3点が必要です。いずれも biz.candyhouse.co（SESAME Biz 開発者ページ）
+で確認・発行できます（詳細は [PLAN.md](PLAN.md) の「API仕様」を参照。ただし取得元URLの記述は
+BL-057/BL-059で本セクションの内容が最新です）。
 
-- `uuid`（sesame2_uuid）: Sesameアプリの「鍵をシェア」QRコードから取得する
-  （マネージャー/オーナー権限のキーで発行すること。ゲストキーは不可）
-- `secretKey`: 同QRコードから取得する制御コマンドの署名鍵
-- `apikey`: biz.candyhouse.co（SESAME Biz 開発者ページ）で発行するx-api-key
+- `uuid`（sesame2_uuid）: 対象Sesameデバイスの識別子
+- `apikey`: x-api-key
+- `secretKey`: 施錠/解錠コマンドの署名（AES-CMAC）に使う16進数32文字（16バイト）の鍵
 
 ### 2. アプリへ資格情報を設定する
 
