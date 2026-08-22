@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 22:30
+  summary: secretKeyのデコード方式をBase64からhexへ修正した重大バグ修正（BL-058）
+  details:
+    変更内容: >
+      ユーザー報告（secretKeyに32文字の値を入力しても「追加」ボタンが無効のまま）を受けて
+      調査した結果、core.SesameCredentialsのsecretKeyデコード処理がBase64を前提として
+      いたことが根本原因と判明した。CANDY HOUSE公式ドキュメント
+      （API_document/SesameOS3/webapi.mdのコード例）ではsecretKeyは16進数文字列
+      （32文字=16バイト）であり、Base64ではない。secretKeyBase64フィールドを
+      secretKeyHexへリネームし、デコードをjava.util.HexFormat.of().parseHex()へ変更した
+      （core.crypto.AesCmac/core.api.SesameCommandSigner自体は鍵の16バイト長のみを
+      要求するロジックでエンコーディング形式に依存しないため変更不要だった）。
+      mobile.CredentialsInputValidator、mobile.CredentialsSettingsScreen（UI文言・
+      supportingText・SetupInstructionsの手順説明）、関連する単体テスト3件
+      （SesameCredentialsTest/SesameCredentialsStoreTest/CredentialsInputValidatorTest）
+      をすべてhex形式に合わせて修正した。SetupInstructionsは、ユーザーの実際の運用
+      （secretKeyはQRコードではなくbiz.candyhouse.coのデバイス情報から生成）に合わせて
+      「①QRコードでuuid確認 ②biz.candyhouse.coでapikey・secretKey発行」という手順に
+      更新した。core.api.SesameApiClientのBase64使用箇所（historyタグのエンコード）は
+      secretKeyとは無関係のため変更していない。
+      未確認事項として、apikey/secretKeyの正確な取得画面（biz.candyhouse.co内の
+      具体的な遷移）は実機での施錠/解錠疎通確認（BL-010）で最終検証する旨をDESIGN.mdに
+      記録した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidator.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidatorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（大文字/小文字hex、不正hex、鍵長不一致の単体テストを
+      含め全成功）。実機での16進数secretKey入力確認はユーザー実施予定。
+    関連ID:
+      - BL-058
+
 - date: 2026-08-22 21:59
   summary: apikey発行先URLの記載をpartners.candyhouse.coからbiz.candyhouse.coへ修正した（BL-057）
   details:

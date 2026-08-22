@@ -41,7 +41,7 @@ class SesameMessageListenerService : WearableListenerService() {
     ): SesameCommandHandler? {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(context))
         val credentials = credentialsStore.loadAll().find { it.uuid == deviceUuid }
-        // secretKeyBytesOrNullを使い、不正なBase64/鍵長の資格情報が保存されていても例外で
+        // secretKeyBytesOrNullを使い、不正な16進数/鍵長の資格情報が保存されていても例外で
         // クラッシュせずFAILUREへフォールバックする（BL-026、コードレビューで発見）。
         val secretKeyBytes = credentials?.secretKeyBytesOrNull
         return if (credentials != null && secretKeyBytes != null) {

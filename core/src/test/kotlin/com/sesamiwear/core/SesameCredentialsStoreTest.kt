@@ -3,7 +3,6 @@ package com.sesamiwear.core
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Base64
 
 class SesameCredentialsStoreTest {
     private class InMemoryKeyValueStore : SesameKeyValueStore {
@@ -26,12 +25,11 @@ class SesameCredentialsStoreTest {
     @Test
     fun `round-trips a single credentials entry through saveAll and loadAll`() {
         val store = SesameCredentialsStore(InMemoryKeyValueStore())
-        val secretKeyBase64 = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3, 4))
         val credentials =
             SesameCredentials(
                 uuid = "test-uuid",
                 apiKey = "test-api-key",
-                secretKeyBase64 = secretKeyBase64,
+                secretKeyHex = "0102030405060708090a0b0c0d0e0f10",
                 displayName = "玄関",
             )
 
@@ -45,9 +43,9 @@ class SesameCredentialsStoreTest {
     fun `round-trips multiple credentials entries`() {
         val store = SesameCredentialsStore(InMemoryKeyValueStore())
         val first =
-            SesameCredentials(uuid = "uuid-1", apiKey = "key-1", secretKeyBase64 = "AQIDBA==", displayName = "玄関")
+            SesameCredentials(uuid = "uuid-1", apiKey = "key-1", secretKeyHex = "01020304", displayName = "玄関")
         val second =
-            SesameCredentials(uuid = "uuid-2", apiKey = "key-2", secretKeyBase64 = "BQYHCA==", displayName = "裏口")
+            SesameCredentials(uuid = "uuid-2", apiKey = "key-2", secretKeyHex = "05060708", displayName = "裏口")
 
         store.saveAll(listOf(first, second))
         val loaded = store.loadAll()
@@ -74,8 +72,8 @@ class SesameCredentialsStoreTest {
     @Test
     fun `remove drops only the matching uuid`() {
         val store = SesameCredentialsStore(InMemoryKeyValueStore())
-        val first = SesameCredentials(uuid = "uuid-1", apiKey = "key-1", secretKeyBase64 = "AQIDBA==")
-        val second = SesameCredentials(uuid = "uuid-2", apiKey = "key-2", secretKeyBase64 = "BQYHCA==")
+        val first = SesameCredentials(uuid = "uuid-1", apiKey = "key-1", secretKeyHex = "01020304")
+        val second = SesameCredentials(uuid = "uuid-2", apiKey = "key-2", secretKeyHex = "05060708")
         store.saveAll(listOf(first, second))
 
         store.remove("uuid-1")
@@ -87,7 +85,7 @@ class SesameCredentialsStoreTest {
     fun `clear removes saved credentials`() {
         val keyValueStore = InMemoryKeyValueStore()
         val store = SesameCredentialsStore(keyValueStore)
-        val credentials = SesameCredentials(uuid = "test-uuid", apiKey = "test-api-key", secretKeyBase64 = "AQIDBA==")
+        val credentials = SesameCredentials(uuid = "test-uuid", apiKey = "test-api-key", secretKeyHex = "01020304")
         store.saveAll(listOf(credentials))
 
         store.clear()

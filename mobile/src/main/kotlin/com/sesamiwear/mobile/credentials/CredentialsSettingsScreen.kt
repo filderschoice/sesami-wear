@@ -34,8 +34,8 @@ import kotlinx.coroutines.launch
 /**
  * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
  * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
- * secretKeyはSesameアプリの「鍵をシェア」QRコードから取得したBase64文字列をそのまま入力する想定
- * （QRコードスキャン自体は本タスクの範囲外）。
+ * secretKeyは16進数文字列（32文字）で入力する想定（BL-058、CANDY HOUSE公式ドキュメントの
+ * コード例に合わせた形式。QRコードスキャン自体は本タスクの範囲外）。
  */
 @Composable
 fun CredentialsSettingsScreen(
@@ -104,8 +104,9 @@ fun CredentialsSettingsScreen(
 private fun SetupInstructions() {
     Text(
         text =
-            "① Sesameアプリの「鍵をシェア」からQRコードを表示し、uuidとsecretKeyを確認する\n" +
-                "② biz.candyhouse.co（SESAME Biz 開発者ページ）でapikeyを発行する\n" +
+            "① Sesameアプリの「鍵をシェア」からQRコードを表示し、uuidを確認する\n" +
+                "② biz.candyhouse.co（SESAME Biz 開発者ページ）でapikeyとsecretKey（16進数32文字）" +
+                "を発行する\n" +
                 "③ 下のフォームに入力して「追加」を押す（表示名は任意）",
         style = MaterialTheme.typography.bodySmall,
     )
@@ -144,7 +145,7 @@ private fun CredentialsForm(
     formState: CredentialsFormState,
     onSave: () -> Unit,
 ) {
-    val isInputValid = CredentialsInputValidator.isValid(formState.uuid, formState.apiKey, formState.secretKeyBase64)
+    val isInputValid = CredentialsInputValidator.isValid(formState.uuid, formState.apiKey, formState.secretKeyHex)
 
     Text(text = if (formState.editingUuid == null) "新しいSesameを追加" else "Sesameを編集")
     OutlinedTextField(
@@ -169,10 +170,10 @@ private fun CredentialsForm(
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
-        value = formState.secretKeyBase64,
-        onValueChange = { formState.secretKeyBase64 = it },
-        label = { Text("secretKey (Base64)") },
-        supportingText = { Text("Sesameアプリの「鍵をシェア」QRコードに含まれる制御用の鍵") },
+        value = formState.secretKeyHex,
+        onValueChange = { formState.secretKeyHex = it },
+        label = { Text("secretKey (16進数)") },
+        supportingText = { Text("biz.candyhouse.co のデバイス情報から生成する16進数32文字の鍵") },
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )
@@ -192,19 +193,19 @@ private class CredentialsFormState {
     var editingUuid by mutableStateOf<String?>(null)
     var uuid by mutableStateOf("")
     var apiKey by mutableStateOf("")
-    var secretKeyBase64 by mutableStateOf("")
+    var secretKeyHex by mutableStateOf("")
     var displayName by mutableStateOf("")
 
     fun startEditing(credentials: SesameCredentials?) {
         editingUuid = credentials?.uuid
         uuid = credentials?.uuid.orEmpty()
         apiKey = credentials?.apiKey.orEmpty()
-        secretKeyBase64 = credentials?.secretKeyBase64.orEmpty()
+        secretKeyHex = credentials?.secretKeyHex.orEmpty()
         displayName = credentials?.displayName.orEmpty()
     }
 
     fun toCredentials(): SesameCredentials =
-        SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyBase64 = secretKeyBase64, displayName = displayName)
+        SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyHex = secretKeyHex, displayName = displayName)
 }
 
 @Composable

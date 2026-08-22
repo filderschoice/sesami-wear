@@ -318,6 +318,27 @@
   非公開のバイナリフォーマットへの依存となりCANDY HOUSE側の仕様変更で壊れるリスクが
   高いため見送った（実機でSesame 5のQRコードをスキャンし160バイトのデータを確認したが、
   SESAME 3/4向けの既知構造（99バイト）とは一致せず、Sesame 5固有の構造は非公開で不明）。
+- REQ-033（BL-058、ユーザー報告による重大バグ修正）: mobile側で資格情報を入力しても
+  「追加」ボタンが有効化されない不具合を調査した結果、`core.SesameCredentials`の
+  secretKeyデコード処理がBase64を前提としていたことが根本原因と判明した。CANDY HOUSE
+  公式ドキュメント（`API_document/SesameOS3/webapi.md`）のコード例
+  （例: `'2ebc2c087c1501480834538ff72139bc'`）ではsecretKeyは**16進数文字列（32文字=16バイト）**
+  として扱われており、Base64ではない。ユーザーが`biz.candyhouse.co`のデバイス情報から
+  生成した32文字の値を入力しても16バイトのBase64（標準的には24文字）とは長さが一致せず、
+  `secretKeyBytesOrNull`が常にnullを返しバリデーションが通らなかった。
+  `SesameCredentials.secretKeyBase64`フィールドを`secretKeyHex`へリネームし、
+  デコードを`Base64.getDecoder()`から`java.util.HexFormat.of().parseHex()`へ変更した
+  （Java 17標準API、大文字小文字どちらも受け付ける）。`CredentialsInputValidator`・
+  `CredentialsSettingsScreen`（UI文言・supportingText・手順説明含む）・関連する単体テスト
+  （`SesameCredentialsTest`/`SesameCredentialsStoreTest`/`CredentialsInputValidatorTest`）を
+  すべてhex形式に合わせて修正した。`core.crypto.AesCmac`・`core.api.SesameCommandSigner`
+  自体は鍵の16バイト長のみを要求するロジックでエンコーディング形式に依存しないため
+  変更不要だった。`core.api.SesameApiClient`の`Base64`使用箇所（`history`タグの
+  エンコード）はsecretKeyとは無関係のため変更していない。
+  **未確認事項**: uuidの取得元は引き続きQRコードとして案内しているが、apikey/secretKey
+  共に`biz.candyhouse.co`から取得できる可能性があり、正確な取得手順（画面遷移）は
+  実際にユーザーが確認した範囲（デバイス情報からsecretKeyを生成できること）以上には
+  未確認。実機での施錠/解錠疎通確認（BL-010）で最終検証する。
 
 ## 設計方針
 
