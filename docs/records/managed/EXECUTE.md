@@ -5,6 +5,29 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:24
+  summary: mobile資格情報設定画面を複数デバイス管理UIへ変更した（BL-049）
+  details:
+    変更内容: >
+      CredentialsSettingsScreenを単一フォームから、複数デバイスの一覧（DeviceList、
+      表示名・uuid表示＋編集/削除ボタン）と追加/編集フォーム（CredentialsForm、
+      表示名/uuid/apikey/secretKey入力）を組み合わせたUIへ全面的に書き換えた。
+      uuidをキーとしたupsert（同一uuidなら上書き、新規uuidなら追加）で
+      credentialsStore.saveAll()へ反映する。編集状態はCredentialsFormState
+      （remember管理のプライベートクラス）へ切り出した。detektのLongMethod
+      （閾値60）に抵触したため、DeviceList/CredentialsFormをサブComposableへ
+      分割して解消した。CredentialsInputValidator自体はロジック変更なし
+      （既存テストに影響なし）。実機（Pixel Watch 2）へのinstallDebugは成功したが、
+      Pixel 8 Pro側はadbデーモンが不安定になり接続確認できず、実機目視確認は
+      未実施（コードレベルの品質ゲートは全て成功）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-049
+
 - date: 2026-08-22 17:19
   summary: SesameWearProtocolのペイロードに対象デバイスuuidを載せるエンコード/デコードを追加した（BL-048）
   details:

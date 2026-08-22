@@ -92,18 +92,6 @@
     - BL-047
     - BL-048
 
-- id: BL-049
-  区分: 機能追加
-  タスク内容: mobile側のCredentialsSettingsScreenを、単一フォームから複数デバイスの一覧・追加・
-    編集・削除ができるUIへ変更する。各デバイスに表示名（displayName）を設定できるようにする
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: CredentialsInputValidator等関連ロジックの単体テストが複数デバイス対応後も成功し、
-    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
-  依存:
-    - BL-047
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

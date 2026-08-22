@@ -1,12 +1,18 @@
 package com.sesamiwear.mobile.credentials
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,7 +27,8 @@ import com.sesamiwear.core.SesameCredentialsStore
 import kotlinx.coroutines.delay
 
 /**
- * Sesame APIの認証情報3点（uuid/apikey/secretKey）を入力・保存する設定画面。
+ * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
+ * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
  * secretKeyはSesameアプリの「鍵をシェア」QRコードから取得したBase64文字列をそのまま入力する想定
  * （QRコードスキャン自体は本タスクの範囲外）。
  */
@@ -30,14 +37,9 @@ fun CredentialsSettingsScreen(
     credentialsStore: SesameCredentialsStore,
     onSaved: () -> Unit = {},
 ) {
-    // 複数デバイス対応（BL-047）の暫定実装として先頭の1件のみを編集する。
-    // 一覧・追加・編集・削除ができるUIへの変更はBL-049で行う。
-    val initial = remember { credentialsStore.loadAll().firstOrNull() }
-    var uuid by remember { mutableStateOf(initial?.uuid.orEmpty()) }
-    var apiKey by remember { mutableStateOf(initial?.apiKey.orEmpty()) }
-    var secretKeyBase64 by remember { mutableStateOf(initial?.secretKeyBase64.orEmpty()) }
+    var credentialsList by remember { mutableStateOf(credentialsStore.loadAll()) }
+    val formState = rememberCredentialsFormState()
     var showSavedMessage by remember { mutableStateOf(false) }
-    val isInputValid = CredentialsInputValidator.isValid(uuid, apiKey, secretKeyBase64)
 
     if (showSavedMessage) {
         LaunchedEffect(Unit) {
@@ -47,42 +49,125 @@ fun CredentialsSettingsScreen(
     }
 
     Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
-        Text(text = "Sesame API設定")
-        OutlinedTextField(
-            value = uuid,
-            onValueChange = { uuid = it },
-            label = { Text("uuid") },
-            modifier = Modifier.fillMaxWidth(),
+        Text(text = "Sesame API設定（${credentialsList.size}台登録済み）")
+        DeviceList(
+            credentialsList = credentialsList,
+            onEdit = formState::startEditing,
+            onDelete = { credentials ->
+                credentialsStore.remove(credentials.uuid)
+                credentialsList = credentialsStore.loadAll()
+                if (formState.editingUuid == credentials.uuid) formState.startEditing(null)
+            },
         )
-        OutlinedTextField(
-            value = apiKey,
-            onValueChange = { apiKey = it },
-            label = { Text("apikey") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = secretKeyBase64,
-            onValueChange = { secretKeyBase64 = it },
-            label = { Text("secretKey (Base64)") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(
-            enabled = isInputValid,
-            onClick = {
-                credentialsStore.saveAll(
-                    listOf(SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyBase64 = secretKeyBase64)),
-                )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        CredentialsForm(
+            formState = formState,
+            onSave = {
+                val updatedList =
+                    credentialsList.filterNot { it.uuid == formState.uuid } + formState.toCredentials()
+                credentialsStore.saveAll(updatedList)
+                credentialsList = updatedList
                 showSavedMessage = true
+                formState.startEditing(null)
                 onSaved()
             },
-        ) {
-            Text("保存")
-        }
+        )
         if (showSavedMessage) {
             Text(text = "保存しました")
         }
     }
 }
+
+@Composable
+private fun DeviceList(
+    credentialsList: List<SesameCredentials>,
+    onEdit: (SesameCredentials) -> Unit,
+    onDelete: (SesameCredentials) -> Unit,
+) {
+    LazyColumn {
+        items(credentialsList, key = { it.uuid }) { credentials ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Text(
+                    text = credentials.displayName.ifBlank { credentials.uuid },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { onEdit(credentials) }) {
+                    Text("編集")
+                }
+                TextButton(onClick = { onDelete(credentials) }) {
+                    Text("削除")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CredentialsForm(
+    formState: CredentialsFormState,
+    onSave: () -> Unit,
+) {
+    val isInputValid = CredentialsInputValidator.isValid(formState.uuid, formState.apiKey, formState.secretKeyBase64)
+
+    Text(text = if (formState.editingUuid == null) "新しいSesameを追加" else "Sesameを編集")
+    OutlinedTextField(
+        value = formState.displayName,
+        onValueChange = { formState.displayName = it },
+        label = { Text("表示名（任意、例: 玄関）") },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = formState.uuid,
+        onValueChange = { formState.uuid = it },
+        label = { Text("uuid") },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = formState.apiKey,
+        onValueChange = { formState.apiKey = it },
+        label = { Text("apikey") },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = formState.secretKeyBase64,
+        onValueChange = { formState.secretKeyBase64 = it },
+        label = { Text("secretKey (Base64)") },
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Row {
+        Button(enabled = isInputValid, onClick = onSave) {
+            Text(if (formState.editingUuid == null) "追加" else "更新")
+        }
+        if (formState.editingUuid != null) {
+            TextButton(onClick = { formState.startEditing(null) }) {
+                Text("キャンセル")
+            }
+        }
+    }
+}
+
+private class CredentialsFormState {
+    var editingUuid by mutableStateOf<String?>(null)
+    var uuid by mutableStateOf("")
+    var apiKey by mutableStateOf("")
+    var secretKeyBase64 by mutableStateOf("")
+    var displayName by mutableStateOf("")
+
+    fun startEditing(credentials: SesameCredentials?) {
+        editingUuid = credentials?.uuid
+        uuid = credentials?.uuid.orEmpty()
+        apiKey = credentials?.apiKey.orEmpty()
+        secretKeyBase64 = credentials?.secretKeyBase64.orEmpty()
+        displayName = credentials?.displayName.orEmpty()
+    }
+
+    fun toCredentials(): SesameCredentials =
+        SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyBase64 = secretKeyBase64, displayName = displayName)
+}
+
+@Composable
+private fun rememberCredentialsFormState(): CredentialsFormState = remember { CredentialsFormState() }
 
 private const val SAVED_MESSAGE_DURATION_MS = 2000L
