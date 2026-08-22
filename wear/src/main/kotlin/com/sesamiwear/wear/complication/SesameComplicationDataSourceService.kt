@@ -9,6 +9,7 @@ import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
+import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,9 @@ import kotlinx.coroutines.launch
  * スマホ接続状態・ロック状態は[SesameTileService]と同じ仕組み（[SesameConnectedNodeProvider]・
  * [SesameStatusSnapshotReader]）から取得する（BL-015）。
  * Android Complications APIへの依存のためユニットテスト対象外
- * （表示文言ロジックは[SesameComplicationContent]でテスト済み、実機表示確認はBL-011で人手検証）。
+ * （表示文言ロジックは[SesameComplicationContent]でテスト済み、実機表示確認はBL-055で人手検証）。
+ * **暫定実装（BL-053時点）**: [SesameDeviceListReader]で同期された先頭のデバイスの状態のみを
+ * 表示する。complicationInstanceIdごとに対象デバイスを選択する本実装はBL-054で行う。
  */
 class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     override fun onComplicationRequest(
@@ -28,7 +31,8 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
-            val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext)
+            val deviceUuid = SesameDeviceListReader.readLatest(applicationContext).firstOrNull()?.uuid
+            val snapshot = deviceUuid?.let { SesameStatusSnapshotReader.readLatest(applicationContext, it) }
             val state =
                 TileDisplayStateResolver.resolve(
                     isPhoneConnected = isPhoneConnected,

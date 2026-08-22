@@ -26,35 +26,42 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Sesame 5のロック状態を表示するWear OS Tile。
+ * Sesame 5のロック状態を表示するWear OS Tile。1つのTileインスタンス（[tileId]）が1台の
+ * Sesameデバイスに対応する「複数Tileインスタンス方式」を採る（BL-053）。対象デバイスは
+ * [TileDeviceAssignmentStore]でtileIdごとに永続化され、未設定の場合はタップで
+ * [TileConfigurationActivity]へ誘導するタイルを表示する。
  * スマホ接続状態は[SesameConnectedNodeProvider]、ロック状態はMobile側がDataClient経由で同期した
  * [SesameStatusSnapshotReader]の結果から算出する（BL-015）。
  * TileServiceはビルド確認までとする
- * （Android Tiles APIへの依存のためユニットテスト対象外、プレビュー確認は自動実行不可のためBL-011で人手検証）。
+ * （Android Tiles APIへの依存のためユニットテスト対象外、プレビュー確認は自動実行不可のためBL-055で人手検証）。
  */
 class SesameTileService : TileService() {
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
         val future = SettableFuture.create<TileBuilders.Tile>()
+        val tileId = requestParams.tileId
         CoroutineScope(Dispatchers.IO).launch {
-            val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
-            val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext)
-            val state =
-                TileDisplayStateResolver.resolve(
-                    isPhoneConnected = isPhoneConnected,
-                    isCommandInProgress = false,
-                    isLocked = snapshot?.isLocked,
-                )
-            future.set(buildTile(state))
+            val deviceUuid = TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId)
+            future.set(if (deviceUuid == null) buildUnconfiguredTile(tileId) else buildConfiguredTile(deviceUuid))
         }
         return future
     }
 
-    private fun buildTile(state: TileDisplayState): TileBuilders.Tile {
-        val layout =
-            LayoutElementBuilders.Layout.Builder()
-                .setRoot(buildStatusBox(state))
-                .build()
+    private suspend fun buildConfiguredTile(deviceUuid: String): TileBuilders.Tile {
+        val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
+        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
+        val state =
+            TileDisplayStateResolver.resolve(
+                isPhoneConnected = isPhoneConnected,
+                isCommandInProgress = false,
+                isLocked = snapshot?.isLocked,
+            )
+        return buildTile(buildStatusBox(state, deviceUuid))
+    }
 
+    private fun buildUnconfiguredTile(tileId: Int): TileBuilders.Tile = buildTile(buildUnconfiguredBox(tileId))
+
+    private fun buildTile(root: LayoutElementBuilders.LayoutElement): TileBuilders.Tile {
+        val layout = LayoutElementBuilders.Layout.Builder().setRoot(root).build()
         return TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
             .setTileTimeline(
@@ -76,7 +83,10 @@ class SesameTileService : TileService() {
             ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build(),
         )
 
-    private fun buildStatusBox(state: TileDisplayState): LayoutElementBuilders.LayoutElement {
+    private fun buildStatusBox(
+        state: TileDisplayState,
+        deviceUuid: String,
+    ): LayoutElementBuilders.LayoutElement {
         val modifiersBuilder =
             ModifiersBuilders.Modifiers.Builder()
                 .setBackground(
@@ -92,7 +102,7 @@ class SesameTileService : TileService() {
 
         val command = SesameTileActions.commandForState(state)
         if (command != null) {
-            modifiersBuilder.setClickable(buildClickable(command))
+            modifiersBuilder.setClickable(buildCommandClickable(command, deviceUuid))
         }
 
         return LayoutElementBuilders.Box.Builder()
@@ -105,7 +115,26 @@ class SesameTileService : TileService() {
             .build()
     }
 
-    private fun buildClickable(command: SesameCommand): ModifiersBuilders.Clickable {
+    private fun buildUnconfiguredBox(tileId: Int): LayoutElementBuilders.LayoutElement {
+        val clickable =
+            ModifiersBuilders.Clickable.Builder()
+                .setId("configure")
+                .setOnClick(buildConfigurationLaunchAction(tileId))
+                .build()
+        return LayoutElementBuilders.Box.Builder()
+            .addContent(
+                Text.Builder(this, "タップして設定")
+                    .setTypography(Typography.TYPOGRAPHY_BODY1)
+                    .build(),
+            )
+            .setModifiers(ModifiersBuilders.Modifiers.Builder().setClickable(clickable).build())
+            .build()
+    }
+
+    private fun buildCommandClickable(
+        command: SesameCommand,
+        deviceUuid: String,
+    ): ModifiersBuilders.Clickable {
         val launchAction =
             ActionBuilders.LaunchAction.Builder()
                 .setAndroidActivity(
@@ -116,6 +145,10 @@ class SesameTileService : TileService() {
                             SesameActionCommandParser.EXTRA_COMMAND,
                             ActionBuilders.AndroidStringExtra.Builder().setValue(command.name).build(),
                         )
+                        .addKeyToExtraMapping(
+                            SesameActionCommandParser.EXTRA_DEVICE_UUID,
+                            ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
+                        )
                         .build(),
                 )
                 .build()
@@ -124,6 +157,20 @@ class SesameTileService : TileService() {
             .setOnClick(launchAction)
             .build()
     }
+
+    private fun buildConfigurationLaunchAction(tileId: Int): ActionBuilders.LaunchAction =
+        ActionBuilders.LaunchAction.Builder()
+            .setAndroidActivity(
+                ActionBuilders.AndroidActivity.Builder()
+                    .setPackageName(packageName)
+                    .setClassName(TileConfigurationActivity::class.java.name)
+                    .addKeyToExtraMapping(
+                        TileConfigurationActivity.EXTRA_TILE_ID,
+                        ActionBuilders.AndroidStringExtra.Builder().setValue(tileId.toString()).build(),
+                    )
+                    .build(),
+            )
+            .build()
 
     private companion object {
         const val RESOURCES_VERSION = "1"

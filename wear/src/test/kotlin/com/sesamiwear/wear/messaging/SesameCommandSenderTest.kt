@@ -3,6 +3,7 @@ package com.sesamiwear.wear.messaging
 import com.sesamiwear.core.SesameMessageSender
 import com.sesamiwear.core.SesameWearProtocol
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -20,28 +21,30 @@ class SesameCommandSenderTest {
     }
 
     @Test
-    fun `requestLock sends the lock path with an empty payload`() =
+    fun `requestLock sends the lock path with the device uuid as payload`() =
         runTest {
             val recorder = RecordingMessageSender()
             val sender = SesameCommandSender(recorder)
 
-            sender.requestLock("node-1")
+            sender.requestLock("node-1", "device-uuid-1")
 
             assertEquals(1, recorder.sentMessages.size)
             val (nodeId, path, payload) = recorder.sentMessages.first()
             assertEquals("node-1", nodeId)
             assertEquals(SesameWearProtocol.PATH_LOCK_REQUEST, path)
-            assertEquals(0, payload.size)
+            assertArrayEquals(SesameWearProtocol.encodeDeviceUuid("device-uuid-1"), payload)
         }
 
     @Test
-    fun `requestUnlock sends the unlock path`() =
+    fun `requestUnlock sends the unlock path with the device uuid as payload`() =
         runTest {
             val recorder = RecordingMessageSender()
             val sender = SesameCommandSender(recorder)
 
-            sender.requestUnlock("node-1")
+            sender.requestUnlock("node-1", "device-uuid-2")
 
-            assertEquals(SesameWearProtocol.PATH_UNLOCK_REQUEST, recorder.sentMessages.first().second)
+            val (_, path, payload) = recorder.sentMessages.first()
+            assertEquals(SesameWearProtocol.PATH_UNLOCK_REQUEST, path)
+            assertArrayEquals(SesameWearProtocol.encodeDeviceUuid("device-uuid-2"), payload)
         }
 }

@@ -27,14 +27,14 @@ import com.sesamiwear.wear.messaging.SesameDeviceListReader
  * Tileごとに操作対象Sesameデバイスを1台選択する設定画面（BL-052、複数Tileインスタンス方式）。
  * 選択肢は[SesameDeviceListReader]でmobile側から同期されたデバイス一覧を読み取って表示する。
  * 選択結果は[TileDeviceAssignmentStore]へtileIdをキーとして永続化し、
- * 対象Tileの再描画を要求してから終了する。実際にこのActivityをtileId付きで起動する導線
- * （未設定Tileからのタップ誘導）はBL-053で実装する。
+ * 対象Tileの再描画を要求してから終了する。未設定Tileからのタップ誘導は
+ * [SesameTileService]がtileIdを文字列Extraとして渡して起動する（BL-053）。
  */
 class TileConfigurationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val tileId = intent.getIntExtra(EXTRA_TILE_ID, INVALID_TILE_ID)
-        if (tileId == INVALID_TILE_ID) {
+        val tileId = intent.getStringExtra(EXTRA_TILE_ID)?.toIntOrNull()
+        if (tileId == null) {
             finish()
             return
         }
@@ -53,15 +53,14 @@ class TileConfigurationActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val EXTRA_TILE_ID = "tile_id"
-        private const val INVALID_TILE_ID = -1
+        const val EXTRA_TILE_ID = "tile_id"
 
         fun createIntent(
             context: Context,
             tileId: Int,
         ): Intent =
             Intent(context, TileConfigurationActivity::class.java).apply {
-                putExtra(EXTRA_TILE_ID, tileId)
+                putExtra(EXTRA_TILE_ID, tileId.toString())
             }
     }
 }

@@ -35,21 +35,6 @@
     - BL-052
     - BL-050
 
-- id: BL-053
-  区分: 機能追加
-  タスク内容: wear側のSesameTileService/SesameTileActions/SesameActionActivity/
-    SesameCommandSenderProvider等のコマンド送信経路を、tileIdに紐付く対象デバイス（BL-052で
-    永続化した設定）を参照してdeviceId込みでコマンドを送信するよう変更する。
-    SesameStatusSnapshotReaderもdeviceIdごとの状態を読み取れるよう変更する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 既存の単体テスト（SesameTileActionsTest等）がdeviceId対応後も成功し、
-    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
-  依存:
-    - BL-052
-    - BL-050
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

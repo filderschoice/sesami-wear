@@ -8,6 +8,7 @@ import com.sesamiwear.core.api.SesameCommand
  */
 object SesameActionCommandParser {
     const val EXTRA_COMMAND = "com.sesamiwear.wear.action.EXTRA_COMMAND"
+    const val EXTRA_DEVICE_UUID = "com.sesamiwear.wear.action.EXTRA_DEVICE_UUID"
 
     fun fromExtra(name: String?): SesameCommand? = name?.let { n -> SesameCommand.entries.find { it.name == n } }
 }

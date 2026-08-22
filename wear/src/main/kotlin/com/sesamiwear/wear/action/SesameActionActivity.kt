@@ -28,6 +28,7 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
  * Tileタップから起動される施錠/解錠実行画面。
  * 施錠（LOCK）はワンタップ即実行、解錠（UNLOCK）は確認ボタンを挟む（PLAN.mdのUX要件）。
  * コマンド送信はFire-and-forgetで行い、実行結果（成功/失敗）のリアルタイム反映とハプティクスはBL-008で扱う。
+ * 操作対象デバイスのuuid（BL-053、tileIdに割り当てられたデバイス）をIntent extra経由で受け取る。
  */
 class SesameActionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,14 +37,15 @@ class SesameActionActivity : ComponentActivity() {
             SesameActionCommandParser.fromExtra(
                 intent.getStringExtra(SesameActionCommandParser.EXTRA_COMMAND),
             )
-        if (command == null) {
+        val deviceUuid = intent.getStringExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID)
+        if (command == null || deviceUuid.isNullOrEmpty()) {
             finish()
             return
         }
 
         setContent {
             MaterialTheme {
-                SesameActionScreen(command = command, onFinished = ::finish)
+                SesameActionScreen(command = command, deviceUuid = deviceUuid, onFinished = ::finish)
             }
         }
     }
@@ -52,9 +54,11 @@ class SesameActionActivity : ComponentActivity() {
         fun createIntent(
             context: Context,
             command: SesameCommand,
+            deviceUuid: String,
         ): Intent =
             Intent(context, SesameActionActivity::class.java).apply {
                 putExtra(SesameActionCommandParser.EXTRA_COMMAND, command.name)
+                putExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID, deviceUuid)
             }
     }
 }
@@ -62,6 +66,7 @@ class SesameActionActivity : ComponentActivity() {
 @Composable
 private fun SesameActionScreen(
     command: SesameCommand,
+    deviceUuid: String,
     onFinished: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -74,8 +79,8 @@ private fun SesameActionScreen(
             if (nodeId != null) {
                 val sender = SesameCommandSenderProvider.create(context)
                 when (command) {
-                    SesameCommand.LOCK -> sender.requestLock(nodeId)
-                    SesameCommand.UNLOCK -> sender.requestUnlock(nodeId)
+                    SesameCommand.LOCK -> sender.requestLock(nodeId, deviceUuid)
+                    SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, deviceUuid)
                 }
             }
             onFinished()

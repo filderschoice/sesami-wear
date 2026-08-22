@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:40
+  summary: wear側Tile/コマンド送信をtileId・deviceUuid対応へ変更した（BL-053）
+  details:
+    変更内容: >
+      SesameTileService.onTileRequestでrequestParams.tileIdを取得し、
+      TileDeviceAssignmentStore（BL-052）でtileIdに割り当てられたデバイスuuidを参照するよう
+      変更した。未割り当てのtileIdの場合は「タップして設定」の誘導表示（タップで
+      TileConfigurationActivityを起動、tileIdを文字列Extraとして渡す）を持つTileを返し、
+      割り当て済みの場合はSesameStatusSnapshotReader.readLatest(context, uuid)（BL-050で
+      追加したデバイス別パス対応）で状態を取得し、クリックアクションのIntent extraへ
+      deviceUuidも含めるよう変更した。SesameCommandSender.requestLock/requestUnlockへ
+      deviceUuidパラメータを追加し、SesameWearProtocol.encodeDeviceUuidでペイロード化して
+      送信するよう変更した（BL-050時点で常にFAILUREになっていた一時的不整合を解消）。
+      SesameActionActivityはIntentからdeviceUuidも受け取り送信時に渡すよう変更した。
+      SesameActionCommandParserへEXTRA_DEVICE_UUID定数を追加した。
+      **副作用の対応**: SesameStatusSnapshotReaderのシグネチャ変更によりビルド不能になった
+      SesameComplicationDataSourceServiceは、BL-054（Complicationの複数デバイス対応）までの
+      暫定措置として、SesameDeviceListReaderで同期されたデバイス一覧の先頭のみを表示する形に
+      最小限追従させた。
+      既存テスト（SesameCommandSenderTest）を新シグネチャに合わせて更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-053
+
 - date: 2026-08-22 17:35
   summary: wear側Tile Configuration Activityとデバイス一覧同期の仕組みを実装した（BL-052）
   details:
