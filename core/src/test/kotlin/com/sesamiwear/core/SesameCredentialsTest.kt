@@ -1,11 +1,27 @@
 package com.sesamiwear.core
 
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.Base64
 
 class SesameCredentialsTest {
+    @Test
+    fun `displayName defaults to empty string when not specified`() {
+        val credentials = SesameCredentials(uuid = "u", apiKey = "a", secretKeyBase64 = "")
+
+        assertEquals("", credentials.displayName)
+    }
+
+    @Test
+    fun `displayName is retained when specified`() {
+        val credentials =
+            SesameCredentials(uuid = "u", apiKey = "a", secretKeyBase64 = "", displayName = "玄関")
+
+        assertEquals("玄関", credentials.displayName)
+    }
+
     @Test
     fun `secretKeyBytesOrNull decodes a valid 16-byte key`() {
         val secretKeyBase64 = Base64.getEncoder().encodeToString(ByteArray(16) { it.toByte() })

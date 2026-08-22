@@ -128,18 +128,6 @@
   依存:
     - BL-046
 
-- id: BL-046
-  区分: 機能追加
-  タスク内容: 複数台のSesame 5デバイスを操作したいというユーザー要件を受け、core.SesameCredentials
-    を単一の資格情報セットから、識別子（deviceId）と表示名（displayName）を持つ複数デバイス対応の
-    データモデルへ変更する。3〜5台程度の登録を想定する（PLAN.mdには記載のない追加要件、
-    設計方針の詳細はDESIGN.mdの「複数Sesameデバイス対応」項を参照）
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 新しいデータモデルの単体テストが追加され、core配下の`test`タスクが成功する
-  依存: []
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

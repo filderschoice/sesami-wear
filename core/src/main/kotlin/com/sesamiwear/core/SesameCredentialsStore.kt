@@ -9,14 +9,16 @@ class SesameCredentialsStore(private val keyValueStore: SesameKeyValueStore) {
         keyValueStore.putString(KEY_UUID, credentials.uuid)
         keyValueStore.putString(KEY_API_KEY, credentials.apiKey)
         keyValueStore.putString(KEY_SECRET_KEY_BASE64, credentials.secretKeyBase64)
+        keyValueStore.putString(KEY_DISPLAY_NAME, credentials.displayName)
     }
 
     fun load(): SesameCredentials? {
         val uuid = keyValueStore.getString(KEY_UUID)
         val apiKey = keyValueStore.getString(KEY_API_KEY)
         val secretKeyBase64 = keyValueStore.getString(KEY_SECRET_KEY_BASE64)
+        val displayName = keyValueStore.getString(KEY_DISPLAY_NAME).orEmpty()
         return if (uuid != null && apiKey != null && secretKeyBase64 != null) {
-            SesameCredentials(uuid, apiKey, secretKeyBase64)
+            SesameCredentials(uuid, apiKey, secretKeyBase64, displayName)
         } else {
             null
         }
@@ -30,5 +32,6 @@ class SesameCredentialsStore(private val keyValueStore: SesameKeyValueStore) {
         const val KEY_UUID = "uuid"
         const val KEY_API_KEY = "api_key"
         const val KEY_SECRET_KEY_BASE64 = "secret_key_base64"
+        const val KEY_DISPLAY_NAME = "display_name"
     }
 }

@@ -39,6 +39,23 @@ class SesameCredentialsStoreTest {
     }
 
     @Test
+    fun `round-trips displayName through save and load`() {
+        val store = SesameCredentialsStore(InMemoryKeyValueStore())
+        val credentials =
+            SesameCredentials(
+                uuid = "test-uuid",
+                apiKey = "test-api-key",
+                secretKeyBase64 = "AQIDBA==",
+                displayName = "玄関",
+            )
+
+        store.save(credentials)
+        val loaded = store.load()
+
+        assertEquals("玄関", loaded?.displayName)
+    }
+
+    @Test
     fun `load returns null when nothing has been saved`() {
         val store = SesameCredentialsStore(InMemoryKeyValueStore())
 

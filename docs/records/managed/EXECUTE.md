@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:13
+  summary: SesameCredentialsを複数デバイス対応データモデルへ変更した（BL-046）
+  details:
+    変更内容: >
+      複数台（3〜5台想定）のSesame 5を操作したいというユーザー要件（DESIGN.md「複数Sesameデバイス
+      対応方針」参照）を受け、core.SesameCredentialsへdisplayName（表示名、デフォルト空文字）を
+      追加した。識別子は別途deviceIdを持たせず、Sesame API上で既に一意なuuidをそのまま複数
+      デバイス管理のキーとして用いる設計とした（BACKLOG登録時の想定から簡素化、概念の重複を
+      避けるため）。displayNameは既存フィールド（uuid/apiKey/secretKeyBase64）の後にデフォルト値
+      付きで追加したため、既存の呼び出し箇所（SesameCredentialsStore/CredentialsSettingsScreen/
+      CredentialsInputValidator/既存テスト、いずれも名前付き引数で呼んでいた）は変更不要だった。
+      後続タスク（BL-047）でのkotlinx.serializationによるリスト保存に備え@Serializableを付与した。
+      SesameCredentialsStore.save/loadもdisplayNameのput/get（未設定時は空文字）に対応させた
+      （複数デバイスのリスト保存自体はBL-047で行う、現時点では単一保存のまま）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentialsStore.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（新規追加した単体テスト3件を含め全テスト成功）
+    関連ID:
+      - BL-046
+
 - date: 2026-08-22 17:02
   summary: mobile側CredentialsSettingsScreenがステータスバーと重なる表示崩れを修正した（BL-045）
   details:
