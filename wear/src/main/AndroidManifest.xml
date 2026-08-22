@@ -5,7 +5,11 @@
         dist:instant="false"
         dist:title="@string/app_name">
         <dist:delivery>
-            <dist:install-time />
+            <dist:install-time>
+                <dist:conditions>
+                    <dist:device-feature dist:name="android.hardware.type.watch" />
+                </dist:conditions>
+            </dist:install-time>
         </dist:delivery>
         <dist:fusing dist:include="true" />
     </dist:module>

@@ -394,7 +394,10 @@
     `gradle/libs.versions.toml`に`com.android.dynamic-feature`プラグインを追加登録
     （未登録だとプラグイン解決エラーになる）。`wear/AndroidManifest.xml`に
     `xmlns:dist`名前空間と`dist:module`（`dist:instant=false`、install-time delivery、
-    `dist:fusing dist:include=true`）を追加。
+    `dist:fusing dist:include=true`）を追加。install-time配信には
+    `dist:conditions`/`dist:device-feature`（`dist:name="android.hardware.type.watch"`）を
+    あわせて設定し、`wear`モジュールがwatchハードウェア機能を持つデバイスにのみ配信されるようにした
+    （BL-039、詳細は次段落「ランチャーアイコン重複問題」参照）。
   - **マニフェストマージの副作用と対処**: dynamic feature化後は`mobile`/`wear`の
     `AndroidManifest.xml`が1つにマージされるため、`<application>`要素の属性は両モジュール間で
     一致している必要がある。`android:theme`が競合したため各モジュールの`MainActivity`へ
@@ -419,6 +422,19 @@
     `:mobile:bundleDebug`、`:mobile:bundleRelease`（署名なし、R8 minify込み）の成功を確認済み。
     実機でのインストール・自動プッシュ配信の動作確認、署名済みリリースビルドでの検証はBL-038
     （人手検証）へ計上している。
+  - **ランチャーアイコン重複問題（BL-039〜042）**: 2026-08-22の実機検証（スマホ+Pixel Watchへ
+    `:mobile:installDebug`）で、`dist:module`のinstall-time配信にデバイス種別を絞る条件が
+    なかったため、`wear`のMainActivity（Tile設定画面）がスマホにも、`mobile`のMainActivity
+    （資格情報設定画面、baseモジュールのため常時全デバイスへ配信される）がウォッチにも入り、
+    両デバイスのランチャーにアイコンが2つずつ表示される状態を確認した。対応として、
+    (1) `wear`側は上記のとおり`dist:conditions`/`dist:device-feature`でwatch限定配信へ変更
+    （BL-039、対応済み）。(2) `mobile`はbaseモジュールのためこの条件付け方式では配信自体を
+    止められず、`mobile/MainActivity.kt`側にWear OS実機検出時のガードを追加する対応が
+    BL-040として残っている（本項目の更新時点で未着手）。(3) あわせて、wear用ランチャーアイコン
+    （`ic_launcher_wear_foreground.xml`）のコンプリケーション風リングがAdaptive Iconの
+    セーフゾーン（108dp viewport中心から半径33dp）を超えて欠けて表示される別問題も判明し、
+    寸法修正がBL-041として残っている（本項目の更新時点で未着手）。実機での最終目視確認は
+    BL-042（人手検証）。
 
 ### 運用制約
 

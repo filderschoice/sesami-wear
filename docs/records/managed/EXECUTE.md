@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 15:56
+  summary: wearモジュールのdist:deliveryへdevice-feature条件を追加しスマホへの配信を止めた（BL-039）
+  details:
+    変更内容: >
+      実機検証（スマホ+Pixel Watch）で:mobile:installDebugを実行したところ、両デバイスに
+      com.sesamiwear.mobile（mobile/.MainActivityとwear側com.sesamiwear.wear.MainActivityの
+      両方のランチャーアイコン）が入る現象を確認した。原因はwear/src/main/AndroidManifest.xmlの
+      dist:deliveryがdist:install-timeのみでデバイス種別を絞る条件を持たず、wearモジュールが
+      常に全デバイスへ配信される設定になっていたため。dist:install-time配下へ
+      dist:conditions/dist:device-feature(dist:name="android.hardware.type.watch")を追加し、
+      Play Feature Delivery公式ドキュメントの条件付きinstall-time配信の記法に合わせ、
+      wearモジュールがwatchハードウェア機能を持つデバイスにのみ配信されるようにした。
+      dist:fusing include=trueは維持（minSdk26のため実質未使用の古い端末向けuniversal APK
+      フォールバック専用設定であり、今回の問題とは無関係なため変更不要と判断）。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 22 executed, 110 up-to-date）
+    関連ID:
+      - BL-039
+
 - date: 2026-08-22 12:40
   summary: wearをdynamic featureへ変更しmobileとapplicationIdを統合（BL-036）
   details:

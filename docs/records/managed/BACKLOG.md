@@ -44,19 +44,6 @@
     即座に終了し、品質ゲート段階Bが成功する
   依存: []
 
-- id: BL-039
-  区分: 実装
-  タスク内容: wear/src/main/AndroidManifest.xmlのdist:deliveryへ
-    <dist:conditions><dist:device-feature dist:name="android.hardware.type.watch"/></dist:conditions>
-    を追加し、wearモジュール（Tile設定画面）がスマホへ配信されないようにする。実機検証（BL-038）で、
-    install-time配信に条件がなくwearのMainActivityがスマホのランチャーにも表示される問題が判明した
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: :mobile:installDebugでスマホへインストールした際にwearのMainActivity
-    （Tile設定画面）のランチャーアイコンが表示されなくなり、品質ゲート段階Bが成功する
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
