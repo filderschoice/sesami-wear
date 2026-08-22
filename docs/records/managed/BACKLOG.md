@@ -50,20 +50,6 @@
     - BL-052
     - BL-050
 
-- id: BL-052
-  区分: 機能追加
-  タスク内容: BL-051の技術調査結果に基づき、wear側にTile Configuration Activityを実装する。
-    ユーザーがTileギャラリーからTileを追加する際に対象Sesameデバイスを選択する画面を表示し、
-    選択結果をtileIdをキーとして永続化する（DataStore等）仕組みを用意する
-  優先度: P1
-  状態: ブロック
-  担当: Claude Code
-  完了条件: Tile追加時に対象デバイス選択画面が表示され、選択結果がtileIdごとに永続化される
-    ことをコード上確認できる（実機での最終確認はBL-055）
-  依存:
-    - BL-051
-    - BL-047
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

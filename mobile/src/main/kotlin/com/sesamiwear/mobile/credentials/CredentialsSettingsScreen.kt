@@ -18,13 +18,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
+import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
@@ -37,6 +41,8 @@ fun CredentialsSettingsScreen(
     credentialsStore: SesameCredentialsStore,
     onSaved: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var credentialsList by remember { mutableStateOf(credentialsStore.loadAll()) }
     val formState = rememberCredentialsFormState()
     var showSavedMessage by remember { mutableStateOf(false) }
@@ -48,6 +54,12 @@ fun CredentialsSettingsScreen(
         }
     }
 
+    // wear側は資格情報を持たない設計方針のため、Tile Configuration Activityでの
+    // デバイス選択肢表示用にuuid/displayNameのみの一覧をDataClient経由で同期する（BL-052）。
+    fun syncDeviceList(list: List<SesameCredentials>) {
+        coroutineScope.launch { SesameDeviceListSyncer(context).sync(list) }
+    }
+
     Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
         Text(text = "Sesame API設定（${credentialsList.size}台登録済み）")
         DeviceList(
@@ -56,6 +68,7 @@ fun CredentialsSettingsScreen(
             onDelete = { credentials ->
                 credentialsStore.remove(credentials.uuid)
                 credentialsList = credentialsStore.loadAll()
+                syncDeviceList(credentialsList)
                 if (formState.editingUuid == credentials.uuid) formState.startEditing(null)
             },
         )
@@ -68,6 +81,7 @@ fun CredentialsSettingsScreen(
                     credentialsList.filterNot { it.uuid == formState.uuid } + formState.toCredentials()
                 credentialsStore.saveAll(updatedList)
                 credentialsList = updatedList
+                syncDeviceList(updatedList)
                 showSavedMessage = true
                 formState.startEditing(null)
                 onSaved()

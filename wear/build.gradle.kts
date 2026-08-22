@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.wear.watchface.complications.datasource)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    // SesameDeviceListReaderでデバイス一覧のJSONをデコードするために使用（BL-052）。
+    implementation(libs.kotlinx.serialization.json)
     // mobile側がplay-services-wearable経由でguavaを実行時クラスパスへ提供するため、
     // compileOnlyでコンパイル時の参照のみとし、統合後のR8実行時の重複クラス検出
     // （com.google.common.util.concurrent.ListenableFutureがbase/featureの両方に

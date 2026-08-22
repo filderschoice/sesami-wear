@@ -5,6 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:35
+  summary: wear側Tile Configuration Activityとデバイス一覧同期の仕組みを実装した（BL-052）
+  details:
+    変更内容: >
+      BL-051の技術調査結果（「Tile自体がタップで設定画面へ誘導する」パターン）に基づき、
+      wear.tile.TileConfigurationActivity（Intent extraでtileIdを受け取り、選択したデバイスの
+      uuidをTileDeviceAssignmentStoreへ永続化して終了する画面）を実装した。
+      実装着手時に、wear側は資格情報を持たない設計方針のため、Configuration Activityが
+      選択肢として表示するデバイス一覧をmobile側から同期する仕組みが前提として必要だと判明し、
+      あわせて実装した: core.SesameDeviceSummary（uuid/displayNameのみの機密情報を含まないDTO）、
+      core.SesameWearProtocol.DEVICE_LIST_DATA_ITEM_PATH/KEY_DEVICE_LIST_JSON、
+      mobile.SesameDeviceListSyncer（DataClient経由でデバイス一覧を同期、CredentialsSettingsScreen
+      の保存・削除時に呼び出す）、wear.messaging.SesameDeviceListReader（DataClientから
+      デバイス一覧を読み取る、既存のSesameStatusSnapshotReaderと同型のパターン）。
+      wear.tile.TileDeviceAssignmentStoreはtileId（Int）をキーとしたuuidの永続化を、
+      機密情報を扱わないため通常のSharedPreferencesで行う。TileConfigurationActivityは
+      androidx.wear.compose.foundation.lazy.ScalingLazyColumn/androidx.wear.compose.material.Chip
+      でデバイス一覧を表示し、選択時にTileService.getUpdater().requestUpdate()で対象Tileの
+      再描画を要求する。mobile/wear双方のbuild.gradle.ktsにkotlinx-serialization-json依存が
+      不足していたため追加した（coreモジュールの依存はimplementationのため推移的に伝播しない）。
+      実際にこのActivityをtileId付きで起動する導線（未設定Tileからのタップ誘導）はBL-053で実装する。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDeviceSummary.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - mobile/build.gradle.kts
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameDeviceListSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - wear/build.gradle.kts
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameDeviceListReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileDeviceAssignmentStore.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（Wear Compose API/Tiles APIの解決も含め成功、
+      AABパッケージングも成功）
+    関連ID:
+      - BL-052
+
 - date: 2026-08-22 17:26
   summary: mobile側メッセージ受信・コマンド実行・状態同期をdeviceId対応へ変更した（BL-050）
   details:

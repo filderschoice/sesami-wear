@@ -30,4 +30,12 @@ object SesameWearProtocol {
      * [STATUS_DATA_ITEM_PATH]をプレフィックスとし、対象デバイスのuuidを付与して一意にする。
      */
     fun statusDataItemPath(uuid: String): String = "$STATUS_DATA_ITEM_PATH/$uuid"
+
+    /**
+     * mobile側に登録済みのデバイス一覧（[SesameDeviceSummary]、機密情報を含まない）を
+     * wear側へDataClient経由で同期するためのパス・キー（BL-052、Tile Configuration Activityで
+     * 選択肢を表示するために必要）。
+     */
+    const val DEVICE_LIST_DATA_ITEM_PATH = "/sesami-wear/devices"
+    const val KEY_DEVICE_LIST_JSON = "device_list_json"
 }

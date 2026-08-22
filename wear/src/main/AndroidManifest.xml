@@ -42,6 +42,11 @@
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault" />
 
+        <activity
+            android:name=".tile.TileConfigurationActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
         <service
             android:name=".complication.SesameComplicationDataSourceService"
             android:exported="true"
