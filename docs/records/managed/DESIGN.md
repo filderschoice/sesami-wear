@@ -13,7 +13,8 @@
 
 ## 対象システム概要
 
-- 対象: Android（スマホ側）+ Wear OS（Watch側）の2アプリ構成。CANDY HOUSE Sesame 5 + Hub 3の
+- 対象: Android（スマホ側）+ Wear OS（Watch側）の構成。`wear`は`mobile`のdynamic feature
+  （単一AAB・単一`applicationId`、BL-036）として統合されている。CANDY HOUSE Sesame 5 + Hub 3の
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
 - 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 35、build-tools 35.0.0）、Gradle 8.10.2
   （Gradle Wrapper経由）。詳細は `CLAUDE.md`「本リポジトリの品質ゲート定義」段階Bを参照。
@@ -271,6 +272,13 @@
   プレースホルダーのまま「未確認」と明記した（本人確認なしに個人のメールアドレスを
   ドラフトへ記入することを避けた）。実際の公開URLでのホスティングとPlay ConsoleのData safety
   申告への反映はBL-033（人手検証）で行う。
+- REQ-028（BL-036、ユーザー依頼）: `mobile`/`wear`が別々の`applicationId`を持つ独立2アプリ構成
+  （BL-031）を見直し、`wear`を`com.android.dynamic-feature`へ変更して`mobile`へ統合した。
+  詳細な実装内容・マニフェストマージ対応・依存重複の解消は「実装制約」セクションの
+  「Google Play配布方式」項を参照。品質ゲート一式（ktlintCheck/detekt/lintDebug/
+  testDebugUnitTest/assembleDebug）に加え、`:mobile:bundleDebug`/`:mobile:bundleRelease`
+  （統合後のAAB生成）の成功を確認済み。実機でのインストール・自動プッシュ配信の動作確認は
+  BL-038（人手検証）。
 
 ## 設計方針
 
@@ -287,10 +295,17 @@
 
 - ルートパッケージ: `com.sesamiwear`（`core` / `mobile` / `wear` 配下にサブパッケージ）。
   リポジトリ名由来の既定値であり、安全性に関わらない判断のため確認質問を挟まず採用した。
-- `mobile`: `applicationId=com.sesamiwear.mobile`、`minSdk=26`。
-- `wear`: `applicationId=com.sesamiwear.wear`、`minSdk=30`（Wear OS 3.0+相当）。
-  `AndroidManifest.xml`に`uses-feature android:name="android.hardware.type.watch"`と
-  `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
+- `mobile`: `applicationId=com.sesamiwear.mobile`、`minSdk=26`。`com.android.application`。
+  Google Play配布上のbase moduleであり、`wear`をdynamic featureとして含む（BL-036）。
+- `wear`: `com.android.dynamic-feature`（BL-036、旧`com.android.application`から変更）。
+  `applicationId`・署名設定・`versionCode`/`versionName`は持たず`mobile`から継承する。
+  `minSdk=26`（BL-036で`mobile`と統一。旧30、Wear OS 3.0+相当。**未確認事項**:
+  `androidx.wear.compose`/`androidx.wear.tiles`等がminSdk26の実機で正常動作するかは
+  実機未検証、BL-038参照）。`AndroidManifest.xml`に
+  `uses-feature android:name="android.hardware.type.watch"`と
+  `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）、
+  `dist:module`（`dist:instant=false`、install-time delivery、`dist:fusing include=true`）を
+  設定済み。
 - 依存バージョンは `gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.7.3 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 
@@ -336,40 +351,74 @@
   - **未確認事項**: 上記はpysesame3（2026-08-19時点のmainブランチ）のPythonソースコードを読んで判明した
     内容であり、CANDY HOUSE公式ドキュメントそのものは未参照。実機疎通確認（BL-010、人手検証）で
     最終確認する必要がある。
-- Androidアイコンリソース（BL-027で対応済み、以降デザイン検討を経て意匠を更新済み）: `mobile`/`wear`とも、
-  VectorDrawableベースのAdaptive Icon（`drawable/ic_launcher_background.xml`・
-  `ic_launcher_foreground.xml`、`mipmap-anydpi-v26/ic_launcher.xml`・`ic_launcher_round.xml`）を
-  作成し、AndroidManifestの`android:icon`/`android:roundIcon`から参照する形へ置き換えた。
-  背景色`#1E3A5F`（濃紺）は`mobile`/`wear`共通。前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」を
-  モチーフとし、無線で施解錠できるスマートロックであることを示す。`wear`のみ、Wear OSの
-  Tile/Complicationと地続きの意匠にするため、前景に下部が途切れたリング（`trimPathStart`/
-  `trimPathEnd`/`trimPathOffset`で描画、不透明度55%）を追加している。
+- Androidアイコンリソース（BL-027で対応済み、以降デザイン検討・BL-036のdynamic-feature化を経て
+  配置を更新済み）: VectorDrawableベースのAdaptive Icon
+  （`drawable/ic_launcher_background.xml`・`ic_launcher_foreground.xml`、
+  `mipmap-anydpi-v26/ic_launcher.xml`・`ic_launcher_round.xml`）を作成し、AndroidManifestの
+  `android:icon`/`android:roundIcon`から参照する形へ置き換えた。背景色`#1E3A5F`（濃紺）は
+  `mobile`/`wear`共通。前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」をモチーフとし、
+  無線で施解錠できるスマートロックであることを示す。`wear`のみ、Wear OSのTile/Complicationと
+  地続きの意匠にするため、前景に下部が途切れたリング（`trimPathStart`/`trimPathEnd`/
+  `trimPathOffset`で描画、不透明度55%）を追加している。
+  **配置（BL-036以降）**: `mobile`固有のアイコンは`mobile/src/main/res/`の
+  `ic_launcher_background.xml`/`ic_launcher_foreground.xml`/`ic_launcher.xml`/
+  `ic_launcher_round.xml`のまま。`wear`固有のアイコン（リング意匠あり）は
+  `ic_launcher_wear_background.xml`/`ic_launcher_wear_foreground.xml`/`ic_launcher_wear.xml`/
+  `ic_launcher_wear_round.xml`にリネームした上で**`mobile/src/main/res/`側に配置**している
+  （`wear`モジュール側には置いていない）。これはAGPの制約（dynamic featureの
+  `AndroidManifest.xml`内で参照するリソースはbase module側に存在する必要があり、
+  feature側に置くとAAPTのリンク時に`resource ... not found`で解決できない）による。
+  `wear/AndroidManifest.xml`の`MainActivity`・各Serviceからは
+  `@mipmap/ic_launcher_wear`等の名前でこのbase側リソースを参照する。
   **未確認事項**: 図案はXMLパスの手書きによるものであり、視覚的な洗練度はデザイナーによる最終調整を
   前提としていない。また、Google Play Console提出に必要な高解像度アイコン画像（512x512 PNG、
   Play Storeの掲載用アイコン）はXMLベースでの生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
-- Google Play配布方式（BL-031で記録、対応済み）: 本アプリは`mobile`（`com.sesamiwear.mobile`）と
-  `wear`（`com.sesamiwear.wear`）が別々の`applicationId`を持つ、互いに独立した2つのAndroidアプリ
-  として構成されている。これはGoogle Playが推奨するWear OSアプリの標準的な配布方式（1つの
-  Android App Bundleに`wear`をfeature module（`com.android.dynamic-feature`かつ
-  `android:isFeatureSplit`/Wear向け設定）として統合し、単一の`applicationId`・単一のPlay Store
-  掲載ページで公開する方式）とは異なる。
-  - **影響範囲**: (1) Play Storeの検索結果・掲載ページがmobile用/wear用の2ページに分かれ、
-    利用者から見た製品としての一体感が損なわれる。(2) 標準配布方式で得られる「スマートフォンへ
-    インストール後、ペアリング済みのWearデバイスへ自動的にwearアプリをインストールする」機能
-    （Google Playの自動プッシュインストール）が使えず、利用者はmobile/wear双方を手動で
-    インストールする必要がある。(3) Play Consoleでのリリース管理（審査・段階公開・Data safety
-    申告等）もアプリ単位で2回必要になる。
-  - **今回のタスクスコープでの方針**: 本リポジトリの実装（`mobile`/`wear`の別モジュール・別
-    applicationId構成）は変更せず、上記制約を既知の制約として記録するにとどめる。統合構成
-    （wear feature module化）への移行は本タスクスコープの対象外とし、将来的に必要になった場合の
-    概要のみ以下に残す。
-  - **将来統合する場合の概要（未実装、参考情報）**: (a) `wear`モジュールを
-    `com.android.application`から`com.android.dynamic-feature`（Wear向け設定を含む）へ変更し、
-    `mobile`モジュールの`bundle { }`ブロックで`wear`をfeatureとして取り込む。(b) `wear`の
-    `applicationId`を`mobile`と統一し、`AndroidManifest.xml`の`dist:module`要素でWear向け
-    feature宣言を追加する。(c) Data Layer API（`MessageClient`）による通信部分の実装は
-    変更不要と見込まれる。(d) 本変更はビルド構成・Play Console提出物双方に影響する破壊的変更のため、
-    着手する場合は別タスクとして計画・レビューする。
+- Google Play配布方式（BL-031で記録、BL-036で統合実施済み）: 本アプリはもともと`mobile`
+  （`com.sesamiwear.mobile`）と`wear`（`com.sesamiwear.wear`）が別々の`applicationId`を持つ、
+  互いに独立した2つのAndroidアプリとして構成されていた。BL-036でこれを見直し、`wear`を
+  `com.android.dynamic-feature`へ変更して`mobile`（base module）へ統合し、単一の
+  `applicationId`（`com.sesamiwear.mobile`）・単一AAB・単一のPlay Store掲載ページで公開する
+  Google Play推奨の標準的なWear OSアプリ配布方式へ移行した。
+  - **統合により解消した制約**: (1) Play Storeの掲載ページがmobile/wearの1ページに統合される。
+    (2) 標準配布方式の「スマートフォンへインストール後、ペアリング済みのWearデバイスへ
+    自動的にwearアプリをインストールする」機能（Google Playの自動プッシュインストール）が
+    利用可能になる見込み（**未確認**: 実機・Play Console経由での動作確認はBL-038、人手検証）。
+    (3) Play Consoleでのリリース管理（審査・段階公開・Data safety申告等）がアプリ単位で1回になる。
+  - **実装詳細**: `wear/build.gradle.kts`から`applicationId`/`signingConfigs`/
+    `versionCode`・`versionName`/`minifyEnabled`・`proguardFiles`を削除（すべてbaseから継承、
+    dynamic featureモジュールは自身のbuildTypesでminifyEnabledを設定できない制約がある）。
+    `dependencies`に`implementation(project(":mobile"))`を追加（AGPの制約でdynamic feature
+    モジュールはbaseモジュールへの依存宣言が必須。欠けると`processDebugMainManifest`が
+    `Collection is empty`で失敗する）。`mobile/build.gradle.kts`の`android`ブロックへ
+    `dynamicFeatures += setOf(":wear")`を追加。ルート`build.gradle.kts`と
+    `gradle/libs.versions.toml`に`com.android.dynamic-feature`プラグインを追加登録
+    （未登録だとプラグイン解決エラーになる）。`wear/AndroidManifest.xml`に
+    `xmlns:dist`名前空間と`dist:module`（`dist:instant=false`、install-time delivery、
+    `dist:fusing dist:include=true`）を追加。
+  - **マニフェストマージの副作用と対処**: dynamic feature化後は`mobile`/`wear`の
+    `AndroidManifest.xml`が1つにマージされるため、`<application>`要素の属性は両モジュール間で
+    一致している必要がある。`android:theme`が競合したため各モジュールの`MainActivity`へ
+    個別の`android:theme`指定へ移行し`<application>`側から削除した。同名だが内容が異なる
+    ランチャーアイコンリソース（`ic_launcher*`）はAABパッケージング時に
+    `contain entry ... with different content`で衝突したため、上記のとおり`wear`固有分を
+    リネームしてbase側へ配置した。
+  - **依存ライブラリの重複**: リリースビルド（R8 minify有効）検証時、`wear`が直接
+    `implementation`していたguavaと、`mobile`が`play-services-wearable`経由で間接的に持つ
+    guavaが重複し、R8が`ListenableFutureが2重定義`エラーで失敗した。`wear`側のguava依存を
+    `compileOnly`（コンパイル時参照のみ）へ変更し、`mobile`側に`implementation(libs.guava)`を
+    追加してbaseモジュールが実行時クラスパスへguava実装（`Futures`/`SettableFuture`等、
+    `wear`が実際に使用するクラス）を提供する構成にした。
+  - **ビルドコマンドの変更**: dynamic feature化後、`wear`モジュール単体の`:wear:assembleDebug`/
+    `:wear:installDebug`/`:wear:bundleRelease`等は実行できない（base moduleのapplicationId
+    artifactを解決できず失敗する。`:wear:installDebug`に相当するタスク自体が存在しない）。
+    ビルド・インストールは常にルートからの一括実行（`./gradlew assembleDebug`等）または
+    `:mobile:`配下のタスク（`:mobile:installDebug`/`:mobile:bundleDebug`/
+    `:mobile:bundleRelease`）経由で行う。`scripts/release-build.ps1`も
+    `:mobile:bundleRelease`のみに変更した（`wear`分は統合されたAAB1本に含まれる）。
+  - **検証範囲**: `./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug`、
+    `:mobile:bundleDebug`、`:mobile:bundleRelease`（署名なし、R8 minify込み）の成功を確認済み。
+    実機でのインストール・自動プッシュ配信の動作確認、署名済みリリースビルドでの検証はBL-038
+    （人手検証）へ計上している。
 
 ### 運用制約
 

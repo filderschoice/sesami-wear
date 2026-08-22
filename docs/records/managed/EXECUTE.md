@@ -5,6 +5,63 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 12:40
+  summary: wearをdynamic featureへ変更しmobileとapplicationIdを統合（BL-036）
+  details:
+    変更内容: >
+      mobile/wearが別々のapplicationIdを持つ独立2アプリ構成（BL-031で記録した制約）を見直し、
+      wearをcom.android.applicationからcom.android.dynamic-featureへ変更してmobileへ統合した。
+      wear/build.gradle.ktsからapplicationId/signingConfigs/versionCode・versionName/
+      minifyEnabled・proguardFilesを削除（すべてbaseモジュールから継承される）、
+      wearのdefaultConfigにtargetSdkを指定できない制約がありminSdkのみ26へ変更（mobileと一致、
+      元は30。未確認: wearCompose/wearTiles等のライブラリがminSdk26で実機動作するかは未検証）、
+      dependenciesにimplementation(project(":mobile"))を追加（AGPの制約でdynamic-feature
+      モジュールはbaseモジュールへの依存宣言が必須、欠けるとprocessDebugMainManifestが
+      "Collection is empty"で失敗する）。mobile/build.gradle.ktsのandroidブロックへ
+      dynamicFeatures += setOf(":wear")を追加。ルートbuild.gradle.ktsとgradle/libs.versions.toml
+      にcom.android.dynamic-featureプラグインを追加登録（未登録だとプラグイン解決エラーになる）。
+      wear/AndroidManifest.xmlにxmlns:dist名前空間とdist:module（instant=false、
+      install-time delivery、fusing include=true）を追加。mobile/wear双方の<application>要素の
+      android:theme属性がマニフェストマージ時に衝突したため、各モジュールのMainActivityへ
+      個別のandroid:theme指定へ移行し<application>側から削除。mobile/wearが同名のランチャー
+      アイコンリソース（ic_launcher/ic_launcher_round、drawable/mipmap）を別内容で持っていたため
+      AABパッケージング時に衝突（"contain entry ... with different content"）、wear固有の
+      アイコンをic_launcher_wear系にリネームした上でmobile側res配下へ配置（AGPの制約:
+      マニフェストで参照するリソースはbaseモジュールに存在する必要があり、featureモジュール側に
+      置くとAAPTのリンク時に解決できない）。wear/proguard-rules.proはmobileと同一内容
+      （com.sesamiwear.**を保護）で不要になったため削除。scripts/release-build.ps1は
+      :wear:bundleReleaseという独立タスクがfeatureモジュール単体では実行できなくなったため
+      :mobile:bundleReleaseのみに変更（wear分は統合されたAAB1本に含まれる）。
+      リリースビルド（:mobile:bundleRelease、R8 minify有効）検証時、wearが直接implementation
+      していたguavaとmobile側がplay-services-wearable経由で持つguavaが重複しR8が
+      「ListenableFutureが2重定義」エラーで失敗したため、wearのguava依存をcompileOnlyへ変更。
+      その結果wearが実行時に使うFutures/SettableFuture等の実装クラスが欠落するR8エラーへ
+      変わったため、mobile側にimplementation(libs.guava)を追加しbaseモジュールが
+      ランタイムクラスパスへguava実装を提供する構成にした。
+    変更ファイル:
+      - build.gradle.kts
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_launcher_wear_background.xml
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - mobile/src/main/res/mipmap-anydpi-v26/ic_launcher_wear.xml
+      - mobile/src/main/res/mipmap-anydpi-v26/ic_launcher_wear_round.xml
+      - wear/build.gradle.kts
+      - wear/src/main/AndroidManifest.xml
+      - wear/proguard-rules.pro（削除）
+      - scripts/release-build.ps1
+    検証コマンド: >
+      ./gradlew ktlintCheck && ./gradlew detekt && ./gradlew lintDebug &&
+      ./gradlew testDebugUnitTest && ./gradlew assembleDebug && ./gradlew :mobile:bundleDebug &&
+      ./gradlew :mobile:bundleRelease
+    検証結果: 成功 - 全コマンドがBUILD SUCCESSFULで完了。:mobile:bundleDebug/:mobile:bundleRelease
+      （署名なし、R8 minify込み）双方でwearをfeatureとして含む単一AABの生成を確認した。
+      実機でのインストール・自動プッシュ配信の動作確認、署名済みリリースビルドでの検証は
+      未実施（BL-038、人手検証）。
+    関連ID:
+      - BL-036
+
 - date: 2026-08-21 01:05
   summary: ストア掲載情報・プライバシーポリシーのドラフトを作成
   details:

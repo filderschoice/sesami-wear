@@ -1,11 +1,14 @@
 ﻿<#
 .SYNOPSIS
-    mobile/wearの署名付きリリースAAB（Android App Bundle）をビルドする（BL-035）。
+    mobile（wearをdynamic featureとして含む）の署名付きリリースAAB（Android App Bundle）を
+    ビルドする（BL-035、BL-036でmobile/wearのapplicationIdを統合）。
 
 .DESCRIPTION
     scripts/version.properties に記録した現在のバージョンを基準に、versionCodeを1インクリメント
     してビルドする。-VersionCode / -VersionName を指定した場合は、その値を固定でそのまま使用する
     （インクリメントしない）。ビルド成功時のみ version.properties を新しい値へ更新する。
+    wearはmobileのdynamic featureとして統合されているため、mobileのAAB1本にwear分も含まれる
+    （:wear:bundleReleaseという独立タスクはfeatureモジュール単体では実行できない）。
 
 .PARAMETER VersionCode
     固定で使用するversionCode（整数）。省略時は現在値から1インクリメントする。
@@ -64,7 +67,6 @@ if (-not (Test-Path $gradlewPath)) {
 
 $gradleArgs = @(
     ":mobile:bundleRelease"
-    ":wear:bundleRelease"
     "-PappVersionCode=$newVersionCode"
     "-PappVersionName=$newVersionName"
     "--no-daemon"
@@ -84,8 +86,7 @@ try {
 
 Write-Host ""
 Write-Host "リリースビルドが完了しました: versionCode=$newVersionCode, versionName=$newVersionName"
-Write-Host "  mobile AAB: mobile/build/outputs/bundle/release/mobile-release.aab"
-Write-Host "  wear AAB:   wear/build/outputs/bundle/release/wear-release.aab"
+Write-Host "  AAB（wearをdynamic featureとして含む）: mobile/build/outputs/bundle/release/mobile-release.aab"
 Write-Host ""
 Write-Host "署名設定（local.properties）が未構成の場合、上記AABはunsignedのままです。"
 Write-Host "署名手順はREADME.md「リリースビルド・Google Play公開」を参照してください。"

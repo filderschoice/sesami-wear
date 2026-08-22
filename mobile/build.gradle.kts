@@ -70,6 +70,11 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // wearをdynamic feature（Wear OSアプリ配信用）として取り込む（BL-036、
+    // mobile/wear別applicationId構成からの統合。単一AABへのバンドルにより、
+    // スマホへのインストール後にペアリング済みWearデバイスへ自動プッシュインストールされる）。
+    dynamicFeatures += setOf(":wear")
 }
 
 dependencies {
@@ -87,6 +92,9 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    // wear（dynamic feature）がFutures/SettableFuture等のguava実装クラスを実行時に必要とするが、
+    // 自身はcompileOnlyのみ持つため、baseモジュールがランタイムクラスパスへ提供する（BL-036）。
+    implementation(libs.guava)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
