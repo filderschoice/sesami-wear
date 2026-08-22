@@ -15,4 +15,13 @@ object SesameWearProtocol {
     const val STATUS_DATA_ITEM_PATH = "/sesami-wear/status"
     const val KEY_IS_LOCKED = "is_locked"
     const val KEY_UPDATED_AT_EPOCH_MILLIS = "updated_at_epoch_millis"
+
+    /**
+     * 施錠/解錠コマンドのメッセージペイロードへ、操作対象デバイスのuuid（[SesameCredentials.uuid]と
+     * 対応する識別子）を載せるためのエンコード/デコード（BL-048、複数Sesameデバイス対応）。
+     * uuidをそのままUTF-8バイト列化するだけの単純な形式で、JSON等は使わない。
+     */
+    fun encodeDeviceUuid(uuid: String): ByteArray = uuid.toByteArray(Charsets.UTF_8)
+
+    fun decodeDeviceUuid(payload: ByteArray): String = String(payload, Charsets.UTF_8)
 }

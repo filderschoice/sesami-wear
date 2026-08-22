@@ -104,17 +104,6 @@
   依存:
     - BL-047
 
-- id: BL-048
-  区分: 機能追加
-  タスク内容: core.SesameWearProtocolのメッセージペイロード仕様を拡張し、施錠/解錠コマンドの
-    メッセージに対象デバイスのdeviceId（[core.SesameCredentials]のidと対応）を含められるようにする
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 新しいペイロード形式のエンコード/デコードロジックが単体テストで検証され、
-    core配下の`test`タスクが成功する
-  依存: []
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

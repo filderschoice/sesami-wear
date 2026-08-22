@@ -5,6 +5,26 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:19
+  summary: SesameWearProtocolのペイロードに対象デバイスuuidを載せるエンコード/デコードを追加した（BL-048）
+  details:
+    変更内容: >
+      core.SesameWearProtocolへencodeDeviceUuid(uuid)/decodeDeviceUuid(payload)を追加した。
+      施錠/解錠コマンドのメッセージペイロードへ対象デバイスのuuid（SesameCredentials.uuidと
+      対応）を載せるための単純なUTF-8バイト列エンコード/デコードで、JSON等の複雑な形式は
+      使わない。core.SesameMessageSender.sendは元々payload: ByteArrayを受け取る設計だった
+      ため、インターフェース自体の変更は不要だった。wear側のSesameCommandSender（現状
+      ByteArray(0)を送信）・mobile側の受信処理でこのエンコード/デコードを実際に使う変更は
+      BL-050/BL-053のスコープとし、本タスクではcore層のロジック追加とテストのみに留めた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（round-trip・空ペイロードの単体テストを含め全成功）
+    関連ID:
+      - BL-048
+
 - date: 2026-08-22 17:16
   summary: SesameCredentialsStoreを複数デバイスのリスト保存対応へ変更した（BL-047）
   details:
