@@ -78,20 +78,6 @@
   依存:
     - BL-048
 
-- id: BL-050
-  区分: 機能追加
-  タスク内容: mobile側のSesameMessageListenerService/SesameCommandHandler/SesameStatusSyncerを、
-    BL-048で拡張したメッセージペイロードのdeviceIdを使って対象デバイスの資格情報を選択し、
-    Sesame APIを呼び出し、デバイスごとに状態同期するよう変更する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: SesameCommandHandlerの単体テストがdeviceId対応後も成功し、
-    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
-  依存:
-    - BL-047
-    - BL-048
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

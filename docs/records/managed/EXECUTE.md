@@ -5,6 +5,36 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:26
+  summary: mobile側メッセージ受信・コマンド実行・状態同期をdeviceId対応へ変更した（BL-050）
+  details:
+    変更内容: >
+      core.SesameWearProtocolへstatusDataItemPath(uuid)を追加し、STATUS_DATA_ITEM_PATHを
+      プレフィックスとしてデバイスごとに一意なDataItemパスを生成できるようにした
+      （複数デバイスの状態が同一DataItemで上書き衝突しないため）。
+      mobile.SesameStatusSyncer.syncLockedへuuidパラメータを追加しstatusDataItemPath(uuid)
+      を使うよう変更した。mobile.SesameMessageListenerService.onMessageReceivedで、
+      messageEvent.dataをSesameWearProtocol.decodeDeviceUuidでデコードして対象デバイスの
+      uuidを取得し、credentialsStore.loadAll().find { it.uuid == deviceUuid }で該当する
+      資格情報を選択してSesameCommandHandlerを構築するよう変更した（BL-047時点の暫定実装
+      firstOrNull()を置き換えた）。syncLockedStateFromPathにもdeviceUuidを渡すよう変更した。
+      **未確認事項/既知の一時的不整合**: wear側のSesameCommandSender（BL-053で対応予定）は
+      現状ByteArray(0)を送信し続けているため、この時点ではmessageEvent.dataは常に空となり
+      decodeDeviceUuidは空文字列を返す。結果、credentialsStore内にuuid=""のデバイスが
+      存在しない限りコマンドは常にFAILUREになる。BL-053完了までの間、機能的な結合動作は
+      一時的に崩れるが、ビルド・単体テストは成功する状態を維持している（未リリースのアプリの
+      ため許容と判断）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-050
+
 - date: 2026-08-22 17:24
   summary: mobile資格情報設定画面を複数デバイス管理UIへ変更した（BL-049）
   details:

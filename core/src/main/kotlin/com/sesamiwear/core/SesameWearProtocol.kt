@@ -24,4 +24,10 @@ object SesameWearProtocol {
     fun encodeDeviceUuid(uuid: String): ByteArray = uuid.toByteArray(Charsets.UTF_8)
 
     fun decodeDeviceUuid(payload: ByteArray): String = String(payload, Charsets.UTF_8)
+
+    /**
+     * デバイスごとにロック状態を区別して同期するためのDataItemパス（BL-050）。
+     * [STATUS_DATA_ITEM_PATH]をプレフィックスとし、対象デバイスのuuidを付与して一意にする。
+     */
+    fun statusDataItemPath(uuid: String): String = "$STATUS_DATA_ITEM_PATH/$uuid"
 }

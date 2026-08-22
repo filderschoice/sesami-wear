@@ -23,10 +23,11 @@ import kotlinx.coroutines.tasks.await
 class SesameMessageListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         CoroutineScope(Dispatchers.IO).launch {
-            val handler = createHandler(applicationContext)
+            val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
+            val handler = createHandler(applicationContext, deviceUuid)
             val result = handler?.handle(messageEvent.path) ?: SesameCommandResult.FAILURE
             if (result == SesameCommandResult.SUCCESS) {
-                syncLockedStateFromPath(messageEvent.path)
+                syncLockedStateFromPath(messageEvent.path, deviceUuid)
             }
             Wearable.getMessageClient(this@SesameMessageListenerService)
                 .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
@@ -34,11 +35,12 @@ class SesameMessageListenerService : WearableListenerService() {
         }
     }
 
-    private fun createHandler(context: Context): SesameCommandHandler? {
+    private fun createHandler(
+        context: Context,
+        deviceUuid: String,
+    ): SesameCommandHandler? {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(context))
-        // 複数デバイス対応（BL-047）の暫定実装として先頭の1件のみを使う。
-        // deviceId込みの対象デバイス選択はBL-050で実装する。
-        val credentials = credentialsStore.loadAll().firstOrNull()
+        val credentials = credentialsStore.loadAll().find { it.uuid == deviceUuid }
         // secretKeyBytesOrNullを使い、不正なBase64/鍵長の資格情報が保存されていても例外で
         // クラッシュせずFAILUREへフォールバックする（BL-026、コードレビューで発見）。
         val secretKeyBytes = credentials?.secretKeyBytesOrNull
@@ -50,13 +52,16 @@ class SesameMessageListenerService : WearableListenerService() {
         }
     }
 
-    private suspend fun syncLockedStateFromPath(path: String) {
+    private suspend fun syncLockedStateFromPath(
+        path: String,
+        deviceUuid: String,
+    ) {
         val isLocked =
             when (path) {
                 SesameWearProtocol.PATH_LOCK_REQUEST -> true
                 SesameWearProtocol.PATH_UNLOCK_REQUEST -> false
                 else -> return
             }
-        SesameStatusSyncer(applicationContext).syncLocked(isLocked)
+        SesameStatusSyncer(applicationContext).syncLocked(deviceUuid, isLocked)
     }
 }

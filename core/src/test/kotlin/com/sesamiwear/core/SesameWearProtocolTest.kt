@@ -26,4 +26,13 @@ class SesameWearProtocolTest {
 
         assertEquals("", decoded)
     }
+
+    @Test
+    fun `statusDataItemPath is unique per device uuid`() {
+        val pathA = SesameWearProtocol.statusDataItemPath("uuid-a")
+        val pathB = SesameWearProtocol.statusDataItemPath("uuid-b")
+
+        assertEquals("/sesami-wear/status/uuid-a", pathA)
+        assertEquals("/sesami-wear/status/uuid-b", pathB)
+    }
 }
