@@ -29,7 +29,7 @@ Sesami Wearは、Pixel WatchからCANDY HOUSE Sesame（Sesame 5 + Hub 3）スマ
 ### 必要な準備
 
 利用にはSesameアプリの「鍵をシェア」機能から取得できるuuid・secretKeyと、
-partners.candyhouse.co で発行するAPIキーが必要です。これらはスマートフォン側の
+biz.candyhouse.co（SESAME Biz 開発者ページ）で発行するAPIキーが必要です。これらはスマートフォン側の
 Sesami Wearアプリ（mobile）に暗号化して保存し、Watch単体には保持しません。
 
 ### プライバシーについて

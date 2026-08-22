@@ -105,7 +105,7 @@ private fun SetupInstructions() {
     Text(
         text =
             "① Sesameアプリの「鍵をシェア」からQRコードを表示し、uuidとsecretKeyを確認する\n" +
-                "② partners.candyhouse.co でapikeyを発行する\n" +
+                "② biz.candyhouse.co（SESAME Biz 開発者ページ）でapikeyを発行する\n" +
                 "③ 下のフォームに入力して「追加」を押す（表示名は任意）",
         style = MaterialTheme.typography.bodySmall,
     )
@@ -165,7 +165,7 @@ private fun CredentialsForm(
         value = formState.apiKey,
         onValueChange = { formState.apiKey = it },
         label = { Text("apikey") },
-        supportingText = { Text("partners.candyhouse.co で発行するx-api-key") },
+        supportingText = { Text("biz.candyhouse.co（SESAME Biz 開発者ページ）で発行するx-api-key") },
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(

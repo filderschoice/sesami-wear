@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 21:59
+  summary: apikey発行先URLの記載をpartners.candyhouse.coからbiz.candyhouse.coへ修正した（BL-057）
+  details:
+    変更内容: >
+      QRコード自動入力機能の実現可能性を調査する過程で、CANDY HOUSE公式ドキュメント
+      （github.com/CANDY-HOUSE/API_document/blob/master/SesameOS3/webapi.md）に
+      「APIキーはbiz.candyhouse.co（SESAME Biz 開発者ページ）で取得する」と明記されている
+      ことを確認した。これはREADME.md/docs/store/STORE_LISTING.md/
+      docs/store/PRIVACY_POLICY.md/mobile側UI（CredentialsSettingsScreen）に記載していた
+      partners.candyhouse.coと異なっていたため、該当箇所をbiz.candyhouse.coへ修正した。
+      PLAN.mdは原初依頼内容のため変更せず、DESIGN.md（REQ-032）へ正しい情報と
+      未確認事項（biz.candyhouse.co自体のページ内容は動的サイトのためWebFetchで確認できて
+      いない）を記録した。
+      あわせて、前回（BL-056、SetupInstructions追加）の記録漏れだったDESIGN.mdへの反映
+      （REQ-031）も本イテレーションで追記した。
+      QRコード読み取りによる自動入力機能自体は、実機でSesame 5のQRコードをスキャンし
+      160バイトのデータを確認したが、SESAME 3/4向けの既知構造（sesame-qr-reader、99バイト）
+      とは一致せず、Sesame 5固有のバイナリ構造は非公開で不明なため見送った
+      （非公式フォーマットへの依存リスクが高いとユーザーと合意）。
+    変更ファイル:
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - docs/store/PRIVACY_POLICY.md
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      npx markdownlint-cli2 "**/*.md" &&
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - すべてのコマンドが成功
+    関連ID:
+      - BL-057
+
 - date: 2026-08-22 20:17
   summary: mobile資格情報設定画面に取得手順の説明を追加した（BL-056）
   details:

@@ -299,6 +299,25 @@
   コンテンツがステータスバー下に描画されていたことが原因。`Modifier.safeDrawingPadding()`を
   内側の`padding(16.dp)`より外側に適用し、ステータスバー・ナビゲーションバー・ディスプレイ
   カットアウトを含む安全領域を確保した。Pixel 8 Pro実機での目視確認済み。
+- REQ-031（BL-056、ユーザー報告）: `mobile`側`CredentialsSettingsScreen`の入力欄
+  （uuid/apikey/secretKey）に説明が一切なく、初めて使うユーザーが取得元を判断できない
+  問題を改善した。画面冒頭に3ステップの手順説明（`SetupInstructions`）を追加し、
+  各`OutlinedTextField`に`supportingText`で個別の取得元を追加した。あわせて
+  デバイス0件時に「まだSesameが登録されていません」というガイダンスを追加した。
+  Pixel 8 Pro実機での目視確認済み。
+- REQ-032（BL-057、ユーザー依頼の実現可能性調査に伴う発見）: QRコード自動入力機能の
+  実現可能性を調査する過程で、CANDY HOUSE公式ドキュメント
+  （github.com/CANDY-HOUSE/API_document）にapikey（x-api-key）は
+  `partners.candyhouse.co`ではなく`biz.candyhouse.co`（SESAME Biz 開発者ページ）で
+  発行すると明記されていることが判明した。README.md/docs/store/STORE_LISTING.md/
+  docs/store/PRIVACY_POLICY.md/`CredentialsSettingsScreen`のURL記載を修正した。
+  `PLAN.md`は原初依頼内容のため変更していない（矛盾時はDESIGN.mdを優先する既存方針の通り）。
+  **未確認事項**: `biz.candyhouse.co`は動的サイトのため実際のページ内容（APIキー発行UIの
+  存在）はWebFetchで確認できておらず、公式ドキュメントの記述のみを根拠にしている。
+  なお、QRコード（`ssm://UI?t=sk&sk=...`形式）読み取りによる自動入力機能自体は、
+  非公開のバイナリフォーマットへの依存となりCANDY HOUSE側の仕様変更で壊れるリスクが
+  高いため見送った（実機でSesame 5のQRコードをスキャンし160バイトのデータを確認したが、
+  SESAME 3/4向けの既知構造（99バイト）とは一致せず、Sesame 5固有の構造は非公開で不明）。
 
 ## 設計方針
 

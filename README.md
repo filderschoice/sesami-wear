@@ -34,7 +34,7 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 - `uuid`（sesame2_uuid）: Sesameアプリの「鍵をシェア」QRコードから取得する
   （マネージャー/オーナー権限のキーで発行すること。ゲストキーは不可）
 - `secretKey`: 同QRコードから取得する制御コマンドの署名鍵
-- `apikey`: partners.candyhouse.co で発行するx-api-key
+- `apikey`: biz.candyhouse.co（SESAME Biz 開発者ページ）で発行するx-api-key
 
 ### 2. アプリへ資格情報を設定する
 
