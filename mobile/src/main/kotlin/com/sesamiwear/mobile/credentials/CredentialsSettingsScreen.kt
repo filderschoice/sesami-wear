@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +63,8 @@ fun CredentialsSettingsScreen(
 
     Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
         Text(text = "Sesame API設定（${credentialsList.size}台登録済み）")
+        SetupInstructions()
+        Spacer(modifier = Modifier.height(8.dp))
         DeviceList(
             credentialsList = credentialsList,
             onEdit = formState::startEditing,
@@ -93,12 +96,31 @@ fun CredentialsSettingsScreen(
     }
 }
 
+/**
+ * 資格情報3点（uuid/apikey/secretKey）の取得元をまとめた手順説明（BL-056）。
+ * 詳細な取得元は各入力欄のsupportingTextでも重ねて案内する。
+ */
+@Composable
+private fun SetupInstructions() {
+    Text(
+        text =
+            "① Sesameアプリの「鍵をシェア」からQRコードを表示し、uuidとsecretKeyを確認する\n" +
+                "② partners.candyhouse.co でapikeyを発行する\n" +
+                "③ 下のフォームに入力して「追加」を押す（表示名は任意）",
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
 @Composable
 private fun DeviceList(
     credentialsList: List<SesameCredentials>,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
 ) {
+    if (credentialsList.isEmpty()) {
+        Text(text = "まだSesameが登録されていません。下のフォームから追加してください。")
+        return
+    }
     LazyColumn {
         items(credentialsList, key = { it.uuid }) { credentials ->
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -128,25 +150,29 @@ private fun CredentialsForm(
     OutlinedTextField(
         value = formState.displayName,
         onValueChange = { formState.displayName = it },
-        label = { Text("表示名（任意、例: 玄関）") },
+        label = { Text("表示名（任意）") },
+        supportingText = { Text("この端末で見分けるための名前（例: 玄関）") },
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
         value = formState.uuid,
         onValueChange = { formState.uuid = it },
         label = { Text("uuid") },
+        supportingText = { Text("Sesameアプリの「鍵をシェア」QRコードに含まれるsesame2_uuid") },
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
         value = formState.apiKey,
         onValueChange = { formState.apiKey = it },
         label = { Text("apikey") },
+        supportingText = { Text("partners.candyhouse.co で発行するx-api-key") },
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
         value = formState.secretKeyBase64,
         onValueChange = { formState.secretKeyBase64 = it },
         label = { Text("secretKey (Base64)") },
+        supportingText = { Text("Sesameアプリの「鍵をシェア」QRコードに含まれる制御用の鍵") },
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )

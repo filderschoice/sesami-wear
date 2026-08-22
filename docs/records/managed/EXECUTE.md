@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 20:17
+  summary: mobile資格情報設定画面に取得手順の説明を追加した（BL-056）
+  details:
+    変更内容: >
+      ユーザー報告により、CredentialsSettingsScreenの入力欄（uuid/apikey/secretKey）に
+      説明が一切なく、初めて使うユーザーがどこから値を取得すればよいか分からない問題を
+      改善した。画面冒頭にSetupInstructions（PLAN.mdのAPI仕様記載に基づく3ステップの
+      手順説明: ①Sesameアプリの「鍵をシェア」でuuid/secretKey確認 ②partners.candyhouse.co
+      でapikey発行 ③フォーム入力）を追加し、各OutlinedTextFieldにsupportingTextで
+      個別の取得元説明を追加した。あわせてDeviceListが0件の場合に
+      「まだSesameが登録されていません。下のフォームから追加してください。」という
+      ガイダンスを表示するよう変更した。Pixel 8 Pro実機でinstallDebug後にスクリーンショットで
+      表示を確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでのスクリーンショット目視確認込み）
+    検証結果: 成功 - 全品質ゲートおよびinstallDebugがBUILD SUCCESSFUL。実機スクリーンショットで
+      手順説明・各入力欄のヘルパーテキスト・未登録時ガイダンスの表示を確認した。
+    関連ID:
+      - BL-056
+
 - date: 2026-08-22 17:44
   summary: wear側Complicationの複数デバイス対応を実装した（BL-054）
   details:
