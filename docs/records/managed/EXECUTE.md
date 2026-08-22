@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:16
+  summary: SesameCredentialsStoreを複数デバイスのリスト保存対応へ変更した（BL-047）
+  details:
+    変更内容: >
+      core.SesameCredentialsStoreの単一資格情報の保存・読み出し（save/load）を、
+      List<SesameCredentials>全体をkotlinx.serializationでJSON化し単一キー
+      （credentials_list）で保存するsaveAll/loadAllへ置き換えた。loadAllはJSONとして
+      不正な値が保存されていた場合に例外を投げずemptyList()を返す（BL-026の防御的
+      プログラミング方針に合わせた）。特定デバイスの削除用にremove(uuid)も追加した。
+      未リリースのアプリのため、旧フォーマット（uuid/api_key/secret_key_base64/display_nameの
+      個別キー保存）からのマイグレーションは行わない方針とした（実運用データが存在しないため）。
+      呼び出し元（mobile.SesameMessageListenerService.createHandler、
+      mobile.CredentialsSettingsScreen）は、複数デバイス対応の本実装（BL-049/BL-050）までの
+      暫定措置として、loadAll().firstOrNull()で先頭の1件のみを扱う形に最小限追従させ、
+      ビルド可能な状態を維持した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentialsStore.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（複数件保存・不正JSON・remove等の単体テストを含め全成功）
+    関連ID:
+      - BL-047
+
 - date: 2026-08-22 17:13
   summary: SesameCredentialsを複数デバイス対応データモデルへ変更した（BL-046）
   details:

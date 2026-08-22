@@ -30,7 +30,9 @@ fun CredentialsSettingsScreen(
     credentialsStore: SesameCredentialsStore,
     onSaved: () -> Unit = {},
 ) {
-    val initial = remember { credentialsStore.load() }
+    // 複数デバイス対応（BL-047）の暫定実装として先頭の1件のみを編集する。
+    // 一覧・追加・編集・削除ができるUIへの変更はBL-049で行う。
+    val initial = remember { credentialsStore.loadAll().firstOrNull() }
     var uuid by remember { mutableStateOf(initial?.uuid.orEmpty()) }
     var apiKey by remember { mutableStateOf(initial?.apiKey.orEmpty()) }
     var secretKeyBase64 by remember { mutableStateOf(initial?.secretKeyBase64.orEmpty()) }
@@ -68,8 +70,8 @@ fun CredentialsSettingsScreen(
         Button(
             enabled = isInputValid,
             onClick = {
-                credentialsStore.save(
-                    SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyBase64 = secretKeyBase64),
+                credentialsStore.saveAll(
+                    listOf(SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyBase64 = secretKeyBase64)),
                 )
                 showSavedMessage = true
                 onSaved()

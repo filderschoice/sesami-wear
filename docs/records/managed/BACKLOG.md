@@ -115,19 +115,6 @@
     core配下の`test`タスクが成功する
   依存: []
 
-- id: BL-047
-  区分: 機能追加
-  タスク内容: core.SesameCredentialsStoreを、単一の資格情報ではなく複数デバイス分のリストを
-    保存・読み出しできるよう変更する（kotlinx.serializationでのJSON化等を検討し、
-    EncryptedSharedPreferences経由での永続化方式を確定する）
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 複数件の保存・読み出し・特定デバイスの削除が単体テストで検証され、
-    core配下の`test`タスクが成功する
-  依存:
-    - BL-046
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、
