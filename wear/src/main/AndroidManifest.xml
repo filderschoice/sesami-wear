@@ -39,17 +39,17 @@
 
         <activity
             android:name=".action.SesameActionActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
         <activity
             android:name=".tile.TileConfigurationActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
         <activity
             android:name=".complication.ComplicationConfigurationActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
         <service

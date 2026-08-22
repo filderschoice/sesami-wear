@@ -357,6 +357,19 @@
   横幅いっぱいの目立つ形状に変更した。Pixel 8 Pro実機でヘルプダイアログ・リンク遷移・
   レイアウト調整後の表示をすべて確認済み。
 
+- REQ-035（BL-060、ユーザー報告による重大バグ修正）: Tileの「タップして設定」表示をタップしても
+  何も起きないという報告を受け実機ログを確認した結果、
+  `ProtoTilesPlTileViewInstance: Activity constraints not met. Not launching LaunchAction
+  Activity`という警告を確認した。Wear Tiles APIの`LaunchAction`で起動するActivityは
+  `android:exported="true"`が必須という制約があり、`wear/AndroidManifest.xml`の
+  `SesameActionActivity`（施錠/解錠実行画面）・`TileConfigurationActivity`・
+  `ComplicationConfigurationActivity`がすべて`exported="false"`のままだったことが原因と
+  判明した。これによりTile Configuration機能だけでなく、基本の施錠/解錠操作自体（BL-014、
+  実機未検証のまま長期間残っていた）も実機では動作していなかった可能性が高い重大なバグ。
+  該当する3つのActivityを`exported="true"`へ修正した。Pixel Watch 2実機でTileから
+  TileConfigurationActivityが正しく起動し、mobile側で登録済みのデバイス一覧が表示され
+  選択・割り当てできることを確認した。
+
 ## 設計方針
 
 ### アーキテクチャ方針

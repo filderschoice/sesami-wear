@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 23:11
+  summary: Tile/Complication関連Activityのexported属性不足を修正した重大バグ修正（BL-060）
+  details:
+    変更内容: >
+      ユーザー報告（Tileの「タップして設定」表示をタップしても何も起きない）を受け実機ログ
+      （adb logcat）を確認した結果、ProtoTilesPlTileViewInstance:
+      "Activity constraints not met. Not launching LaunchAction Activity"という警告を
+      発見した。Wear Tiles APIのLaunchActionで起動するActivityはandroid:exported="true"が
+      必須という制約があることを公式情報で確認し、wear/AndroidManifest.xmlの
+      SesameActionActivity（BL-014で実装した施錠/解錠実行画面、実機未検証のまま長期間
+      exported="false"だった）・TileConfigurationActivity（BL-052）・
+      ComplicationConfigurationActivity（BL-054）の3つすべてがexported="false"のままだった
+      ことが原因と判明した。3つのActivityをexported="true"へ修正した。
+      これによりTile Configuration機能だけでなく、基本の施錠/解錠操作自体も
+      実機では動作していなかった可能性が高い（BL-011の人手検証が未実施だったため
+      これまで発覚していなかった）。
+      Pixel Watch 2実機で修正後、Tileの「タップして設定」からTileConfigurationActivityが
+      正しく起動し、mobile側で登録済みのデバイス一覧が表示され選択・割り当てできることを
+      確認した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel Watch 2でのTile Configuration動作確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機でTile Configuration Activityの起動と
+      デバイス選択を確認した。
+    関連ID:
+      - BL-060
+
 - date: 2026-08-22 22:55
   summary: 資格情報設定画面の案内文言をbiz.candyhouse.co前提に統一し情報量を削減した（BL-059）
   details:
