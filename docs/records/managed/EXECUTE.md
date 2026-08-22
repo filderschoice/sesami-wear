@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 23:42
+  summary: Tile連打による施錠/解錠コマンド重複送信を防ぐデバウンス処理を追加した（BL-062）
+  details:
+    変更内容: >
+      ユーザー報告（Tileタップ後にwearのハプティクスが連続して鳴り続ける）を受け実機ログを
+      調査した結果、SesameActionActivityが同一時間帯に5つの別々のタスクとして起動されている
+      ことを確認した（ユーザーの連打が原因と判明）。PLAN.mdのUX要件「通信中は明確な処理中表示
+      ＋ボタン無効化で二重送信防止」に対応する仕組み（TileDisplayState.IN_PROGRESS）は
+      BL-007時点で用意されていたが、実際に「送信中」を検知してこの状態にする実装が
+      入っておらず（isCommandInProgressが常にfalse固定）、連打を防げていなかった。
+      mobile.messaging.CommandDebouncer（時刻取得を注入可能にしたAndroid非依存クラス）を
+      新規実装し、SesameMessageListenerService.handleCommandRequestで同一デバイスuuidへの
+      2秒以内の重複コマンドを無視するようにした（companion objectでインスタンスを保持し
+      Serviceの再生成をまたいで機能する）。単体テスト4件（初回は常に処理、window内は拒否、
+      window後は再度処理、キーごとに独立）を追加した。
+      Tile側のisCommandInProgressを実際に機能させる根本対応（送信中状態の管理、次回のTile
+      表示時に反映される非同期な性質を踏まえたUI設計）は実装複雑度と緊急性のバランスから
+      今回は見送り、mobile側でのデバウンスのみで実害（重複コマンド実行・重複振動）を防ぐ
+      対症療法とした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/CommandDebouncer.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/CommandDebouncerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+        （BL-061コミットに含めて実装済み、本タスクでは新規ファイルのみ追加）
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（CommandDebouncerの単体テスト4件を含め全成功）。
+      実機での連打時の重複防止確認はユーザー実施予定。
+    関連ID:
+      - BL-062
+
 - date: 2026-08-22 23:40
   summary: Tile/Complication表示時にSesame API状態を自動取得する機能を実装した（BL-061）
   details:

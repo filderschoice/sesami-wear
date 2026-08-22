@@ -384,6 +384,17 @@
   `ComplicationDataSourceUpdateRequester.requestUpdateAll()`でTile/Complicationの再描画を
   リクエストする。これによりBL-015の既知の制約（状態同期がコマンド送信成功時のみ）も解消した。
   Pixel Watch 2実機でTileから施錠/解錠操作ができることを確認した。
+- REQ-037（BL-062、ユーザー報告）: Tileの連打により`SesameActionActivity`が短時間に複数回
+  起動され、施錠/解錠コマンドが重複送信されてハプティクスが連続再生される不具合を修正した。
+  実機ログで同一時間帯に5つの別々のタスクとして起動されていることを確認した。PLAN.mdの
+  UX要件「通信中は明確な処理中表示＋ボタン無効化で二重送信防止」に対応する仕組み
+  （`TileDisplayState.IN_PROGRESS`）はBL-007時点で用意されていたが、実際に「送信中」を
+  検知してこの状態にする実装が入っておらず（`isCommandInProgress`が常に`false`固定）、
+  連打を防げていなかった。`mobile.messaging.CommandDebouncer`（時刻取得を注入可能にした
+  Android非依存クラス、単体テスト4件）を新規実装し、`SesameMessageListenerService`の
+  `handleCommandRequest`で同一デバイスuuidへの2秒以内の重複コマンドを無視するようにした。
+  Tile側の`isCommandInProgress`を実際に機能させる根本対応（送信中状態の管理）は、
+  実装複雑度と緊急性のバランスから見送り、mobile側でのデバウンスのみで対応した。
 
 ## 設計方針
 
