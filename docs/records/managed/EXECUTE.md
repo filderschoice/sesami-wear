@@ -5,6 +5,265 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-23 18:20
+  summary: Tile追加ピッカーとTile表示アイコンの分離を試みたがAndroid/Wear OSの仕様上不可能と
+    判明し、縮小をクリーン再インストールで再検証する方針へ切り替えた（BL-068）
+  details:
+    変更内容: >
+      BL-068（Tile追加ピッカーのアイコン50%縮小）の実機確認で、ユーザーから「Tile表示時の
+      アイコンは前のサイズでよかった、Tile追加登録時のアプリ選択画面のアイコンだけ変更したい」
+      との指摘を受けた。両者を分離するため、wear/AndroidManifest.xmlの<application>へ
+      専用の縮小版アイコン（新規ic_launcher_wear_picker、ic_launcher_wear_picker_foreground）を
+      作成し設定したが、ビルド時にmobile側の<application>icon（ic_launcher）と競合し
+      マニフェストマージが失敗した（Attribute application@icon ... is also present at
+      [:wear] ...）。調査の結果、dynamic feature構成ではbase（mobile）とfeature（wear）が
+      最終的に1つの<application>タグへマージされるため、Tile追加時の「アプリ選択」画面と
+      Tile表示時のアイコンは同一のSesameTileService.iconリソースしか持てず、
+      Android/Wear OSの仕様上、表示先ごとに別サイズへ分離する手段がないと判明した。
+      ic_launcher_wear_picker関連の新規ファイルは削除し、wear/AndroidManifest.xmlの
+      <application>icon設定もロールバックした。
+      この制約をユーザーへ説明し、AskUserQuestionで「縮小を再適用してクリーン再インストール」
+      「両方とも元サイズへ戻す」の2択を提示した結果、前者が選択された（前回の確認は
+      update-in-place installであり、Wear OSのTileピッカーの表示キャッシュ遅延で
+      「アプリ選択」画面だけ古いサイズに見えていた可能性を切り分けるため）。
+      ic_launcher_wear_foreground.xmlへ50%縮小（<group>によるscale変換）を再適用し、
+      両実機でuninstall後に./gradlew :mobile:installDebugで再インストールした。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功。ic_launcher_wear_picker追加時は
+      マニフェストマージエラーで失敗したが、ロールバック後の再試行で成功）。
+      Pixel 8 Pro実機・Pixel Watch 2実機の両方でuninstall後にクリーン再インストール済み。
+      Tile追加ピッカー・Tile表示・Complicationピッカーそれぞれのアイコンサイズの
+      実機確認はユーザー実施予定
+    関連ID:
+      - BL-068
+
+- date: 2026-08-23 17:30
+  summary: Tile追加ピッカーのアイコンをwear専用デザインへ切り替え、50%縮小した（BL-068）
+  details:
+    変更内容: >
+      ユーザーから「Tile追加時のアイコンのサイズがデカいので50%ぐらい小さくても問題なさそう」
+      との指摘を受けた。原因は、wear.tile.SesameTileServiceにandroid:icon指定がなく、
+      <application>のicon（mobileのic_launcher、リング装飾なしの通常のスマホ向けアイコン）へ
+      フォールバックしていたこと。既にSesameComplicationDataSourceService用に用意されていた
+      wear専用アイコン（ic_launcher_wear、コンプリケーション風のリング装飾付き）がTile追加
+      ピッカーでは使われていなかった。対応として、(1) SesameTileServiceへ
+      android:icon="@mipmap/ic_launcher_wear"を明示指定しComplicationピッカーと意匠を統一、
+      (2) ic_launcher_wear_foreground.xmlの全パスを<group android:scaleX="0.5"
+      android:scaleY="0.5" android:pivotX="54" android:pivotY="54">で包み、中心基準で
+      50%縮小した（個々のpath座標自体は変更せず、グループ変換のみで対応）。ic_launcher_wearは
+      SesameComplicationDataSourceServiceでも使用しているため、Complicationピッカー側の
+      見た目にも同様に反映される（スマホ側のic_launcher・ic_launcher_roundは変更対象外の
+      ため影響なし）。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方へ
+      ./gradlew :mobile:installDebugでインストール済み。実機でのTile追加ピッカー・
+      Complicationピッカーのアイコンサイズ確認はユーザー実施予定
+    関連ID:
+      - BL-068
+
+- date: 2026-08-23 16:45
+  summary: Tileの各種Activityへタスク分離設定を追加し、デバイス変更後に無関係な画面が表示される
+    不具合を修正した（BL-067）
+  details:
+    変更内容: >
+      BL-066（ランチャーアイコン重複解消）の実機確認中、ユーザーから「Tileのデバイス変更を
+      行うと『Sesami Wear』という文字が表示される。再度Tileを見ると切り替わっているが、
+      施錠/解錠ボタン押下時の状態がおかしい」との報告を受けた。原因調査の結果、
+      wear.MainActivity/SesameActionActivity/SesameStatusRefreshActivity/
+      TileConfigurationActivity/ComplicationConfigurationActivityのいずれも
+      android:taskAffinityを明示指定しておらずデフォルト（アプリ共通）のタスク親和性を
+      共有していたことが判明した。BL-066でmobile.MainActivityがウォッチ実行時に
+      wear.MainActivityへstartActivity（FLAG_ACTIVITY_NEW_TASKなし）していたため、
+      そのタスクがwear.MainActivityをルートとして残留し、後続のTile LaunchAction
+      （TileConfigurationActivity等、システムがFLAG_ACTIVITY_NEW_TASKで起動）がタスク
+      親和性の一致により同一タスクへ積み重なっていた。TileConfigurationActivityが
+      finish()すると背後に残っていたwear.MainActivityが露出して「Sesami Wear」表示となり、
+      古いActivityインスタンスが再利用されうる状態（新しいIntent Extraが反映されない
+      可能性）が「ボタン押下時の状態がおかしい」の原因と推測される。
+      対応として、上記5つのActivity（wear/AndroidManifest.xml）すべてへ
+      android:noHistory="true"（フォアグラウンドを外れた時点で即座に破棄しタスクに
+      残留させない）とandroid:excludeFromRecents="true"を追加し、mobile.MainActivityの
+      wear.MainActivityへのstartActivityへIntent.FLAG_ACTIVITY_NEW_TASKを明示付与した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方で
+      uninstall後、./gradlew :mobile:installDebugで再インストール済み。実機でのTile
+      デバイス変更・施錠/解錠ボタンの状態確認はユーザー実施予定
+    関連ID:
+      - BL-067
+      - BL-066
+
+- date: 2026-08-23 15:20
+  summary: mobile/wear双方のランチャーアイコン重複を解消し（BL-066）、Tile外周パディングを
+    16fへ再拡大した
+  details:
+    変更内容: >
+      ユーザーから「mobile/wearに2つアプリアイコンが出ている、1つにできないか」「mobileの設定が
+      開けない」の2点の報告を受けた。原因調査の結果、mobile（baseモジュール）・wear（feature、
+      android.hardware.type.watch限定配信）の両方のMainActivityがそれぞれ独自のLAUNCHER
+      intent-filterを持っていたことが判明した。baseモジュールはdist:conditionsの対象外で常に
+      ウォッチ側にも同梱されるため、ウォッチ側では常にmobile.MainActivity（タップすると
+      FEATURE_WATCH判定で即finish()するガード付き、事実上機能しない）とwear.MainActivity
+      （「Sesami Wear」のプレースホルダー表示）の2アイコンが共存していた。またローカルの
+      installDebugではdist:conditionsが評価されないため、スマホ側にもwear.MainActivityの
+      アイコンが重複表示されていた（BL-044として記録していたローカル制約の懸念が実は恒常的な
+      バグだったと判明したため、BL-044は本修正で解消するものとして削除した）。「設定が開けない」
+      報告は、スマホ側で誤ってwear.MainActivity（設定機能を持たない）をタップしていたことが
+      原因と推測される。対応として、wear/AndroidManifest.xmlのMainActivityからLAUNCHER
+      intent-filterを除去（android:exported="false"へ変更、android:icon/roundIcon指定も除去。
+      Tile/Complicationが主要導線のため独立起動は不要）、mobile.MainActivityのウォッチ実行時
+      ガードをfinish()のみから、explicit Intent（Intent().setClassName(packageName,
+      "com.sesamiwear.wear.MainActivity")。mobileはwearへコンパイル時依存できないためクラス名
+      文字列を使用）でwear.MainActivityへ委譲する形へ変更した（ActivityNotFoundException時は
+      フォールバックでfinish()のみ行う防御コード付き）。
+      あわせて、Tileの角丸チップの見切れがまだ残るとの追加指摘を受け、CONTAINER_PADDING_DPを
+      13f→16fへさらに拡大した（BL-063継続対応）。
+      検証中、Watch側のワイヤレスデバッグのIP:ポートが2回変わり接続が切断されたため、
+      ユーザーに都度確認して再接続した。ランチャーアイコン変更の確実な反映のため、
+      両実機でuninstallしてから再インストールした。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方で
+      uninstall後、./gradlew :mobile:installDebugで再インストール済み。実機でのアイコン数・
+      設定画面の到達性・Tileの見切れ具合の確認はユーザー実施予定
+    関連ID:
+      - BL-066
+      - BL-063
+
+- date: 2026-08-23 13:40
+  summary: Tileの外周パディング拡大・テキスト色設定・デバイス名タップでの状態更新機能を追加した
+    （BL-063継続対応、4回目）
+  details:
+    変更内容: >
+      直前の左右2分割・角丸チップ表現を実機確認したユーザーから3点の指摘を受けた。
+      (1) 角丸チップの一部がまだラウンドベゼルで見切れている→CONTAINER_PADDING_DPを
+      12f→13fへ約1割増やした。
+      (2) 左側チップ（デバイス名・デバイス変更）のテキスト色が既定の黒のままで、暗い中立背景
+      （0xFF424242）に対して視認できない→全Text.Builder呼び出しへ明示的にsetColorを設定した。
+      左側2チップは新設の白系定数CHIP_NEUTRAL_TEXT_COLOR_ARGB（0xFFFFFFFF）、右側の状態チップは
+      core側ではなくwear.tile.SesameTileContentへ新設したstatusTextColorArgb(state)関数
+      （状態色の明度に応じてコントラストを確保：通信中の明るいアンバー背景のみ濃色0xFF212121、
+      施錠中・解錠中・未接続・不明の各背景は白0xFFFFFFFF）で個別に設定した。
+      (3) デバイス名タップで状態更新をユーザー契機でも実施したい→新規
+      wear.action.SesameStatusRefreshActivity（施錠/解錠は行わずPATH_STATUS_REQUESTを
+      Fire-and-forgetで送信するのみの軽量Activity、既存のSesameActionActivityとは別クラスとして
+      分離。理由: core.api.SesameCommandはSesame API送信コマンドコード（LOCK=82/UNLOCK=83）と
+      1対1対応する値であり、状態取得（GET）という異なる概念を追加するとこの enum の意味が
+      混乱するため）を追加し、AndroidManifest.xmlへexported="true"で登録（BL-060で判明した
+      Wear TilesのLaunchAction制約を踏まえた登録漏れ防止）。SesameTileService.buildLeftColumnの
+      デバイス名チップへClickable（LaunchAction）を追加してこのActivityを起動するようにした。
+      あわせてSesameTileContentTestへstatusTextColorArgbの単体テスト2件を追加した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameStatusRefreshActivity.kt（新規）
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功、コンパイルエラー・detekt指摘なし）。
+      ./gradlew :mobile:installDebugでPixel 8 Pro実機・Pixel Watch 2実機の両方へインストール済み。
+      実機での見た目・状態更新動作の確認はユーザー実施予定
+    関連ID:
+      - BL-063
+
+- date: 2026-08-23 11:15
+  summary: Tileレイアウトを左右2分割・角丸チップ表現へ再設計し、状態色を右チップのみへ限定した
+    （BL-063継続対応、3回目）
+  details:
+    変更内容: >
+      直前のコミットで実施した「上部/中央/下部の3段構成」を実機確認したユーザーから
+      「左レイアウトの文字が画面に収まっていない、ステータス色が全画面に出てレイアウトの
+      区切りがわからない、ステータス色は右側だけでいい、各領域を角丸の四角ボタンで表現したい」
+      との指摘を受けた。原因は円形画面のセーフエリア（内接正方形、約136dp四方）を考慮せず
+      タイルのliteralな端に要素を配置していたためラウンドベゼルでテキストが欠けていたこと、
+      および状態色をルートBox全面に敷いていたため左右の領域区切りが視覚的に分からなくなって
+      いたことの2点。SesameTileService.buildConfiguredTireを、タイル端からCONTAINER_PADDING_DP
+      （12dp）内側へ寄せたRow（左列＋右チップ）構成へ変更。左列（buildLeftColumn、幅76dp固定）
+      はデバイス名チップ・デバイス変更チップをDimensionBuilders.weight(1f)で高さ均等分割し、
+      間に6dpのSpacerを挟む。右チップ（buildStatusBox）はexpand()で残り全域を占有。各チップは
+      共通ヘルパーbuildChipModifiersで角丸背景（ModifiersBuilders.Corner、半径12dp）・内側
+      パディング（6dp）を持つ「角丸の四角ボタン」として表現。状態色は右チップの背景にのみ適用し、
+      左側2チップは中立色（0xFF424242）で統一した。
+      実装中、detektのLongMethod（buildConfiguredTire/buildStatusBoxが60行超過）と
+      TooManyFunctions（クラス内関数数が閾値11に到達し失敗、10以下が必須と実測で確認）の
+      両方に複数回抵触した。最終的に(a)デバイス名チップ構築をbuildLeftColumnへ統合し
+      buildDeviceNameBoxを独立関数として持たない形にする、(b)buildConfigurationLaunchAction
+      （2箇所の呼び出し元へインライン化し関数自体を削除）、(c)buildCommandClickableは
+      buildStatusBoxと分離したまま維持、の組み合わせで関数数10・各関数60行未満に収めた。
+      あわせてTEXT_OVERFLOW_ELLIPSIZE_END（deprecated）をTEXT_OVERFLOW_ELLIPSIZEへ置き換えた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（試行錯誤の過程でLongMethod/TooManyFunctions/
+      型不一致（setModifiersにBuilderを渡していた）のコンパイルエラーが複数回発生したが、
+      いずれも修正して最終的に成功）。./gradlew :mobile:installDebugでPixel 8 Pro実機・
+      Pixel Watch 2実機の両方へインストール済み。実機での見た目確認はユーザー実施予定
+    関連ID:
+      - BL-063
+
+- date: 2026-08-23 09:30
+  summary: Tileレイアウトを上部/中央/下部の3領域へ再構成（BL-063継続対応）、自動更新問題の
+    調査用ログをmobile側にも追加（BL-064継続対応）
+  details:
+    変更内容: >
+      ユーザーから「Tileは中心にテキストが集まっている、左右や上下でレイアウトに意味を
+      持たせてほしい」と指摘があった（BL-063の1回目対応後）。原因は、状態表示を担う
+      SesameTileService.buildStatusBoxの返すBoxに幅・高さの明示指定がなく、内容サイズにしか
+      広がらないままタイル中央に小さくまとまって表示されていたこと。buildConfiguredTileを
+      Box（タイル全面、DimensionBuilders.expand()、背景色もここへ移動）→Column（同じく
+      expand）→(1)buildDeviceNameBox（上部・中央寄せ、デバイス名）、
+      (2)buildStatusBox（expand()で残り全域を占有、中央寄せ、状態アイコン・状態文言・
+      操作ラベル、施錠/解錠のクリック領域）、(3)buildChangeDeviceBox（下部・右寄せ、
+      「デバイスを変更 ›」）の3段構成へ再設計した。detektのLongMethod（buildConfiguredTireが
+      71行で60行制限に抵触）を解消するためbuildDeviceNameBoxを独立関数へ切り出し、代わりに
+      1行の呼び出しのみだったbuildUnconfiguredTileをonTileRequestの呼び出し元へインライン化し
+      関数数を維持してTooManyFunctionsの再超過を回避した。
+      あわせてBL-064（コマンド成功後にTileが自動更新されない問題）の調査用に、
+      mobile.messaging.SesameMessageListenerServiceのhandleCommandRequest/
+      handleStatusRequestへLog.d呼び出しを追加した（コマンド受信・デバウンス判定・
+      API実行結果・DataItem同期・結果送信の各段階、TAG="SesameMessageListener"）。
+      wear側のSesameResultListenerService/SesameTileServiceへのログ追加は前回セッションで
+      実施済みのため今回は対象外。ユーザーが当面Watch実機を操作できないとのことのため、
+      レイアウト改善を優先して品質ゲート実行・実機インストールまで完了させ、ログの確認は
+      ユーザーの都合がつき次第行う
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（初回はSesameTileService.buildConfiguredTireの
+      LongMethod違反で失敗、関数分割で解消して再実行し成功。mobile側もTAG未定義でコンパイル
+      エラーとなり修正後成功）。./gradlew :mobile:installDebugでPixel 8 Pro実機・
+      Pixel Watch 2実機の両方へインストール済み。レイアウト・自動更新とも実機での見た目/
+      挙動確認はユーザー実施予定
+    関連ID:
+      - BL-063
+      - BL-064
+
 - date: 2026-08-22 23:42
   summary: Tile連打による施錠/解錠コマンド重複送信を防ぐデバウンス処理を追加した（BL-062）
   details:

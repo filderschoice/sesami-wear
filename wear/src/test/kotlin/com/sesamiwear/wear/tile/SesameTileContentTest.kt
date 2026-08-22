@@ -14,6 +14,13 @@ class SesameTileContentTest {
     }
 
     @Test
+    fun `status icon is defined for every state`() {
+        TileDisplayState.entries.forEach { state ->
+            assertEquals(true, SesameTileContent.statusIcon(state).isNotBlank())
+        }
+    }
+
+    @Test
     fun `action label offers the opposite action for actionable states`() {
         assertEquals("タップで解錠", SesameTileContent.actionLabel(TileDisplayState.LOCKED))
         assertEquals("タップで施錠", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED))
@@ -41,5 +48,20 @@ class SesameTileContentTest {
             SesameTileContent.backgroundColorArgb(TileDisplayState.DISCONNECTED),
             SesameTileContent.backgroundColorArgb(TileDisplayState.UNKNOWN),
         )
+    }
+
+    @Test
+    fun `status text color differs between in-progress and other states`() {
+        val inProgressText = SesameTileContent.statusTextColorArgb(TileDisplayState.IN_PROGRESS)
+        val lockedText = SesameTileContent.statusTextColorArgb(TileDisplayState.LOCKED)
+
+        assertEquals(false, inProgressText == lockedText)
+    }
+
+    @Test
+    fun `status text color is defined for every state`() {
+        TileDisplayState.entries.forEach { state ->
+            SesameTileContent.statusTextColorArgb(state)
+        }
     }
 }

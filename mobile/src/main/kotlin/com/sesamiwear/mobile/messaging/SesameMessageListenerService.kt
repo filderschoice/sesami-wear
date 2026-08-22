@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.messaging
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
@@ -41,15 +42,22 @@ class SesameMessageListenerService : WearableListenerService() {
 
     private suspend fun handleCommandRequest(messageEvent: MessageEvent) {
         val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
-        if (!commandDebouncer.shouldProcess(deviceUuid)) return
+        Log.d(TAG, "handleCommandRequest path=${messageEvent.path} deviceUuidBlank=${deviceUuid.isBlank()}")
+        if (!commandDebouncer.shouldProcess(deviceUuid)) {
+            Log.d(TAG, "handleCommandRequest debounced, skipping")
+            return
+        }
         val handler = createCommandHandler(applicationContext, deviceUuid)
         val result = handler?.handle(messageEvent.path) ?: SesameCommandResult.FAILURE
+        Log.d(TAG, "handleCommandRequest result=$result")
         if (result == SesameCommandResult.SUCCESS) {
             syncLockedStateFromPath(messageEvent.path, deviceUuid)
+            Log.d(TAG, "handleCommandRequest synced locked state")
         }
         Wearable.getMessageClient(this@SesameMessageListenerService)
             .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
             .await()
+        Log.d(TAG, "handleCommandRequest sent result to wear")
     }
 
     private suspend fun handleStatusRequest(messageEvent: MessageEvent) {
@@ -62,8 +70,10 @@ class SesameMessageListenerService : WearableListenerService() {
             } catch (
                 @Suppress("SwallowedException") e: SesameApiException,
             ) {
+                Log.d(TAG, "handleStatusRequest getStatus failed: ${e.message}")
                 return
             }
+        Log.d(TAG, "handleStatusRequest isInLockRange=${status.isInLockRange}")
         SesameStatusSyncer(applicationContext).syncLocked(deviceUuid, status.isInLockRange)
     }
 
@@ -108,5 +118,6 @@ class SesameMessageListenerService : WearableListenerService() {
         // Serviceインスタンスをまたいで連打を検知できるよう、companion objectで保持する
         // （BL-062、Tile連打による二重送信・ハプティクス連続再生の防止）。
         val commandDebouncer = CommandDebouncer()
+        const val TAG = "SesameMessageListener"
     }
 }

@@ -48,12 +48,15 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
 
     private suspend fun buildConfiguredComplicationData(deviceUuid: String): ComplicationData {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
-        // Complication表示のたびにmobile側へ最新状態の取得を依頼する（BL-061）。SesameTileService
-        // と同様、レスポンスを待たず既存のDataItemスナップショットで即座に応答する。
-        if (nodeId != null) {
+        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
+        // コマンド実行直後の巻き戻り防止のため、DataItemが一定時間以上古い場合のみ状態取得を
+        // リクエストする（BL-061/BL-063、SesameTileServiceと同様の対応）。
+        val isSnapshotStale =
+            snapshot == null ||
+                System.currentTimeMillis() - snapshot.updatedAtEpochMillis > STATUS_STALE_THRESHOLD_MILLIS
+        if (nodeId != null && isSnapshotStale) {
             SesameCommandSenderProvider.create(applicationContext).requestStatus(nodeId, deviceUuid)
         }
-        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
         val state =
             TileDisplayStateResolver.resolve(
                 isPhoneConnected = nodeId != null,
@@ -88,5 +91,9 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         return ShortTextComplicationData.Builder(text = complicationText, contentDescription = complicationText)
             .setTapAction(tapAction)
             .build()
+    }
+
+    private companion object {
+        const val STATUS_STALE_THRESHOLD_MILLIS = 30_000L
     }
 }

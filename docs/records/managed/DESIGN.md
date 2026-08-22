@@ -395,6 +395,139 @@
   `handleCommandRequest`で同一デバイスuuidへの2秒以内の重複コマンドを無視するようにした。
   Tile側の`isCommandInProgress`を実際に機能させる根本対応（送信中状態の管理）は、
   実装複雑度と緊急性のバランスから見送り、mobile側でのデバウンスのみで対応した。
+- REQ-038（BL-063、ユーザー報告、対応中）: Tileのデザインを「何を操作しているか」
+  「今どの状態か」「他のデバイスへの切り替え方法」が分かるUXへ改善する対応。3回にわたり反復した。
+  **1回目**: デバイス名・状態アイコン・操作ラベル・デバイス変更ボタンを追加したが、
+  ユーザーから「テキストが中心に集まっている」との指摘を受けた。原因は`buildStatusBox`が
+  返すBoxに幅・高さの明示指定がなく、内容サイズにしか広がらないままタイル中央に配置されて
+  いたこと（Wear Tilesのレイアウトは明示的にサイズ指定しない限り自身の内容分しか占有しない）。
+  **2回目**: ルートを`Box`（`DimensionBuilders.expand()`でタイル全面、背景色もここへ移動）→
+  内側`Column`（同じくexpand）→上部＝デバイス名/中央＝状態表示（拡大）/下部＝デバイス変更
+  の3段構成へ再設計したが、ユーザーから「左レイアウトの文字が画面に収まっていない、ステータス
+  色は右側だけでいい、各領域を角丸の四角ボタンで表現したい」との再指摘を受けた。原因は、
+  円形画面のセーフエリア（内接正方形、対角192dpの円に対し約136dp四方）を考慮せず、タイルの
+  literal な端（座標0や高さ最大値）に要素を配置していたため、ラウンドベゼルでテキストが
+  部分的に欠けていたこと。また状態色をルート`Box`全面に敷いていたため、左右の領域区切りが
+  視覚的に分からなくなっていた。
+  **3回目（現行）**: `buildConfiguredTile`を、タイル全体をタイル端から`CONTAINER_PADDING_DP`
+  （12dp）内側へ寄せた`Row`（左列＋右チップ）構成へ変更。左列（`buildLeftColumn`、幅
+  `LEFT_COLUMN_WIDTH_DP`=76dp固定、`DimensionBuilders.expand()`で高さいっぱい）は、
+  デバイス名チップ・デバイス変更チップ（`buildChangeDeviceBox`）を`DimensionBuilders.weight
+  (1f)`で高さ均等分割し、間に`CHIP_SPACING_DP`（6dp）のSpacerを挟む。右チップ
+  （`buildStatusBox`）は`expand()`で残り全域を占有。各チップは共通ヘルパー
+  `buildChipModifiers`で角丸背景（`ModifiersBuilders.Corner`、半径`CHIP_CORNER_RADIUS_DP`
+  =12dp）・内側パディング（`CHIP_INNER_PADDING_DP`=6dp）を持つ「角丸の四角ボタン」として
+  表現する。状態色（`SesameTileContent.backgroundColorArgb`）は右チップの背景にのみ適用し、
+  左側2チップは中立色`CHIP_NEUTRAL_COLOR_ARGB`（0xFF424242）で統一することで、領域の区切りと
+  ステータス色の意味をひと目で区別できるようにした。detektの`LongMethod`
+  （`buildConfiguredTile`/`buildStatusBox`が60行超過）と`TooManyFunctions`（クラス内関数数が
+  閾値11に到達）の両方に反復して抵触したため、(a)`buildLeftColumn`へデバイス名チップ構築を
+  統合、(b)`buildConfigurationLaunchAction`（2箇所の呼び出し元へインライン化し関数自体を削除）、
+  (c)`buildCommandClickable`は`buildStatusBox`と分離したまま維持、という組み合わせで
+  関数数10・各関数60行未満のバランスに調整した。
+  **4回目（現行）**: 3回目を実機確認したユーザーから3点の指摘を受けた。(1)角丸チップの一部が
+  依然として見切れる→`CONTAINER_PADDING_DP`を12f→13fへ約1割増やした（後日の実機確認で
+  「もう一押しいける」との追加指摘を受け16fへさらに拡大）。(2)左側チップの
+  テキスト色が既定の黒のままで、暗い中立背景（`CHIP_NEUTRAL_COLOR_ARGB`）に対して視認できない
+  →`Text.Builder.setColor`を全箇所へ明示設定。左側2チップは白系（新設
+  `CHIP_NEUTRAL_TEXT_COLOR_ARGB`=0xFFFFFFFF）、右側の状態チップは新設
+  `SesameTileContent.statusTextColorArgb(state)`（状態色の明度に応じてコントラストを確保：
+  通信中の明るいアンバー背景のみ濃色0xFF212121、施錠中・解錠中・未接続・不明の各背景は
+  白0xFFFFFFFF）で個別に設定した。(3)デバイス名タップで状態更新をユーザー契機でも実施したい
+  →新規`wear.action.SesameStatusRefreshActivity`（`PATH_STATUS_REQUEST`をFire-and-forgetで
+  送信するのみの軽量Activity、施錠/解錠は行わない）を追加し、`AndroidManifest.xml`へ
+  `exported="true"`で登録（BL-060で判明したWear TilesのLaunchAction制約を踏まえた登録）、
+  `buildLeftColumn`のデバイス名チップに`Clickable`を追加してこのActivityを起動する
+  `LaunchAction`を設定した。
+  **未完了**: 実機での見た目・動作確認はユーザーの都合がつき次第実施予定（BL-063完了条件）。
+- REQ-039（BL-064、ユーザー報告、調査中）: BL-064（コマンド成功後にTileが自動更新されない
+  問題）の再検証で、対策済みのはずの自動更新が依然として機能していないとユーザーから
+  再度報告があった。実機ログにはアプリ側のログ出力が一切なく、システムログ
+  （ActivityManager等）からは`SesameActionActivity`の起動しか確認できず、
+  mobile側のコマンド処理・DataItem同期・wear側の再描画リクエストのどこで問題が
+  発生しているか切り分けできなかった。原因特定のため、`mobile.messaging
+  .SesameMessageListenerService`（コマンド受信・デバウンス判定・API実行結果・DataItem同期
+  ・結果送信の各段階）、`wear.messaging.SesameResultListenerService`
+  （メッセージ受信・ハプティクス再生・Tile/Complication再描画リクエスト）、
+  `wear.tile.SesameTileService`（`onTileRequest`/`buildConfiguredTile`のtileId・
+  デバイス割当有無・接続ノード有無・DataItemスナップショットの値）へ`android.util.Log`
+  （`Log.d`）を追加した。DataItemの同期は`DataClient.putDataItem`のurgentフラグを
+  使っていても、mobile→wear間の物理的な同期完了を保証しない（`await()`はローカル書き込みの
+  完了のみを示す）ため、`SesameResultListenerService`がコマンド結果受信直後に行う
+  Tile再描画リクエストが、DataItem同期が完了する前に発火し古いスナップショットを
+  読んでしまう競合状態が有力な仮説である（未確認）。その場合でも、後続の
+  `SesameStatusListenerService.onDataChanged`が同期完了時に再度Tile再描画をリクエストする
+  設計になっているため理論上は自己修復するはずだが、実機で解消しない理由（Wear Tilesの
+  `requestUpdate`が非表示タイルに対して抑制される可能性、システム側のレート制限など）は
+  未確認のまま。**未完了**: 次回実機操作時にlogcatを取得し、上記仮説を検証する。
+- REQ-040（BL-066、ユーザー報告による重大バグ修正、対応中）: mobile/wear双方の実機で
+  「アプリアイコンが2つ表示される」「mobileの設定画面が開けない」との報告を受けた。原因は、
+  mobile（baseモジュール）・wear（feature、`android.hardware.type.watch`限定配信）の両方の
+  `MainActivity`がそれぞれ独自のLAUNCHER intent-filterを持っていたこと。baseモジュールは
+  `dist:conditions`の対象外で常にウォッチ側にも同梱されるため、ウォッチ側では常に
+  `mobile.MainActivity`（タップすると`FEATURE_WATCH`判定で即`finish()`するガード付き、
+  事実上機能しない）と`wear.MainActivity`（「Sesami Wear」のプレースホルダー表示）の
+  2アイコンが共存していた。またローカルの`installDebug`（bundletool経由のAPK Set生成）では
+  `dist:conditions`が評価されないため、スマホ側にも`wear.MainActivity`のアイコンが重複表示
+  されていた（BL-044として記録していたローカル制約の懸念が現実の恒常的なバグだったことが
+  判明。BL-044はこの修正で解消するため削除した）。「設定が開けない」報告は、スマホ側で誤って
+  `wear.MainActivity`（設定機能を持たない）をタップしていたことが原因と推測される。対応として、
+  `wear/AndroidManifest.xml`の`MainActivity`からLAUNCHER intent-filterを除去し
+  （`android:exported="false"`へ変更、`android:icon`/`roundIcon`指定も除去。本Activityを
+  独立起動する必要はなくTile/Complicationが主要導線のため）、`mobile.MainActivity`のウォッチ
+  実行時ガードを`finish()`のみから、explicit Intent（`Intent().setClassName(packageName,
+  "com.sesamiwear.wear.MainActivity")`。mobileはwearへコンパイル時依存できないためクラス名
+  文字列を使用）で`wear.MainActivity`へ委譲する形へ変更した（`ActivityNotFoundException`時は
+  フォールバックで`finish()`のみ行う防御コード付き）。これによりmobile/wear双方の実機で
+  アイコンが1つに統一され、スマホでは常にmobile.MainActivity（設定画面）、ウォッチでは常に
+  wear.MainActivityが開く。
+  **未完了**: 実機での見た目・動作確認はユーザーの都合がつき次第実施予定（BL-066完了条件）。
+- REQ-041（BL-067、ユーザー報告による重大バグ修正、対応中）: BL-066の実機確認中、Tileの
+  「デバイス変更」を行うと「Sesami Wear」という無関係な文字が表示され、Tileへ戻ると
+  デバイスは切り替わっているものの施錠/解錠ボタン押下時の状態がおかしいとの報告があった。
+  原因は、`wear.MainActivity`/`SesameActionActivity`/`SesameStatusRefreshActivity`/
+  `TileConfigurationActivity`/`ComplicationConfigurationActivity`のいずれも
+  `android:taskAffinity`を明示指定しておらずデフォルト（アプリ共通）のタスク親和性を
+  共有していたこと。BL-066で`mobile.MainActivity`がウォッチ実行時に
+  `wear.MainActivity`へ`startActivity`（`FLAG_ACTIVITY_NEW_TASK`なし）していたため、
+  そのタスクが`wear.MainActivity`をルートとして残留し、後続のTile LaunchAction
+  （`TileConfigurationActivity`等、システムが`FLAG_ACTIVITY_NEW_TASK`で起動）がタスク
+  親和性の一致により同一タスクへ積み重なっていたと判明した。`TileConfigurationActivity`が
+  `finish()`すると背後に残っていた`wear.MainActivity`が露出して「Sesami Wear」表示となり、
+  古いActivityインスタンスが再利用されうる状態（新しいIntent Extraが反映されない可能性）が
+  「ボタン押下時の状態がおかしい」の原因と推測される。対応として、上記5つのActivityすべてへ
+  `android:noHistory="true"`（フォアグラウンドを外れた時点で即座に破棄しタスクに残留させない）
+  と`android:excludeFromRecents="true"`を追加し、`mobile.MainActivity`の
+  `wear.MainActivity`への`startActivity`へ`Intent.FLAG_ACTIVITY_NEW_TASK`を明示付与した。
+  **未完了**: 実機での動作確認はユーザーの都合がつき次第実施予定（BL-067完了条件）。
+- REQ-042（BL-068、ユーザー報告）: Tile追加時のアイコンが大きすぎるとの指摘を受けた。
+  `wear.tile.SesameTileService`に`android:icon`指定がなく、`<application>`のicon
+  （mobileの`ic_launcher`、リング装飾なしの通常のスマホ向けアイコン）へフォールバックして
+  いたことが原因。既に`SesameComplicationDataSourceService`用に用意されていたwear専用
+  アイコン（`ic_launcher_wear`、コンプリケーション風のリング装飾付き）がTile追加ピッカーでは
+  使われていなかった。`SesameTileService`へ`android:icon="@mipmap/ic_launcher_wear"`を
+  明示指定してComplicationピッカーと意匠を統一し、`ic_launcher_wear_foreground.xml`の
+  全パスを`<group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54"
+  android:pivotY="54">`で包んで中心基準で50%縮小した（個々のpath座標は変更せずグループ
+  変換のみで対応）。`ic_launcher_wear`は両ピッカーで共用のため、Complicationピッカー側にも
+  同様に縮小が反映される（スマホ側の`ic_launcher`/`ic_launcher_round`は変更対象外）。
+  **未完了**: 実機での見た目確認はユーザーの都合がつき次第実施予定（BL-068完了条件）。
+  実機確認後、ユーザーから「Tile表示時のアイコンは前のサイズでよかった、Tile追加登録時の
+  アプリ選択画面のアイコンだけ変更したい」と指摘があった。両者を別サイズへ分離しようと
+  `wear/AndroidManifest.xml`の`<application>`へ専用の縮小版アイコン（新規
+  `ic_launcher_wear_picker`）を設定したが、`mobile`側の`<application>`icon
+  （`ic_launcher`）と競合しマニフェストマージが失敗した（`Attribute application@icon
+  ... is also present at [:wear] ...`）。base（mobile）とfeature（wear）は最終的に
+  1つの`<application>`タグへマージされるため、Tile追加時の「アプリ選択」画面とTile表示時の
+  アイコンは同一の`SesameTileService.icon`リソースしか持てず、Android/Wear OSの仕様上
+  別サイズにする手段がないと判明した（`ic_launcher_wear_picker`関連ファイルは削除して
+  ロールバック）。ユーザーへ選択肢（縮小再適用＋クリーン再インストール／両方とも元サイズへ戻す）
+  を提示した結果、前者を選択（前回の確認はupdate-in-place installであり、Wear OSの
+  Tileピッカーの表示キャッシュ遅延で「アプリ選択」画面だけ古いサイズに見えていた可能性を
+  切り分けるため）。`ic_launcher_wear_foreground.xml`への50%縮小（groupによるscale変換）を
+  再適用し、両実機でuninstall後に再インストールした。
+  クリーン再インストール後、Tile追加ピッカー・Tile表示・Complicationピッカーいずれの
+  アイコンサイズもユーザーが実機で確認し「サイズはいい感じになった」と確認済み（完了）。
 
 ## 設計方針
 
