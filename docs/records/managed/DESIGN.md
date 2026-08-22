@@ -279,6 +279,20 @@
   testDebugUnitTest/assembleDebug）に加え、`:mobile:bundleDebug`/`:mobile:bundleRelease`
   （統合後のAAB生成）の成功を確認済み。実機でのインストール・自動プッシュ配信の動作確認は
   BL-038（人手検証）。
+- REQ-029（BL-043）: `:mobile:installDebug`実行時に`:mobile:packageDebugBundle`が
+  「Title for module 'wear' is missing in the base resource table」で失敗する問題を修正した。
+  `wear/AndroidManifest.xml`の`dist:title`が参照する文字列リソース名が`mobile`（base）側と
+  `wear`（feature）側の双方で`app_name`という同名になっていたため、bundletoolがbaseリソース
+  テーブル内で`wear`モジュール固有のタイトルを一意に解決できなかったことが原因
+  （BL-036時点では未発生を確認済みだったリグレッション、発生源コミットは未特定）。
+  `wear`固有の一意な文字列リソース`wear_module_title`を`mobile`側の`strings.xml`にのみ追加し、
+  `dist:title`の参照先をこちらへ変更した（**制約**: `dist:title`が参照する文字列リソースは
+  baseモジュール側にのみ定義する必要があり、featureモジュール側に同名リソースが存在すると
+  このエラーが再発する）。`wear`側の`app_name`（ランチャーラベル等の表示名）は分離して維持した。
+  検証中、`installDebug`ではPixel 8 Pro（watch機能なしのスマホ実機）にも
+  `com.sesamiwear.wear.MainActivity`がインストールされる現象を確認した。BL-039の
+  `dist:device-feature`条件はGoogle Play正式配信でのみ評価されローカルの`installDebug`では
+  評価されない制約による可能性があるが未確認のため、BL-044（人手検証）へ切り出した。
 
 ## 設計方針
 
@@ -305,7 +319,9 @@
   `uses-feature android:name="android.hardware.type.watch"`と
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）、
   `dist:module`（`dist:instant=false`、install-time delivery、`dist:fusing include=true`）を
-  設定済み。
+  設定済み。`dist:title`が参照する文字列リソース（`wear_module_title`）は`mobile`側の
+  `strings.xml`にのみ定義する（BL-043。`wear`側に同名リソースが存在するとbundletoolが
+  base resource table内でタイトルを解決できずAABパッケージングが失敗する制約があるため）。
 - 依存バージョンは `gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.7.3 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 

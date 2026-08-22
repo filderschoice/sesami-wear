@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-044
+  区分: 人手検証
+  タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、
+    watchハードウェア機能なし）にもcom.sesamiwear.wear.MainActivity（wearのランチャー
+    アクティビティ）がインストールされる現象を確認した。BL-039で追加したdist:conditions/
+    dist:device-feature（android.hardware.type.watch限定配信）はGoogle Play正式配信でのみ
+    評価され、ローカルのinstallDebug（bundletool経由のAPK Set生成）では評価されない制約による
+    可能性があるが未確認。Google Play限定公開トラック（BL-034）へのアップロード後、実際に
+    watch限定配信が機能し、スマホ側にwear機能・ランチャーアイコンが含まれないことを確認する
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: Google Play経由でインストールしたスマホ実機にcom.sesamiwear.wear.MainActivityの
+    ランチャーアイコンが表示されないことを確認する
+  依存:
+    - BL-034
+    - BL-039
+
 - id: BL-042
   区分: 人手検証
   タスク内容: BL-041のリング寸法修正後、実機（スマホ・Pixel Watch）でwearのランチャーアイコンを

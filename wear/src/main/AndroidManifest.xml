@@ -3,7 +3,7 @@
 
     <dist:module
         dist:instant="false"
-        dist:title="@string/app_name">
+        dist:title="@string/wear_module_title">
         <dist:delivery>
             <dist:install-time>
                 <dist:conditions>

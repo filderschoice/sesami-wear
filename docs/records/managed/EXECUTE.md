@@ -5,6 +5,41 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:01
+  summary: dist:titleの重複リソース参照によるAABパッケージング失敗を修正した（BL-043）
+  details:
+    変更内容: >
+      ユーザー依頼でmobile/wearアプリの実機再インストール（アンインストール→
+      ./gradlew :mobile:installDebug）を行ったところ、:mobile:packageDebugBundleが
+      「Title for module 'wear' is missing in the base resource table」で失敗することが判明した。
+      原因はwear/AndroidManifest.xmlのdist:module dist:title="@string/app_name"が、
+      mobile（base）側とwear（feature）側の双方に同名で存在するapp_name文字列リソースを
+      参照しており、bundletoolがbaseリソーステーブル内でwearモジュール固有のタイトルを
+      一意に解決できなかったため（BL-036実施時点のEXECUTE.md記録では:mobile:bundleDebug/
+      bundleReleaseの成功を確認済みだったが、その後のいずれかの変更で顕在化したリグレッション。
+      発生源のコミットは特定していない、未確認）。切り分けのため
+      (1)wear側に一意な別名リソースを追加、(2)mobile側にも同名で追加、
+      (3)mobile側にのみ別名リソース（wear_module_title）を追加、の3パターンを試し、
+      (3)でのみ解決することを確認した。wear固有のwear_module_titleをmobile側の
+      strings.xmlにのみ追加し、dist:titleの参照先をこちらへ変更した。wear側のapp_name
+      （ランチャーラベル等の表示名）はdist:title用途と分離し、従来どおり維持した。
+      検証中に副次的な問題として、Pixel 8 Pro（スマホ実機）へのinstallDebugでも
+      com.sesamiwear.wear.MainActivityがインストールされる現象を確認した。BL-039の
+      dist:device-feature条件はGoogle Play正式配信でのみ評価されローカルのinstallDebugでは
+      評価されない制約による可能性があるが未確認のため、BL-044として人手検証へ切り出した。
+    変更ファイル:
+      - mobile/src/main/res/values/strings.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug :mobile:bundleRelease && ./gradlew :mobile:installDebug
+    検証結果: 成功 - 全品質ゲートおよびbundleDebug/bundleRelease/installDebugがBUILD SUCCESSFUL。
+      installDebugで接続中のPixel 8 Pro実機・Pixel Watch 2実機（2経路）へのインストールも確認した。
+    関連ID:
+      - BL-043
+
 - date: 2026-08-22 16:24
   summary: wearランチャーアイコンのリングをAdaptive Iconセーフゾーン内に収まる寸法へ縮小した（BL-041）
   details:
