@@ -60,4 +60,23 @@ Claude Code による自律ループ実行（Loop Engineering）でアプリ実�
   マーカー外への追記はCLAUDE.md「records自動更新規約」の原則に抵触しうるため、
   BL-021としてユーザーへ対応可否を確認したうえで、明示的な許可を得て追記した。
   あわせてBACKLOG.mdの完了項目としてBL-021のレコード自体をマーカー内から削除した。
+
+## 2026-08-22（CLAUDE.md コンテキスト最適化）
+
+Claude Code セッション開始時に自動読み込みされる文字数が、`CLAUDE.md`本体と `@import` 3ファイル
+（`rules/guardrails-unified.v1.md` / `docs/guidelines/RULE.md` / `CONTRIBUTING.md`）の合計で約55,800文字
+に達し、内容の大半（初回/追加実装のMUSTリスト、例外管理、gitコミット権限の規定など）が複数ファイルへ
+重複していたため、ユーザー依頼により整理した。`rules/guardrails-unified.v1.md`はセキュリティ・
+プライバシー担当のレビュー必須文書のため対象外とし、変更していない。
+
+- `CLAUDE.md`
+  - `@import` を `rules/guardrails-unified.v1.md` のみへ縮小。`docs/guidelines/RULE.md` と
+    `CONTRIBUTING.md` は内容の大半が本ファイルへ具体化済みで二重読み込みだったため、通常の
+    Markdownリンクによる参照（必要時に読む方式）へ変更した（ファイル自体は無変更、他リポジトリへ
+    配布するテンプレートとしての役割は維持）。
+  - 「指示参照の優先順位」の記載を、上記import変更に合わせて更新。
+  - 「セキュリティ要件」「例外と保守 > 例外管理」の各セクションから、`rules/guardrails-unified.v1.md`
+    （上記import済み）と一字一句同内容だった箇所を削除し、本リポジトリ固有の補足のみを残す形へ圧縮。
+  - 「ディレクトリと参照関係」の `CLAUDE.md` 項目説明を、import構成の変更に合わせて更新。
+  - 上記の結果、自動読み込み合計は約55,800文字から約39,500文字（約29%減）になった。
   コード変更を伴わないため`EXECUTE.md`は更新していない。
