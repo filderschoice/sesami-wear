@@ -57,6 +57,30 @@ Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid/Wear OS
 secretKeyは機密性が高いためWatch単体には保持させず、施錠/解錠の実行は常にスマホ側で行う方針です
 （詳細は DESIGN.md「アーキテクチャ方針」参照）。
 
+### 主要な処理フロー（Wearable Data Layer API経由）
+
+`core.SesameWearProtocol` が定義するメッセージパス定数を軸に、`mobile`/`wear`間は
+`MessageClient`（コマンド送受信）と`DataClient`（状態同期）の2系統で通信します。
+
+- **施錠/解錠コマンド送信**（`wear` → `mobile`）: Tile操作
+  （`wear.tile.SesameTileActions`）→ `wear.messaging.SesameCommandSender`
+  （`SesameCommandSenderProvider`経由で取得）→ `wear.messaging.MessageClientSesameMessageSender`
+  （`core.SesameMessageSender`のGoogle Play Services実装）が`MessageClient.sendMessage()`で
+  `PATH_LOCK_REQUEST`/`PATH_UNLOCK_REQUEST`へ送信する。
+- **コマンド実行**（`mobile`側）: `mobile.messaging.SesameMessageListenerService.onMessageReceived()`
+  が受信し、`mobile.messaging.SesameCommandHandler.handle(path)`（Android非依存、ユニットテスト対象）
+  が`core.api.SesameApiClient.sendCommand()`（AES-CMAC署名付きPOST）でSesame APIを呼び出す。
+  成功時は`mobile.messaging.SesameStatusSyncer.syncLocked()`が`DataClient.putDataItem()`で
+  `STATUS_DATA_ITEM_PATH`へ最新のロック状態を書き込む。
+- **結果返送**（`mobile` → `wear`）: `SesameCommandResult`（成功/失敗、1バイト）を
+  `MessageClient.sendMessage()`で`PATH_COMMAND_RESULT`へ返送し、`wear`側の
+  `wear.messaging.SesameResultListenerService`が受信、`wear.messaging.SesameResultHandler`が
+  再生すべき`HapticPattern`を判定して`wear.haptics.SesameHapticPlayer`で通知する。
+- **状態表示**（Tile/Complication）: `wear.messaging.SesameStatusSnapshotReader.readLatest()`が
+  `DataClient.dataItems`から`STATUS_DATA_ITEM_PATH`を読み取り、`core.SesameStatusSnapshotFactory`で
+  スナップショット化してTile/Complicationの表示に反映する。他経路（Sesame純正アプリでの操作等）
+  による状態変化はこの仕組みでは検知されない（README.md「既知の未確認事項・制約」参照）。
+
 ### ディレクトリと参照関係
 
 - `CLAUDE.md`（本ファイル）: Claude Code 向け運用ルールのエントリポイント。冒頭の `@import` で
@@ -100,6 +124,23 @@ Gradle Wrapper経由ですべてリポジトリルートから実行します（
 上記5コマンドが本リポジトリの品質ゲート（後述「本リポジトリの品質ゲート定義」段階B）です。
 資格情報の設定手順、リリースビルド（署名・ProGuard/R8・`scripts/release-build.bat`）は
 [README.md](README.md) を参照してください。
+
+単一テストクラス・メソッドのみ実行する場合は `--tests` を使います（`core` は素の `test`
+タスク、`mobile`/`wear` は `testDebugUnitTest` タスクです）。
+
+```bash
+./gradlew :core:test --tests "com.sesamiwear.core.crypto.AesCmacTest"
+./gradlew :mobile:testDebugUnitTest --tests "com.sesamiwear.mobile.credentials.CredentialsInputValidatorTest"
+./gradlew :wear:testDebugUnitTest --tests "com.sesamiwear.wear.tile.SesameTileActionsTest"
+```
+
+`wear` は `mobile` の dynamic feature（BL-036、単一 `applicationId` へ統合済み）のため、
+`:wear:assembleDebug` / `:wear:installDebug` 等のモジュール単体タスクは base module
+（`mobile`）側のメタデータを解決できず失敗します。ビルド・インストールは必ずルートからの
+一括実行（`./gradlew assembleDebug` 等）または `:mobile:` 配下のタスク
+（`:mobile:installDebug` / `:mobile:bundleDebug` / `:mobile:bundleRelease`）経由で行ってください。
+detekt設定は `config/detekt/detekt.yml`（`buildUponDefaultConfig: true`、`MagicNumber`無効、
+`LongMethod`閾値60、`maxIssues: 0`）です。
 
 ```bash
 # 全Markdownファイルをlint（PR作成前に必ず実行、CONTRIBUTING.md 参照）
