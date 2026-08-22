@@ -354,21 +354,42 @@ PLAN.mdは単一Sesameデバイスを前提とした要件だったが、複数�
   Tile切り替えは許容範囲であり、単一Tile内にリスト表示する方式より視認性・操作の明確さ
   （「どのデバイスの」「どんな操作か」が一目で分かる）を優先した。Complicationも同様に、
   文字盤の複数スロットへそれぞれ異なるデバイスを設定する方式とする。
-- **データモデル**: `core.SesameCredentials`をリスト化し、各エントリに`deviceId`（一意識別子）と
-  `displayName`（ユーザーが設定するSesame名、例:「玄関」）を追加する（BL-046）。
-  `core.SesameCredentialsStore`は複数件の保存・読み出し・削除に対応させる（BL-047）。
-- **メッセージプロトコル**: `core.SesameWearProtocol`の施錠/解錠メッセージのペイロードへ
-  `deviceId`を含める（BL-048）。メッセージパス自体（`PATH_LOCK_REQUEST`等）は変更しない。
+- **データモデル**: `core.SesameCredentials`をリスト化し、`displayName`（ユーザーが設定する
+  Sesame名、例:「玄関」）を追加した（BL-046、実装済み）。デバイスの一意識別子は、別途`deviceId`を
+  持たせず、Sesame API上で既に一意な`uuid`をそのまま用いる設計に変更した（概念の重複を避けるため、
+  BACKLOG登録時の想定から簡素化）。`core.SesameCredentialsStore`は
+  `List<SesameCredentials>`全体をkotlinx.serializationでJSON化し単一キーで保存する`saveAll`/
+  `loadAll`/`remove(uuid)`に対応させた（BL-047、実装済み）。
+- **メッセージプロトコル**: `core.SesameWearProtocol`へ`encodeDeviceUuid`/`decodeDeviceUuid`
+  （施錠/解錠コマンドのメッセージペイロードへ対象デバイスの`uuid`をUTF-8バイト列として載せる）と
+  `statusDataItemPath(uuid)`（デバイスごとに一意なDataItemパスを生成し状態同期の衝突を防ぐ）を
+  追加した（BL-048、BL-050、実装済み）。メッセージパス自体（`PATH_LOCK_REQUEST`等）は変更しない。
 - **mobile側**: `CredentialsSettingsScreen`を複数デバイスの一覧・追加・編集・削除ができるUIへ
-  変更し（BL-049）、`SesameMessageListenerService`/`SesameCommandHandler`/`SesameStatusSyncer`は
-  受信した`deviceId`から対象デバイスの資格情報を選択してAPIを呼び出し、デバイスごとに状態同期
-  するよう変更する（BL-050）。
-- **wear側**: `androidx.wear.tiles`のTile Configuration機構（Tile追加時にカスタム設定画面を
-  経由させる標準的な実装方法）をまず技術調査し（BL-051、**未確認事項**: 採用するAPI・
-  tileIdの取得タイミング・永続化方法は調査結果をこのセクションへ追記する）、その結果に基づき
-  Configuration Activityを実装してtileIdごとに対象デバイスを永続化する（BL-052）。
-  `SesameTileService`/`SesameActionActivity`等のコマンド送信経路と`SesameStatusSnapshotReader`を
-  tileId・deviceId対応へ変更し（BL-053）、`SesameComplicationDataSourceService`も
+  変更し（BL-049、実装済み）、`SesameMessageListenerService`はメッセージペイロードから
+  デコードした`uuid`で対象デバイスの資格情報を選択してAPIを呼び出し、`SesameStatusSyncer`は
+  `statusDataItemPath(uuid)`でデバイスごとに状態同期するよう変更した（BL-050、実装済み）。
+- **wear側Tile Configuration機構の技術調査結果（BL-051、実装済み）**:
+  `androidx.wear.tiles`（本プロジェクトは1.4.1系、`RequestBuilders.TileRequest`/
+  `ComplicationRequest`ベースの旧世代Tiles API。新世代`androidx.wear.protolayout`への移行は
+  対象外）には、Android AppWidgetの`android:configure`属性のような「タイル追加時に自動的に
+  設定Activityを起動する」標準機構は存在しない（`TileService`の`onTileAddEvent`等は通知目的の
+  コールバックであり、バックグラウンドからのActivity自動起動はAndroidのポリシー上一般に
+  許可されないため確実な設定導線にならない）。そのため、**「Tile自体がタップで設定画面へ
+  誘導する」パターン**を採用する: (1) `RequestBuilders.TileRequest`は`getTileId(): Int`を持ち、
+  `TileService.onTileRequest(requestParams)`内で`requestParams.tileId`としてタイル
+  インスタンス固有のIDを取得できる、(2) `tileId`（Int）をキーとして選択デバイスの`uuid`を
+  ローカル永続化する（`SesameKeyValueStore`パターンに倣った実装、DataStore Preferences等の
+  新規依存追加は不要と判断）、(3) 未設定のtileIdの場合、Tile上に「タップして設定」等の誘導
+  表示を出し、タップで`ActionBuilders.LaunchAction`によりConfiguration Activity
+  （通常のAndroid Activity、Intent extraで`tileId`を渡す）を起動する、(4) デバイス選択・保存後は
+  `TileService.getUpdater(context).requestUpdate(SesameTileService::class.java)`で対象Tileの
+  再描画を要求する。Complicationも`ComplicationRequest`から`complicationInstanceId`
+  （インスタンス固有のInt ID）を取得できる想定で、同じパターンを適用する
+  （実際のAPI形状の最終確認はBL-054で行う）。
+  この結果に基づき、Configuration Activityを実装してtileIdごとに対象デバイスを永続化する
+  （BL-052）。`SesameTileService`/`SesameActionActivity`等のコマンド送信経路と
+  `SesameStatusSnapshotReader`をtileId・uuid対応へ変更し（BL-053）、
+  `SesameComplicationDataSourceService`も
   complicationInstanceIdごとの対象デバイス対応へ変更する（BL-054）。
 - **検証**: 実機（複数のSesame実機）での動作確認はBL-055（人手検証）とする。
 

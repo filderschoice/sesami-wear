@@ -64,20 +64,6 @@
     - BL-051
     - BL-047
 
-- id: BL-051
-  区分: 技術調査
-  タスク内容: androidx.wear.tiles（Jetpack Tiles API、現行バージョンはgradle/libs.versions.toml参照）
-  における、ユーザーがホーム画面にTileを追加する際にカスタム設定画面（Configuration Activity）を
-    経由させる標準的な実装方法を調査し、本プロジェクトでの実装方針をDESIGN.mdへ記録する
-    （tileIdの取得タイミング・永続化方法の確定を含む）
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: DESIGN.mdに実装方針（採用するAPI・コールバック・tileId永続化方法）が記録され、
-    後続タスク（BL-052）が着手可能な状態になる
-  依存:
-    - BL-048
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、
