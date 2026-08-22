@@ -5,6 +5,141 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-055
+  区分: 人手検証
+  タスク内容: BL-053/BL-054完了後、実機（Pixel Watch + 複数のSesame 5実機、3〜5台相当）で
+    複数Tileインスタンスをそれぞれ異なるSesameデバイスに設定し、各Tileのロック状態表示・
+    施錠/解錠操作・ハプティクスと、各Complicationの表示が正しく対象デバイスと対応することを確認する
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: 複数台のSesame実機に対し、それぞれ独立したTile/Complicationで誤りなく施錠/解錠操作と
+    状態表示ができることを確認する
+  依存:
+    - BL-053
+    - BL-054
+
+- id: BL-054
+  区分: 機能追加
+  タスク内容: wear側のSesameComplicationDataSourceServiceを、Complicationインスタンス
+    （complicationInstanceId）ごとに対象Sesameデバイスを設定・保持できるよう変更する。
+    Configuration Activity（BL-052のTile用と同様の仕組み、または共通化）でComplication追加時に
+    対象デバイスを選択できるようにし、選択結果をinstanceIdごとに永続化する。
+    SesameComplicationContent/SesameStatusSnapshotReaderをdeviceId対応へ変更する
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 単体テスト対象ロジック（表示文言生成等）でdeviceIdごとの分岐が検証され、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存:
+    - BL-052
+    - BL-050
+
+- id: BL-053
+  区分: 機能追加
+  タスク内容: wear側のSesameTileService/SesameTileActions/SesameActionActivity/
+    SesameCommandSenderProvider等のコマンド送信経路を、tileIdに紐付く対象デバイス（BL-052で
+    永続化した設定）を参照してdeviceId込みでコマンドを送信するよう変更する。
+    SesameStatusSnapshotReaderもdeviceIdごとの状態を読み取れるよう変更する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 既存の単体テスト（SesameTileActionsTest等）がdeviceId対応後も成功し、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存:
+    - BL-052
+    - BL-050
+
+- id: BL-052
+  区分: 機能追加
+  タスク内容: BL-051の技術調査結果に基づき、wear側にTile Configuration Activityを実装する。
+    ユーザーがTileギャラリーからTileを追加する際に対象Sesameデバイスを選択する画面を表示し、
+    選択結果をtileIdをキーとして永続化する（DataStore等）仕組みを用意する
+  優先度: P1
+  状態: ブロック
+  担当: Claude Code
+  完了条件: Tile追加時に対象デバイス選択画面が表示され、選択結果がtileIdごとに永続化される
+    ことをコード上確認できる（実機での最終確認はBL-055）
+  依存:
+    - BL-051
+    - BL-047
+
+- id: BL-051
+  区分: 技術調査
+  タスク内容: androidx.wear.tiles（Jetpack Tiles API、現行バージョンはgradle/libs.versions.toml参照）
+  における、ユーザーがホーム画面にTileを追加する際にカスタム設定画面（Configuration Activity）を
+    経由させる標準的な実装方法を調査し、本プロジェクトでの実装方針をDESIGN.mdへ記録する
+    （tileIdの取得タイミング・永続化方法の確定を含む）
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: DESIGN.mdに実装方針（採用するAPI・コールバック・tileId永続化方法）が記録され、
+    後続タスク（BL-052）が着手可能な状態になる
+  依存:
+    - BL-048
+
+- id: BL-050
+  区分: 機能追加
+  タスク内容: mobile側のSesameMessageListenerService/SesameCommandHandler/SesameStatusSyncerを、
+    BL-048で拡張したメッセージペイロードのdeviceIdを使って対象デバイスの資格情報を選択し、
+    Sesame APIを呼び出し、デバイスごとに状態同期するよう変更する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: SesameCommandHandlerの単体テストがdeviceId対応後も成功し、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存:
+    - BL-047
+    - BL-048
+
+- id: BL-049
+  区分: 機能追加
+  タスク内容: mobile側のCredentialsSettingsScreenを、単一フォームから複数デバイスの一覧・追加・
+    編集・削除ができるUIへ変更する。各デバイスに表示名（displayName）を設定できるようにする
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: CredentialsInputValidator等関連ロジックの単体テストが複数デバイス対応後も成功し、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存:
+    - BL-047
+
+- id: BL-048
+  区分: 機能追加
+  タスク内容: core.SesameWearProtocolのメッセージペイロード仕様を拡張し、施錠/解錠コマンドの
+    メッセージに対象デバイスのdeviceId（[core.SesameCredentials]のidと対応）を含められるようにする
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 新しいペイロード形式のエンコード/デコードロジックが単体テストで検証され、
+    core配下の`test`タスクが成功する
+  依存: []
+
+- id: BL-047
+  区分: 機能追加
+  タスク内容: core.SesameCredentialsStoreを、単一の資格情報ではなく複数デバイス分のリストを
+    保存・読み出しできるよう変更する（kotlinx.serializationでのJSON化等を検討し、
+    EncryptedSharedPreferences経由での永続化方式を確定する）
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 複数件の保存・読み出し・特定デバイスの削除が単体テストで検証され、
+    core配下の`test`タスクが成功する
+  依存:
+    - BL-046
+
+- id: BL-046
+  区分: 機能追加
+  タスク内容: 複数台のSesame 5デバイスを操作したいというユーザー要件を受け、core.SesameCredentials
+    を単一の資格情報セットから、識別子（deviceId）と表示名（displayName）を持つ複数デバイス対応の
+    データモデルへ変更する。3〜5台程度の登録を想定する（PLAN.mdには記載のない追加要件、
+    設計方針の詳細はDESIGN.mdの「複数Sesameデバイス対応」項を参照）
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 新しいデータモデルの単体テストが追加され、core配下の`test`タスクが成功する
+  依存: []
+
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

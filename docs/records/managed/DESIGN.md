@@ -340,6 +340,38 @@
 - スマホ未接続時はTile上で明示し操作不可にする（BL-007）。
 - Complicationで常時ロック状態を文字盤表示する（BL-009）。
 
+### 複数Sesameデバイス対応方針（BL-046〜BL-055、ユーザー依頼、未実装）
+
+PLAN.mdは単一Sesameデバイスを前提とした要件だったが、複数台（3〜5台程度を想定）のSesame 5を
+1つのアプリから操作したいという追加要件が発生した。既存の`SesameCredentials`/
+`SesameCredentialsStore`/`SesameWearProtocol`/Tile/Complicationはすべて単一デバイス前提の設計
+であり、対応には以下の方針でデータ層からUI層まで変更する。
+
+- **Wear側UX**: 「複数Tileインスタンス方式」を採用する。1つのTileが1台のSesameデバイスに対応し、
+  ユーザーがTileギャラリーから必要な台数分のTileを追加する（Google Wear OSの標準的なマルチ
+  インスタンスパターン）。各Tileはそのデバイス専用の表示名とロック状態のみをシンプルに表示し、
+  タップで即座に対象デバイスへコマンド送信する。3〜5台程度の規模であれば、スワイプでの
+  Tile切り替えは許容範囲であり、単一Tile内にリスト表示する方式より視認性・操作の明確さ
+  （「どのデバイスの」「どんな操作か」が一目で分かる）を優先した。Complicationも同様に、
+  文字盤の複数スロットへそれぞれ異なるデバイスを設定する方式とする。
+- **データモデル**: `core.SesameCredentials`をリスト化し、各エントリに`deviceId`（一意識別子）と
+  `displayName`（ユーザーが設定するSesame名、例:「玄関」）を追加する（BL-046）。
+  `core.SesameCredentialsStore`は複数件の保存・読み出し・削除に対応させる（BL-047）。
+- **メッセージプロトコル**: `core.SesameWearProtocol`の施錠/解錠メッセージのペイロードへ
+  `deviceId`を含める（BL-048）。メッセージパス自体（`PATH_LOCK_REQUEST`等）は変更しない。
+- **mobile側**: `CredentialsSettingsScreen`を複数デバイスの一覧・追加・編集・削除ができるUIへ
+  変更し（BL-049）、`SesameMessageListenerService`/`SesameCommandHandler`/`SesameStatusSyncer`は
+  受信した`deviceId`から対象デバイスの資格情報を選択してAPIを呼び出し、デバイスごとに状態同期
+  するよう変更する（BL-050）。
+- **wear側**: `androidx.wear.tiles`のTile Configuration機構（Tile追加時にカスタム設定画面を
+  経由させる標準的な実装方法）をまず技術調査し（BL-051、**未確認事項**: 採用するAPI・
+  tileIdの取得タイミング・永続化方法は調査結果をこのセクションへ追記する）、その結果に基づき
+  Configuration Activityを実装してtileIdごとに対象デバイスを永続化する（BL-052）。
+  `SesameTileService`/`SesameActionActivity`等のコマンド送信経路と`SesameStatusSnapshotReader`を
+  tileId・deviceId対応へ変更し（BL-053）、`SesameComplicationDataSourceService`も
+  complicationInstanceIdごとの対象デバイス対応へ変更する（BL-054）。
+- **検証**: 実機（複数のSesame実機）での動作確認はBL-055（人手検証）とする。
+
 ## 非機能要件
 
 - 性能: 未定義（現時点で計測対象の実装なし）。
