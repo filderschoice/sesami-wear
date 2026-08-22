@@ -429,8 +429,11 @@
     両デバイスのランチャーにアイコンが2つずつ表示される状態を確認した。対応として、
     (1) `wear`側は上記のとおり`dist:conditions`/`dist:device-feature`でwatch限定配信へ変更
     （BL-039、対応済み）。(2) `mobile`はbaseモジュールのためこの条件付け方式では配信自体を
-    止められず、`mobile/MainActivity.kt`側にWear OS実機検出時のガードを追加する対応が
-    BL-040として残っている（本項目の更新時点で未着手）。(3) あわせて、wear用ランチャーアイコン
+    止められないため、`mobile/MainActivity.kt`の`onCreate()`冒頭へ
+    `packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)`のガードを追加し、
+    ウォッチ実機で起動された場合は資格情報設定画面を表示せず`finish()`するようにした
+    （BL-040、対応済み。ランチャーアイコン自体は base モジュールである以上ウォッチ側にも残るが、
+    タップしても機能しないUIが表示されることは防止した）。(3) あわせて、wear用ランチャーアイコン
     （`ic_launcher_wear_foreground.xml`）のコンプリケーション風リングがAdaptive Iconの
     セーフゾーン（108dp viewport中心から半径33dp）を超えて欠けて表示される別問題も判明し、
     寸法修正がBL-041として残っている（本項目の更新時点で未着手）。実機での最終目視確認は

@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 16:12
+  summary: mobile/MainActivityへWear OS実機検出時のfinish()ガードを追加した（BL-040）
+  details:
+    変更内容: >
+      BL-039の対応後もmobileはbaseモジュールであるため常時ウォッチ側にもインストールされ、
+      mobile/.MainActivity（スマホ向け資格情報設定画面）のランチャーアイコンがウォッチにも
+      表示され続ける制約が残っていた。mobile/MainActivity.ktのonCreate()冒頭で
+      packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)を判定し、
+      該当する場合はsetContent()を呼ばずfinish()して即座に終了するガードを追加した。
+      ウォッチ実機でアイコンをタップしても資格情報設定画面（フォーム等、丸型小画面向けに
+      最適化されていないCompose UI）が表示されなくなる。既存のSesameCommandHandler等
+      同様の理由でActivity層自体の単体テストは他のActivity（wear.MainActivity/
+      SesameActionActivity等）にも存在しないため、本変更も単体テストは追加していない
+      （Android非依存ロジックのみユニットテスト対象という既存方針に合わせた）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 25 executed, 107 up-to-date）
+    関連ID:
+      - BL-040
+
 - date: 2026-08-22 15:56
   summary: wearモジュールのdist:deliveryへdevice-feature条件を追加しスマホへの配信を止めた（BL-039）
   details:

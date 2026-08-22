@@ -30,20 +30,6 @@
     品質ゲート段階B（ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebug）が成功する
   依存: []
 
-- id: BL-040
-  区分: 実装
-  タスク内容: mobile/MainActivity.ktのonCreate()に、Wear OS実機
-    （android.hardware.type.watch機能を持つデバイス）上で起動された場合は資格情報設定画面を
-    表示せずfinish()するガードを追加する。wearはmobileのbaseモジュールとして常時ウォッチ側にも
-    インストールされるため、BL-039のdist:conditions対応だけではmobileのMainActivityアイコンを
-    ウォッチのランチャーから排除できないことへの対処
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: ウォッチ実機でmobileのMainActivityアイコンをタップしても資格情報設定画面が表示されず
-    即座に終了し、品質ゲート段階Bが成功する
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
