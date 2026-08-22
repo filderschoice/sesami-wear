@@ -9,6 +9,7 @@ class SesameWearProtocolTest {
         assertEquals("/sesami-wear/lock", SesameWearProtocol.PATH_LOCK_REQUEST)
         assertEquals("/sesami-wear/unlock", SesameWearProtocol.PATH_UNLOCK_REQUEST)
         assertEquals("/sesami-wear/result", SesameWearProtocol.PATH_COMMAND_RESULT)
+        assertEquals("/sesami-wear/status-request", SesameWearProtocol.PATH_STATUS_REQUEST)
     }
 
     @Test

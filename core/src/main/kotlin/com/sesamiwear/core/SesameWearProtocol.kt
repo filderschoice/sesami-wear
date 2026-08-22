@@ -10,6 +10,14 @@ object SesameWearProtocol {
     const val PATH_COMMAND_RESULT = "/sesami-wear/result"
 
     /**
+     * Tile/Complication表示時に、対象デバイス（ペイロードのuuid、[encodeDeviceUuid]で
+     * エンコードする）の最新状態をSesame APIから取得してもらうリクエスト（BL-061）。
+     * mobile側はGET成功時に[STATUS_DATA_ITEM_PATH]（[statusDataItemPath]）へ同期する。
+     * 応答はDataItemの変更として非同期に届くため、レスポンス自体は返さないFire-and-forget方式。
+     */
+    const val PATH_STATUS_REQUEST = "/sesami-wear/status-request"
+
+    /**
      * DataClient（DataItem）でMobile側からWear側へ最新のロック状態を同期するためのパス・キー（BL-015）。
      */
     const val STATUS_DATA_ITEM_PATH = "/sesami-wear/status"

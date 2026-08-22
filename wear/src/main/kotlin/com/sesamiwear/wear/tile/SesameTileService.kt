@@ -19,6 +19,7 @@ import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
+import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 import kotlinx.coroutines.CoroutineScope
@@ -47,11 +48,18 @@ class SesameTileService : TileService() {
     }
 
     private suspend fun buildConfiguredTile(deviceUuid: String): TileBuilders.Tile {
-        val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
+        val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
+        // Tile表示のたびにmobile側へ最新状態の取得を依頼する（BL-061）。レスポンスを待たず、
+        // 今回は既存のDataItemスナップショットで即座にTileを構築する（Tilesのレスポンス
+        // タイムアウト制約を避けるため）。取得結果はDataItem変更として非同期に届き、
+        // SesameStatusListenerServiceがTileの再描画をリクエストする。
+        if (nodeId != null) {
+            SesameCommandSenderProvider.create(applicationContext).requestStatus(nodeId, deviceUuid)
+        }
         val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
         val state =
             TileDisplayStateResolver.resolve(
-                isPhoneConnected = isPhoneConnected,
+                isPhoneConnected = nodeId != null,
                 isCommandInProgress = false,
                 isLocked = snapshot?.isLocked,
             )

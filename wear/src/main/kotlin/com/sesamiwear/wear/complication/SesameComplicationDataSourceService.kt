@@ -10,6 +10,7 @@ import androidx.wear.watchface.complications.datasource.ComplicationDataSourceSe
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
+import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 import kotlinx.coroutines.CoroutineScope
@@ -46,11 +47,16 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     }
 
     private suspend fun buildConfiguredComplicationData(deviceUuid: String): ComplicationData {
-        val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
+        val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
+        // Complication表示のたびにmobile側へ最新状態の取得を依頼する（BL-061）。SesameTileService
+        // と同様、レスポンスを待たず既存のDataItemスナップショットで即座に応答する。
+        if (nodeId != null) {
+            SesameCommandSenderProvider.create(applicationContext).requestStatus(nodeId, deviceUuid)
+        }
         val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
         val state =
             TileDisplayStateResolver.resolve(
-                isPhoneConnected = isPhoneConnected,
+                isPhoneConnected = nodeId != null,
                 isCommandInProgress = false,
                 isLocked = snapshot?.isLocked,
             )

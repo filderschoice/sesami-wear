@@ -369,6 +369,21 @@
   該当する3つのActivityを`exported="true"`へ修正した。Pixel Watch 2実機でTileから
   TileConfigurationActivityが正しく起動し、mobile側で登録済みのデバイス一覧が表示され
   選択・割り当てできることを確認した。
+- REQ-036（BL-061、ユーザー合意）: Tile/Complicationの初期状態が常に「状態不明」（UNKNOWN）になり、
+  UNKNOWN状態ではタップ不可のためコマンドを一切送信できないデッドロックを解消した。
+  `core.SesameWearProtocol`へ`PATH_STATUS_REQUEST`（状態取得リクエスト、Fire-and-forget、
+  結果は返さずDataItem変更として非同期に届く）を追加し、`wear.messaging.SesameCommandSender`に
+  `requestStatus`を追加した。`SesameTileService.onTileRequest`/
+  `SesameComplicationDataSourceService.onComplicationRequest`は、Tiles APIのレスポンス
+  タイムアウト制約を避けるため既存のDataItemスナップショットで即座に応答しつつ、mobile側へ
+  状態取得リクエストを送信するよう変更した。mobile側の`SesameMessageListenerService`は
+  `PATH_STATUS_REQUEST`を受信すると`SesameApiClient.getStatus()`でSesame APIのGETを呼び、
+  成功時に`SesameStatusSyncer`でDataItemへ同期する（結果はwear側へ返送しない）。
+  wear側に新規`SesameStatusListenerService`（`WearableListenerService.onDataChanged`）を
+  追加し、`STATUS_DATA_ITEM_PATH`配下のDataItem変更を検知したら`TileService.getUpdater()`と
+  `ComplicationDataSourceUpdateRequester.requestUpdateAll()`でTile/Complicationの再描画を
+  リクエストする。これによりBL-015の既知の制約（状態同期がコマンド送信成功時のみ）も解消した。
+  Pixel Watch 2実機でTileから施錠/解錠操作ができることを確認した。
 
 ## 設計方針
 

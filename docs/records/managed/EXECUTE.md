@@ -5,6 +5,48 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 23:40
+  summary: Tile/Complication表示時にSesame API状態を自動取得する機能を実装した（BL-061）
+  details:
+    変更内容: >
+      Tile/Complicationの初期状態が常に「状態不明」（UNKNOWN）になり、UNKNOWN状態では
+      タップ不可のためコマンドを一切送信できないデッドロックが判明したことを受け
+      （ユーザー合意）、Tile/Complication表示時にSesame APIの状態を自動取得する機能を実装した。
+      core.SesameWearProtocolへPATH_STATUS_REQUEST（状態取得リクエスト用の新メッセージパス、
+      Fire-and-forget）を追加し、wear.messaging.SesameCommandSenderにrequestStatusを追加した。
+      SesameTileService.onTileRequest/SesameComplicationDataSourceService.onComplicationRequest
+      は、Wear Tiles/Complications APIのレスポンスタイムアウト制約を避けるため既存の
+      DataItemスナップショットで即座に応答しつつ、mobile側へ状態取得リクエストを送信するよう
+      変更した。mobile側のSesameMessageListenerServiceはPATH_STATUS_REQUESTを受信すると
+      SesameApiClient.getStatus()でSesame APIのGETを呼び、成功時にSesameStatusSyncerで
+      DataItemへ同期する（結果はwear側へ返送しないFire-and-forget）。wear側に新規
+      SesameStatusListenerService（WearableListenerService.onDataChanged）を追加し、
+      STATUS_DATA_ITEM_PATH配下のDataItem変更を検知したらTileService.getUpdater()と
+      ComplicationDataSourceUpdateRequester.requestUpdateAll()でTile/Complicationの再描画を
+      リクエストする仕組みを追加した。これによりBL-015の既知の制約（状態同期がコマンド送信
+      成功時のみ）も解消した。
+      Pixel Watch 2実機で、Tile Configuration完了後にTileから施錠/解錠操作ができることを
+      確認した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug && ./gradlew :mobile:installDebug（実機Pixel Watch 2での
+      施錠/解錠操作確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機でTileから施錠/解錠操作ができることを確認した。
+    関連ID:
+      - BL-061
+
 - date: 2026-08-22 23:11
   summary: Tile/Complication関連Activityのexported属性不足を修正した重大バグ修正（BL-060）
   details:

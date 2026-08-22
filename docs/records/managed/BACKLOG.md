@@ -5,6 +5,22 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-062
+  区分: バグ修正
+  タスク内容: ユーザー報告（Tileタップ後にwearのハプティクスが連続して鳴り続ける）を受け実機ログを
+    調査した結果、SesameActionActivityが同一時間帯に5つの別々のタスクとして起動されていることを
+    確認した（ユーザーの連打が原因と判明）。PLAN.mdのUX要件「通信中は明確な処理中表示＋ボタン
+    無効化で二重送信防止」に対応する仕組み（TileDisplayState.IN_PROGRESS）は用意されていたが、
+    実際に「送信中」を検知してこの状態にする実装が入っておらず（isCommandInProgressが常にfalse
+    固定）、連打を防げなかった。mobile側のSesameMessageListenerServiceで、同一デバイスへの
+    短時間内（2秒程度）の重複コマンドを無視するデバウンス処理を追加する
+  優先度: P1
+  状態: 進行中
+  担当: Claude Code
+  完了条件: 短時間内の同一デバイスへの重複コマンドが1回のみ処理されることが単体テストで検証され、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存: []
+
 - id: BL-055
   区分: 人手検証
   タスク内容: BL-053/BL-054完了後、実機（Pixel Watch + 複数のSesame 5実機、3〜5台相当）で

@@ -47,4 +47,17 @@ class SesameCommandSenderTest {
             assertEquals(SesameWearProtocol.PATH_UNLOCK_REQUEST, path)
             assertArrayEquals(SesameWearProtocol.encodeDeviceUuid("device-uuid-2"), payload)
         }
+
+    @Test
+    fun `requestStatus sends the status-request path with the device uuid as payload`() =
+        runTest {
+            val recorder = RecordingMessageSender()
+            val sender = SesameCommandSender(recorder)
+
+            sender.requestStatus("node-1", "device-uuid-3")
+
+            val (_, path, payload) = recorder.sentMessages.first()
+            assertEquals(SesameWearProtocol.PATH_STATUS_REQUEST, path)
+            assertArrayEquals(SesameWearProtocol.encodeDeviceUuid("device-uuid-3"), payload)
+        }
 }

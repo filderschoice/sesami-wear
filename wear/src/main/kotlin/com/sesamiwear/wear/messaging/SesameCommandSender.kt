@@ -30,4 +30,20 @@ class SesameCommandSender(private val messageSender: SesameMessageSender) {
             SesameWearProtocol.encodeDeviceUuid(deviceUuid),
         )
     }
+
+    /**
+     * 対象デバイスの最新状態をSesame APIから取得しDataItemへ同期するようmobile側へ依頼する
+     * （BL-061）。Fire-and-forgetで送信し、結果はDataItemの変更として非同期に届く
+     * （[com.sesamiwear.wear.messaging.SesameStatusListenerService]参照）。
+     */
+    suspend fun requestStatus(
+        nodeId: String,
+        deviceUuid: String,
+    ) {
+        messageSender.send(
+            nodeId,
+            SesameWearProtocol.PATH_STATUS_REQUEST,
+            SesameWearProtocol.encodeDeviceUuid(deviceUuid),
+        )
+    }
 }
