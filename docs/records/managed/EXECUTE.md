@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 17:44
+  summary: wear側Complicationの複数デバイス対応を実装した（BL-054）
+  details:
+    変更内容: >
+      SesameComplicationDataSourceServiceをcomplicationInstanceId（ComplicationRequestから
+      取得できるインスタンス固有のInt ID）ごとに対象デバイスを参照する「複数Complicationインスタンス
+      方式」へ変更した（BL-053のSesameTileServiceと同型のパターン）。対象デバイスは新規追加した
+      ComplicationDeviceAssignmentStore（SharedPreferencesベース、instanceIdをキーとしたuuid永続化）
+      で管理する。未設定のcomplicationInstanceIdの場合は「タップして設定」を表示し、
+      tapAction（PendingIntent）でComplicationConfigurationActivityを起動する。選択後は
+      ComplicationDataSourceUpdateRequesterで対象Complicationの再描画を要求する。
+      デバイス選択UI（BL-052でTile用に実装したScalingLazyColumn+Chipのリスト）を
+      wear.ui.DeviceSelectionScreenへ切り出し、TileConfigurationActivity/
+      ComplicationConfigurationActivityの双方から共通利用する形にリファクタリングした。
+      これによりBL-053で暫定対応（デバイス一覧の先頭のみ表示）していたComplicationの制約を解消した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationDeviceAssignmentStore.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL。これでBL-046〜054（複数Sesameデバイス対応）の
+      自動実行可能なタスクがすべて完了した。実機での最終確認はBL-055（人手検証）。
+    関連ID:
+      - BL-054
+
 - date: 2026-08-22 17:40
   summary: wear側Tile/コマンド送信をtileId・deviceUuid対応へ変更した（BL-053）
   details:

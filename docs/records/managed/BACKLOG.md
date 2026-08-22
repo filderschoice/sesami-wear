@@ -19,22 +19,6 @@
     - BL-053
     - BL-054
 
-- id: BL-054
-  区分: 機能追加
-  タスク内容: wear側のSesameComplicationDataSourceServiceを、Complicationインスタンス
-    （complicationInstanceId）ごとに対象Sesameデバイスを設定・保持できるよう変更する。
-    Configuration Activity（BL-052のTile用と同様の仕組み、または共通化）でComplication追加時に
-    対象デバイスを選択できるようにし、選択結果をinstanceIdごとに永続化する。
-    SesameComplicationContent/SesameStatusSnapshotReaderをdeviceId対応へ変更する
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 単体テスト対象ロジック（表示文言生成等）でdeviceIdごとの分岐が検証され、
-    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
-  依存:
-    - BL-052
-    - BL-050
-
 - id: BL-044
   区分: 人手検証
   タスク内容: BL-043の修正検証中、./gradlew :mobile:installDebug実行時にPixel 8 Pro（スマホ、

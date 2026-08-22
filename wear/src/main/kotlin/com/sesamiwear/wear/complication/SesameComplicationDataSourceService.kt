@@ -1,6 +1,8 @@
 package com.sesamiwear.wear.complication
 
+import android.app.PendingIntent
 import androidx.wear.watchface.complications.data.ComplicationData
+import androidx.wear.watchface.complications.data.ComplicationText
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
@@ -9,47 +11,76 @@ import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
-import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * 文字盤にSesame 5のロック状態を常時表示するComplication。
- * スマホ接続状態・ロック状態は[SesameTileService]と同じ仕組み（[SesameConnectedNodeProvider]・
- * [SesameStatusSnapshotReader]）から取得する（BL-015）。
- * Android Complications APIへの依存のためユニットテスト対象外
+ * 文字盤にSesame 5のロック状態を常時表示するComplication。1つのComplicationインスタンス
+ * （[ComplicationRequest.complicationInstanceId]）が1台のSesameデバイスに対応する
+ * 「複数Complicationインスタンス方式」を採る（BL-054、[com.sesamiwear.wear.tile.SesameTileService]
+ * と同型）。対象デバイスは[ComplicationDeviceAssignmentStore]でinstanceIdごとに永続化され、
+ * 未設定の場合はタップで[ComplicationConfigurationActivity]へ誘導するtapActionを設定する。
+ * スマホ接続状態・ロック状態は[SesameConnectedNodeProvider]・[SesameStatusSnapshotReader]から
+ * 取得する（BL-015）。Android Complications APIへの依存のためユニットテスト対象外
  * （表示文言ロジックは[SesameComplicationContent]でテスト済み、実機表示確認はBL-055で人手検証）。
- * **暫定実装（BL-053時点）**: [SesameDeviceListReader]で同期された先頭のデバイスの状態のみを
- * 表示する。complicationInstanceIdごとに対象デバイスを選択する本実装はBL-054で行う。
  */
 class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     override fun onComplicationRequest(
         request: ComplicationRequest,
         listener: ComplicationRequestListener,
     ) {
+        val complicationInstanceId = request.complicationInstanceId
         CoroutineScope(Dispatchers.IO).launch {
-            val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
-            val deviceUuid = SesameDeviceListReader.readLatest(applicationContext).firstOrNull()?.uuid
-            val snapshot = deviceUuid?.let { SesameStatusSnapshotReader.readLatest(applicationContext, it) }
-            val state =
-                TileDisplayStateResolver.resolve(
-                    isPhoneConnected = isPhoneConnected,
-                    isCommandInProgress = false,
-                    isLocked = snapshot?.isLocked,
-                )
-            listener.onComplicationData(buildComplicationData(state))
+            val deviceUuid =
+                ComplicationDeviceAssignmentStore(applicationContext).assignedDeviceUuid(complicationInstanceId)
+            val data =
+                if (deviceUuid == null) {
+                    buildUnconfiguredComplicationData(complicationInstanceId)
+                } else {
+                    buildConfiguredComplicationData(deviceUuid)
+                }
+            listener.onComplicationData(data)
         }
+    }
+
+    private suspend fun buildConfiguredComplicationData(deviceUuid: String): ComplicationData {
+        val isPhoneConnected = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext) != null
+        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
+        val state =
+            TileDisplayStateResolver.resolve(
+                isPhoneConnected = isPhoneConnected,
+                isCommandInProgress = false,
+                isLocked = snapshot?.isLocked,
+            )
+        return buildComplicationData(SesameComplicationContent.shortText(state))
+    }
+
+    private fun buildUnconfiguredComplicationData(complicationInstanceId: Int): ComplicationData {
+        val intent = ComplicationConfigurationActivity.createIntent(applicationContext, complicationInstanceId)
+        val tapAction =
+            PendingIntent.getActivity(
+                applicationContext,
+                complicationInstanceId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        return buildComplicationData(text = "タップして設定", tapAction = tapAction)
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? {
         if (type != ComplicationType.SHORT_TEXT) return null
-        return buildComplicationData(TileDisplayState.LOCKED)
+        return buildComplicationData(SesameComplicationContent.shortText(TileDisplayState.LOCKED))
     }
 
-    private fun buildComplicationData(state: TileDisplayState): ComplicationData {
-        val text = PlainComplicationText.Builder(SesameComplicationContent.shortText(state)).build()
-        return ShortTextComplicationData.Builder(text = text, contentDescription = text).build()
+    private fun buildComplicationData(
+        text: String,
+        tapAction: PendingIntent? = null,
+    ): ComplicationData {
+        val complicationText: ComplicationText = PlainComplicationText.Builder(text).build()
+        return ShortTextComplicationData.Builder(text = complicationText, contentDescription = complicationText)
+            .setTapAction(tapAction)
+            .build()
     }
 }
