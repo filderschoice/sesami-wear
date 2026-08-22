@@ -5,6 +5,25 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-22 16:24
+  summary: wearランチャーアイコンのリングをAdaptive Iconセーフゾーン内に収まる寸法へ縮小した（BL-041）
+  details:
+    変更内容: >
+      ic_launcher_wear_foreground.xmlのコンプリケーション風リング（中心(54,54)、半径40、
+      ストローク幅5）は外周が中心から42.5dpに達しており、Adaptive Iconのセーフゾーン
+      （108dp viewport中心から半径33dp・直径66dp、Google公式ガイドライン）を大きく超えていたため、
+      丸型等のランチャーマスクでリングが欠けて表示される状態だった。半径を40から30、
+      ストローク幅を5から4へ縮小し（外周が中心から32dpとなりセーフゾーン内に収まる）、
+      pathDataの始点・終点座標（M94,54/A40,40→M84,54/A30,30 等）もあわせて修正した。
+      trimPathStart/trimPathEnd/trimPathOffsetはパス長に対する相対値のため変更不要。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 13 executed, 119 up-to-date）
+    関連ID:
+      - BL-041
+
 - date: 2026-08-22 16:12
   summary: mobile/MainActivityへWear OS実機検出時のfinish()ガードを追加した（BL-040）
   details:

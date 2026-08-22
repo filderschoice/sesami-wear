@@ -16,20 +16,6 @@
   依存:
     - BL-041
 
-- id: BL-041
-  区分: 実装
-  タスク内容: mobile/src/main/res/drawable/ic_launcher_wear_foreground.xmlのコンプリケーション風リング
-    （中心(54,54)、半径40、ストローク幅5のため外周が中心から42.5dpに達する）が、Adaptive Icon
-    のセーフゾーン（108dp viewportの中心から半径33dp・直径66dp、Google公式ガイドライン）を
-    超えており、丸型等のランチャーマスクで欠けて表示される。半径・ストローク幅を縮小し
-    外周が中心から33dp以内に収まるよう修正する
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: リング外周（半径+ストローク幅/2）が中心から33dp以内に収まる値へ修正し、
-    品質ゲート段階B（ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebug）が成功する
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
