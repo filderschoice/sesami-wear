@@ -18,4 +18,9 @@ class SesameComplicationContentTest {
         assertEquals("施錠", SesameComplicationContent.shortText(TileDisplayState.LOCKED))
         assertEquals("解錠", SesameComplicationContent.shortText(TileDisplayState.UNLOCKED))
     }
+
+    @Test
+    fun `short text for mixed state`() {
+        assertEquals("混在", SesameComplicationContent.shortText(TileDisplayState.MIXED))
+    }
 }

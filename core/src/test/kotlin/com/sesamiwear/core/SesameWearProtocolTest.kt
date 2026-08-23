@@ -9,5 +9,36 @@ class SesameWearProtocolTest {
         assertEquals("/sesami-wear/lock", SesameWearProtocol.PATH_LOCK_REQUEST)
         assertEquals("/sesami-wear/unlock", SesameWearProtocol.PATH_UNLOCK_REQUEST)
         assertEquals("/sesami-wear/result", SesameWearProtocol.PATH_COMMAND_RESULT)
+        assertEquals("/sesami-wear/status-request", SesameWearProtocol.PATH_STATUS_REQUEST)
+    }
+
+    @Test
+    fun `decodeDeviceUuid round-trips a value encoded by encodeDeviceUuid`() {
+        val uuid = "550e8400-e29b-41d4-a716-446655440000"
+
+        val decoded = SesameWearProtocol.decodeDeviceUuid(SesameWearProtocol.encodeDeviceUuid(uuid))
+
+        assertEquals(uuid, decoded)
+    }
+
+    @Test
+    fun `decodeDeviceUuid returns empty string for empty payload`() {
+        val decoded = SesameWearProtocol.decodeDeviceUuid(ByteArray(0))
+
+        assertEquals("", decoded)
+    }
+
+    @Test
+    fun `statusDataItemPath is unique per device uuid`() {
+        val pathA = SesameWearProtocol.statusDataItemPath("uuid-a")
+        val pathB = SesameWearProtocol.statusDataItemPath("uuid-b")
+
+        assertEquals("/sesami-wear/status/uuid-a", pathA)
+        assertEquals("/sesami-wear/status/uuid-b", pathB)
+    }
+
+    @Test
+    fun `all devices target uuid is a stable sentinel string`() {
+        assertEquals("__all_devices__", SesameWearProtocol.ALL_DEVICES_TARGET_UUID)
     }
 }

@@ -11,6 +11,7 @@ object SesameComplicationContent {
         when (state) {
             TileDisplayState.LOCKED -> "施錠"
             TileDisplayState.UNLOCKED -> "解錠"
+            TileDisplayState.MIXED -> "混在"
             TileDisplayState.IN_PROGRESS -> "通信中"
             TileDisplayState.DISCONNECTED -> "未接続"
             TileDisplayState.UNKNOWN -> "不明"

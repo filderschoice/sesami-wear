@@ -5,6 +5,1002 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-23 21:30
+  summary: GitHub公開に向けたレビューを実施し、LICENSE追加・非公式アプリの明記・CODEOWNERS修正を行った
+  details:
+    変更内容: >
+      ユーザーから「GitHub登録・公開にあたって不備や対応したほうがいい点がないかレビューして、
+      必要に応じて対応して」「ライセンス侵害などの観点も含めて」との依頼を受けた。
+      現在のツリー・全git履歴を対象に秘密情報のハードコード・local.properties/keystore等の
+      誤コミット・個人情報の混入を確認したが問題は見つからなかった（.gitignoreも適切）。
+      core.api.SesameCommand/SesameCommandSigner/SesameStatusがpysesame3
+      （https://github.com/mochipon/pysesame3）を参照している件についてはWebFetchで
+      同リポジトリのライセンスを確認しMIT Licenseであることを確認した。ソースコードの
+      逐語的コピーではなくプロトコル仕様（コマンドコード・署名アルゴリズム・レスポンス構造）を
+      参照した独自実装であり、コメントで出典も明記済みのため侵害リスクはないと判断した。
+      一方、本リポジトリ自体にLICENSEファイルが存在しないことが判明した（LICENSEがない場合、
+      法的にはデフォルトで著作権者に権利が留保され、公開しても他者による使用・改変・再配布が
+      許可されない状態になる）。ユーザーへAskUserQuestionでライセンス種別を確認した結果、
+      MIT Licenseを選択（Android/Wear OSアプリ・pysesame3参考実装ともに一般的な選択であり、
+      CANDY HOUSE社への影響はライセンス種別ではなく非公式アプリの明記で対応する方針とした）。
+      LICENSEファイル（MIT、Copyright 2026 filderschoice。git logの最古コミットが2026年のため
+      単年表記とした）を新規作成し、READMEへライセンスセクション（pysesame3への謝辞含む）を
+      追加した。あわせてREADME.md/docs/store/STORE_LISTING.mdへ「本アプリは個人による非公式
+      アプリであり、CANDY HOUSE株式会社とは提携・協力関係にない」旨の明記を追加し、
+      .github/CODEOWNERSのプレースホルダー（@your-org/ai-platform等、テンプレート由来の
+      実在しないチーム名）を実際のGitHubユーザー名（@filderschoice）へ修正した。
+    変更ファイル:
+      - LICENSE（新規）
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - .github/CODEOWNERS
+    検証コマンド: npx markdownlint-cli2 "**/*.md"
+    検証結果: 成功 - 0 issues in 0 files（23ファイル）。LICENSE/CODEOWNERSはMarkdown対象外の
+      ためlint対象に含まれないが、内容は目視確認済み
+    関連ID: []
+
+- date: 2026-08-23 20:40
+  summary: Tileから登録済み全デバイスへ一括で施錠/解錠を行える機能を追加した（BL-071）
+  details:
+    変更内容: >
+      ユーザーから「個別デバイスの操作はできたので登録済みすべての施錠/解錠を行うことも
+      できるようにしたい。Tileだとデバイス選択で全デバイスを選択可能とし、登録済みの
+      デバイスすべてに対して操作を行えるように。ステータス表示はデバイスの状態に依存すると
+      思うが、そこはうまく表現して現状態を表示できるように」との要望を受けた。
+      core.SesameWearProtocolへ「全デバイス」を表す特別な値ALL_DEVICES_TARGET_UUID
+      （"__all_devices__"、実際のSesame uuidと衝突しない固定文字列）を追加。
+      core.TileDisplayStateへMIXED（施錠/解錠が混在）を追加しisActionableをtrueにした。
+      core.TileDisplayStateResolverへresolveAggregate（複数デバイスのロック状態リストから
+      集約状態を決定。1台でも未取得(null)があれば安全側でUNKNOWN、全台施錠でLOCKED、
+      全台解錠でUNLOCKED、それ以外はMIXED）を追加。
+      wear.ui.DeviceSelectionScreenは登録済みデバイスが2台以上の場合のみ先頭に「全デバイス」の
+      選択肢を表示するようにした（1台のみの場合は個別選択と等価で冗長なため出さない）。
+      新規wear.tile.SesameTileStateResolverへTile/Complication共通の表示名・状態解決ロジックを
+      集約し、SesameTileService/SesameComplicationDataSourceServiceが重複させていた
+      DataItem読み取り・staleness判定・requestStatus送信のロジックをこちらへ統合した
+      （対象uuidがALL_DEVICES_TARGET_UUIDなら登録済み全デバイスの状態をresolveAggregateで
+      集約、それ以外は単一デバイスの状態を解決）。新規wear.action.SesameActionTargetResolverで
+      コマンド送信・状態更新の対象uuid一覧を解決（全デバイス時は登録済み全uuidのリスト）し、
+      SesameActionActivity/SesameStatusRefreshActivityがループで各デバイスへ個別に
+      lock/unlock/status-requestメッセージを送信するようにした（mobile側の
+      SesameMessageListenerServiceは既存の単一デバイス処理をそのままN回受けるだけで対応でき、
+      mobile側の変更は不要だった）。
+      wear.tile.SesameTileActionsはMIXED状態でタップ時に「全施錠」を提示する（迷ったら安全側の
+      方針）。wear.tile.SesameTileContent/wear.complication.SesameComplicationContentへ
+      MIXED用のアイコン（🔀）・ラベル・背景色（紫）を追加し、statusLabel/actionLabelへ
+      isAllDevicesパラメータ（デフォルトfalse）を追加して全デバイス時は「全施錠中」等の文言に
+      切り替えた。SesameActionActivityの施錠/解錠確認画面（BL-070）のボタンラベルも全デバイス
+      時は「全施錠」「全解錠」に切り替えた。Complicationは設定済み状態ではtapActionを持たない
+      読み取り専用表示のため、全デバイス選択時も集約状態の表示のみでコマンド送信は行わない
+      （Tile側のみが操作対象）。
+      実装にあたり、detektのTooManyFunctions/LongMethod制約（過去のイテレーションで判明した
+      クラス内関数数10以下・関数60行未満の実測上限）を踏まえ、状態解決ロジックを
+      SesameTileService/SesameComplicationDataSourceServiceのクラス内に増やすのではなく、
+      別ファイルの新規object（SesameTileStateResolver/SesameActionTargetResolver）へ切り出す
+      設計にした（既存クラスの関数数を増やさずに機能追加できた）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayState.kt
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayStateResolver.kt
+      - core/src/test/kotlin/com/sesamiwear/core/TileDisplayStateResolverTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt（新規）
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileActions.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileActionsTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionTargetResolver.kt（新規）
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameStatusRefreshActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功、コンパイルエラー・detekt指摘なし。
+      TileDisplayStateにMIXEDを追加したことで既存のexhaustiveなwhen式が軒並みコンパイル
+      エラーになる想定だったが、事前に全箇所を洗い出して同時に修正したため1回で通った）。
+      Pixel 8 Pro実機・Pixel Watch 2実機の両方へ./gradlew :mobile:installDebugでインストール
+      済み。実機での「全デバイス」選択・集約状態表示・一括施錠/解錠動作の確認はユーザー実施予定
+      （Sesame実機2台以上が必要）
+    関連ID:
+      - BL-071
+
+- date: 2026-08-23 19:10
+  summary: 施錠/解錠確認画面のボタンを角丸チップの左右分割デザインへ再設計した（BL-070）
+  details:
+    変更内容: >
+      ユーザーから「タップして施錠・解錠を押した後に遷移するtileのボタンが小さくて
+      テキストが見切れている。左右分割で左がキャンセル、右が施錠・解錠のボタンにしたい。
+      デザインはtopと同じ角丸の四角で」との指摘を受けた。原因は
+      wear.action.SesameActionActivityの解錠確認画面が
+      androidx.wear.compose.material.Button（既定で円形・小サイズ）に「タップして解錠」という
+      長いテキストを詰め込んでいたことだった。SesameActionScreenを、awaitingConfirmation時は
+      新設のSesameConfirmationButtons（Row+weight(1f)で左右均等分割）を表示するよう変更し、
+      各ボタンは新設のSesameActionChip（Modifier.clip(RoundedCornerShape(12.dp))
+      .background().clickable()の自作コンポーネント、Wear Compose Materialの円形Buttonは
+      不使用）で実装した。左＝「キャンセル」（タップでonFinishedを呼びコマンド送信せず終了）、
+      右＝「施錠」または「解錠」（コマンドに応じて切り替え、タップで送信フローへ進む）。
+      デザインをTile側（SesameTileService）と統一するため、中立色定数
+      SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB（新規public）へSesameTileServiceが
+      個別に持っていた同名のprivate定数を集約し重複を解消した上でキャンセルボタンへ適用、
+      施錠/解錠ボタンにはSesameTileContent.backgroundColorArgb/statusTextColorArgb
+      （操作後に遷移する状態＝LOCKED/UNLOCKEDに対応する色）を適用し、角丸半径も
+      Tileの角丸チップと同じ12dpに揃えた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の
+      両方へ./gradlew :mobile:installDebugでインストール済み（両実機のワイヤレスデバッグ
+      接続が複数回切断・IP:ポート変更されたため都度再接続した。最終的にはmDNS自動検出接続
+      （adb-38101RTJWW48WP-lx9j39._adb-tls-connect._tcp）で反映を確認）。
+      ユーザーが実機で確認し「イメージどおりにできてた」と確認済み
+    関連ID:
+      - BL-070
+
+- date: 2026-08-23 18:20
+  summary: Tile追加ピッカーとTile表示アイコンの分離を試みたがAndroid/Wear OSの仕様上不可能と
+    判明し、縮小をクリーン再インストールで再検証する方針へ切り替えた（BL-068）
+  details:
+    変更内容: >
+      BL-068（Tile追加ピッカーのアイコン50%縮小）の実機確認で、ユーザーから「Tile表示時の
+      アイコンは前のサイズでよかった、Tile追加登録時のアプリ選択画面のアイコンだけ変更したい」
+      との指摘を受けた。両者を分離するため、wear/AndroidManifest.xmlの<application>へ
+      専用の縮小版アイコン（新規ic_launcher_wear_picker、ic_launcher_wear_picker_foreground）を
+      作成し設定したが、ビルド時にmobile側の<application>icon（ic_launcher）と競合し
+      マニフェストマージが失敗した（Attribute application@icon ... is also present at
+      [:wear] ...）。調査の結果、dynamic feature構成ではbase（mobile）とfeature（wear）が
+      最終的に1つの<application>タグへマージされるため、Tile追加時の「アプリ選択」画面と
+      Tile表示時のアイコンは同一のSesameTileService.iconリソースしか持てず、
+      Android/Wear OSの仕様上、表示先ごとに別サイズへ分離する手段がないと判明した。
+      ic_launcher_wear_picker関連の新規ファイルは削除し、wear/AndroidManifest.xmlの
+      <application>icon設定もロールバックした。
+      この制約をユーザーへ説明し、AskUserQuestionで「縮小を再適用してクリーン再インストール」
+      「両方とも元サイズへ戻す」の2択を提示した結果、前者が選択された（前回の確認は
+      update-in-place installであり、Wear OSのTileピッカーの表示キャッシュ遅延で
+      「アプリ選択」画面だけ古いサイズに見えていた可能性を切り分けるため）。
+      ic_launcher_wear_foreground.xmlへ50%縮小（<group>によるscale変換）を再適用し、
+      両実機でuninstall後に./gradlew :mobile:installDebugで再インストールした。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功。ic_launcher_wear_picker追加時は
+      マニフェストマージエラーで失敗したが、ロールバック後の再試行で成功）。
+      Pixel 8 Pro実機・Pixel Watch 2実機の両方でuninstall後にクリーン再インストール済み。
+      Tile追加ピッカー・Tile表示・Complicationピッカーそれぞれのアイコンサイズの
+      実機確認はユーザー実施予定
+    関連ID:
+      - BL-068
+
+- date: 2026-08-23 17:30
+  summary: Tile追加ピッカーのアイコンをwear専用デザインへ切り替え、50%縮小した（BL-068）
+  details:
+    変更内容: >
+      ユーザーから「Tile追加時のアイコンのサイズがデカいので50%ぐらい小さくても問題なさそう」
+      との指摘を受けた。原因は、wear.tile.SesameTileServiceにandroid:icon指定がなく、
+      <application>のicon（mobileのic_launcher、リング装飾なしの通常のスマホ向けアイコン）へ
+      フォールバックしていたこと。既にSesameComplicationDataSourceService用に用意されていた
+      wear専用アイコン（ic_launcher_wear、コンプリケーション風のリング装飾付き）がTile追加
+      ピッカーでは使われていなかった。対応として、(1) SesameTileServiceへ
+      android:icon="@mipmap/ic_launcher_wear"を明示指定しComplicationピッカーと意匠を統一、
+      (2) ic_launcher_wear_foreground.xmlの全パスを<group android:scaleX="0.5"
+      android:scaleY="0.5" android:pivotX="54" android:pivotY="54">で包み、中心基準で
+      50%縮小した（個々のpath座標自体は変更せず、グループ変換のみで対応）。ic_launcher_wearは
+      SesameComplicationDataSourceServiceでも使用しているため、Complicationピッカー側の
+      見た目にも同様に反映される（スマホ側のic_launcher・ic_launcher_roundは変更対象外の
+      ため影響なし）。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方へ
+      ./gradlew :mobile:installDebugでインストール済み。実機でのTile追加ピッカー・
+      Complicationピッカーのアイコンサイズ確認はユーザー実施予定
+    関連ID:
+      - BL-068
+
+- date: 2026-08-23 16:45
+  summary: Tileの各種Activityへタスク分離設定を追加し、デバイス変更後に無関係な画面が表示される
+    不具合を修正した（BL-067）
+  details:
+    変更内容: >
+      BL-066（ランチャーアイコン重複解消）の実機確認中、ユーザーから「Tileのデバイス変更を
+      行うと『Sesami Wear』という文字が表示される。再度Tileを見ると切り替わっているが、
+      施錠/解錠ボタン押下時の状態がおかしい」との報告を受けた。原因調査の結果、
+      wear.MainActivity/SesameActionActivity/SesameStatusRefreshActivity/
+      TileConfigurationActivity/ComplicationConfigurationActivityのいずれも
+      android:taskAffinityを明示指定しておらずデフォルト（アプリ共通）のタスク親和性を
+      共有していたことが判明した。BL-066でmobile.MainActivityがウォッチ実行時に
+      wear.MainActivityへstartActivity（FLAG_ACTIVITY_NEW_TASKなし）していたため、
+      そのタスクがwear.MainActivityをルートとして残留し、後続のTile LaunchAction
+      （TileConfigurationActivity等、システムがFLAG_ACTIVITY_NEW_TASKで起動）がタスク
+      親和性の一致により同一タスクへ積み重なっていた。TileConfigurationActivityが
+      finish()すると背後に残っていたwear.MainActivityが露出して「Sesami Wear」表示となり、
+      古いActivityインスタンスが再利用されうる状態（新しいIntent Extraが反映されない
+      可能性）が「ボタン押下時の状態がおかしい」の原因と推測される。
+      対応として、上記5つのActivity（wear/AndroidManifest.xml）すべてへ
+      android:noHistory="true"（フォアグラウンドを外れた時点で即座に破棄しタスクに
+      残留させない）とandroid:excludeFromRecents="true"を追加し、mobile.MainActivityの
+      wear.MainActivityへのstartActivityへIntent.FLAG_ACTIVITY_NEW_TASKを明示付与した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方で
+      uninstall後、./gradlew :mobile:installDebugで再インストール済み。実機でのTile
+      デバイス変更・施錠/解錠ボタンの状態確認はユーザー実施予定
+    関連ID:
+      - BL-067
+      - BL-066
+
+- date: 2026-08-23 15:20
+  summary: mobile/wear双方のランチャーアイコン重複を解消し（BL-066）、Tile外周パディングを
+    16fへ再拡大した
+  details:
+    変更内容: >
+      ユーザーから「mobile/wearに2つアプリアイコンが出ている、1つにできないか」「mobileの設定が
+      開けない」の2点の報告を受けた。原因調査の結果、mobile（baseモジュール）・wear（feature、
+      android.hardware.type.watch限定配信）の両方のMainActivityがそれぞれ独自のLAUNCHER
+      intent-filterを持っていたことが判明した。baseモジュールはdist:conditionsの対象外で常に
+      ウォッチ側にも同梱されるため、ウォッチ側では常にmobile.MainActivity（タップすると
+      FEATURE_WATCH判定で即finish()するガード付き、事実上機能しない）とwear.MainActivity
+      （「Sesami Wear」のプレースホルダー表示）の2アイコンが共存していた。またローカルの
+      installDebugではdist:conditionsが評価されないため、スマホ側にもwear.MainActivityの
+      アイコンが重複表示されていた（BL-044として記録していたローカル制約の懸念が実は恒常的な
+      バグだったと判明したため、BL-044は本修正で解消するものとして削除した）。「設定が開けない」
+      報告は、スマホ側で誤ってwear.MainActivity（設定機能を持たない）をタップしていたことが
+      原因と推測される。対応として、wear/AndroidManifest.xmlのMainActivityからLAUNCHER
+      intent-filterを除去（android:exported="false"へ変更、android:icon/roundIcon指定も除去。
+      Tile/Complicationが主要導線のため独立起動は不要）、mobile.MainActivityのウォッチ実行時
+      ガードをfinish()のみから、explicit Intent（Intent().setClassName(packageName,
+      "com.sesamiwear.wear.MainActivity")。mobileはwearへコンパイル時依存できないためクラス名
+      文字列を使用）でwear.MainActivityへ委譲する形へ変更した（ActivityNotFoundException時は
+      フォールバックでfinish()のみ行う防御コード付き）。
+      あわせて、Tileの角丸チップの見切れがまだ残るとの追加指摘を受け、CONTAINER_PADDING_DPを
+      13f→16fへさらに拡大した（BL-063継続対応）。
+      検証中、Watch側のワイヤレスデバッグのIP:ポートが2回変わり接続が切断されたため、
+      ユーザーに都度確認して再接続した。ランチャーアイコン変更の確実な反映のため、
+      両実機でuninstallしてから再インストールした。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の両方で
+      uninstall後、./gradlew :mobile:installDebugで再インストール済み。実機でのアイコン数・
+      設定画面の到達性・Tileの見切れ具合の確認はユーザー実施予定
+    関連ID:
+      - BL-066
+      - BL-063
+
+- date: 2026-08-23 13:40
+  summary: Tileの外周パディング拡大・テキスト色設定・デバイス名タップでの状態更新機能を追加した
+    （BL-063継続対応、4回目）
+  details:
+    変更内容: >
+      直前の左右2分割・角丸チップ表現を実機確認したユーザーから3点の指摘を受けた。
+      (1) 角丸チップの一部がまだラウンドベゼルで見切れている→CONTAINER_PADDING_DPを
+      12f→13fへ約1割増やした。
+      (2) 左側チップ（デバイス名・デバイス変更）のテキスト色が既定の黒のままで、暗い中立背景
+      （0xFF424242）に対して視認できない→全Text.Builder呼び出しへ明示的にsetColorを設定した。
+      左側2チップは新設の白系定数CHIP_NEUTRAL_TEXT_COLOR_ARGB（0xFFFFFFFF）、右側の状態チップは
+      core側ではなくwear.tile.SesameTileContentへ新設したstatusTextColorArgb(state)関数
+      （状態色の明度に応じてコントラストを確保：通信中の明るいアンバー背景のみ濃色0xFF212121、
+      施錠中・解錠中・未接続・不明の各背景は白0xFFFFFFFF）で個別に設定した。
+      (3) デバイス名タップで状態更新をユーザー契機でも実施したい→新規
+      wear.action.SesameStatusRefreshActivity（施錠/解錠は行わずPATH_STATUS_REQUESTを
+      Fire-and-forgetで送信するのみの軽量Activity、既存のSesameActionActivityとは別クラスとして
+      分離。理由: core.api.SesameCommandはSesame API送信コマンドコード（LOCK=82/UNLOCK=83）と
+      1対1対応する値であり、状態取得（GET）という異なる概念を追加するとこの enum の意味が
+      混乱するため）を追加し、AndroidManifest.xmlへexported="true"で登録（BL-060で判明した
+      Wear TilesのLaunchAction制約を踏まえた登録漏れ防止）。SesameTileService.buildLeftColumnの
+      デバイス名チップへClickable（LaunchAction）を追加してこのActivityを起動するようにした。
+      あわせてSesameTileContentTestへstatusTextColorArgbの単体テスト2件を追加した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameStatusRefreshActivity.kt（新規）
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功、コンパイルエラー・detekt指摘なし）。
+      ./gradlew :mobile:installDebugでPixel 8 Pro実機・Pixel Watch 2実機の両方へインストール済み。
+      実機での見た目・状態更新動作の確認はユーザー実施予定
+    関連ID:
+      - BL-063
+
+- date: 2026-08-23 11:15
+  summary: Tileレイアウトを左右2分割・角丸チップ表現へ再設計し、状態色を右チップのみへ限定した
+    （BL-063継続対応、3回目）
+  details:
+    変更内容: >
+      直前のコミットで実施した「上部/中央/下部の3段構成」を実機確認したユーザーから
+      「左レイアウトの文字が画面に収まっていない、ステータス色が全画面に出てレイアウトの
+      区切りがわからない、ステータス色は右側だけでいい、各領域を角丸の四角ボタンで表現したい」
+      との指摘を受けた。原因は円形画面のセーフエリア（内接正方形、約136dp四方）を考慮せず
+      タイルのliteralな端に要素を配置していたためラウンドベゼルでテキストが欠けていたこと、
+      および状態色をルートBox全面に敷いていたため左右の領域区切りが視覚的に分からなくなって
+      いたことの2点。SesameTileService.buildConfiguredTireを、タイル端からCONTAINER_PADDING_DP
+      （12dp）内側へ寄せたRow（左列＋右チップ）構成へ変更。左列（buildLeftColumn、幅76dp固定）
+      はデバイス名チップ・デバイス変更チップをDimensionBuilders.weight(1f)で高さ均等分割し、
+      間に6dpのSpacerを挟む。右チップ（buildStatusBox）はexpand()で残り全域を占有。各チップは
+      共通ヘルパーbuildChipModifiersで角丸背景（ModifiersBuilders.Corner、半径12dp）・内側
+      パディング（6dp）を持つ「角丸の四角ボタン」として表現。状態色は右チップの背景にのみ適用し、
+      左側2チップは中立色（0xFF424242）で統一した。
+      実装中、detektのLongMethod（buildConfiguredTire/buildStatusBoxが60行超過）と
+      TooManyFunctions（クラス内関数数が閾値11に到達し失敗、10以下が必須と実測で確認）の
+      両方に複数回抵触した。最終的に(a)デバイス名チップ構築をbuildLeftColumnへ統合し
+      buildDeviceNameBoxを独立関数として持たない形にする、(b)buildConfigurationLaunchAction
+      （2箇所の呼び出し元へインライン化し関数自体を削除）、(c)buildCommandClickableは
+      buildStatusBoxと分離したまま維持、の組み合わせで関数数10・各関数60行未満に収めた。
+      あわせてTEXT_OVERFLOW_ELLIPSIZE_END（deprecated）をTEXT_OVERFLOW_ELLIPSIZEへ置き換えた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（試行錯誤の過程でLongMethod/TooManyFunctions/
+      型不一致（setModifiersにBuilderを渡していた）のコンパイルエラーが複数回発生したが、
+      いずれも修正して最終的に成功）。./gradlew :mobile:installDebugでPixel 8 Pro実機・
+      Pixel Watch 2実機の両方へインストール済み。実機での見た目確認はユーザー実施予定
+    関連ID:
+      - BL-063
+
+- date: 2026-08-23 09:30
+  summary: Tileレイアウトを上部/中央/下部の3領域へ再構成（BL-063継続対応）、自動更新問題の
+    調査用ログをmobile側にも追加（BL-064継続対応）
+  details:
+    変更内容: >
+      ユーザーから「Tileは中心にテキストが集まっている、左右や上下でレイアウトに意味を
+      持たせてほしい」と指摘があった（BL-063の1回目対応後）。原因は、状態表示を担う
+      SesameTileService.buildStatusBoxの返すBoxに幅・高さの明示指定がなく、内容サイズにしか
+      広がらないままタイル中央に小さくまとまって表示されていたこと。buildConfiguredTileを
+      Box（タイル全面、DimensionBuilders.expand()、背景色もここへ移動）→Column（同じく
+      expand）→(1)buildDeviceNameBox（上部・中央寄せ、デバイス名）、
+      (2)buildStatusBox（expand()で残り全域を占有、中央寄せ、状態アイコン・状態文言・
+      操作ラベル、施錠/解錠のクリック領域）、(3)buildChangeDeviceBox（下部・右寄せ、
+      「デバイスを変更 ›」）の3段構成へ再設計した。detektのLongMethod（buildConfiguredTireが
+      71行で60行制限に抵触）を解消するためbuildDeviceNameBoxを独立関数へ切り出し、代わりに
+      1行の呼び出しのみだったbuildUnconfiguredTileをonTileRequestの呼び出し元へインライン化し
+      関数数を維持してTooManyFunctionsの再超過を回避した。
+      あわせてBL-064（コマンド成功後にTileが自動更新されない問題）の調査用に、
+      mobile.messaging.SesameMessageListenerServiceのhandleCommandRequest/
+      handleStatusRequestへLog.d呼び出しを追加した（コマンド受信・デバウンス判定・
+      API実行結果・DataItem同期・結果送信の各段階、TAG="SesameMessageListener"）。
+      wear側のSesameResultListenerService/SesameTileServiceへのログ追加は前回セッションで
+      実施済みのため今回は対象外。ユーザーが当面Watch実機を操作できないとのことのため、
+      レイアウト改善を優先して品質ゲート実行・実機インストールまで完了させ、ログの確認は
+      ユーザーの都合がつき次第行う
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（初回はSesameTileService.buildConfiguredTireの
+      LongMethod違反で失敗、関数分割で解消して再実行し成功。mobile側もTAG未定義でコンパイル
+      エラーとなり修正後成功）。./gradlew :mobile:installDebugでPixel 8 Pro実機・
+      Pixel Watch 2実機の両方へインストール済み。レイアウト・自動更新とも実機での見た目/
+      挙動確認はユーザー実施予定
+    関連ID:
+      - BL-063
+      - BL-064
+
+- date: 2026-08-22 23:42
+  summary: Tile連打による施錠/解錠コマンド重複送信を防ぐデバウンス処理を追加した（BL-062）
+  details:
+    変更内容: >
+      ユーザー報告（Tileタップ後にwearのハプティクスが連続して鳴り続ける）を受け実機ログを
+      調査した結果、SesameActionActivityが同一時間帯に5つの別々のタスクとして起動されている
+      ことを確認した（ユーザーの連打が原因と判明）。PLAN.mdのUX要件「通信中は明確な処理中表示
+      ＋ボタン無効化で二重送信防止」に対応する仕組み（TileDisplayState.IN_PROGRESS）は
+      BL-007時点で用意されていたが、実際に「送信中」を検知してこの状態にする実装が
+      入っておらず（isCommandInProgressが常にfalse固定）、連打を防げていなかった。
+      mobile.messaging.CommandDebouncer（時刻取得を注入可能にしたAndroid非依存クラス）を
+      新規実装し、SesameMessageListenerService.handleCommandRequestで同一デバイスuuidへの
+      2秒以内の重複コマンドを無視するようにした（companion objectでインスタンスを保持し
+      Serviceの再生成をまたいで機能する）。単体テスト4件（初回は常に処理、window内は拒否、
+      window後は再度処理、キーごとに独立）を追加した。
+      Tile側のisCommandInProgressを実際に機能させる根本対応（送信中状態の管理、次回のTile
+      表示時に反映される非同期な性質を踏まえたUI設計）は実装複雑度と緊急性のバランスから
+      今回は見送り、mobile側でのデバウンスのみで実害（重複コマンド実行・重複振動）を防ぐ
+      対症療法とした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/CommandDebouncer.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/CommandDebouncerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+        （BL-061コミットに含めて実装済み、本タスクでは新規ファイルのみ追加）
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（CommandDebouncerの単体テスト4件を含め全成功）。
+      実機での連打時の重複防止確認はユーザー実施予定。
+    関連ID:
+      - BL-062
+
+- date: 2026-08-22 23:40
+  summary: Tile/Complication表示時にSesame API状態を自動取得する機能を実装した（BL-061）
+  details:
+    変更内容: >
+      Tile/Complicationの初期状態が常に「状態不明」（UNKNOWN）になり、UNKNOWN状態では
+      タップ不可のためコマンドを一切送信できないデッドロックが判明したことを受け
+      （ユーザー合意）、Tile/Complication表示時にSesame APIの状態を自動取得する機能を実装した。
+      core.SesameWearProtocolへPATH_STATUS_REQUEST（状態取得リクエスト用の新メッセージパス、
+      Fire-and-forget）を追加し、wear.messaging.SesameCommandSenderにrequestStatusを追加した。
+      SesameTileService.onTileRequest/SesameComplicationDataSourceService.onComplicationRequest
+      は、Wear Tiles/Complications APIのレスポンスタイムアウト制約を避けるため既存の
+      DataItemスナップショットで即座に応答しつつ、mobile側へ状態取得リクエストを送信するよう
+      変更した。mobile側のSesameMessageListenerServiceはPATH_STATUS_REQUESTを受信すると
+      SesameApiClient.getStatus()でSesame APIのGETを呼び、成功時にSesameStatusSyncerで
+      DataItemへ同期する（結果はwear側へ返送しないFire-and-forget）。wear側に新規
+      SesameStatusListenerService（WearableListenerService.onDataChanged）を追加し、
+      STATUS_DATA_ITEM_PATH配下のDataItem変更を検知したらTileService.getUpdater()と
+      ComplicationDataSourceUpdateRequester.requestUpdateAll()でTile/Complicationの再描画を
+      リクエストする仕組みを追加した。これによりBL-015の既知の制約（状態同期がコマンド送信
+      成功時のみ）も解消した。
+      Pixel Watch 2実機で、Tile Configuration完了後にTileから施錠/解錠操作ができることを
+      確認した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug && ./gradlew :mobile:installDebug（実機Pixel Watch 2での
+      施錠/解錠操作確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機でTileから施錠/解錠操作ができることを確認した。
+    関連ID:
+      - BL-061
+
+- date: 2026-08-22 23:11
+  summary: Tile/Complication関連Activityのexported属性不足を修正した重大バグ修正（BL-060）
+  details:
+    変更内容: >
+      ユーザー報告（Tileの「タップして設定」表示をタップしても何も起きない）を受け実機ログ
+      （adb logcat）を確認した結果、ProtoTilesPlTileViewInstance:
+      "Activity constraints not met. Not launching LaunchAction Activity"という警告を
+      発見した。Wear Tiles APIのLaunchActionで起動するActivityはandroid:exported="true"が
+      必須という制約があることを公式情報で確認し、wear/AndroidManifest.xmlの
+      SesameActionActivity（BL-014で実装した施錠/解錠実行画面、実機未検証のまま長期間
+      exported="false"だった）・TileConfigurationActivity（BL-052）・
+      ComplicationConfigurationActivity（BL-054）の3つすべてがexported="false"のままだった
+      ことが原因と判明した。3つのActivityをexported="true"へ修正した。
+      これによりTile Configuration機能だけでなく、基本の施錠/解錠操作自体も
+      実機では動作していなかった可能性が高い（BL-011の人手検証が未実施だったため
+      これまで発覚していなかった）。
+      Pixel Watch 2実機で修正後、Tileの「タップして設定」からTileConfigurationActivityが
+      正しく起動し、mobile側で登録済みのデバイス一覧が表示され選択・割り当てできることを
+      確認した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel Watch 2でのTile Configuration動作確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機でTile Configuration Activityの起動と
+      デバイス選択を確認した。
+    関連ID:
+      - BL-060
+
+- date: 2026-08-22 22:55
+  summary: 資格情報設定画面の案内文言をbiz.candyhouse.co前提に統一し情報量を削減した（BL-059）
+  details:
+    変更内容: >
+      ユーザーからuuid・apikeyもbiz.candyhouse.coから取得する値であるとの報告を受け
+      （Sesameアプリの「鍵をシェア」QRコードは使わない運用）、CredentialsSettingsScreenの
+      案内文言を修正した。あわせて、旧SetupInstructions（3行の手順テキスト）と各入力欄の
+      supportingTextにより初期表示の情報量が多いという指摘を受け、詳細説明をヘルプボタン
+      （TextButton）タップで開くAlertDialog（HelpDialog、「uuid・apikey・secretKeyは
+      biz.candyhouse.coで確認できます。secretKeyは16進数32文字です。」の1つにまとめた
+      文言）へ集約し、初期表示は入力欄（表示名/uuid/apikey/secretKey）をラベルのみの
+      シンプルな見た目にした。material-icons系ライブラリの依存がプロジェクトになかったため
+      アイコンボタンではなくテキストボタンで実装した。README.md/
+      docs/store/STORE_LISTING.md/docs/store/PRIVACY_POLICY.mdの取得元説明も
+      biz.candyhouse.coに統一した。
+      追加のユーザー依頼により、HelpDialogへSESAME Biz開発者ページ
+      （https://biz.candyhouse.co/biz/developer）へIntent.ACTION_VIEWで遷移するTextButtonを
+      追加した。さらに「追加」ボタンがsecretKey入力欄と近すぎる」という指摘を受け、
+      CredentialsFormをColumn(verticalArrangement = Arrangement.spacedBy(8.dp))で統一し、
+      ボタン群の前に追加スペーサーを挟み、ボタンをModifier.fillMaxWidth()で横幅いっぱいの
+      目立つ形状に変更した。
+      Pixel 8 Pro実機でシンプル化後の画面表示、ヘルプダイアログの表示、リンクボタンタップ時の
+      ブラウザ遷移（biz.candyhouse.co/biz/developerへの正常な遷移を確認）、レイアウト調整後の
+      余白をすべて確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - docs/store/PRIVACY_POLICY.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      npx markdownlint-cli2 "**/*.md" &&
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでの画面・ダイアログ・リンク遷移・
+      レイアウトの目視確認込み）
+    検証結果: 成功 - すべてのコマンドが成功。実機スクリーンショットで初期表示の簡素化、
+      ヘルプダイアログの表示、開発者ページへのブラウザ遷移、レイアウト調整をすべて確認した。
+    関連ID:
+      - BL-059
+
+- date: 2026-08-22 22:30
+  summary: secretKeyのデコード方式をBase64からhexへ修正した重大バグ修正（BL-058）
+  details:
+    変更内容: >
+      ユーザー報告（secretKeyに32文字の値を入力しても「追加」ボタンが無効のまま）を受けて
+      調査した結果、core.SesameCredentialsのsecretKeyデコード処理がBase64を前提として
+      いたことが根本原因と判明した。CANDY HOUSE公式ドキュメント
+      （API_document/SesameOS3/webapi.mdのコード例）ではsecretKeyは16進数文字列
+      （32文字=16バイト）であり、Base64ではない。secretKeyBase64フィールドを
+      secretKeyHexへリネームし、デコードをjava.util.HexFormat.of().parseHex()へ変更した
+      （core.crypto.AesCmac/core.api.SesameCommandSigner自体は鍵の16バイト長のみを
+      要求するロジックでエンコーディング形式に依存しないため変更不要だった）。
+      mobile.CredentialsInputValidator、mobile.CredentialsSettingsScreen（UI文言・
+      supportingText・SetupInstructionsの手順説明）、関連する単体テスト3件
+      （SesameCredentialsTest/SesameCredentialsStoreTest/CredentialsInputValidatorTest）
+      をすべてhex形式に合わせて修正した。SetupInstructionsは、ユーザーの実際の運用
+      （secretKeyはQRコードではなくbiz.candyhouse.coのデバイス情報から生成）に合わせて
+      「①QRコードでuuid確認 ②biz.candyhouse.coでapikey・secretKey発行」という手順に
+      更新した。core.api.SesameApiClientのBase64使用箇所（historyタグのエンコード）は
+      secretKeyとは無関係のため変更していない。
+      未確認事項として、apikey/secretKeyの正確な取得画面（biz.candyhouse.co内の
+      具体的な遷移）は実機での施錠/解錠疎通確認（BL-010）で最終検証する旨をDESIGN.mdに
+      記録した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidator.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputValidatorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（大文字/小文字hex、不正hex、鍵長不一致の単体テストを
+      含め全成功）。実機での16進数secretKey入力確認はユーザー実施予定。
+    関連ID:
+      - BL-058
+
+- date: 2026-08-22 21:59
+  summary: apikey発行先URLの記載をpartners.candyhouse.coからbiz.candyhouse.coへ修正した（BL-057）
+  details:
+    変更内容: >
+      QRコード自動入力機能の実現可能性を調査する過程で、CANDY HOUSE公式ドキュメント
+      （github.com/CANDY-HOUSE/API_document/blob/master/SesameOS3/webapi.md）に
+      「APIキーはbiz.candyhouse.co（SESAME Biz 開発者ページ）で取得する」と明記されている
+      ことを確認した。これはREADME.md/docs/store/STORE_LISTING.md/
+      docs/store/PRIVACY_POLICY.md/mobile側UI（CredentialsSettingsScreen）に記載していた
+      partners.candyhouse.coと異なっていたため、該当箇所をbiz.candyhouse.coへ修正した。
+      PLAN.mdは原初依頼内容のため変更せず、DESIGN.md（REQ-032）へ正しい情報と
+      未確認事項（biz.candyhouse.co自体のページ内容は動的サイトのためWebFetchで確認できて
+      いない）を記録した。
+      あわせて、前回（BL-056、SetupInstructions追加）の記録漏れだったDESIGN.mdへの反映
+      （REQ-031）も本イテレーションで追記した。
+      QRコード読み取りによる自動入力機能自体は、実機でSesame 5のQRコードをスキャンし
+      160バイトのデータを確認したが、SESAME 3/4向けの既知構造（sesame-qr-reader、99バイト）
+      とは一致せず、Sesame 5固有のバイナリ構造は非公開で不明なため見送った
+      （非公式フォーマットへの依存リスクが高いとユーザーと合意）。
+    変更ファイル:
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - docs/store/PRIVACY_POLICY.md
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      npx markdownlint-cli2 "**/*.md" &&
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - すべてのコマンドが成功
+    関連ID:
+      - BL-057
+
+- date: 2026-08-22 20:17
+  summary: mobile資格情報設定画面に取得手順の説明を追加した（BL-056）
+  details:
+    変更内容: >
+      ユーザー報告により、CredentialsSettingsScreenの入力欄（uuid/apikey/secretKey）に
+      説明が一切なく、初めて使うユーザーがどこから値を取得すればよいか分からない問題を
+      改善した。画面冒頭にSetupInstructions（PLAN.mdのAPI仕様記載に基づく3ステップの
+      手順説明: ①Sesameアプリの「鍵をシェア」でuuid/secretKey確認 ②partners.candyhouse.co
+      でapikey発行 ③フォーム入力）を追加し、各OutlinedTextFieldにsupportingTextで
+      個別の取得元説明を追加した。あわせてDeviceListが0件の場合に
+      「まだSesameが登録されていません。下のフォームから追加してください。」という
+      ガイダンスを表示するよう変更した。Pixel 8 Pro実機でinstallDebug後にスクリーンショットで
+      表示を確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでのスクリーンショット目視確認込み）
+    検証結果: 成功 - 全品質ゲートおよびinstallDebugがBUILD SUCCESSFUL。実機スクリーンショットで
+      手順説明・各入力欄のヘルパーテキスト・未登録時ガイダンスの表示を確認した。
+    関連ID:
+      - BL-056
+
+- date: 2026-08-22 17:44
+  summary: wear側Complicationの複数デバイス対応を実装した（BL-054）
+  details:
+    変更内容: >
+      SesameComplicationDataSourceServiceをcomplicationInstanceId（ComplicationRequestから
+      取得できるインスタンス固有のInt ID）ごとに対象デバイスを参照する「複数Complicationインスタンス
+      方式」へ変更した（BL-053のSesameTileServiceと同型のパターン）。対象デバイスは新規追加した
+      ComplicationDeviceAssignmentStore（SharedPreferencesベース、instanceIdをキーとしたuuid永続化）
+      で管理する。未設定のcomplicationInstanceIdの場合は「タップして設定」を表示し、
+      tapAction（PendingIntent）でComplicationConfigurationActivityを起動する。選択後は
+      ComplicationDataSourceUpdateRequesterで対象Complicationの再描画を要求する。
+      デバイス選択UI（BL-052でTile用に実装したScalingLazyColumn+Chipのリスト）を
+      wear.ui.DeviceSelectionScreenへ切り出し、TileConfigurationActivity/
+      ComplicationConfigurationActivityの双方から共通利用する形にリファクタリングした。
+      これによりBL-053で暫定対応（デバイス一覧の先頭のみ表示）していたComplicationの制約を解消した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationDeviceAssignmentStore.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL。これでBL-046〜054（複数Sesameデバイス対応）の
+      自動実行可能なタスクがすべて完了した。実機での最終確認はBL-055（人手検証）。
+    関連ID:
+      - BL-054
+
+- date: 2026-08-22 17:40
+  summary: wear側Tile/コマンド送信をtileId・deviceUuid対応へ変更した（BL-053）
+  details:
+    変更内容: >
+      SesameTileService.onTileRequestでrequestParams.tileIdを取得し、
+      TileDeviceAssignmentStore（BL-052）でtileIdに割り当てられたデバイスuuidを参照するよう
+      変更した。未割り当てのtileIdの場合は「タップして設定」の誘導表示（タップで
+      TileConfigurationActivityを起動、tileIdを文字列Extraとして渡す）を持つTileを返し、
+      割り当て済みの場合はSesameStatusSnapshotReader.readLatest(context, uuid)（BL-050で
+      追加したデバイス別パス対応）で状態を取得し、クリックアクションのIntent extraへ
+      deviceUuidも含めるよう変更した。SesameCommandSender.requestLock/requestUnlockへ
+      deviceUuidパラメータを追加し、SesameWearProtocol.encodeDeviceUuidでペイロード化して
+      送信するよう変更した（BL-050時点で常にFAILUREになっていた一時的不整合を解消）。
+      SesameActionActivityはIntentからdeviceUuidも受け取り送信時に渡すよう変更した。
+      SesameActionCommandParserへEXTRA_DEVICE_UUID定数を追加した。
+      **副作用の対応**: SesameStatusSnapshotReaderのシグネチャ変更によりビルド不能になった
+      SesameComplicationDataSourceServiceは、BL-054（Complicationの複数デバイス対応）までの
+      暫定措置として、SesameDeviceListReaderで同期されたデバイス一覧の先頭のみを表示する形に
+      最小限追従させた。
+      既存テスト（SesameCommandSenderTest）を新シグネチャに合わせて更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameCommandSenderTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-053
+
+- date: 2026-08-22 17:35
+  summary: wear側Tile Configuration Activityとデバイス一覧同期の仕組みを実装した（BL-052）
+  details:
+    変更内容: >
+      BL-051の技術調査結果（「Tile自体がタップで設定画面へ誘導する」パターン）に基づき、
+      wear.tile.TileConfigurationActivity（Intent extraでtileIdを受け取り、選択したデバイスの
+      uuidをTileDeviceAssignmentStoreへ永続化して終了する画面）を実装した。
+      実装着手時に、wear側は資格情報を持たない設計方針のため、Configuration Activityが
+      選択肢として表示するデバイス一覧をmobile側から同期する仕組みが前提として必要だと判明し、
+      あわせて実装した: core.SesameDeviceSummary（uuid/displayNameのみの機密情報を含まないDTO）、
+      core.SesameWearProtocol.DEVICE_LIST_DATA_ITEM_PATH/KEY_DEVICE_LIST_JSON、
+      mobile.SesameDeviceListSyncer（DataClient経由でデバイス一覧を同期、CredentialsSettingsScreen
+      の保存・削除時に呼び出す）、wear.messaging.SesameDeviceListReader（DataClientから
+      デバイス一覧を読み取る、既存のSesameStatusSnapshotReaderと同型のパターン）。
+      wear.tile.TileDeviceAssignmentStoreはtileId（Int）をキーとしたuuidの永続化を、
+      機密情報を扱わないため通常のSharedPreferencesで行う。TileConfigurationActivityは
+      androidx.wear.compose.foundation.lazy.ScalingLazyColumn/androidx.wear.compose.material.Chip
+      でデバイス一覧を表示し、選択時にTileService.getUpdater().requestUpdate()で対象Tileの
+      再描画を要求する。mobile/wear双方のbuild.gradle.ktsにkotlinx-serialization-json依存が
+      不足していたため追加した（coreモジュールの依存はimplementationのため推移的に伝播しない）。
+      実際にこのActivityをtileId付きで起動する導線（未設定Tileからのタップ誘導）はBL-053で実装する。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDeviceSummary.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - mobile/build.gradle.kts
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameDeviceListSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - wear/build.gradle.kts
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameDeviceListReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileDeviceAssignmentStore.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileConfigurationActivity.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（Wear Compose API/Tiles APIの解決も含め成功、
+      AABパッケージングも成功）
+    関連ID:
+      - BL-052
+
+- date: 2026-08-22 17:26
+  summary: mobile側メッセージ受信・コマンド実行・状態同期をdeviceId対応へ変更した（BL-050）
+  details:
+    変更内容: >
+      core.SesameWearProtocolへstatusDataItemPath(uuid)を追加し、STATUS_DATA_ITEM_PATHを
+      プレフィックスとしてデバイスごとに一意なDataItemパスを生成できるようにした
+      （複数デバイスの状態が同一DataItemで上書き衝突しないため）。
+      mobile.SesameStatusSyncer.syncLockedへuuidパラメータを追加しstatusDataItemPath(uuid)
+      を使うよう変更した。mobile.SesameMessageListenerService.onMessageReceivedで、
+      messageEvent.dataをSesameWearProtocol.decodeDeviceUuidでデコードして対象デバイスの
+      uuidを取得し、credentialsStore.loadAll().find { it.uuid == deviceUuid }で該当する
+      資格情報を選択してSesameCommandHandlerを構築するよう変更した（BL-047時点の暫定実装
+      firstOrNull()を置き換えた）。syncLockedStateFromPathにもdeviceUuidを渡すよう変更した。
+      **未確認事項/既知の一時的不整合**: wear側のSesameCommandSender（BL-053で対応予定）は
+      現状ByteArray(0)を送信し続けているため、この時点ではmessageEvent.dataは常に空となり
+      decodeDeviceUuidは空文字列を返す。結果、credentialsStore内にuuid=""のデバイスが
+      存在しない限りコマンドは常にFAILUREになる。BL-053完了までの間、機能的な結合動作は
+      一時的に崩れるが、ビルド・単体テストは成功する状態を維持している（未リリースのアプリの
+      ため許容と判断）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-050
+
+- date: 2026-08-22 17:24
+  summary: mobile資格情報設定画面を複数デバイス管理UIへ変更した（BL-049）
+  details:
+    変更内容: >
+      CredentialsSettingsScreenを単一フォームから、複数デバイスの一覧（DeviceList、
+      表示名・uuid表示＋編集/削除ボタン）と追加/編集フォーム（CredentialsForm、
+      表示名/uuid/apikey/secretKey入力）を組み合わせたUIへ全面的に書き換えた。
+      uuidをキーとしたupsert（同一uuidなら上書き、新規uuidなら追加）で
+      credentialsStore.saveAll()へ反映する。編集状態はCredentialsFormState
+      （remember管理のプライベートクラス）へ切り出した。detektのLongMethod
+      （閾値60）に抵触したため、DeviceList/CredentialsFormをサブComposableへ
+      分割して解消した。CredentialsInputValidator自体はロジック変更なし
+      （既存テストに影響なし）。実機（Pixel Watch 2）へのinstallDebugは成功したが、
+      Pixel 8 Pro側はadbデーモンが不安定になり接続確認できず、実機目視確認は
+      未実施（コードレベルの品質ゲートは全て成功）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL
+    関連ID:
+      - BL-049
+
+- date: 2026-08-22 17:19
+  summary: SesameWearProtocolのペイロードに対象デバイスuuidを載せるエンコード/デコードを追加した（BL-048）
+  details:
+    変更内容: >
+      core.SesameWearProtocolへencodeDeviceUuid(uuid)/decodeDeviceUuid(payload)を追加した。
+      施錠/解錠コマンドのメッセージペイロードへ対象デバイスのuuid（SesameCredentials.uuidと
+      対応）を載せるための単純なUTF-8バイト列エンコード/デコードで、JSON等の複雑な形式は
+      使わない。core.SesameMessageSender.sendは元々payload: ByteArrayを受け取る設計だった
+      ため、インターフェース自体の変更は不要だった。wear側のSesameCommandSender（現状
+      ByteArray(0)を送信）・mobile側の受信処理でこのエンコード/デコードを実際に使う変更は
+      BL-050/BL-053のスコープとし、本タスクではcore層のロジック追加とテストのみに留めた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（round-trip・空ペイロードの単体テストを含め全成功）
+    関連ID:
+      - BL-048
+
+- date: 2026-08-22 17:16
+  summary: SesameCredentialsStoreを複数デバイスのリスト保存対応へ変更した（BL-047）
+  details:
+    変更内容: >
+      core.SesameCredentialsStoreの単一資格情報の保存・読み出し（save/load）を、
+      List<SesameCredentials>全体をkotlinx.serializationでJSON化し単一キー
+      （credentials_list）で保存するsaveAll/loadAllへ置き換えた。loadAllはJSONとして
+      不正な値が保存されていた場合に例外を投げずemptyList()を返す（BL-026の防御的
+      プログラミング方針に合わせた）。特定デバイスの削除用にremove(uuid)も追加した。
+      未リリースのアプリのため、旧フォーマット（uuid/api_key/secret_key_base64/display_nameの
+      個別キー保存）からのマイグレーションは行わない方針とした（実運用データが存在しないため）。
+      呼び出し元（mobile.SesameMessageListenerService.createHandler、
+      mobile.CredentialsSettingsScreen）は、複数デバイス対応の本実装（BL-049/BL-050）までの
+      暫定措置として、loadAll().firstOrNull()で先頭の1件のみを扱う形に最小限追従させ、
+      ビルド可能な状態を維持した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentialsStore.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（複数件保存・不正JSON・remove等の単体テストを含め全成功）
+    関連ID:
+      - BL-047
+
+- date: 2026-08-22 17:13
+  summary: SesameCredentialsを複数デバイス対応データモデルへ変更した（BL-046）
+  details:
+    変更内容: >
+      複数台（3〜5台想定）のSesame 5を操作したいというユーザー要件（DESIGN.md「複数Sesameデバイス
+      対応方針」参照）を受け、core.SesameCredentialsへdisplayName（表示名、デフォルト空文字）を
+      追加した。識別子は別途deviceIdを持たせず、Sesame API上で既に一意なuuidをそのまま複数
+      デバイス管理のキーとして用いる設計とした（BACKLOG登録時の想定から簡素化、概念の重複を
+      避けるため）。displayNameは既存フィールド（uuid/apiKey/secretKeyBase64）の後にデフォルト値
+      付きで追加したため、既存の呼び出し箇所（SesameCredentialsStore/CredentialsSettingsScreen/
+      CredentialsInputValidator/既存テスト、いずれも名前付き引数で呼んでいた）は変更不要だった。
+      後続タスク（BL-047）でのkotlinx.serializationによるリスト保存に備え@Serializableを付与した。
+      SesameCredentialsStore.save/loadもdisplayNameのput/get（未設定時は空文字）に対応させた
+      （複数デバイスのリスト保存自体はBL-047で行う、現時点では単一保存のまま）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentialsStore.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameCredentialsStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（新規追加した単体テスト3件を含め全テスト成功）
+    関連ID:
+      - BL-046
+
+- date: 2026-08-22 17:02
+  summary: mobile側CredentialsSettingsScreenがステータスバーと重なる表示崩れを修正した（BL-045）
+  details:
+    変更内容: >
+      ユーザー報告により、mobile側のCredentialsSettingsScreen（資格情報設定画面）が画面トップの
+      ステータスバーと重なって表示される問題を確認した。原因は
+      CredentialsSettingsScreen.ktのColumn(modifier = Modifier.padding(16.dp))に
+      WindowInsets対応が設定されておらず、Edge-to-edge表示によりコンテンツがステータスバーの
+      下（同じ座標）に描画されていたため。ColumnのmodifierへsafeDrawingPadding()を追加し
+      （.safeDrawingPadding().padding(16.dp)の順で適用、ステータスバー・ナビゲーションバー・
+      ディスプレイカットアウトを含む安全領域分のpaddingを内側の16dpパディングより外側に確保）、
+      重なりを解消した。Pixel 8 Pro実機でinstallDebug後にMainActivityを起動し、
+      スクリーンショットで時刻・通知アイコン等のステータスバーとコンテンツ
+      （「Sesame API設定」テキスト・uuid入力欄）が重ならず表示されることを目視確認した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:installDebug（実機Pixel 8 Proでのスクリーンショット目視確認込み）
+    検証結果: 成功 - 全品質ゲートおよびinstallDebugがBUILD SUCCESSFUL。実機スクリーンショットで
+      ステータスバーとの重なり解消を確認した。
+    関連ID:
+      - BL-045
+
+- date: 2026-08-22 17:01
+  summary: dist:titleの重複リソース参照によるAABパッケージング失敗を修正した（BL-043）
+  details:
+    変更内容: >
+      ユーザー依頼でmobile/wearアプリの実機再インストール（アンインストール→
+      ./gradlew :mobile:installDebug）を行ったところ、:mobile:packageDebugBundleが
+      「Title for module 'wear' is missing in the base resource table」で失敗することが判明した。
+      原因はwear/AndroidManifest.xmlのdist:module dist:title="@string/app_name"が、
+      mobile（base）側とwear（feature）側の双方に同名で存在するapp_name文字列リソースを
+      参照しており、bundletoolがbaseリソーステーブル内でwearモジュール固有のタイトルを
+      一意に解決できなかったため（BL-036実施時点のEXECUTE.md記録では:mobile:bundleDebug/
+      bundleReleaseの成功を確認済みだったが、その後のいずれかの変更で顕在化したリグレッション。
+      発生源のコミットは特定していない、未確認）。切り分けのため
+      (1)wear側に一意な別名リソースを追加、(2)mobile側にも同名で追加、
+      (3)mobile側にのみ別名リソース（wear_module_title）を追加、の3パターンを試し、
+      (3)でのみ解決することを確認した。wear固有のwear_module_titleをmobile側の
+      strings.xmlにのみ追加し、dist:titleの参照先をこちらへ変更した。wear側のapp_name
+      （ランチャーラベル等の表示名）はdist:title用途と分離し、従来どおり維持した。
+      検証中に副次的な問題として、Pixel 8 Pro（スマホ実機）へのinstallDebugでも
+      com.sesamiwear.wear.MainActivityがインストールされる現象を確認した。BL-039の
+      dist:device-feature条件はGoogle Play正式配信でのみ評価されローカルのinstallDebugでは
+      評価されない制約による可能性があるが未確認のため、BL-044として人手検証へ切り出した。
+    変更ファイル:
+      - mobile/src/main/res/values/strings.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug &&
+      ./gradlew :mobile:bundleDebug :mobile:bundleRelease && ./gradlew :mobile:installDebug
+    検証結果: 成功 - 全品質ゲートおよびbundleDebug/bundleRelease/installDebugがBUILD SUCCESSFUL。
+      installDebugで接続中のPixel 8 Pro実機・Pixel Watch 2実機（2経路）へのインストールも確認した。
+    関連ID:
+      - BL-043
+
+- date: 2026-08-22 16:24
+  summary: wearランチャーアイコンのリングをAdaptive Iconセーフゾーン内に収まる寸法へ縮小した（BL-041）
+  details:
+    変更内容: >
+      ic_launcher_wear_foreground.xmlのコンプリケーション風リング（中心(54,54)、半径40、
+      ストローク幅5）は外周が中心から42.5dpに達しており、Adaptive Iconのセーフゾーン
+      （108dp viewport中心から半径33dp・直径66dp、Google公式ガイドライン）を大きく超えていたため、
+      丸型等のランチャーマスクでリングが欠けて表示される状態だった。半径を40から30、
+      ストローク幅を5から4へ縮小し（外周が中心から32dpとなりセーフゾーン内に収まる）、
+      pathDataの始点・終点座標（M94,54/A40,40→M84,54/A30,30 等）もあわせて修正した。
+      trimPathStart/trimPathEnd/trimPathOffsetはパス長に対する相対値のため変更不要。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 13 executed, 119 up-to-date）
+    関連ID:
+      - BL-041
+
+- date: 2026-08-22 16:12
+  summary: mobile/MainActivityへWear OS実機検出時のfinish()ガードを追加した（BL-040）
+  details:
+    変更内容: >
+      BL-039の対応後もmobileはbaseモジュールであるため常時ウォッチ側にもインストールされ、
+      mobile/.MainActivity（スマホ向け資格情報設定画面）のランチャーアイコンがウォッチにも
+      表示され続ける制約が残っていた。mobile/MainActivity.ktのonCreate()冒頭で
+      packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)を判定し、
+      該当する場合はsetContent()を呼ばずfinish()して即座に終了するガードを追加した。
+      ウォッチ実機でアイコンをタップしても資格情報設定画面（フォーム等、丸型小画面向けに
+      最適化されていないCompose UI）が表示されなくなる。既存のSesameCommandHandler等
+      同様の理由でActivity層自体の単体テストは他のActivity（wear.MainActivity/
+      SesameActionActivity等）にも存在しないため、本変更も単体テストは追加していない
+      （Android非依存ロジックのみユニットテスト対象という既存方針に合わせた）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 25 executed, 107 up-to-date）
+    関連ID:
+      - BL-040
+
+- date: 2026-08-22 15:56
+  summary: wearモジュールのdist:deliveryへdevice-feature条件を追加しスマホへの配信を止めた（BL-039）
+  details:
+    変更内容: >
+      実機検証（スマホ+Pixel Watch）で:mobile:installDebugを実行したところ、両デバイスに
+      com.sesamiwear.mobile（mobile/.MainActivityとwear側com.sesamiwear.wear.MainActivityの
+      両方のランチャーアイコン）が入る現象を確認した。原因はwear/src/main/AndroidManifest.xmlの
+      dist:deliveryがdist:install-timeのみでデバイス種別を絞る条件を持たず、wearモジュールが
+      常に全デバイスへ配信される設定になっていたため。dist:install-time配下へ
+      dist:conditions/dist:device-feature(dist:name="android.hardware.type.watch")を追加し、
+      Play Feature Delivery公式ドキュメントの条件付きinstall-time配信の記法に合わせ、
+      wearモジュールがwatchハードウェア機能を持つデバイスにのみ配信されるようにした。
+      dist:fusing include=trueは維持（minSdk26のため実質未使用の古い端末向けuniversal APK
+      フォールバック専用設定であり、今回の問題とは無関係なため変更不要と判断）。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 22 executed, 110 up-to-date）
+    関連ID:
+      - BL-039
+
 - date: 2026-08-22 12:40
   summary: wearをdynamic featureへ変更しmobileとapplicationIdを統合（BL-036）
   details:

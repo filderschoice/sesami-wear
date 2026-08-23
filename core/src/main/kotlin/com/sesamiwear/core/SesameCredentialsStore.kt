@@ -1,25 +1,34 @@
 package com.sesamiwear.core
 
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
 /**
- * [SesameCredentials] の保存・読み出し・削除を行う。
+ * 複数の[SesameCredentials]（Sesameデバイスごとの資格情報）の保存・読み出し・削除を行う。
  * 実際の永続化先は[SesameKeyValueStore]経由で注入するため、Android非依存でテストできる。
+ * uuidをデバイスの一意キーとして扱う（[SesameCredentials]参照）。
+ * リスト全体をJSON化して単一キーで保存する（未リリースのアプリのため、単一資格情報時代からの
+ * 永続化フォーマット移行は考慮しない）。
  */
 class SesameCredentialsStore(private val keyValueStore: SesameKeyValueStore) {
-    fun save(credentials: SesameCredentials) {
-        keyValueStore.putString(KEY_UUID, credentials.uuid)
-        keyValueStore.putString(KEY_API_KEY, credentials.apiKey)
-        keyValueStore.putString(KEY_SECRET_KEY_BASE64, credentials.secretKeyBase64)
+    fun saveAll(credentialsList: List<SesameCredentials>) {
+        keyValueStore.putString(KEY_CREDENTIALS_LIST, Json.encodeToString(credentialsList))
     }
 
-    fun load(): SesameCredentials? {
-        val uuid = keyValueStore.getString(KEY_UUID)
-        val apiKey = keyValueStore.getString(KEY_API_KEY)
-        val secretKeyBase64 = keyValueStore.getString(KEY_SECRET_KEY_BASE64)
-        return if (uuid != null && apiKey != null && secretKeyBase64 != null) {
-            SesameCredentials(uuid, apiKey, secretKeyBase64)
-        } else {
-            null
+    fun loadAll(): List<SesameCredentials> {
+        val json = keyValueStore.getString(KEY_CREDENTIALS_LIST) ?: return emptyList()
+        return try {
+            Json.decodeFromString(json)
+        } catch (
+            @Suppress("SwallowedException") e: SerializationException,
+        ) {
+            emptyList()
         }
+    }
+
+    fun remove(uuid: String) {
+        saveAll(loadAll().filterNot { it.uuid == uuid })
     }
 
     fun clear() {
@@ -27,8 +36,6 @@ class SesameCredentialsStore(private val keyValueStore: SesameKeyValueStore) {
     }
 
     private companion object {
-        const val KEY_UUID = "uuid"
-        const val KEY_API_KEY = "api_key"
-        const val KEY_SECRET_KEY_BASE64 = "secret_key_base64"
+        const val KEY_CREDENTIALS_LIST = "credentials_list"
     }
 }

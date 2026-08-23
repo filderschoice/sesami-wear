@@ -3,9 +3,13 @@
 
     <dist:module
         dist:instant="false"
-        dist:title="@string/app_name">
+        dist:title="@string/wear_module_title">
         <dist:delivery>
-            <dist:install-time />
+            <dist:install-time>
+                <dist:conditions>
+                    <dist:device-feature dist:name="android.hardware.type.watch" />
+                </dist:conditions>
+            </dist:install-time>
         </dist:delivery>
         <dist:fusing dist:include="true" />
     </dist:module>
@@ -21,21 +25,54 @@
             android:name="com.google.android.wearable.standalone"
             android:value="false" />
 
+        <!--
+            ランチャーアイコンは持たない（BL-066）。以前はLAUNCHER intent-filterを持っていたが、
+            baseモジュール（mobile）は常にウォッチ側にもインストールされるため、
+            mobile.MainActivityと合わせてウォッチのアプリ一覧にアイコンが2つ表示される問題が
+            あった。ウォッチ上での主要な操作導線はTile/Complicationであり本Activityの独立起動は
+            不要なため、LAUNCHER属性を除去して1アイコンに統一する。mobile.MainActivityが
+            ウォッチ実行時にexplicit Intent（クラス名文字列）で本Activityへ委譲するため、
+            exported属性は不要（同一アプリ内からの起動はexported=falseでも可能）。
+            noHistory/excludeFromRecentsは以下の5つのActivity共通の対応（BL-067）: いずれも
+            taskAffinityを明示指定しておらずデフォルト（アプリ共通）のため、Tileタップによる
+            LaunchAction起動とmobile.MainActivityからの委譲起動が同一タスクへ積み重なり、
+            finish()後に無関係な古いActivity（本MainActivity）が背後から現れる不具合が
+            ユーザー報告で判明した。noHistory="true"によりフォアグラウンドを外れた時点で
+            即座に破棄されるようにし、タスクに残留して後続の起動に巻き込まれることを防ぐ。
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_wear"
-            android:roundIcon="@mipmap/ic_launcher_wear_round"
-            android:theme="@android:style/Theme.DeviceDefault">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault" />
 
         <activity
             android:name=".action.SesameActionActivity"
-            android:exported="false"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
+        <activity
+            android:name=".action.SesameStatusRefreshActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
+        <activity
+            android:name=".tile.TileConfigurationActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
+        <activity
+            android:name=".complication.ComplicationConfigurationActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
         <service
@@ -58,6 +95,7 @@
         <service
             android:name=".tile.SesameTileService"
             android:exported="true"
+            android:icon="@mipmap/ic_launcher_wear"
             android:label="@string/app_name"
             android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
             <intent-filter>
@@ -74,6 +112,18 @@
                     android:scheme="wear"
                     android:host="*"
                     android:pathPrefix="/sesami-wear/result" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".messaging.SesameStatusListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/sesami-wear/status" />
             </intent-filter>
         </service>
     </application>

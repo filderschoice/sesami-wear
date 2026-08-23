@@ -92,6 +92,8 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    // SesameDeviceListSyncerでデバイス一覧をJSON化するために使用（BL-052）。
+    implementation(libs.kotlinx.serialization.json)
     // wear（dynamic feature）がFutures/SettableFuture等のguava実装クラスを実行時に必要とするが、
     // 自身はcompileOnlyのみ持つため、baseモジュールがランタイムクラスパスへ提供する（BL-036）。
     implementation(libs.guava)

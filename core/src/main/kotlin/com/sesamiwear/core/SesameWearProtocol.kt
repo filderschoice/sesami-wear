@@ -10,9 +10,48 @@ object SesameWearProtocol {
     const val PATH_COMMAND_RESULT = "/sesami-wear/result"
 
     /**
+     * Tile/Complication表示時に、対象デバイス（ペイロードのuuid、[encodeDeviceUuid]で
+     * エンコードする）の最新状態をSesame APIから取得してもらうリクエスト（BL-061）。
+     * mobile側はGET成功時に[STATUS_DATA_ITEM_PATH]（[statusDataItemPath]）へ同期する。
+     * 応答はDataItemの変更として非同期に届くため、レスポンス自体は返さないFire-and-forget方式。
+     */
+    const val PATH_STATUS_REQUEST = "/sesami-wear/status-request"
+
+    /**
      * DataClient（DataItem）でMobile側からWear側へ最新のロック状態を同期するためのパス・キー（BL-015）。
      */
     const val STATUS_DATA_ITEM_PATH = "/sesami-wear/status"
     const val KEY_IS_LOCKED = "is_locked"
     const val KEY_UPDATED_AT_EPOCH_MILLIS = "updated_at_epoch_millis"
+
+    /**
+     * 施錠/解錠コマンドのメッセージペイロードへ、操作対象デバイスのuuid（[SesameCredentials.uuid]と
+     * 対応する識別子）を載せるためのエンコード/デコード（BL-048、複数Sesameデバイス対応）。
+     * uuidをそのままUTF-8バイト列化するだけの単純な形式で、JSON等は使わない。
+     */
+    fun encodeDeviceUuid(uuid: String): ByteArray = uuid.toByteArray(Charsets.UTF_8)
+
+    fun decodeDeviceUuid(payload: ByteArray): String = String(payload, Charsets.UTF_8)
+
+    /**
+     * デバイスごとにロック状態を区別して同期するためのDataItemパス（BL-050）。
+     * [STATUS_DATA_ITEM_PATH]をプレフィックスとし、対象デバイスのuuidを付与して一意にする。
+     */
+    fun statusDataItemPath(uuid: String): String = "$STATUS_DATA_ITEM_PATH/$uuid"
+
+    /**
+     * mobile側に登録済みのデバイス一覧（[SesameDeviceSummary]、機密情報を含まない）を
+     * wear側へDataClient経由で同期するためのパス・キー（BL-052、Tile Configuration Activityで
+     * 選択肢を表示するために必要）。
+     */
+    const val DEVICE_LIST_DATA_ITEM_PATH = "/sesami-wear/devices"
+    const val KEY_DEVICE_LIST_JSON = "device_list_json"
+
+    /**
+     * Tile/Complicationの対象デバイスとして「登録済み全デバイス」を表す特別な値
+     * （BL-071、複数デバイス一括操作）。wear側のデバイス割当ストアへ実際のuuidの代わりに保存し、
+     * Tile/Complication表示・コマンド送信時に判定する。
+     * 実際のSesameデバイスのuuidと衝突しない形式（UUID形式ではない固定文字列）にしている。
+     */
+    const val ALL_DEVICES_TARGET_UUID = "__all_devices__"
 }

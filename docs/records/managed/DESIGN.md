@@ -279,6 +279,299 @@
   testDebugUnitTest/assembleDebug）に加え、`:mobile:bundleDebug`/`:mobile:bundleRelease`
   （統合後のAAB生成）の成功を確認済み。実機でのインストール・自動プッシュ配信の動作確認は
   BL-038（人手検証）。
+- REQ-029（BL-043）: `:mobile:installDebug`実行時に`:mobile:packageDebugBundle`が
+  「Title for module 'wear' is missing in the base resource table」で失敗する問題を修正した。
+  `wear/AndroidManifest.xml`の`dist:title`が参照する文字列リソース名が`mobile`（base）側と
+  `wear`（feature）側の双方で`app_name`という同名になっていたため、bundletoolがbaseリソース
+  テーブル内で`wear`モジュール固有のタイトルを一意に解決できなかったことが原因
+  （BL-036時点では未発生を確認済みだったリグレッション、発生源コミットは未特定）。
+  `wear`固有の一意な文字列リソース`wear_module_title`を`mobile`側の`strings.xml`にのみ追加し、
+  `dist:title`の参照先をこちらへ変更した（**制約**: `dist:title`が参照する文字列リソースは
+  baseモジュール側にのみ定義する必要があり、featureモジュール側に同名リソースが存在すると
+  このエラーが再発する）。`wear`側の`app_name`（ランチャーラベル等の表示名）は分離して維持した。
+  検証中、`installDebug`ではPixel 8 Pro（watch機能なしのスマホ実機）にも
+  `com.sesamiwear.wear.MainActivity`がインストールされる現象を確認した。BL-039の
+  `dist:device-feature`条件はGoogle Play正式配信でのみ評価されローカルの`installDebug`では
+  評価されない制約による可能性があるが未確認のため、BL-044（人手検証）へ切り出した。
+- REQ-030（BL-045、ユーザー報告）: `mobile`側`CredentialsSettingsScreen`（資格情報設定画面）が
+  画面トップのステータスバーと重なって表示される問題を修正した。`Column`の`modifier`に
+  WindowInsets対応（`Modifier.padding(16.dp)`のみ）が設定されておらず、Edge-to-edge表示で
+  コンテンツがステータスバー下に描画されていたことが原因。`Modifier.safeDrawingPadding()`を
+  内側の`padding(16.dp)`より外側に適用し、ステータスバー・ナビゲーションバー・ディスプレイ
+  カットアウトを含む安全領域を確保した。Pixel 8 Pro実機での目視確認済み。
+- REQ-031（BL-056、ユーザー報告）: `mobile`側`CredentialsSettingsScreen`の入力欄
+  （uuid/apikey/secretKey）に説明が一切なく、初めて使うユーザーが取得元を判断できない
+  問題を改善した。画面冒頭に3ステップの手順説明（`SetupInstructions`）を追加し、
+  各`OutlinedTextField`に`supportingText`で個別の取得元を追加した。あわせて
+  デバイス0件時に「まだSesameが登録されていません」というガイダンスを追加した。
+  Pixel 8 Pro実機での目視確認済み。
+- REQ-032（BL-057、ユーザー依頼の実現可能性調査に伴う発見）: QRコード自動入力機能の
+  実現可能性を調査する過程で、CANDY HOUSE公式ドキュメント
+  （github.com/CANDY-HOUSE/API_document）にapikey（x-api-key）は
+  `partners.candyhouse.co`ではなく`biz.candyhouse.co`（SESAME Biz 開発者ページ）で
+  発行すると明記されていることが判明した。README.md/docs/store/STORE_LISTING.md/
+  docs/store/PRIVACY_POLICY.md/`CredentialsSettingsScreen`のURL記載を修正した。
+  `PLAN.md`は原初依頼内容のため変更していない（矛盾時はDESIGN.mdを優先する既存方針の通り）。
+  **未確認事項**: `biz.candyhouse.co`は動的サイトのため実際のページ内容（APIキー発行UIの
+  存在）はWebFetchで確認できておらず、公式ドキュメントの記述のみを根拠にしている。
+  なお、QRコード（`ssm://UI?t=sk&sk=...`形式）読み取りによる自動入力機能自体は、
+  非公開のバイナリフォーマットへの依存となりCANDY HOUSE側の仕様変更で壊れるリスクが
+  高いため見送った（実機でSesame 5のQRコードをスキャンし160バイトのデータを確認したが、
+  SESAME 3/4向けの既知構造（99バイト）とは一致せず、Sesame 5固有の構造は非公開で不明）。
+- REQ-033（BL-058、ユーザー報告による重大バグ修正）: mobile側で資格情報を入力しても
+  「追加」ボタンが有効化されない不具合を調査した結果、`core.SesameCredentials`の
+  secretKeyデコード処理がBase64を前提としていたことが根本原因と判明した。CANDY HOUSE
+  公式ドキュメント（`API_document/SesameOS3/webapi.md`）のコード例
+  （例: `'2ebc2c087c1501480834538ff72139bc'`）ではsecretKeyは**16進数文字列（32文字=16バイト）**
+  として扱われており、Base64ではない。ユーザーが`biz.candyhouse.co`のデバイス情報から
+  生成した32文字の値を入力しても16バイトのBase64（標準的には24文字）とは長さが一致せず、
+  `secretKeyBytesOrNull`が常にnullを返しバリデーションが通らなかった。
+  `SesameCredentials.secretKeyBase64`フィールドを`secretKeyHex`へリネームし、
+  デコードを`Base64.getDecoder()`から`java.util.HexFormat.of().parseHex()`へ変更した
+  （Java 17標準API、大文字小文字どちらも受け付ける）。`CredentialsInputValidator`・
+  `CredentialsSettingsScreen`（UI文言・supportingText・手順説明含む）・関連する単体テスト
+  （`SesameCredentialsTest`/`SesameCredentialsStoreTest`/`CredentialsInputValidatorTest`）を
+  すべてhex形式に合わせて修正した。`core.crypto.AesCmac`・`core.api.SesameCommandSigner`
+  自体は鍵の16バイト長のみを要求するロジックでエンコーディング形式に依存しないため
+  変更不要だった。`core.api.SesameApiClient`の`Base64`使用箇所（`history`タグの
+  エンコード）はsecretKeyとは無関係のため変更していない。
+  **未確認事項**: uuidの取得元は引き続きQRコードとして案内しているが、apikey/secretKey
+  共に`biz.candyhouse.co`から取得できる可能性があり、正確な取得手順（画面遷移）は
+  実際にユーザーが確認した範囲（デバイス情報からsecretKeyを生成できること）以上には
+  未確認。実機での施錠/解錠疎通確認（BL-010）で最終検証する。
+- REQ-034（BL-059、ユーザー報告）: ユーザーからuuid・apikeyも`biz.candyhouse.co`から取得する
+  値であるとの報告を受け（Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
+  `CredentialsSettingsScreen`の案内文言を修正した。あわせて、手順説明
+  （旧`SetupInstructions`の3行テキスト）と各入力欄の`supportingText`により初期表示の
+  情報量が多いという指摘を受け、詳細説明をヘルプボタン（`TextButton`）タップで開く
+  `AlertDialog`（`HelpDialog`）へ集約し、初期表示は入力欄（表示名/uuid/apikey/secretKey）を
+  ラベルのみのシンプルな見た目にした。`androidx.compose.material.icons`系の依存が
+  プロジェクトになかったため、アイコンボタンではなくテキストボタンで実装した。
+  README.md/docs/store/STORE_LISTING.md/docs/store/PRIVACY_POLICY.mdの取得元説明も
+  `biz.candyhouse.co`に統一した。`HelpDialog`にはSESAME Biz開発者ページ
+  （`https://biz.candyhouse.co/biz/developer`）へ遷移する`TextButton`（`Intent.ACTION_VIEW`）
+  も追加した（ユーザー追加依頼）。あわせて`CredentialsForm`のレイアウトを
+  `Column(verticalArrangement = Arrangement.spacedBy(8.dp))`で統一し、入力欄同士および
+  secretKey欄と「追加」ボタンの間隔が狭すぎるという指摘（ユーザー追加依頼）を受け、
+  ボタン群の前に追加のスペーサーを挟み、ボタン自体も`Modifier.fillMaxWidth()`で
+  横幅いっぱいの目立つ形状に変更した。Pixel 8 Pro実機でヘルプダイアログ・リンク遷移・
+  レイアウト調整後の表示をすべて確認済み。
+
+- REQ-035（BL-060、ユーザー報告による重大バグ修正）: Tileの「タップして設定」表示をタップしても
+  何も起きないという報告を受け実機ログを確認した結果、
+  `ProtoTilesPlTileViewInstance: Activity constraints not met. Not launching LaunchAction
+  Activity`という警告を確認した。Wear Tiles APIの`LaunchAction`で起動するActivityは
+  `android:exported="true"`が必須という制約があり、`wear/AndroidManifest.xml`の
+  `SesameActionActivity`（施錠/解錠実行画面）・`TileConfigurationActivity`・
+  `ComplicationConfigurationActivity`がすべて`exported="false"`のままだったことが原因と
+  判明した。これによりTile Configuration機能だけでなく、基本の施錠/解錠操作自体（BL-014、
+  実機未検証のまま長期間残っていた）も実機では動作していなかった可能性が高い重大なバグ。
+  該当する3つのActivityを`exported="true"`へ修正した。Pixel Watch 2実機でTileから
+  TileConfigurationActivityが正しく起動し、mobile側で登録済みのデバイス一覧が表示され
+  選択・割り当てできることを確認した。
+- REQ-036（BL-061、ユーザー合意）: Tile/Complicationの初期状態が常に「状態不明」（UNKNOWN）になり、
+  UNKNOWN状態ではタップ不可のためコマンドを一切送信できないデッドロックを解消した。
+  `core.SesameWearProtocol`へ`PATH_STATUS_REQUEST`（状態取得リクエスト、Fire-and-forget、
+  結果は返さずDataItem変更として非同期に届く）を追加し、`wear.messaging.SesameCommandSender`に
+  `requestStatus`を追加した。`SesameTileService.onTileRequest`/
+  `SesameComplicationDataSourceService.onComplicationRequest`は、Tiles APIのレスポンス
+  タイムアウト制約を避けるため既存のDataItemスナップショットで即座に応答しつつ、mobile側へ
+  状態取得リクエストを送信するよう変更した。mobile側の`SesameMessageListenerService`は
+  `PATH_STATUS_REQUEST`を受信すると`SesameApiClient.getStatus()`でSesame APIのGETを呼び、
+  成功時に`SesameStatusSyncer`でDataItemへ同期する（結果はwear側へ返送しない）。
+  wear側に新規`SesameStatusListenerService`（`WearableListenerService.onDataChanged`）を
+  追加し、`STATUS_DATA_ITEM_PATH`配下のDataItem変更を検知したら`TileService.getUpdater()`と
+  `ComplicationDataSourceUpdateRequester.requestUpdateAll()`でTile/Complicationの再描画を
+  リクエストする。これによりBL-015の既知の制約（状態同期がコマンド送信成功時のみ）も解消した。
+  Pixel Watch 2実機でTileから施錠/解錠操作ができることを確認した。
+- REQ-037（BL-062、ユーザー報告）: Tileの連打により`SesameActionActivity`が短時間に複数回
+  起動され、施錠/解錠コマンドが重複送信されてハプティクスが連続再生される不具合を修正した。
+  実機ログで同一時間帯に5つの別々のタスクとして起動されていることを確認した。PLAN.mdの
+  UX要件「通信中は明確な処理中表示＋ボタン無効化で二重送信防止」に対応する仕組み
+  （`TileDisplayState.IN_PROGRESS`）はBL-007時点で用意されていたが、実際に「送信中」を
+  検知してこの状態にする実装が入っておらず（`isCommandInProgress`が常に`false`固定）、
+  連打を防げていなかった。`mobile.messaging.CommandDebouncer`（時刻取得を注入可能にした
+  Android非依存クラス、単体テスト4件）を新規実装し、`SesameMessageListenerService`の
+  `handleCommandRequest`で同一デバイスuuidへの2秒以内の重複コマンドを無視するようにした。
+  Tile側の`isCommandInProgress`を実際に機能させる根本対応（送信中状態の管理）は、
+  実装複雑度と緊急性のバランスから見送り、mobile側でのデバウンスのみで対応した。
+- REQ-038（BL-063、ユーザー報告、対応中）: Tileのデザインを「何を操作しているか」
+  「今どの状態か」「他のデバイスへの切り替え方法」が分かるUXへ改善する対応。3回にわたり反復した。
+  **1回目**: デバイス名・状態アイコン・操作ラベル・デバイス変更ボタンを追加したが、
+  ユーザーから「テキストが中心に集まっている」との指摘を受けた。原因は`buildStatusBox`が
+  返すBoxに幅・高さの明示指定がなく、内容サイズにしか広がらないままタイル中央に配置されて
+  いたこと（Wear Tilesのレイアウトは明示的にサイズ指定しない限り自身の内容分しか占有しない）。
+  **2回目**: ルートを`Box`（`DimensionBuilders.expand()`でタイル全面、背景色もここへ移動）→
+  内側`Column`（同じくexpand）→上部＝デバイス名/中央＝状態表示（拡大）/下部＝デバイス変更
+  の3段構成へ再設計したが、ユーザーから「左レイアウトの文字が画面に収まっていない、ステータス
+  色は右側だけでいい、各領域を角丸の四角ボタンで表現したい」との再指摘を受けた。原因は、
+  円形画面のセーフエリア（内接正方形、対角192dpの円に対し約136dp四方）を考慮せず、タイルの
+  literal な端（座標0や高さ最大値）に要素を配置していたため、ラウンドベゼルでテキストが
+  部分的に欠けていたこと。また状態色をルート`Box`全面に敷いていたため、左右の領域区切りが
+  視覚的に分からなくなっていた。
+  **3回目（現行）**: `buildConfiguredTile`を、タイル全体をタイル端から`CONTAINER_PADDING_DP`
+  （12dp）内側へ寄せた`Row`（左列＋右チップ）構成へ変更。左列（`buildLeftColumn`、幅
+  `LEFT_COLUMN_WIDTH_DP`=76dp固定、`DimensionBuilders.expand()`で高さいっぱい）は、
+  デバイス名チップ・デバイス変更チップ（`buildChangeDeviceBox`）を`DimensionBuilders.weight
+  (1f)`で高さ均等分割し、間に`CHIP_SPACING_DP`（6dp）のSpacerを挟む。右チップ
+  （`buildStatusBox`）は`expand()`で残り全域を占有。各チップは共通ヘルパー
+  `buildChipModifiers`で角丸背景（`ModifiersBuilders.Corner`、半径`CHIP_CORNER_RADIUS_DP`
+  =12dp）・内側パディング（`CHIP_INNER_PADDING_DP`=6dp）を持つ「角丸の四角ボタン」として
+  表現する。状態色（`SesameTileContent.backgroundColorArgb`）は右チップの背景にのみ適用し、
+  左側2チップは中立色`CHIP_NEUTRAL_COLOR_ARGB`（0xFF424242）で統一することで、領域の区切りと
+  ステータス色の意味をひと目で区別できるようにした。detektの`LongMethod`
+  （`buildConfiguredTile`/`buildStatusBox`が60行超過）と`TooManyFunctions`（クラス内関数数が
+  閾値11に到達）の両方に反復して抵触したため、(a)`buildLeftColumn`へデバイス名チップ構築を
+  統合、(b)`buildConfigurationLaunchAction`（2箇所の呼び出し元へインライン化し関数自体を削除）、
+  (c)`buildCommandClickable`は`buildStatusBox`と分離したまま維持、という組み合わせで
+  関数数10・各関数60行未満のバランスに調整した。
+  **4回目（現行）**: 3回目を実機確認したユーザーから3点の指摘を受けた。(1)角丸チップの一部が
+  依然として見切れる→`CONTAINER_PADDING_DP`を12f→13fへ約1割増やした（後日の実機確認で
+  「もう一押しいける」との追加指摘を受け16fへさらに拡大）。(2)左側チップの
+  テキスト色が既定の黒のままで、暗い中立背景（`CHIP_NEUTRAL_COLOR_ARGB`）に対して視認できない
+  →`Text.Builder.setColor`を全箇所へ明示設定。左側2チップは白系（新設
+  `CHIP_NEUTRAL_TEXT_COLOR_ARGB`=0xFFFFFFFF）、右側の状態チップは新設
+  `SesameTileContent.statusTextColorArgb(state)`（状態色の明度に応じてコントラストを確保：
+  通信中の明るいアンバー背景のみ濃色0xFF212121、施錠中・解錠中・未接続・不明の各背景は
+  白0xFFFFFFFF）で個別に設定した。(3)デバイス名タップで状態更新をユーザー契機でも実施したい
+  →新規`wear.action.SesameStatusRefreshActivity`（`PATH_STATUS_REQUEST`をFire-and-forgetで
+  送信するのみの軽量Activity、施錠/解錠は行わない）を追加し、`AndroidManifest.xml`へ
+  `exported="true"`で登録（BL-060で判明したWear TilesのLaunchAction制約を踏まえた登録）、
+  `buildLeftColumn`のデバイス名チップに`Clickable`を追加してこのActivityを起動する
+  `LaunchAction`を設定した。
+  **未完了**: 実機での見た目・動作確認はユーザーの都合がつき次第実施予定（BL-063完了条件）。
+- REQ-039（BL-064、ユーザー報告、調査中）: BL-064（コマンド成功後にTileが自動更新されない
+  問題）の再検証で、対策済みのはずの自動更新が依然として機能していないとユーザーから
+  再度報告があった。実機ログにはアプリ側のログ出力が一切なく、システムログ
+  （ActivityManager等）からは`SesameActionActivity`の起動しか確認できず、
+  mobile側のコマンド処理・DataItem同期・wear側の再描画リクエストのどこで問題が
+  発生しているか切り分けできなかった。原因特定のため、`mobile.messaging
+  .SesameMessageListenerService`（コマンド受信・デバウンス判定・API実行結果・DataItem同期
+  ・結果送信の各段階）、`wear.messaging.SesameResultListenerService`
+  （メッセージ受信・ハプティクス再生・Tile/Complication再描画リクエスト）、
+  `wear.tile.SesameTileService`（`onTileRequest`/`buildConfiguredTile`のtileId・
+  デバイス割当有無・接続ノード有無・DataItemスナップショットの値）へ`android.util.Log`
+  （`Log.d`）を追加した。DataItemの同期は`DataClient.putDataItem`のurgentフラグを
+  使っていても、mobile→wear間の物理的な同期完了を保証しない（`await()`はローカル書き込みの
+  完了のみを示す）ため、`SesameResultListenerService`がコマンド結果受信直後に行う
+  Tile再描画リクエストが、DataItem同期が完了する前に発火し古いスナップショットを
+  読んでしまう競合状態が有力な仮説である（未確認）。その場合でも、後続の
+  `SesameStatusListenerService.onDataChanged`が同期完了時に再度Tile再描画をリクエストする
+  設計になっているため理論上は自己修復するはずだが、実機で解消しない理由（Wear Tilesの
+  `requestUpdate`が非表示タイルに対して抑制される可能性、システム側のレート制限など）は
+  未確認のまま。**未完了**: 次回実機操作時にlogcatを取得し、上記仮説を検証する。
+- REQ-040（BL-066、ユーザー報告による重大バグ修正、対応中）: mobile/wear双方の実機で
+  「アプリアイコンが2つ表示される」「mobileの設定画面が開けない」との報告を受けた。原因は、
+  mobile（baseモジュール）・wear（feature、`android.hardware.type.watch`限定配信）の両方の
+  `MainActivity`がそれぞれ独自のLAUNCHER intent-filterを持っていたこと。baseモジュールは
+  `dist:conditions`の対象外で常にウォッチ側にも同梱されるため、ウォッチ側では常に
+  `mobile.MainActivity`（タップすると`FEATURE_WATCH`判定で即`finish()`するガード付き、
+  事実上機能しない）と`wear.MainActivity`（「Sesami Wear」のプレースホルダー表示）の
+  2アイコンが共存していた。またローカルの`installDebug`（bundletool経由のAPK Set生成）では
+  `dist:conditions`が評価されないため、スマホ側にも`wear.MainActivity`のアイコンが重複表示
+  されていた（BL-044として記録していたローカル制約の懸念が現実の恒常的なバグだったことが
+  判明。BL-044はこの修正で解消するため削除した）。「設定が開けない」報告は、スマホ側で誤って
+  `wear.MainActivity`（設定機能を持たない）をタップしていたことが原因と推測される。対応として、
+  `wear/AndroidManifest.xml`の`MainActivity`からLAUNCHER intent-filterを除去し
+  （`android:exported="false"`へ変更、`android:icon`/`roundIcon`指定も除去。本Activityを
+  独立起動する必要はなくTile/Complicationが主要導線のため）、`mobile.MainActivity`のウォッチ
+  実行時ガードを`finish()`のみから、explicit Intent（`Intent().setClassName(packageName,
+  "com.sesamiwear.wear.MainActivity")`。mobileはwearへコンパイル時依存できないためクラス名
+  文字列を使用）で`wear.MainActivity`へ委譲する形へ変更した（`ActivityNotFoundException`時は
+  フォールバックで`finish()`のみ行う防御コード付き）。これによりmobile/wear双方の実機で
+  アイコンが1つに統一され、スマホでは常にmobile.MainActivity（設定画面）、ウォッチでは常に
+  wear.MainActivityが開く。
+  **未完了**: 実機での見た目・動作確認はユーザーの都合がつき次第実施予定（BL-066完了条件）。
+- REQ-041（BL-067、ユーザー報告による重大バグ修正、対応中）: BL-066の実機確認中、Tileの
+  「デバイス変更」を行うと「Sesami Wear」という無関係な文字が表示され、Tileへ戻ると
+  デバイスは切り替わっているものの施錠/解錠ボタン押下時の状態がおかしいとの報告があった。
+  原因は、`wear.MainActivity`/`SesameActionActivity`/`SesameStatusRefreshActivity`/
+  `TileConfigurationActivity`/`ComplicationConfigurationActivity`のいずれも
+  `android:taskAffinity`を明示指定しておらずデフォルト（アプリ共通）のタスク親和性を
+  共有していたこと。BL-066で`mobile.MainActivity`がウォッチ実行時に
+  `wear.MainActivity`へ`startActivity`（`FLAG_ACTIVITY_NEW_TASK`なし）していたため、
+  そのタスクが`wear.MainActivity`をルートとして残留し、後続のTile LaunchAction
+  （`TileConfigurationActivity`等、システムが`FLAG_ACTIVITY_NEW_TASK`で起動）がタスク
+  親和性の一致により同一タスクへ積み重なっていたと判明した。`TileConfigurationActivity`が
+  `finish()`すると背後に残っていた`wear.MainActivity`が露出して「Sesami Wear」表示となり、
+  古いActivityインスタンスが再利用されうる状態（新しいIntent Extraが反映されない可能性）が
+  「ボタン押下時の状態がおかしい」の原因と推測される。対応として、上記5つのActivityすべてへ
+  `android:noHistory="true"`（フォアグラウンドを外れた時点で即座に破棄しタスクに残留させない）
+  と`android:excludeFromRecents="true"`を追加し、`mobile.MainActivity`の
+  `wear.MainActivity`への`startActivity`へ`Intent.FLAG_ACTIVITY_NEW_TASK`を明示付与した。
+  **未完了**: 実機での動作確認はユーザーの都合がつき次第実施予定（BL-067完了条件）。
+- REQ-042（BL-068、ユーザー報告）: Tile追加時のアイコンが大きすぎるとの指摘を受けた。
+  `wear.tile.SesameTileService`に`android:icon`指定がなく、`<application>`のicon
+  （mobileの`ic_launcher`、リング装飾なしの通常のスマホ向けアイコン）へフォールバックして
+  いたことが原因。既に`SesameComplicationDataSourceService`用に用意されていたwear専用
+  アイコン（`ic_launcher_wear`、コンプリケーション風のリング装飾付き）がTile追加ピッカーでは
+  使われていなかった。`SesameTileService`へ`android:icon="@mipmap/ic_launcher_wear"`を
+  明示指定してComplicationピッカーと意匠を統一し、`ic_launcher_wear_foreground.xml`の
+  全パスを`<group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54"
+  android:pivotY="54">`で包んで中心基準で50%縮小した（個々のpath座標は変更せずグループ
+  変換のみで対応）。`ic_launcher_wear`は両ピッカーで共用のため、Complicationピッカー側にも
+  同様に縮小が反映される（スマホ側の`ic_launcher`/`ic_launcher_round`は変更対象外）。
+  **未完了**: 実機での見た目確認はユーザーの都合がつき次第実施予定（BL-068完了条件）。
+  実機確認後、ユーザーから「Tile表示時のアイコンは前のサイズでよかった、Tile追加登録時の
+  アプリ選択画面のアイコンだけ変更したい」と指摘があった。両者を別サイズへ分離しようと
+  `wear/AndroidManifest.xml`の`<application>`へ専用の縮小版アイコン（新規
+  `ic_launcher_wear_picker`）を設定したが、`mobile`側の`<application>`icon
+  （`ic_launcher`）と競合しマニフェストマージが失敗した（`Attribute application@icon
+  ... is also present at [:wear] ...`）。base（mobile）とfeature（wear）は最終的に
+  1つの`<application>`タグへマージされるため、Tile追加時の「アプリ選択」画面とTile表示時の
+  アイコンは同一の`SesameTileService.icon`リソースしか持てず、Android/Wear OSの仕様上
+  別サイズにする手段がないと判明した（`ic_launcher_wear_picker`関連ファイルは削除して
+  ロールバック）。ユーザーへ選択肢（縮小再適用＋クリーン再インストール／両方とも元サイズへ戻す）
+  を提示した結果、前者を選択（前回の確認はupdate-in-place installであり、Wear OSの
+  Tileピッカーの表示キャッシュ遅延で「アプリ選択」画面だけ古いサイズに見えていた可能性を
+  切り分けるため）。`ic_launcher_wear_foreground.xml`への50%縮小（groupによるscale変換）を
+  再適用し、両実機でuninstall後に再インストールした。
+  クリーン再インストール後、Tile追加ピッカー・Tile表示・Complicationピッカーいずれの
+  アイコンサイズもユーザーが実機で確認し「サイズはいい感じになった」と確認済み（完了）。
+- REQ-043（BL-070、ユーザー報告）: Tileの施錠/解錠チップをタップした後に遷移する
+  `wear.action.SesameActionActivity`の確認画面（解錠時のみ表示、`SesameCommandConfirmation`
+  参照）で、ボタンが小さくテキストが見切れているとの指摘を受けた。原因は
+  `androidx.wear.compose.material.Button`（既定で円形・小サイズ）に「タップして解錠」という
+  長いテキストを詰め込んでいたこと。左＝キャンセル、右＝施錠/解錠、の角丸チップ2つへ
+  再設計した。デザインはTile側（`SesameTileService`）と統一するため、共通の中立色定数
+  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`（新規、`SesameTileService`が個別に持っていた
+  同名の`private`定数をここへ集約し重複を解消）をキャンセルボタンへ、
+  `SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`（操作後に遷移する状態
+  ＝LOCKED/UNLOCKEDに対応する色）を施錠/解錠ボタンへ適用し、角丸半径も同じ12dpに揃えた。
+  角丸Boxは`androidx.compose.foundation`の`Modifier.clip(RoundedCornerShape)`
+  `.background()``.clickable()`を組み合わせた自作コンポーネント
+  （`SesameActionChip`）で実装し、Wear Compose Materialの円形`Button`は使わずテキストの
+  見切れを解消した。ユーザーが実機で確認し「イメージどおりにできてた」と確認済み（完了）。
+- REQ-044（BL-071、ユーザー要望、対応中）: 個別デバイス操作に加え、登録済み全デバイスへの
+  一括施錠/解錠を可能にする要望を受けた。`core.SesameWearProtocol`へ「全デバイス」を表す
+  特別な値`ALL_DEVICES_TARGET_UUID`（`"__all_devices__"`、実際のSesame uuidと衝突しない
+  固定文字列）を追加。`core.TileDisplayState`へ`MIXED`（施錠/解錠が混在）を追加し
+  `isActionable`を`true`にした。`core.TileDisplayStateResolver`へ`resolveAggregate`
+  （複数デバイスのロック状態リストから集約状態を決定。1台でも未取得(null)があれば安全側で
+  `UNKNOWN`、全台施錠で`LOCKED`、全台解錠で`UNLOCKED`、それ以外は`MIXED`）を追加した。
+  `wear.ui.DeviceSelectionScreen`（Tile/Complication共通の選択画面）は、登録済みデバイスが
+  2台以上の場合のみ先頭に「全デバイス」の選択肢を表示する（1台のみの場合は個別選択と等価で
+  冗長なため出さない）。新規`wear.tile.SesameTileStateResolver`（Tile/Complication共通の
+  表示名・状態解決ロジック。対象uuidが`ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの
+  状態を`resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決。いずれもDataItemが
+  古い場合の自動状態取得リクエストを行う）へ`SesameTileService`/
+  `SesameComplicationDataSourceService`双方の重複していた状態解決ロジックを集約した。
+  新規`wear.action.SesameActionTargetResolver`（コマンド送信・状態更新の対象uuid一覧を解決。
+  全デバイス時は登録済み全uuidのリスト、それ以外は単一uuid）を`SesameActionActivity`/
+  `SesameStatusRefreshActivity`が利用し、全デバイス選択時はループで各デバイスへ個別に
+  lock/unlock/status-requestメッセージを送信する（mobile側の`SesameMessageListenerService`は
+  既存の単一デバイス処理をそのままN回受けるだけで対応でき、mobile側の変更は不要だった）。
+  `wear.tile.SesameTileActions`は`MIXED`状態でタップ時に「全施錠」を提示する（迷ったら安全側の
+  方針、`UNLOCK`のみ確認画面を挟む既存UXと組み合わせて安全側は確認不要のまま維持）。
+  `wear.tile.SesameTileContent`/`wear.complication.SesameComplicationContent`へ`MIXED`用の
+  アイコン（🔀）・ラベル（「施錠/解錠混在」）・背景色（紫）を追加し、`statusLabel`/
+  `actionLabel`へ`isAllDevices`パラメータ（デフォルト`false`）を追加、全デバイス時は
+  「全施錠中」「タップで全解錠」等の文言に切り替える。`SesameActionActivity`の施錠/解錠確認
+  画面（BL-070）のボタンラベルも全デバイス時は「全施錠」「全解錠」に切り替える。Complicationは
+  設定済み状態では`tapAction`を持たない読み取り専用表示のため、全デバイス選択時も集約状態の
+  表示のみでコマンド送信は行わない（Tile側のみが操作対象）。
+  **未完了**: 実機（Sesame実機2台以上）での動作確認はユーザーの都合がつき次第実施予定
+  （BL-071完了条件）。
 
 ## 設計方針
 
@@ -305,7 +598,9 @@
   `uses-feature android:name="android.hardware.type.watch"`と
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）、
   `dist:module`（`dist:instant=false`、install-time delivery、`dist:fusing include=true`）を
-  設定済み。
+  設定済み。`dist:title`が参照する文字列リソース（`wear_module_title`）は`mobile`側の
+  `strings.xml`にのみ定義する（BL-043。`wear`側に同名リソースが存在するとbundletoolが
+  base resource table内でタイトルを解決できずAABパッケージングが失敗する制約があるため）。
 - 依存バージョンは `gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.7.3 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 
@@ -317,6 +612,59 @@
 - 成功/失敗をハプティクスパターンで区別する（BL-008）。
 - スマホ未接続時はTile上で明示し操作不可にする（BL-007）。
 - Complicationで常時ロック状態を文字盤表示する（BL-009）。
+
+### 複数Sesameデバイス対応方針（BL-046〜BL-055、ユーザー依頼、未実装）
+
+PLAN.mdは単一Sesameデバイスを前提とした要件だったが、複数台（3〜5台程度を想定）のSesame 5を
+1つのアプリから操作したいという追加要件が発生した。既存の`SesameCredentials`/
+`SesameCredentialsStore`/`SesameWearProtocol`/Tile/Complicationはすべて単一デバイス前提の設計
+であり、対応には以下の方針でデータ層からUI層まで変更する。
+
+- **Wear側UX**: 「複数Tileインスタンス方式」を採用する。1つのTileが1台のSesameデバイスに対応し、
+  ユーザーがTileギャラリーから必要な台数分のTileを追加する（Google Wear OSの標準的なマルチ
+  インスタンスパターン）。各Tileはそのデバイス専用の表示名とロック状態のみをシンプルに表示し、
+  タップで即座に対象デバイスへコマンド送信する。3〜5台程度の規模であれば、スワイプでの
+  Tile切り替えは許容範囲であり、単一Tile内にリスト表示する方式より視認性・操作の明確さ
+  （「どのデバイスの」「どんな操作か」が一目で分かる）を優先した。Complicationも同様に、
+  文字盤の複数スロットへそれぞれ異なるデバイスを設定する方式とする。
+- **データモデル**: `core.SesameCredentials`をリスト化し、`displayName`（ユーザーが設定する
+  Sesame名、例:「玄関」）を追加した（BL-046、実装済み）。デバイスの一意識別子は、別途`deviceId`を
+  持たせず、Sesame API上で既に一意な`uuid`をそのまま用いる設計に変更した（概念の重複を避けるため、
+  BACKLOG登録時の想定から簡素化）。`core.SesameCredentialsStore`は
+  `List<SesameCredentials>`全体をkotlinx.serializationでJSON化し単一キーで保存する`saveAll`/
+  `loadAll`/`remove(uuid)`に対応させた（BL-047、実装済み）。
+- **メッセージプロトコル**: `core.SesameWearProtocol`へ`encodeDeviceUuid`/`decodeDeviceUuid`
+  （施錠/解錠コマンドのメッセージペイロードへ対象デバイスの`uuid`をUTF-8バイト列として載せる）と
+  `statusDataItemPath(uuid)`（デバイスごとに一意なDataItemパスを生成し状態同期の衝突を防ぐ）を
+  追加した（BL-048、BL-050、実装済み）。メッセージパス自体（`PATH_LOCK_REQUEST`等）は変更しない。
+- **mobile側**: `CredentialsSettingsScreen`を複数デバイスの一覧・追加・編集・削除ができるUIへ
+  変更し（BL-049、実装済み）、`SesameMessageListenerService`はメッセージペイロードから
+  デコードした`uuid`で対象デバイスの資格情報を選択してAPIを呼び出し、`SesameStatusSyncer`は
+  `statusDataItemPath(uuid)`でデバイスごとに状態同期するよう変更した（BL-050、実装済み）。
+- **wear側Tile Configuration機構の技術調査結果（BL-051、実装済み）**:
+  `androidx.wear.tiles`（本プロジェクトは1.4.1系、`RequestBuilders.TileRequest`/
+  `ComplicationRequest`ベースの旧世代Tiles API。新世代`androidx.wear.protolayout`への移行は
+  対象外）には、Android AppWidgetの`android:configure`属性のような「タイル追加時に自動的に
+  設定Activityを起動する」標準機構は存在しない（`TileService`の`onTileAddEvent`等は通知目的の
+  コールバックであり、バックグラウンドからのActivity自動起動はAndroidのポリシー上一般に
+  許可されないため確実な設定導線にならない）。そのため、**「Tile自体がタップで設定画面へ
+  誘導する」パターン**を採用する: (1) `RequestBuilders.TileRequest`は`getTileId(): Int`を持ち、
+  `TileService.onTileRequest(requestParams)`内で`requestParams.tileId`としてタイル
+  インスタンス固有のIDを取得できる、(2) `tileId`（Int）をキーとして選択デバイスの`uuid`を
+  ローカル永続化する（`SesameKeyValueStore`パターンに倣った実装、DataStore Preferences等の
+  新規依存追加は不要と判断）、(3) 未設定のtileIdの場合、Tile上に「タップして設定」等の誘導
+  表示を出し、タップで`ActionBuilders.LaunchAction`によりConfiguration Activity
+  （通常のAndroid Activity、Intent extraで`tileId`を渡す）を起動する、(4) デバイス選択・保存後は
+  `TileService.getUpdater(context).requestUpdate(SesameTileService::class.java)`で対象Tileの
+  再描画を要求する。Complicationも`ComplicationRequest`から`complicationInstanceId`
+  （インスタンス固有のInt ID）を取得できる想定で、同じパターンを適用する
+  （実際のAPI形状の最終確認はBL-054で行う）。
+  この結果に基づき、Configuration Activityを実装してtileIdごとに対象デバイスを永続化する
+  （BL-052）。`SesameTileService`/`SesameActionActivity`等のコマンド送信経路と
+  `SesameStatusSnapshotReader`をtileId・uuid対応へ変更し（BL-053）、
+  `SesameComplicationDataSourceService`も
+  complicationInstanceIdごとの対象デバイス対応へ変更する（BL-054）。
+- **検証**: 実機（複数のSesame実機）での動作確認はBL-055（人手検証）とする。
 
 ## 非機能要件
 
@@ -394,7 +742,10 @@
     `gradle/libs.versions.toml`に`com.android.dynamic-feature`プラグインを追加登録
     （未登録だとプラグイン解決エラーになる）。`wear/AndroidManifest.xml`に
     `xmlns:dist`名前空間と`dist:module`（`dist:instant=false`、install-time delivery、
-    `dist:fusing dist:include=true`）を追加。
+    `dist:fusing dist:include=true`）を追加。install-time配信には
+    `dist:conditions`/`dist:device-feature`（`dist:name="android.hardware.type.watch"`）を
+    あわせて設定し、`wear`モジュールがwatchハードウェア機能を持つデバイスにのみ配信されるようにした
+    （BL-039、詳細は次段落「ランチャーアイコン重複問題」参照）。
   - **マニフェストマージの副作用と対処**: dynamic feature化後は`mobile`/`wear`の
     `AndroidManifest.xml`が1つにマージされるため、`<application>`要素の属性は両モジュール間で
     一致している必要がある。`android:theme`が競合したため各モジュールの`MainActivity`へ
@@ -419,6 +770,23 @@
     `:mobile:bundleDebug`、`:mobile:bundleRelease`（署名なし、R8 minify込み）の成功を確認済み。
     実機でのインストール・自動プッシュ配信の動作確認、署名済みリリースビルドでの検証はBL-038
     （人手検証）へ計上している。
+  - **ランチャーアイコン重複問題（BL-039〜042）**: 2026-08-22の実機検証（スマホ+Pixel Watchへ
+    `:mobile:installDebug`）で、`dist:module`のinstall-time配信にデバイス種別を絞る条件が
+    なかったため、`wear`のMainActivity（Tile設定画面）がスマホにも、`mobile`のMainActivity
+    （資格情報設定画面、baseモジュールのため常時全デバイスへ配信される）がウォッチにも入り、
+    両デバイスのランチャーにアイコンが2つずつ表示される状態を確認した。対応として、
+    (1) `wear`側は上記のとおり`dist:conditions`/`dist:device-feature`でwatch限定配信へ変更
+    （BL-039、対応済み）。(2) `mobile`はbaseモジュールのためこの条件付け方式では配信自体を
+    止められないため、`mobile/MainActivity.kt`の`onCreate()`冒頭へ
+    `packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)`のガードを追加し、
+    ウォッチ実機で起動された場合は資格情報設定画面を表示せず`finish()`するようにした
+    （BL-040、対応済み。ランチャーアイコン自体は base モジュールである以上ウォッチ側にも残るが、
+    タップしても機能しないUIが表示されることは防止した）。(3) あわせて、wear用ランチャーアイコン
+    （`ic_launcher_wear_foreground.xml`）のコンプリケーション風リングがAdaptive Iconの
+    セーフゾーン（108dp viewport中心から半径33dp）を超えて欠けて表示される別問題も判明し、
+    リング半径を40から30、ストローク幅を5から4へ縮小（外周が中心から32dpとなりセーフゾーン内に
+    収まる）して修正した（BL-041、対応済み）。実機での最終目視確認はBL-042（人手検証）として
+    残っている。
 
 ### 運用制約
 

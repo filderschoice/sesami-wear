@@ -15,9 +15,8 @@ Sesami Wear（mobile / wear）は、CANDY HOUSE Sesameスマートロックを�
 - apikey: CANDY HOUSE APIサーバーへの認証に使用する情報
 - secretKey: 施錠・解錠コマンドの署名（AES-CMAC）に使用する秘密鍵
 
-これらはすべて利用者本人がSesameアプリの「鍵をシェア」機能およびpartners.candyhouse.co
-から取得し、アプリの設定画面で入力する情報であり、本アプリが第三者から取得することは
-ありません。
+これらはすべて利用者本人が biz.candyhouse.co（SESAME Biz 開発者ページ）から取得し、
+アプリの設定画面で入力する情報であり、本アプリが第三者から取得することはありません。
 
 ## 保存方法
 
