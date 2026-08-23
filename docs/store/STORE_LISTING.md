@@ -52,9 +52,16 @@ Watch単体には保持しません。
 - Wear OS 3以降を搭載したスマートウォッチ（Pixel Watchで動作確認予定、BL-011参照）
 - Android 8.0（API 26）以降のスマートフォン（mobile側の対応OSバージョン、BL-034で実機確認予定）
 
+## アプリアイコン
+
+Play Console提出用の512x512 PNG（アルファチャンネルなし）を用意済みです。既存のAdaptive Icon
+（`mobile/src/main/res/drawable/ic_launcher_background.xml` / `ic_launcher_foreground.xml`）の
+デザインをそのままラスタライズしたものです。
+
+- [images/play_store_icon_512.png](images/play_store_icon_512.png)
+
 ## 未確認事項
 
-- 実際のアプリアイコン（Play Console提出用の512x512 PNG）の最終デザインはBL-034で用意します
 - スクリーンショットはBL-034の実機検証時に撮影します
 - 上記の説明文の文字数はGoogle Playの上限内に収まるよう記載していますが、
   実際のPlay Console入力時に再確認が必要です（未確認）

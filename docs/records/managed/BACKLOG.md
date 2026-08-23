@@ -235,9 +235,11 @@
 - id: BL-034
   区分: 人手検証
   タスク内容: BL-032のKeystoreを使ってBL-029のリリース設定で署名付きAAB（mobile/wear）をビルドし、
-    Google Play Consoleでアプリを新規登録（Play Console提出用の高解像度アイコン画像512x512 PNGの
-    用意を含む）、限定公開（内部テストまたはクローズドテスト）トラックへアップロードし、
-    テスターを登録する。実機でのスクリーンショット撮影もあわせて行う
+    Google Play Consoleでアプリを新規登録し、限定公開（内部テストまたはクローズドテスト）
+    トラックへアップロードし、テスターを登録する。実機でのスクリーンショット撮影もあわせて行う。
+    Play Console提出用の高解像度アイコン画像512x512 PNGは
+    docs/store/images/play_store_icon_512.pngとして準備済み（既存のAdaptive Iconデザインを
+    ラスタライズしたもの、docs/store/STORE_LISTING.md「アプリアイコン」参照）
   優先度: P3
   状態: 未着手
   担当: ユーザー
