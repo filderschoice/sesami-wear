@@ -5,6 +5,41 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-23 19:10
+  summary: 施錠/解錠確認画面のボタンを角丸チップの左右分割デザインへ再設計した（BL-070）
+  details:
+    変更内容: >
+      ユーザーから「タップして施錠・解錠を押した後に遷移するtileのボタンが小さくて
+      テキストが見切れている。左右分割で左がキャンセル、右が施錠・解錠のボタンにしたい。
+      デザインはtopと同じ角丸の四角で」との指摘を受けた。原因は
+      wear.action.SesameActionActivityの解錠確認画面が
+      androidx.wear.compose.material.Button（既定で円形・小サイズ）に「タップして解錠」という
+      長いテキストを詰め込んでいたことだった。SesameActionScreenを、awaitingConfirmation時は
+      新設のSesameConfirmationButtons（Row+weight(1f)で左右均等分割）を表示するよう変更し、
+      各ボタンは新設のSesameActionChip（Modifier.clip(RoundedCornerShape(12.dp))
+      .background().clickable()の自作コンポーネント、Wear Compose Materialの円形Buttonは
+      不使用）で実装した。左＝「キャンセル」（タップでonFinishedを呼びコマンド送信せず終了）、
+      右＝「施錠」または「解錠」（コマンドに応じて切り替え、タップで送信フローへ進む）。
+      デザインをTile側（SesameTileService）と統一するため、中立色定数
+      SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB（新規public）へSesameTileServiceが
+      個別に持っていた同名のprivate定数を集約し重複を解消した上でキャンセルボタンへ適用、
+      施錠/解錠ボタンにはSesameTileContent.backgroundColorArgb/statusTextColorArgb
+      （操作後に遷移する状態＝LOCKED/UNLOCKEDに対応する色）を適用し、角丸半径も
+      Tileの角丸チップと同じ12dpに揃えた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功）。Pixel 8 Pro実機・Pixel Watch 2実機の
+      両方へ./gradlew :mobile:installDebugでインストール済み（両実機のワイヤレスデバッグ
+      接続が複数回切断・IP:ポート変更されたため都度再接続した。最終的にはmDNS自動検出接続
+      （adb-38101RTJWW48WP-lx9j39._adb-tls-connect._tcp）で反映を確認）。
+      ユーザーが実機で確認し「イメージどおりにできてた」と確認済み
+    関連ID:
+      - BL-070
+
 - date: 2026-08-23 18:20
   summary: Tile追加ピッカーとTile表示アイコンの分離を試みたがAndroid/Wear OSの仕様上不可能と
     判明し、縮小をクリーン再インストールで再検証する方針へ切り替えた（BL-068）

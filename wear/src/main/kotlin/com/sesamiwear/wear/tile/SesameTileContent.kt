@@ -58,6 +58,12 @@ object SesameTileContent {
             -> COLOR_TEXT_LIGHT
         }
 
+    /**
+     * 状態色と無関係な中立チップ（Tileのデバイス名/デバイス変更チップ、施錠/解錠確認画面の
+     * キャンセルボタン等）に共通で使うダークグレー（BL-063/BL-070）。
+     */
+    const val CHIP_NEUTRAL_COLOR_ARGB = 0xFF424242.toInt()
+
     private const val COLOR_LOCKED_GREEN = 0xFF4CAF50.toInt()
     private const val COLOR_UNLOCKED_RED = 0xFFF44336.toInt()
     private const val COLOR_IN_PROGRESS_AMBER = 0xFFFFC107.toInt()

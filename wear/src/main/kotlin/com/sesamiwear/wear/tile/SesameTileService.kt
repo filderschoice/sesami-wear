@@ -166,7 +166,7 @@ class SesameTileService : TileService() {
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                 .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
                 .setModifiers(
-                    buildChipModifiers(CHIP_NEUTRAL_COLOR_ARGB)
+                    buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
                         .setClickable(refreshClickable)
                         .setSemantics(
                             ModifiersBuilders.Semantics.Builder()
@@ -308,7 +308,7 @@ class SesameTileService : TileService() {
             .setHeight(DimensionBuilders.weight(1f))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .setModifiers(buildChipModifiers(CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
+            .setModifiers(buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
             .addContent(
                 Text.Builder(this, "デバイス変更")
                     .setTypography(Typography.TYPOGRAPHY_CAPTION2)
@@ -419,10 +419,6 @@ class SesameTileService : TileService() {
         const val CHIP_CORNER_RADIUS_DP = 12f
         const val CHIP_INNER_PADDING_DP = 6f
         const val LEFT_COLUMN_WIDTH_DP = 76f
-
-        // 左側2チップ（デバイス名・デバイス変更）用の中立色。状態色は右側チップにのみ適用し、
-        // 領域の区切りとステータス色の意味を区別できるようにする（ユーザー指摘対応）。
-        const val CHIP_NEUTRAL_COLOR_ARGB = 0xFF424242.toInt()
 
         // 左側2チップの中立色（ダークグレー）に対してコントラストを確保する白系テキスト色。
         const val CHIP_NEUTRAL_TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()

@@ -528,6 +528,20 @@
   再適用し、両実機でuninstall後に再インストールした。
   クリーン再インストール後、Tile追加ピッカー・Tile表示・Complicationピッカーいずれの
   アイコンサイズもユーザーが実機で確認し「サイズはいい感じになった」と確認済み（完了）。
+- REQ-043（BL-070、ユーザー報告）: Tileの施錠/解錠チップをタップした後に遷移する
+  `wear.action.SesameActionActivity`の確認画面（解錠時のみ表示、`SesameCommandConfirmation`
+  参照）で、ボタンが小さくテキストが見切れているとの指摘を受けた。原因は
+  `androidx.wear.compose.material.Button`（既定で円形・小サイズ）に「タップして解錠」という
+  長いテキストを詰め込んでいたこと。左＝キャンセル、右＝施錠/解錠、の角丸チップ2つへ
+  再設計した。デザインはTile側（`SesameTileService`）と統一するため、共通の中立色定数
+  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`（新規、`SesameTileService`が個別に持っていた
+  同名の`private`定数をここへ集約し重複を解消）をキャンセルボタンへ、
+  `SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`（操作後に遷移する状態
+  ＝LOCKED/UNLOCKEDに対応する色）を施錠/解錠ボタンへ適用し、角丸半径も同じ12dpに揃えた。
+  角丸Boxは`androidx.compose.foundation`の`Modifier.clip(RoundedCornerShape)`
+  `.background()``.clickable()`を組み合わせた自作コンポーネント
+  （`SesameActionChip`）で実装し、Wear Compose Materialの円形`Button`は使わずテキストの
+  見切れを解消した。ユーザーが実機で確認し「イメージどおりにできてた」と確認済み（完了）。
 
 ## 設計方針
 
