@@ -1,8 +1,9 @@
 # Google Play ストア掲載情報（ドラフト）
 
 Google Play Console提出用のストア掲載情報のドラフトです。実際の入力・公開はBL-034
-（人手検証、限定公開）で行います。本ドラフトはmobile/wear共通のアプリ説明として作成し、
-実際にはmobile用・wear用それぞれ別アプリとして登録が必要です（BL-031の制約参照）。
+（人手検証、限定公開）で行います。`mobile`と`wear`はBL-036で単一の`applicationId`・単一AABへ
+統合済みのため、Google Playには1つのアプリとして登録します（登録先は1ページのみで、
+mobile用・wear用を別アプリとして登録する必要はありません。DESIGN.md「Google Play配布方式」参照）。
 
 ## アプリ名
 
