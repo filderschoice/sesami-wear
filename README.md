@@ -4,6 +4,10 @@ Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid / Wear 
 要件・API仕様の背景は [PLAN.md](PLAN.md)、実装済み内容の詳細設計は
 [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) を参照してください。
 
+> 本アプリは個人による非公式プロジェクトであり、CANDY HOUSE株式会社とは提携・協力関係にありません。
+> 「CANDY HOUSE」「Sesame」は同社の商標または登録商標です。公開されているSesame APIを利用して
+> 実装していますが、CANDY HOUSE社による動作保証・サポート対象外です。
+
 ## アーキテクチャ概要
 
 Android application（`mobile`）とWear OS向けdynamic feature（`wear`）、両者が参照する純Kotlin/JVM
@@ -177,3 +181,8 @@ sesami-wear/
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
 - [CONTRIBUTING.md](CONTRIBUTING.md): 開発プロセス・ブランチ運用・Markdown品質チェック
 - [CLAUDE.md](CLAUDE.md): Claude Code運用ルール（品質ゲート定義を含む）
+
+## ライセンス
+
+[MIT License](LICENSE)。Sesame APIレスポンス構造・コマンド署名アルゴリズムの実装にあたり
+参考にした [pysesame3](https://github.com/mochipon/pysesame3)（MIT License）に感謝します。
