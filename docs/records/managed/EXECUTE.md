@@ -5,6 +5,49 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-23 17:18
+  summary: 管理ドキュメントの最新化・最適化を実施し、DESIGN.mdを履歴蓄積型からFORMAT.md準拠の
+    最新版統合設計書へ全面圧縮した
+  details:
+    変更内容: >
+      ユーザーから「管理している各種ドキュメントの最新化・最適化を現コードベースで実施したい」との
+      依頼を受け、DESIGN.md/BACKLOG.md/EXECUTE.md/README.md/CONTRIBUTING.md/
+      .github/copilot-instructions.md/docs/store配下/docs/INSTALL.md/CHANGELOG.mdを現在の
+      ソースコード・BACKLOG進捗と突き合わせて監査した。
+      BACKLOG.mdの進行中項目（BL-063/064/066/067/071等）はいずれもコード実装済みで実機
+      インストールまで完了しているが、ユーザーによる実機での最終確認待ちの状態が正しく反映されて
+      おり、コードとの齟齬は見つからなかった（BL-052〜054も実装済みと確認、TileConfigurationActivity/
+      ComplicationConfigurationActivity/TileDeviceAssignmentStore/ComplicationDeviceAssignmentStore/
+      SesameDeviceListSyncer/SesameDeviceListReaderの各ソースで裏付け確認済み）。README.md/
+      CONTRIBUTING.md/.github/copilot-instructions.mdもCLAUDE.mdと整合しており変更不要だった。
+      2点の実質的な問題を検出し対応した。
+      (1) docs/store/STORE_LISTING.mdが、BL-036（wearのdynamic feature化、単一AAB・単一
+      applicationId・単一Play Store掲載ページへの統合）以前の制約（BL-031、mobile/wearを別アプリ
+      として登録する必要がある）をそのまま参照しており、実際のPlay Console登録時に誤った手順を
+      招くおそれがあったため、単一アプリとして登録する旨へ修正した。
+      (2) DESIGN.md（801行）が、docs/records/spec/FORMAT.mdの規定
+      （「文書は履歴を積み上げず、最新版を維持する」）に反し、Tileデザインの4回にわたる試行錯誤
+      など個々のイテレーションのやり取りをそのまま累積した「経過日記」になっていた。ユーザーへ
+      AskUserQuestionで扱いを確認し「現状（最終形）だけへ全面圧縮」を選択された。実装済み機能を
+      REQ番号の時系列ではなく機能領域別（暗号・署名/APIクライアント/資格情報管理/プロトコル定義/
+      mobile側処理/wear側送受信/Tile/Complication/操作画面/ハプティクス/エントリポイント/
+      アイコン/リリースビルド/Google Play配布方式/GitHub公開対応/ストア掲載情報）に再構成し、
+      各機能の最終仕様・未確認事項・技術制約（AGPのdynamic feature制約、secretKeyがhex形式である件、
+      detektのLongMethod/TooManyFunctions実測上限、PowerShell BOM問題等）はすべて保持したまま、
+      同一機能に対する複数世代の指摘・修正の応酬（「1回目→指摘→2回目→再指摘→…」の記述）を
+      圧縮した。BL-064（コマンド成功後にTileが自動更新されない未解決問題）等の既知の未解決事項も
+      引き続き明記した。結果、801行から446行（約44%減）になった。REQ-XXXの通し番号はEXECUTE.md
+      （履歴ログ、変更対象外）のみが参照しており他ドキュメントからの参照がないことをgrepで
+      確認した上で除去した。
+    変更ファイル:
+      - docs/records/managed/DESIGN.md
+      - docs/store/STORE_LISTING.md
+    検証コマンド: npx markdownlint-cli2 "**/*.md"
+    検証結果: 成功 - 0 issues in 0 files（23ファイル、DESIGN.md書き換え直後にMD004
+      （リスト記号の不統一、折り返し行頭の"+"がリストマーカーと誤認識された）が1件検出されたため
+      文言を調整し再実行して解消を確認）
+    関連ID: []
+
 - date: 2026-08-23 21:30
   summary: GitHub公開に向けたレビューを実施し、LICENSE追加・非公式アプリの明記・CODEOWNERS修正を行った
   details:
