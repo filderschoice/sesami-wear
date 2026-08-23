@@ -5,6 +5,49 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-071
+  区分: 機能追加
+  タスク内容: ユーザーから「登録済みすべての施錠/解錠を行えるようにしたい。Tileのデバイス選択で
+    全デバイスを選択可能とし、登録済みのデバイスすべてに対して操作を行えるように。ステータス表示は
+    デバイスの状態に依存するのでうまく表現して現状態を表示できるように」との要望があった。
+    対応として以下を実装した。
+    (1) core: SesameWearProtocolへ「全デバイス」を表す特別な値ALL_DEVICES_TARGET_UUID
+    （"__all_devices__"、実際のSesame uuidと衝突しない固定文字列）を追加。
+    TileDisplayStateへMIXED（施錠/解錠が混在）を追加し、isActionableをtrueにした。
+    TileDisplayStateResolverへresolveAggregate（複数デバイスのロック状態リストから集約状態を
+    決定。1台でも未取得(null)があれば安全側でUNKNOWN、全台施錠でLOCKED、全台解錠でUNLOCKED、
+    それ以外はMIXED）を追加。
+    (2) wear.ui.DeviceSelectionScreen: 登録済みデバイスが2台以上の場合のみ先頭に
+    「全デバイス」の選択肢を表示するようにした（Tile/Complication共通の選択画面）。
+    (3) wear.tile.SesameTileStateResolver（新規）: Tile/Complication共通の表示名・状態解決
+    ロジックを集約。対象uuidがALL_DEVICES_TARGET_UUIDの場合は登録済み全デバイスの状態を
+    resolveAggregateで集約し、それ以外は単一デバイスの状態を解決する（DataItemが古い場合の
+    自動状態取得リクエストも両ケースで実施）。SesameTileService/SesameComplicationDataSource
+    Serviceの双方がこれを利用するようリファクタリングした（重複ロジックの排除）。
+    (4) wear.action.SesameActionTargetResolver（新規）: コマンド送信・状態更新の対象uuid一覧を
+    解決（全デバイス時は登録済み全uuidのリスト、それ以外は単一uuid）。SesameActionActivity/
+    SesameStatusRefreshActivityが利用し、全デバイス選択時はループで各デバイスへ個別に
+    lock/unlock/status-requestメッセージを送信する（mobile側は既存の単一デバイス処理をそのまま
+    N回受けるだけで対応可能なため、mobile側の変更は不要）。
+    (5) wear.tile.SesameTileActions: MIXED状態はタップで「全施錠」（迷ったら安全側の方針、
+    UNLOCKのみ確認画面を挟む既存UXと組み合わせて安全側は確認不要のまま維持）。
+    (6) wear.tile.SesameTileContent/wear.complication.SesameComplicationContent: MIXED用の
+    アイコン（🔀）・ラベル（施錠/解錠混在）・背景色（紫）を追加。statusLabel/actionLabelへ
+    isAllDevicesパラメータ（デフォルトfalse）を追加し、全デバイス時は「全施錠中」等の文言に
+    切り替える。
+    (7) wear.action.SesameActionActivity: 施錠/解錠確認画面（BL-070）のボタンラベルも
+    全デバイス時は「全施錠」「全解錠」に切り替える。
+    Complicationは設定済み状態ではtapActionを持たない読み取り専用表示のため、全デバイス選択時も
+    集約状態の表示のみでコマンド送信は行わない（Tile側のみが操作対象）
+  優先度: P1
+  状態: 進行中
+  担当: Claude Code
+  完了条件: 実機（Sesame実機2台以上）でTileのデバイス選択に「全デバイス」が表示され、選択すると
+    登録済み全デバイスの集約状態（全施錠中/全解錠中/施錠解錠混在/状態不明等）が表示され、
+    タップで登録済み全デバイスへ施錠/解錠コマンドが送信されることを確認でき、
+    ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebugが成功する
+  依存: []
+
 - id: BL-067
   区分: バグ修正
   タスク内容: BL-066（ランチャーアイコン重複解消）の実機確認中、ユーザーから「Tileの

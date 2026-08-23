@@ -46,4 +46,12 @@ object SesameWearProtocol {
      */
     const val DEVICE_LIST_DATA_ITEM_PATH = "/sesami-wear/devices"
     const val KEY_DEVICE_LIST_JSON = "device_list_json"
+
+    /**
+     * Tile/Complicationの対象デバイスとして「登録済み全デバイス」を表す特別な値
+     * （BL-071、複数デバイス一括操作）。wear側のデバイス割当ストアへ実際のuuidの代わりに保存し、
+     * Tile/Complication表示・コマンド送信時に判定する。
+     * 実際のSesameデバイスのuuidと衝突しない形式（UUID形式ではない固定文字列）にしている。
+     */
+    const val ALL_DEVICES_TARGET_UUID = "__all_devices__"
 }

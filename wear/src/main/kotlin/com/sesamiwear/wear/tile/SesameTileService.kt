@@ -16,16 +16,13 @@ import androidx.wear.tiles.TileService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
-import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
-import com.sesamiwear.wear.messaging.SesameDeviceListReader
-import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,7 +33,9 @@ import kotlinx.coroutines.launch
  * [TileDeviceAssignmentStore]でtileIdごとに永続化され、未設定の場合はタップで
  * [TileConfigurationActivity]へ誘導するタイルを表示する。
  * スマホ接続状態は[SesameConnectedNodeProvider]、ロック状態はMobile側がDataClient経由で同期した
- * [SesameStatusSnapshotReader]の結果から算出する（BL-015）。
+ * DataItemの結果から[SesameTileStateResolver]が算出する（BL-015）。対象デバイスuuidが
+ * `SesameWearProtocol.ALL_DEVICES_TARGET_UUID`（「全デバイス」選択）の場合は登録済み全デバイスの
+ * 状態を集約表示する（BL-071、複数デバイス一括操作）。
  * タイルを左右2分割し、「左上＝デバイス名」「左下＝デバイス変更」「右全体＝状態アイコン・操作
  * （拡大表示）」の3領域を、それぞれ独立した角丸の背景を持つ「チップ」として表現する（BL-063）。
  * 状態色（施錠中=緑/解錠中=赤等）は右側のチップにのみ適用し、左側2チップは中立色にすることで、
@@ -70,32 +69,9 @@ class SesameTileService : TileService() {
         tileId: Int,
     ): TileBuilders.Tile {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
-        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
-        Log.d(
-            TAG,
-            "buildConfiguredTile tileId=$tileId nodeId=${nodeId != null} " +
-                "isLocked=${snapshot?.isLocked} updatedAtEpochMillis=${snapshot?.updatedAtEpochMillis}",
-        )
-        // コマンド直後の巻き戻り防止のため、DataItemが古い場合のみ状態取得をリクエストする
-        // （BL-061/BL-063、結果は待たずDataItem変更として非同期に届く）。
-        val isSnapshotStale =
-            snapshot == null ||
-                System.currentTimeMillis() - snapshot.updatedAtEpochMillis > STATUS_STALE_THRESHOLD_MILLIS
-        if (nodeId != null && isSnapshotStale) {
-            SesameCommandSenderProvider.create(applicationContext).requestStatus(nodeId, deviceUuid)
-        }
-        val displayName =
-            SesameDeviceListReader.readLatest(applicationContext)
-                .find { it.uuid == deviceUuid }
-                ?.displayName
-                ?.ifBlank { null }
-                ?: deviceUuid
-        val state =
-            TileDisplayStateResolver.resolve(
-                isPhoneConnected = nodeId != null,
-                isCommandInProgress = false,
-                isLocked = snapshot?.isLocked,
-            )
+        val displayName = SesameTileStateResolver.resolveDisplayName(applicationContext, deviceUuid)
+        val state = SesameTileStateResolver.resolveState(applicationContext, deviceUuid, nodeId)
+        Log.d(TAG, "buildConfiguredTile tileId=$tileId nodeId=${nodeId != null} state=$state")
 
         val leftColumn = buildLeftColumn(displayName, deviceUuid, tileId)
         // セーフエリア（内接正方形）からチップがはみ出さないよう、タイル端から内側へ寄せる。
@@ -230,11 +206,12 @@ class SesameTileService : TileService() {
         deviceUuid: String,
         displayName: String,
     ): LayoutElementBuilders.LayoutElement {
+        val isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID
         val modifiersBuilder =
             buildChipModifiers(SesameTileContent.backgroundColorArgb(state))
                 .setSemantics(
                     ModifiersBuilders.Semantics.Builder()
-                        .setContentDescription("$displayName ${SesameTileContent.statusLabel(state)}")
+                        .setContentDescription("$displayName ${SesameTileContent.statusLabel(state, isAllDevices)}")
                         .build(),
                 )
 
@@ -254,12 +231,12 @@ class SesameTileService : TileService() {
                         .build(),
                 )
                 .addContent(
-                    Text.Builder(this, SesameTileContent.statusLabel(state))
+                    Text.Builder(this, SesameTileContent.statusLabel(state, isAllDevices))
                         .setTypography(Typography.TYPOGRAPHY_TITLE2)
                         .setColor(textColor)
                         .build(),
                 )
-        val actionLabel = SesameTileContent.actionLabel(state)
+        val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
         if (actionLabel != null) {
             statusColumnBuilder.addContent(
                 Text.Builder(this, actionLabel)
@@ -407,7 +384,6 @@ class SesameTileService : TileService() {
 
     private companion object {
         const val RESOURCES_VERSION = "1"
-        const val STATUS_STALE_THRESHOLD_MILLIS = 30_000L
 
         // タイル端からチップ全体を内側へ寄せ、円形画面のセーフエリア（内接正方形）からの
         // はみ出しを防ぐための全体パディング（BL-063）。角丸の一部が見切れるとの指摘を受け、

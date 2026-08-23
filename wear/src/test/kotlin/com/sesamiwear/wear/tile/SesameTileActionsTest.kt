@@ -18,6 +18,11 @@ class SesameTileActionsTest {
     }
 
     @Test
+    fun `mixed state offers lock as the safe default`() {
+        assertEquals(SesameCommand.LOCK, SesameTileActions.commandForState(TileDisplayState.MIXED))
+    }
+
+    @Test
     fun `non-actionable states offer no command`() {
         assertNull(SesameTileActions.commandForState(TileDisplayState.IN_PROGRESS))
         assertNull(SesameTileActions.commandForState(TileDisplayState.DISCONNECTED))

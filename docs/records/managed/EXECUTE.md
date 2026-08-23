@@ -5,6 +5,110 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-23 21:30
+  summary: GitHub公開に向けたレビューを実施し、LICENSE追加・非公式アプリの明記・CODEOWNERS修正を行った
+  details:
+    変更内容: >
+      ユーザーから「GitHub登録・公開にあたって不備や対応したほうがいい点がないかレビューして、
+      必要に応じて対応して」「ライセンス侵害などの観点も含めて」との依頼を受けた。
+      現在のツリー・全git履歴を対象に秘密情報のハードコード・local.properties/keystore等の
+      誤コミット・個人情報の混入を確認したが問題は見つからなかった（.gitignoreも適切）。
+      core.api.SesameCommand/SesameCommandSigner/SesameStatusがpysesame3
+      （https://github.com/mochipon/pysesame3）を参照している件についてはWebFetchで
+      同リポジトリのライセンスを確認しMIT Licenseであることを確認した。ソースコードの
+      逐語的コピーではなくプロトコル仕様（コマンドコード・署名アルゴリズム・レスポンス構造）を
+      参照した独自実装であり、コメントで出典も明記済みのため侵害リスクはないと判断した。
+      一方、本リポジトリ自体にLICENSEファイルが存在しないことが判明した（LICENSEがない場合、
+      法的にはデフォルトで著作権者に権利が留保され、公開しても他者による使用・改変・再配布が
+      許可されない状態になる）。ユーザーへAskUserQuestionでライセンス種別を確認した結果、
+      MIT Licenseを選択（Android/Wear OSアプリ・pysesame3参考実装ともに一般的な選択であり、
+      CANDY HOUSE社への影響はライセンス種別ではなく非公式アプリの明記で対応する方針とした）。
+      LICENSEファイル（MIT、Copyright 2026 filderschoice。git logの最古コミットが2026年のため
+      単年表記とした）を新規作成し、READMEへライセンスセクション（pysesame3への謝辞含む）を
+      追加した。あわせてREADME.md/docs/store/STORE_LISTING.mdへ「本アプリは個人による非公式
+      アプリであり、CANDY HOUSE株式会社とは提携・協力関係にない」旨の明記を追加し、
+      .github/CODEOWNERSのプレースホルダー（@your-org/ai-platform等、テンプレート由来の
+      実在しないチーム名）を実際のGitHubユーザー名（@filderschoice）へ修正した。
+    変更ファイル:
+      - LICENSE（新規）
+      - README.md
+      - docs/store/STORE_LISTING.md
+      - .github/CODEOWNERS
+    検証コマンド: npx markdownlint-cli2 "**/*.md"
+    検証結果: 成功 - 0 issues in 0 files（23ファイル）。LICENSE/CODEOWNERSはMarkdown対象外の
+      ためlint対象に含まれないが、内容は目視確認済み
+    関連ID: []
+
+- date: 2026-08-23 20:40
+  summary: Tileから登録済み全デバイスへ一括で施錠/解錠を行える機能を追加した（BL-071）
+  details:
+    変更内容: >
+      ユーザーから「個別デバイスの操作はできたので登録済みすべての施錠/解錠を行うことも
+      できるようにしたい。Tileだとデバイス選択で全デバイスを選択可能とし、登録済みの
+      デバイスすべてに対して操作を行えるように。ステータス表示はデバイスの状態に依存すると
+      思うが、そこはうまく表現して現状態を表示できるように」との要望を受けた。
+      core.SesameWearProtocolへ「全デバイス」を表す特別な値ALL_DEVICES_TARGET_UUID
+      （"__all_devices__"、実際のSesame uuidと衝突しない固定文字列）を追加。
+      core.TileDisplayStateへMIXED（施錠/解錠が混在）を追加しisActionableをtrueにした。
+      core.TileDisplayStateResolverへresolveAggregate（複数デバイスのロック状態リストから
+      集約状態を決定。1台でも未取得(null)があれば安全側でUNKNOWN、全台施錠でLOCKED、
+      全台解錠でUNLOCKED、それ以外はMIXED）を追加。
+      wear.ui.DeviceSelectionScreenは登録済みデバイスが2台以上の場合のみ先頭に「全デバイス」の
+      選択肢を表示するようにした（1台のみの場合は個別選択と等価で冗長なため出さない）。
+      新規wear.tile.SesameTileStateResolverへTile/Complication共通の表示名・状態解決ロジックを
+      集約し、SesameTileService/SesameComplicationDataSourceServiceが重複させていた
+      DataItem読み取り・staleness判定・requestStatus送信のロジックをこちらへ統合した
+      （対象uuidがALL_DEVICES_TARGET_UUIDなら登録済み全デバイスの状態をresolveAggregateで
+      集約、それ以外は単一デバイスの状態を解決）。新規wear.action.SesameActionTargetResolverで
+      コマンド送信・状態更新の対象uuid一覧を解決（全デバイス時は登録済み全uuidのリスト）し、
+      SesameActionActivity/SesameStatusRefreshActivityがループで各デバイスへ個別に
+      lock/unlock/status-requestメッセージを送信するようにした（mobile側の
+      SesameMessageListenerServiceは既存の単一デバイス処理をそのままN回受けるだけで対応でき、
+      mobile側の変更は不要だった）。
+      wear.tile.SesameTileActionsはMIXED状態でタップ時に「全施錠」を提示する（迷ったら安全側の
+      方針）。wear.tile.SesameTileContent/wear.complication.SesameComplicationContentへ
+      MIXED用のアイコン（🔀）・ラベル・背景色（紫）を追加し、statusLabel/actionLabelへ
+      isAllDevicesパラメータ（デフォルトfalse）を追加して全デバイス時は「全施錠中」等の文言に
+      切り替えた。SesameActionActivityの施錠/解錠確認画面（BL-070）のボタンラベルも全デバイス
+      時は「全施錠」「全解錠」に切り替えた。Complicationは設定済み状態ではtapActionを持たない
+      読み取り専用表示のため、全デバイス選択時も集約状態の表示のみでコマンド送信は行わない
+      （Tile側のみが操作対象）。
+      実装にあたり、detektのTooManyFunctions/LongMethod制約（過去のイテレーションで判明した
+      クラス内関数数10以下・関数60行未満の実測上限）を踏まえ、状態解決ロジックを
+      SesameTileService/SesameComplicationDataSourceServiceのクラス内に増やすのではなく、
+      別ファイルの新規object（SesameTileStateResolver/SesameActionTargetResolver）へ切り出す
+      設計にした（既存クラスの関数数を増やさずに機能追加できた）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayState.kt
+      - core/src/main/kotlin/com/sesamiwear/core/TileDisplayStateResolver.kt
+      - core/src/test/kotlin/com/sesamiwear/core/TileDisplayStateResolverTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameWearProtocolTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt（新規）
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileActions.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileActionsTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/tile/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionTargetResolver.kt（新規）
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameStatusRefreshActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（1回で成功、コンパイルエラー・detekt指摘なし。
+      TileDisplayStateにMIXEDを追加したことで既存のexhaustiveなwhen式が軒並みコンパイル
+      エラーになる想定だったが、事前に全箇所を洗い出して同時に修正したため1回で通った）。
+      Pixel 8 Pro実機・Pixel Watch 2実機の両方へ./gradlew :mobile:installDebugでインストール
+      済み。実機での「全デバイス」選択・集約状態表示・一括施錠/解錠動作の確認はユーザー実施予定
+      （Sesame実機2台以上が必要）
+    関連ID:
+      - BL-071
+
 - date: 2026-08-23 19:10
   summary: 施錠/解錠確認画面のボタンを角丸チップの左右分割デザインへ再設計した（BL-070）
   details:

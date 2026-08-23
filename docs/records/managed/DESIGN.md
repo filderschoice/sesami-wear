@@ -542,6 +542,36 @@
   `.background()``.clickable()`を組み合わせた自作コンポーネント
   （`SesameActionChip`）で実装し、Wear Compose Materialの円形`Button`は使わずテキストの
   見切れを解消した。ユーザーが実機で確認し「イメージどおりにできてた」と確認済み（完了）。
+- REQ-044（BL-071、ユーザー要望、対応中）: 個別デバイス操作に加え、登録済み全デバイスへの
+  一括施錠/解錠を可能にする要望を受けた。`core.SesameWearProtocol`へ「全デバイス」を表す
+  特別な値`ALL_DEVICES_TARGET_UUID`（`"__all_devices__"`、実際のSesame uuidと衝突しない
+  固定文字列）を追加。`core.TileDisplayState`へ`MIXED`（施錠/解錠が混在）を追加し
+  `isActionable`を`true`にした。`core.TileDisplayStateResolver`へ`resolveAggregate`
+  （複数デバイスのロック状態リストから集約状態を決定。1台でも未取得(null)があれば安全側で
+  `UNKNOWN`、全台施錠で`LOCKED`、全台解錠で`UNLOCKED`、それ以外は`MIXED`）を追加した。
+  `wear.ui.DeviceSelectionScreen`（Tile/Complication共通の選択画面）は、登録済みデバイスが
+  2台以上の場合のみ先頭に「全デバイス」の選択肢を表示する（1台のみの場合は個別選択と等価で
+  冗長なため出さない）。新規`wear.tile.SesameTileStateResolver`（Tile/Complication共通の
+  表示名・状態解決ロジック。対象uuidが`ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの
+  状態を`resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決。いずれもDataItemが
+  古い場合の自動状態取得リクエストを行う）へ`SesameTileService`/
+  `SesameComplicationDataSourceService`双方の重複していた状態解決ロジックを集約した。
+  新規`wear.action.SesameActionTargetResolver`（コマンド送信・状態更新の対象uuid一覧を解決。
+  全デバイス時は登録済み全uuidのリスト、それ以外は単一uuid）を`SesameActionActivity`/
+  `SesameStatusRefreshActivity`が利用し、全デバイス選択時はループで各デバイスへ個別に
+  lock/unlock/status-requestメッセージを送信する（mobile側の`SesameMessageListenerService`は
+  既存の単一デバイス処理をそのままN回受けるだけで対応でき、mobile側の変更は不要だった）。
+  `wear.tile.SesameTileActions`は`MIXED`状態でタップ時に「全施錠」を提示する（迷ったら安全側の
+  方針、`UNLOCK`のみ確認画面を挟む既存UXと組み合わせて安全側は確認不要のまま維持）。
+  `wear.tile.SesameTileContent`/`wear.complication.SesameComplicationContent`へ`MIXED`用の
+  アイコン（🔀）・ラベル（「施錠/解錠混在」）・背景色（紫）を追加し、`statusLabel`/
+  `actionLabel`へ`isAllDevices`パラメータ（デフォルト`false`）を追加、全デバイス時は
+  「全施錠中」「タップで全解錠」等の文言に切り替える。`SesameActionActivity`の施錠/解錠確認
+  画面（BL-070）のボタンラベルも全デバイス時は「全施錠」「全解錠」に切り替える。Complicationは
+  設定済み状態では`tapAction`を持たない読み取り専用表示のため、全デバイス選択時も集約状態の
+  表示のみでコマンド送信は行わない（Tile側のみが操作対象）。
+  **未完了**: 実機（Sesame実機2台以上）での動作確認はユーザーの都合がつき次第実施予定
+  （BL-071完了条件）。
 
 ## 設計方針
 

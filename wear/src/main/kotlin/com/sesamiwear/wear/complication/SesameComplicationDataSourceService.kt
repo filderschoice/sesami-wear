@@ -9,10 +9,8 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.TileDisplayStateResolver
-import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
-import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
+import com.sesamiwear.wear.tile.SesameTileStateResolver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,9 +21,13 @@ import kotlinx.coroutines.launch
  * 「複数Complicationインスタンス方式」を採る（BL-054、[com.sesamiwear.wear.tile.SesameTileService]
  * と同型）。対象デバイスは[ComplicationDeviceAssignmentStore]でinstanceIdごとに永続化され、
  * 未設定の場合はタップで[ComplicationConfigurationActivity]へ誘導するtapActionを設定する。
- * スマホ接続状態・ロック状態は[SesameConnectedNodeProvider]・[SesameStatusSnapshotReader]から
- * 取得する（BL-015）。Android Complications APIへの依存のためユニットテスト対象外
- * （表示文言ロジックは[SesameComplicationContent]でテスト済み、実機表示確認はBL-055で人手検証）。
+ * スマホ接続状態・ロック状態は[SesameConnectedNodeProvider]・[SesameTileStateResolver]から
+ * 取得する（BL-015）。対象デバイスuuidが`SesameWearProtocol.ALL_DEVICES_TARGET_UUID`
+ * （「全デバイス」選択）の場合は登録済み全デバイスの状態を集約表示する（BL-071、複数デバイス
+ * 一括操作。Complicationは設定済み状態ではtapActionを持たない読み取り専用表示のため、
+ * 集約表示のみでコマンド送信は行わない）。Android Complications APIへの依存のため
+ * ユニットテスト対象外（表示文言ロジックは[SesameComplicationContent]でテスト済み、
+ * 実機表示確認はBL-055で人手検証）。
  */
 class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     override fun onComplicationRequest(
@@ -48,21 +50,7 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
 
     private suspend fun buildConfiguredComplicationData(deviceUuid: String): ComplicationData {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
-        val snapshot = SesameStatusSnapshotReader.readLatest(applicationContext, deviceUuid)
-        // コマンド実行直後の巻き戻り防止のため、DataItemが一定時間以上古い場合のみ状態取得を
-        // リクエストする（BL-061/BL-063、SesameTileServiceと同様の対応）。
-        val isSnapshotStale =
-            snapshot == null ||
-                System.currentTimeMillis() - snapshot.updatedAtEpochMillis > STATUS_STALE_THRESHOLD_MILLIS
-        if (nodeId != null && isSnapshotStale) {
-            SesameCommandSenderProvider.create(applicationContext).requestStatus(nodeId, deviceUuid)
-        }
-        val state =
-            TileDisplayStateResolver.resolve(
-                isPhoneConnected = nodeId != null,
-                isCommandInProgress = false,
-                isLocked = snapshot?.isLocked,
-            )
+        val state = SesameTileStateResolver.resolveState(applicationContext, deviceUuid, nodeId)
         return buildComplicationData(SesameComplicationContent.shortText(state))
     }
 
@@ -91,9 +79,5 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         return ShortTextComplicationData.Builder(text = complicationText, contentDescription = complicationText)
             .setTapAction(tapAction)
             .build()
-    }
-
-    private companion object {
-        const val STATUS_STALE_THRESHOLD_MILLIS = 30_000L
     }
 }

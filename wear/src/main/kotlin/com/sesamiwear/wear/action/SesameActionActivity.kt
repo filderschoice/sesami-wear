@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.api.SesameCommandConfirmation
@@ -42,6 +43,8 @@ import com.sesamiwear.wear.tile.SesameTileContent
  * 施錠（LOCK）はワンタップ即実行、解錠（UNLOCK）は確認ボタンを挟む（PLAN.mdのUX要件）。
  * コマンド送信はFire-and-forgetで行い、実行結果（成功/失敗）のリアルタイム反映とハプティクスはBL-008で扱う。
  * 操作対象デバイスのuuid（BL-053、tileIdに割り当てられたデバイス）をIntent extra経由で受け取る。
+ * uuidが[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択）の場合は登録済み
+ * 全デバイスへ同一コマンドを送信する（BL-071、複数デバイス一括操作）。
  */
 class SesameActionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,9 +94,12 @@ private fun SesameActionScreen(
             val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context)
             if (nodeId != null) {
                 val sender = SesameCommandSenderProvider.create(context)
-                when (command) {
-                    SesameCommand.LOCK -> sender.requestLock(nodeId, deviceUuid)
-                    SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, deviceUuid)
+                val targetUuids = SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid)
+                targetUuids.forEach { targetUuid ->
+                    when (command) {
+                        SesameCommand.LOCK -> sender.requestLock(nodeId, targetUuid)
+                        SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, targetUuid)
+                    }
                 }
             }
             onFinished()
@@ -103,6 +109,7 @@ private fun SesameActionScreen(
     if (awaitingConfirmation) {
         SesameConfirmationButtons(
             command = command,
+            isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
             onCancel = onFinished,
             onConfirm = {
                 awaitingConfirmation = false
@@ -125,11 +132,13 @@ private fun SesameActionScreen(
 @Composable
 private fun SesameConfirmationButtons(
     command: SesameCommand,
+    isAllDevices: Boolean,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     val resultingState = if (command == SesameCommand.LOCK) TileDisplayState.LOCKED else TileDisplayState.UNLOCKED
-    val actionLabel = if (command == SesameCommand.LOCK) "施錠" else "解錠"
+    val actionLabel =
+        (if (command == SesameCommand.LOCK) "施錠" else "解錠").let { if (isAllDevices) "全$it" else it }
 
     Row(
         modifier = Modifier.fillMaxSize().padding(12.dp),

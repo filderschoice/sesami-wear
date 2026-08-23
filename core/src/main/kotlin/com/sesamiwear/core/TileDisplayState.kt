@@ -7,11 +7,17 @@ package com.sesamiwear.core
 enum class TileDisplayState {
     LOCKED,
     UNLOCKED,
+
+    /**
+     * 複数デバイス一括操作（BL-071、「全デバイス」選択時）で、施錠中/解錠中のデバイスが
+     * 混在している状態。
+     */
+    MIXED,
     IN_PROGRESS,
     DISCONNECTED,
     UNKNOWN,
     ;
 
     val isActionable: Boolean
-        get() = this == LOCKED || this == UNLOCKED
+        get() = this == LOCKED || this == UNLOCKED || this == MIXED
 }

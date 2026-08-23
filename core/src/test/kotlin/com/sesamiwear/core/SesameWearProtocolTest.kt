@@ -36,4 +36,9 @@ class SesameWearProtocolTest {
         assertEquals("/sesami-wear/status/uuid-a", pathA)
         assertEquals("/sesami-wear/status/uuid-b", pathB)
     }
+
+    @Test
+    fun `all devices target uuid is a stable sentinel string`() {
+        assertEquals("__all_devices__", SesameWearProtocol.ALL_DEVICES_TARGET_UUID)
+    }
 }

@@ -22,7 +22,9 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
  * Tile表示時の自動状態取得（BL-061、DataItemが30秒以上古い場合のみ）とは別に、
  * ユーザーが任意のタイミングで最新状態を取得し直せる導線として設ける。施錠/解錠は行わず、
  * [com.sesamiwear.wear.messaging.SesameCommandSender.requestStatus]をFire-and-forgetで
- * 送信するのみで、結果はDataItem変更として非同期に届く。
+ * 送信するのみで、結果はDataItem変更として非同期に届く。uuidが
+ * [com.sesamiwear.core.SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択）の
+ * 場合は登録済み全デバイスへ状態取得をリクエストする（BL-071、複数デバイス一括操作）。
  */
 class SesameStatusRefreshActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +62,10 @@ private fun SesameStatusRefreshScreen(
     LaunchedEffect(deviceUuid) {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context)
         if (nodeId != null) {
-            SesameCommandSenderProvider.create(context).requestStatus(nodeId, deviceUuid)
+            val sender = SesameCommandSenderProvider.create(context)
+            SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid).forEach { targetUuid ->
+                sender.requestStatus(nodeId, targetUuid)
+            }
         }
         onFinished()
     }
