@@ -25,3 +25,6 @@ Thumbs.db
 
 # Node（markdownlint-cli2 をローカル導入する場合）
 node_modules/
+
+# ローカル専用メモ（リポジトリ管理対象外、手順書・作業メモ等）
+*.local.md

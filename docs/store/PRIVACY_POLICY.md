@@ -58,4 +58,4 @@ apikey・secretKeyは、施錠・解錠・状態取得のためにCANDY HOUSE社
 
 ## お問い合わせ先
 
-[お問い合わせ先メールアドレスを記載してください（未確認、公開前にBL-033で設定）]
+filderschoice.release@gmail.com
