@@ -51,10 +51,11 @@
   - HTTP非成功時は共通して`core.api.SesameApiException`を送出する。
   - MockWebServerを用いた単体テストで、レスポンスパース（施錠中/解錠中/未知フィールドの無視）・
     リクエストボディ・HTTPメソッド・パス・ヘッダー・異常系の例外送出を検証済み。
-  - **未確認事項**: 上記フィールド構成・署名仕様は参考実装pysesame3
+  - 上記フィールド構成・署名仕様は参考実装pysesame3
     (<https://github.com/mochipon/pysesame3>)のソースコード（2026-08-19時点mainブランチ、
     `cloud.py`/`const.py`）を読んで判明した内容であり、CANDY HOUSE公式ドキュメントそのものは
-    未参照。実機疎通確認（BL-010、人手検証）で最終確認する必要がある。
+    未参照だが、実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
+    SesameStatusのデコードエラーが発生しないことを確認済み（BL-010、人手検証）。
 
 ### 資格情報管理（複数デバイス対応）
 
@@ -278,7 +279,7 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
 - 署名設定（BL-028）: `mobile`/`wear`のbuild.gradle.ktsで`local.properties`（`.gitignore`対象）から
   `RELEASE_STORE_FILE`/`RELEASE_STORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`を読み込み、
   存在する場合のみ`signingConfigs.release`を構築する。未設定時は`assembleDebug`/`assembleRelease`
-  ともunsignedのまま成功する。Keystoreの実際の生成はBL-032（人手検証）。
+  ともunsignedのまま成功する。Keystoreの実際の生成は完了済み（BL-032、人手検証）。
 - ProGuard/R8（BL-029）: `mobile`/`wear`双方の`proguard-rules.pro`にkotlinx.serializationの
   `@Serializable`クラス・`$$serializer`・`serializer()`companionを保護するkeepルールを追加し、
   リリースビルドは`isMinifyEnabled=true`。
@@ -404,8 +405,9 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
   - secretKey/apikey/uuidは`mobile`側のみで保持し、`EncryptedSharedPreferences`で暗号化保存する。
   - ログへの秘密情報出力を禁止する（`rules/guardrails-unified.v1.md` 3.3/4.2）。実装上、
     資格情報を扱うクラスは`android.util.Log`等のログ出力を一切使用していない。
-  - 実資格情報を用いた検証はBACKLOGで`区分: 人手検証`として自動実行対象から除外する
-    （BL-010, BL-011）。AES-CMACの自動テストはRFC 4493公開テストベクタとダミー鍵のみを用いる。
+  - 実資格情報を用いた検証はBACKLOGで`区分: 人手検証`として自動実行対象から除外している。
+    AES-CMACの自動テストはRFC 4493公開テストベクタとダミー鍵のみを用いる。
+    Sesame実機での疎通確認・Pixel Watch実機での一連の操作確認は完了済み（BL-010, BL-011）。
 
 ## 実装制約
 
@@ -415,7 +417,7 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
   通らない）。状態取得（GET）はx-api-keyヘッダーのみで可能。エンドポイント・署名生成の詳細は
   「実装済み機能要件 > Sesame APIクライアント」参照。仕様の一次情報源は参考実装pysesame3
   (<https://github.com/mochipon/pysesame3>)のソースコードであり、CANDY HOUSE公式ドキュメント
-  そのものは未参照（実機疎通確認BL-010で最終確認する必要がある未確認事項）。
+  そのものは未参照だが、実機疎通確認（BL-010）で最終確認済み。
 - secretKeyは16進数文字列（32文字=16バイト）であり、Base64ではない（BL-058）。apikey/uuid/
   secretKeyはいずれも`biz.candyhouse.co`（SESAME Biz 開発者ページ）から取得する
   （`partners.candyhouse.co`ではない、BL-057, BL-059）。
