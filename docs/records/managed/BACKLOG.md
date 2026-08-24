@@ -207,20 +207,6 @@
     - BL-037
     - BL-034
 
-- id: BL-032
-  区分: 人手検証
-  タスク内容: keytoolコマンド（BL-028で整備した署名設定に対応する形でREADME.mdへ記載する手順）で
-    リリース署名用Keystoreを生成し、安全な場所（パスワードマネージャ等）に保管する。秘密鍵の生成・
-    保管は自律ループ実行モードの対象外（rules/guardrails-unified.v1.md セクション12.5「実資格情報の
-    取り扱い」参照）
-  優先度: P2
-  状態: 未着手
-  担当: ユーザー
-  完了条件: Keystoreが生成され、BL-028で用意したlocal.properties経由の署名設定から参照できる
-    状態になる
-  依存:
-    - BL-028
-
 - id: BL-033
   区分: 人手検証
   タスク内容: BL-030で作成したプライバシーポリシーを公開可能なURLでホスティングし、Google Play
@@ -245,44 +231,9 @@
   担当: ユーザー
   完了条件: Google Play Consoleでテスタートラックにアップロードされ、テスターがインストールできる
   依存:
-    - BL-011
     - BL-029
     - BL-030
-    - BL-032
     - BL-033
 
-- id: BL-010
-  区分: 人手検証
-  タスク内容: 実資格情報（uuid/secretKey/apikey）を用いてSesame APIの状態取得・施錠・解錠を疎通確認する。
-    SesameStatus（batteryVoltage/position/CHSesame2Status。isInLockRange/isInUnlockRangeは
-    CHSesame2Statusからの導出値）のフィールド構成が実際のレスポンスと一致するか、
-    施錠/解錠コマンドの署名・ペイロード仕様（DESIGN.md記載、pysesame3参照で判明した推測）が
-    実際に通るかもあわせて確認する（未確認事項、DESIGN.md参照）
-  優先度: P2
-  状態: 未着手
-  担当: ユーザー
-  完了条件: 実際のSesame 5 + Hub 3に対してGET状態取得・POST施錠/解錠が成功し、
-    SesameStatusのデコードエラーが発生しないことを確認する
-  依存:
-    - BL-003
-    - BL-004
-
-- id: BL-011
-  区分: 人手検証
-  タスク内容: Pixel Watch実機 + Sesame 5実機でTileの施錠/解錠操作・ハプティクス・Complication表示を確認する
-  優先度: P2
-  状態: 未着手
-  担当: ユーザー
-  完了条件: 実機で一連の操作が成功し、PLAN.mdのUX要件を満たすことを確認する
-  依存:
-    - BL-007
-    - BL-008
-    - BL-009
-    - BL-010
-    - BL-013
-    - BL-014
-    - BL-015
-    - BL-016
-    - BL-022
 ```
 <!-- COPILOT_RECORDS:END -->
