@@ -4,6 +4,21 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- コンプリケーション風のリング（下部に隙間）。Wear OSのTile/Complicationと地続きの意匠にする装飾。
+         ic_launcher_wear_foreground.xml と同一の意匠をランチャーアイコンにも適用する（BL-072）。
+         wear側はTileピッカーでの見え方に合わせて全体を50%縮小しているが、ランチャーアイコンは
+         等倍で描画する。半径30・ストローク幅4のため外周は中心(54,54)から32dpとなり、Adaptive Iconの
+         セーフゾーン（108dp viewport中心から半径33dp、Google公式ガイドライン）内に収まる。 -->
+    <path
+        android:pathData="M84,54 A30,30 0 1 1 24,54 A30,30 0 1 1 84,54"
+        android:strokeColor="#C99A46"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.55"
+        android:strokeLineCap="round"
+        android:trimPathStart="0"
+        android:trimPathEnd="0.72"
+        android:trimPathOffset="0.39"
+        android:fillColor="#00000000" />
     <!-- 南京錠のシャックル（弧の部分）。ストロークのみで描画する。 -->
     <path
         android:pathData="M43,58 L43,49 A11,11 0 0 1 65,49 L65,58"

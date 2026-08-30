@@ -5,105 +5,62 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-071
-  区分: 人手検証
-  タスク内容: 登録済み全デバイスへの一括施錠/解錠機能（Tileのデバイス選択に「全デバイス」を追加し、
-    集約状態表示と一括コマンド送信を行う）はコード実装・品質ゲート（ktlintCheck/detekt/lintDebug/
-    testDebugUnitTest/assembleDebug）・実機インストールまで完了済み（実装詳細はDESIGN.md
-    「実装済み機能要件」、実施記録はEXECUTE.md 2026-08-23 20:40参照）。実機での最終動作確認が
-    残っている
+- id: BL-072
+  区分: 不具合対応
+  タスク内容: 文字盤のComplication枠にSesami Wearを配置しデバイスを割り当てても、状態文言
+    （「施錠」「解錠」「未接続」等）が一切表示されず空欄のままになる（2026-08-30の実機確認、
+    Wear OS 7のPixel Watch）。同一の SesameTileStateResolver を使うTile側は正しく状態表示できて
+    いるため、状態解決ロジックではなくComplication固有の要因を疑う。切り分け観点は
+    (a) 配置した文字盤の枠が要求するComplicationTypeがSHORT_TEXT以外
+    （SesameComplicationDataSourceServiceはSUPPORTED_TYPES=SHORT_TEXTのみ、getPreviewDataも
+    SHORT_TEXT以外はnullを返す）、(b) onComplicationRequestがCoroutineScope(Dispatchers.IO)から
+    listener.onComplicationDataを呼ぶ非同期実装のため、Wearable API呼び出しの遅延・例外で
+    listenerが呼ばれずデータ未返却になっている、(c) UPDATE_PERIOD_SECONDS=0のため
+    ComplicationDataSourceUpdateRequesterでの更新要求のみが更新契機となっており、
+    ComplicationConfigurationActivityからのrequestUpdateが届いていない、の3点
   優先度: P1
   状態: 未着手
-  担当: ユーザー
-  完了条件: 実機（Sesame実機2台以上）でTileのデバイス選択に「全デバイス」が表示され、選択すると
-    登録済み全デバイスの集約状態（全施錠中/全解錠中/施錠解錠混在/状態不明等）が表示され、
-    タップで登録済み全デバイスへ施錠/解錠コマンドが送信されることを確認する
-  依存: []
-
-- id: BL-067
-  区分: 人手検証
-  タスク内容: Tileのデバイス切り替え時に無関係な画面（「Sesami Wear」等）が一瞬表示され、
-    施錠/解錠ボタンの状態がおかしくなる問題への対応（taskAffinity共有によるタスク残留が原因と
-    推測、関連5Activityへのandroid:noHistory/excludeFromRecents付与、mobile.MainActivityの
-    startActivityへのFLAG_ACTIVITY_NEW_TASK明示付与）はコード実装・品質ゲートまで完了済み
-    （実装詳細はDESIGN.md、実施記録はEXECUTE.md参照）。実機での最終動作確認が残っている
-  優先度: P1
-  状態: 未着手
-  担当: ユーザー
-  完了条件: Tileのデバイス切り替え後に無関係な画面（「Sesami Wear」等）が表示されず、
-    施錠/解錠ボタンの状態・動作が常に正しく反映されることを実機で確認する
-  依存:
-    - BL-066
-
-- id: BL-066
-  区分: 人手検証
-  タスク内容: mobile/wear双方の実機でアプリアイコンが2つ表示され、mobileの設定画面が開けない
-    問題への対応（wear.MainActivityのLAUNCHER intent-filter除去、mobile.MainActivityからの
-    explicit Intentによる委譲実装）はコード実装・品質ゲートまで完了済み（実装詳細はDESIGN.md、
-    実施記録はEXECUTE.md参照）。実機での最終動作確認が残っている
-  優先度: P1
-  状態: 未着手
-  担当: ユーザー
-  完了条件: mobile/wear双方の実機でアプリアイコンが1つのみ表示され、スマホでは資格情報設定画面、
-    ウォッチではwear.MainActivityの画面が正しく開くことを確認する
-  依存: []
-
-- id: BL-064
-  区分: 人手検証
-  タスク内容: 施錠/解錠コマンド成功後にTileの状態表示が自動更新されない問題について、
-    再描画タイミングの調整（コマンド結果受信時の即時再描画リクエスト、requestStatus送信を
-    DataItemが30秒以上古い場合のみに制限）を実施したが、実機再検証で「自動的に最新状態に
-    切り替わってはいなさそうにみえる」との再報告があり未解決の可能性が残っている。原因切り分け用に
-    SesameMessageListenerService（mobile）へLog.d呼び出しを追加済み（コマンド受信・デバウンス判定・
-    API実行結果・DataItem同期・結果送信の各段階、実装詳細はDESIGN.md「既知の未解決事項」、
-    実施記録はEXECUTE.md参照）。次回実機操作時にlogcatで(a) mobile側コマンド処理の成否、
-    (b) DataItem同期のタイミング、(c) wear側Tile再描画リクエストの発火有無、を突き合わせて
-    真因を特定する必要がある
-  優先度: P1
-  状態: 未着手
-  担当: ユーザー
-  完了条件: コマンド成功後にTileが自動的に最新状態へ更新されることを実機で確認する。未解決の場合は
-    採取したlogcatの記録を持って次の原因調査（コード修正）へ引き継ぐ
-  依存: []
-
-- id: BL-063
-  区分: 人手検証
-  タスク内容: Tileのデザイン（デバイス名・状態アイコン・操作ラベル・デバイス変更ボタンを左右2分割の
-    角丸チップとして表示、状態色は右チップのみに適用、デバイス名タップでの状態更新）は
-    複数回の指摘対応を経てコード実装・品質ゲートまで完了済み（実装詳細はDESIGN.md、実施記録は
-    EXECUTE.md参照）。実機での最終見た目・操作確認が残っている
-  優先度: P1
-  状態: 未着手
-  担当: ユーザー
-  完了条件: Tileにデバイス名・状態アイコン・操作ラベル・デバイス変更ボタンが左右2分割の角丸チップ
-    として画面内に見切れず表示され、状態色が右チップのみに適用され、全テキストが背景色に対し
-    十分なコントラストで視認でき、デバイス名タップで状態更新が行われることを実機で確認する
+  担当: Claude Code
+  完了条件: Complication枠にデバイスを割り当てた後、対象デバイスの状態文言が文字盤に表示され、
+    品質ゲート（ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebug）が成功する
   依存: []
 
 - id: BL-055
   区分: 人手検証
-  タスク内容: BL-053/BL-054完了後、実機（Pixel Watch + 複数のSesame 5実機、3〜5台相当）で
-    複数Tileインスタンスをそれぞれ異なるSesameデバイスに設定し、各Tileのロック状態表示・
-    施錠/解錠操作・ハプティクスと、各Complicationの表示が正しく対象デバイスと対応することを確認する
+  タスク内容: 2026-08-30の実機確認（Wear OS 7のPixel Watch）で、同一Tileを複数追加することが
+    できないと判明した。Watch上の文字盤長押し→タイル編集の「＋」でも、スマホのPixel Watch
+    アプリのタイル管理画面でも、追加済みのSesami Wearはチェック済みとして扱われ再選択できない。
+    コード側はtileIdごとに対象デバイスを永続化する多重インスタンス対応済み
+    （SesameTileService/TileDeviceAssignmentStore、BL-052）であり、wear/AndroidManifest.xmlの
+    TileService定義にも多重追加を妨げる指定はないため、Wear OS側のタイル（ウィジェット）管理UIの
+    制約と考えられる（未確認）。ユーザー判断により、複数Tileインスタンスの検証は現行環境で
+    実施不可として完了条件から外し、単一Tileでのデバイス切り替えと複数Complicationでの
+    デバイス別表示に検証範囲を縮小する。Complication側は複数枠への配置とデバイス割り当てまでは
+    できたが状態が表示されない問題が判明しており、BL-072として分離した
   優先度: P2
   状態: 未着手
   担当: ユーザー
-  完了条件: 複数台のSesame実機に対し、それぞれ独立したTile/Complicationで誤りなく施錠/解錠操作と
-    状態表示ができることを確認する
+  完了条件: BL-072完了後、実機（Pixel Watch + 複数のSesame 5実機）で(1)単一Tileのデバイス切り替えに
+    より各デバイスの状態表示・施錠/解錠操作・ハプティクスが誤りなく対象デバイスへ対応すること、
+    (2)文字盤の複数Complication枠にそれぞれ異なるデバイスを割り当て、各枠が対応するデバイスの
+    状態を表示すること、の2点を確認する
   依存:
-    - BL-053
-    - BL-054
+    - BL-072
 
 - id: BL-042
   区分: 人手検証
-  タスク内容: BL-041のリング寸法修正後、実機（スマホ・Pixel Watch）でwearのランチャーアイコンを
-    目視確認し、コンプリケーション風リングがマスク形状で欠けずに表示されることを確認する
+  タスク内容: 2026-08-30の実機確認で、スマホ・Pixel Watch双方のアプリ一覧でコンプリケーション風
+    リングが全く表示されないことが判明した。原因は、mobile/wear統合（BL-036）と1アイコン統一
+    （BL-066）によりランチャーへ表示されるアイコンがmobileのic_launcher_foreground.xmlのみと
+    なった一方、リングのpathは Tile/Complicationピッカー用の ic_launcher_wear_foreground.xml
+    にしか存在しなかったこと。対応としてic_launcher_foreground.xmlへ等倍のリングpathを追加済み
+    （実施記録はEXECUTE.md参照）。この修正を反映したビルドでの実機再確認が残っている
   優先度: P2
   状態: 未着手
   担当: ユーザー
-  完了条件: 実機のランチャー・アプリ一覧でwearアイコンのリングが欠けずに表示されることを確認する
-  依存:
-    - BL-041
+  完了条件: 実機（スマホ・Pixel Watch）のランチャー・アプリ一覧でアプリアイコンのリングが
+    欠けずに表示されることを確認する
+  依存: []
 
 - id: BL-038
   区分: 人手検証

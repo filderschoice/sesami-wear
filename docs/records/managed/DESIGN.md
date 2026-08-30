@@ -199,6 +199,12 @@
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」
   （BL-052）。選択画面は`wear.ui.DeviceSelectionScreen`（Tile/Complication共通）を用いる。
+- **未確認事項**: 上記の多重インスタンス対応はコード側では実装済みだが、実機（Wear OS 7の
+  Pixel Watch、2026-08-30確認）では同一Tileを2つ以上追加できない。Watch上のタイル編集の「＋」でも
+  スマホのPixel Watchアプリのタイル管理画面でも、追加済みのタイルはチェック済み扱いで再選択でき
+  ない。`wear/AndroidManifest.xml`のTileService定義に多重追加を妨げる指定はなく、Tiles APIにも
+  多重追加を制御するフラグは存在しないため、Wear OS側のタイル（ウィジェット）管理UIの制約と
+  推測されるが未確認（BL-055）。このため実運用では単一Tileのデバイス切り替えが主な使い方となる。
 
 ### Complication
 
@@ -256,20 +262,26 @@
 ### Androidアイコンリソース
 
 VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃紺）は`mobile`/`wear`共通。
-前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」をモチーフとする。
+前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」をモチーフとし、その周囲にコンプリケーション風
+リング（下部に隙間、`trimPathEnd=0.72`/`trimPathOffset=0.39`）を配する。リング寸法は半径30・
+ストローク幅4で、外周が中心(54,54)から32dpとなりAdaptive Iconのセーフゾーン（108dp viewport中心から
+半径33dp）に収まる（BL-041）。
 
-- `mobile`固有: `mobile/src/main/res/`の`ic_launcher_background.xml`/`ic_launcher_foreground.xml`/
-  `ic_launcher.xml`/`ic_launcher_round.xml`。
-- `wear`固有（コンプリケーション風リング意匠あり）: `ic_launcher_wear_background.xml`/
-  `ic_launcher_wear_foreground.xml`/`ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
+- ランチャーアイコン: `mobile/src/main/res/`の`ic_launcher_background.xml`/
+  `ic_launcher_foreground.xml`/`ic_launcher.xml`/`ic_launcher_round.xml`。
+  `mobile/AndroidManifest.xml`の`android:icon`/`android:roundIcon`から参照する。
+  mobile/wear統合（BL-036）と1アイコン統一（BL-066）により、スマホ・Watch双方のランチャーへ表示
+  されるのはこのアイコンのみとなるため、リング意匠も等倍でこちらに含める（BL-042）。
+- Tile/Complicationピッカー用: `ic_launcher_wear_background.xml`/`ic_launcher_wear_foreground.xml`/
+  `ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
   **`mobile/src/main/res/`側に配置**している（`wear`モジュール側には置いていない。AGPの制約で
   dynamic featureの`AndroidManifest.xml`が参照するリソースはbase module側に存在する必要があるため。
-  `wear/AndroidManifest.xml`からは`@mipmap/ic_launcher_wear`等の名前で参照する）。
-  - リング半径30・ストローク幅4（外周が中心から32dp、Adaptive Iconのセーフゾーン＝108dp viewport
-    中心から半径33dpに収まる、BL-041）。
-  - Tile追加ピッカー用に、`ic_launcher_wear_foreground.xml`の全パスを`<group android:scaleX="0.5"
-    android:scaleY="0.5" android:pivotX="54" android:pivotY="54">`で包み中心基準50%縮小している
-    （BL-068。Tile表示時アイコンとピッカーアイコンは同一リソースしか持てないため、両方に反映される）。
+  `wear/AndroidManifest.xml`のTileService/ComplicationDataSourceServiceの`android:icon`から
+  `@mipmap/ic_launcher_wear`の名前で参照する）。
+  - Tile追加ピッカーでの見え方に合わせ、`ic_launcher_wear_foreground.xml`の全パスを
+    `<group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54" android:pivotY="54">`で
+    包み中心基準50%縮小している（BL-068。Tile表示時アイコンとピッカーアイコンは同一リソースしか
+    持てないため、両方に反映される）。ランチャーアイコン側はこの縮小を行わない。
 - **未確認事項**: 図案はXMLパスの手書きによるものであり、視覚的な洗練度はデザイナーによる最終調整を
   前提としていない。Google Play Console提出に必要な高解像度アイコン画像（512x512 PNG）はXMLベースの
   生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
