@@ -80,3 +80,33 @@ Claude Code セッション開始時に自動読み込みされる文字数が�
   - 「ディレクトリと参照関係」の `CLAUDE.md` 項目説明を、import構成の変更に合わせて更新。
   - 上記の結果、自動読み込み合計は約55,800文字から約39,500文字（約29%減）になった。
   コード変更を伴わないため`EXECUTE.md`は更新していない。
+
+## 2026-09-05（ドキュメント最新化・最適化）
+
+実機（Pixel 8 Pro + Pixel Watch 2）へローカルビルドを配置した検証結果と、2026-08-22の`CLAUDE.md`
+import構成変更が未反映だった箇所を、リポジトリ内のドキュメントへ反映した。各ドキュメントの目的・
+役割は変更していない。
+
+- 実態との差異解消
+  - `CONTRIBUTING.md` / `CLAUDE.md`: `.github/workflows/` ディレクトリ自体が存在せずCIが一切
+    動作していない事実へ記述を統一した（`markdown-quality.yml.disabled` と `lychee-action` への
+    言及を削除）。`CLAUDE.md`側にあった「未確認の差異」の注記も解消した。
+  - `docs/guidelines/RULE.md` / `docs/guidelines/ADOPTION.md` / `docs/guidelines/README.md`:
+    `CLAUDE.md` が `@import` するのは `rules/guardrails-unified.v1.md` のみである現行構成へ更新した
+    （2026-08-22の変更が配布用ガイド側へ同期されていなかった）。
+- 検証実績の反映
+  - `docs/INSTALL.md`: Wi-Fi経由デバッグのペア設定手順（`adb pair`、ペア設定用ポートと接続用ポートが
+    別番号であること）と、`ANDROID_SERIAL`によるインストール先の指定手順を追加した。2台同時接続時は
+    bundletoolが必要であるかのような記述を、実際に確認できた手順へ置き換えた。
+  - `README.md` / `docs/store/STORE_LISTING.md` / `docs/records/managed/DESIGN.md`: 実機疎通確認
+    （BL-010）・実機Tile操作（BL-011）・512x512アイコンの準備が完了済みであること、Complication表示の
+    不具合（BL-072）が未解決であること、未検証なのはGoogle Play経由の自動プッシュインストールのみで
+    あることを反映した。あわせてDESIGN.mdのBL-064の記述を「調査中」から確認済みの実装メモへ更新した。
+  - `docs/records/managed/BACKLOG.md`: BL-038のタスク内容へ、ローカルインストールは確認済みである旨を
+    注記した（区分・完了条件は変更なし）。
+- 記述の整理
+  - `PLAN.md`: 冒頭へ、本ファイルが初回依頼時点のメモであり最新は`DESIGN.md`である旨の注記を追加した。
+  - `docs/store/PRIVACY_POLICY.md`: 問い合わせ先メールアドレスの記法をMD034準拠へ修正した。
+  - `.markdownlint-cli2.yaml`: `.gitignore`対象の`*.local.md`を検査対象から除外した。
+  - `docs/records/README.md`: 冒頭の余分な空行を削除した。
+  コード変更を伴わないため`EXECUTE.md`は更新していない。

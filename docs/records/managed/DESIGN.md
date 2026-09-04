@@ -151,13 +151,14 @@
 - `wear.messaging.SesameDeviceListReader`: `DEVICE_LIST_DATA_ITEM_PATH`から登録済みデバイス一覧
   （`SesameDeviceSummary`のリスト）を読み取る。Tile/Complication Configuration画面の選択肢表示に
   用いる（BL-052）。
-- **既知の未解決事項（BL-064、調査中）**: 施錠/解錠成功後、Tileの状態表示が自動更新されない場合が
-  あるとユーザーから複数回報告されている。`DataClient.putDataItem`の`urgent`フラグ付き書き込みでも
-  mobile→wear間の物理的な同期完了は保証されない（`await()`はローカル書き込み完了のみを示す）ため、
-  `SesameResultListenerService`のコマンド結果受信直後の再描画リクエストが、DataItem同期完了前に
-  発火し古いスナップショットを読む競合状態が有力な仮説だが未確認。原因切り分け用のログ
-  （`mobile.messaging.SesameMessageListenerService`・`wear.messaging.SesameResultListenerService`・
-  `wear.tile.SesameTileService`の各段階、`Log.d`）を仕込み済みで、次回実機操作時に検証する。
+- **状態更新に関する実装メモ（BL-064、確認済み）**: 施錠/解錠成功後にTileの状態表示が自動更新
+  されない事象が報告されていたが、2026-08-30の実機確認で期待どおり自動更新されることを確認した。
+  ただし`DataClient.putDataItem`の`urgent`フラグ付き書き込みでもmobile→wear間の物理的な同期完了は
+  保証されない（`await()`はローカル書き込み完了のみを示す）ため、コマンド結果受信直後の再描画
+  リクエストがDataItem同期完了前に発火する競合の可能性は構造上残る。再発時の切り分け用に、各段階の
+  ログ（`mobile.messaging.SesameMessageListenerService`・`wear.messaging.SesameResultListenerService`・
+  `wear.tile.SesameTileService`の`Log.d`）を残置している。出力内容はパス・成否・状態の真偽値のみで、
+  資格情報は含めない。
 
 ### Tile
 
@@ -199,6 +200,12 @@
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」
   （BL-052）。選択画面は`wear.ui.DeviceSelectionScreen`（Tile/Complication共通）を用いる。
+- **未確認事項**: 上記の多重インスタンス対応はコード側では実装済みだが、実機（Wear OS 7の
+  Pixel Watch、2026-08-30確認）では同一Tileを2つ以上追加できない。Watch上のタイル編集の「＋」でも
+  スマホのPixel Watchアプリのタイル管理画面でも、追加済みのタイルはチェック済み扱いで再選択でき
+  ない。`wear/AndroidManifest.xml`のTileService定義に多重追加を妨げる指定はなく、Tiles APIにも
+  多重追加を制御するフラグは存在しないため、Wear OS側のタイル（ウィジェット）管理UIの制約と
+  推測されるが未確認（BL-055）。このため実運用では単一Tileのデバイス切り替えが主な使い方となる。
 
 ### Complication
 
@@ -212,6 +219,11 @@
   Complicationインスタンス（`complicationInstanceId`）ごとに対象デバイスを永続化する
   「複数Complicationインスタンス方式」（BL-054）。未設定時は`SesameComplicationDataSourceService`
   の`tapAction`からこのActivityを起動する。
+- **既知の不具合（BL-072、未解決）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
+  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出している。
+  同一の`SesameTileStateResolver`を使うTile側は正しく表示できているため、状態解決ロジックではなく
+  Complication固有の要因（要求される`ComplicationType`、`onComplicationRequest`の非同期実装、
+  更新契機）を疑っている。切り分け観点はBACKLOGのBL-072を参照。
 
 ### 施錠/解錠操作画面
 
@@ -256,20 +268,26 @@
 ### Androidアイコンリソース
 
 VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃紺）は`mobile`/`wear`共通。
-前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」をモチーフとする。
+前景（`#C99A46`のゴールド）は「南京錠+ワイヤレス波」をモチーフとし、その周囲にコンプリケーション風
+リング（下部に隙間、`trimPathEnd=0.72`/`trimPathOffset=0.39`）を配する。リング寸法は半径30・
+ストローク幅4で、外周が中心(54,54)から32dpとなりAdaptive Iconのセーフゾーン（108dp viewport中心から
+半径33dp）に収まる（BL-041）。
 
-- `mobile`固有: `mobile/src/main/res/`の`ic_launcher_background.xml`/`ic_launcher_foreground.xml`/
-  `ic_launcher.xml`/`ic_launcher_round.xml`。
-- `wear`固有（コンプリケーション風リング意匠あり）: `ic_launcher_wear_background.xml`/
-  `ic_launcher_wear_foreground.xml`/`ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
+- ランチャーアイコン: `mobile/src/main/res/`の`ic_launcher_background.xml`/
+  `ic_launcher_foreground.xml`/`ic_launcher.xml`/`ic_launcher_round.xml`。
+  `mobile/AndroidManifest.xml`の`android:icon`/`android:roundIcon`から参照する。
+  mobile/wear統合（BL-036）と1アイコン統一（BL-066）により、スマホ・Watch双方のランチャーへ表示
+  されるのはこのアイコンのみとなるため、リング意匠も等倍でこちらに含める（BL-042）。
+- Tile/Complicationピッカー用: `ic_launcher_wear_background.xml`/`ic_launcher_wear_foreground.xml`/
+  `ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
   **`mobile/src/main/res/`側に配置**している（`wear`モジュール側には置いていない。AGPの制約で
   dynamic featureの`AndroidManifest.xml`が参照するリソースはbase module側に存在する必要があるため。
-  `wear/AndroidManifest.xml`からは`@mipmap/ic_launcher_wear`等の名前で参照する）。
-  - リング半径30・ストローク幅4（外周が中心から32dp、Adaptive Iconのセーフゾーン＝108dp viewport
-    中心から半径33dpに収まる、BL-041）。
-  - Tile追加ピッカー用に、`ic_launcher_wear_foreground.xml`の全パスを`<group android:scaleX="0.5"
-    android:scaleY="0.5" android:pivotX="54" android:pivotY="54">`で包み中心基準50%縮小している
-    （BL-068。Tile表示時アイコンとピッカーアイコンは同一リソースしか持てないため、両方に反映される）。
+  `wear/AndroidManifest.xml`のTileService/ComplicationDataSourceServiceの`android:icon`から
+  `@mipmap/ic_launcher_wear`の名前で参照する）。
+  - Tile追加ピッカーでの見え方に合わせ、`ic_launcher_wear_foreground.xml`の全パスを
+    `<group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54" android:pivotY="54">`で
+    包み中心基準50%縮小している（BL-068。Tile表示時アイコンとピッカーアイコンは同一リソースしか
+    持てないため、両方に反映される）。ランチャーアイコン側はこの縮小を行わない。
 - **未確認事項**: 図案はXMLパスの手書きによるものであり、視覚的な洗練度はデザイナーによる最終調整を
   前提としていない。Google Play Console提出に必要な高解像度アイコン画像（512x512 PNG）はXMLベースの
   生成が技術的に困難なため未対応（BL-034、人手検証で対応する）。
@@ -314,10 +332,15 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
 - ビルド・インストールは常にルートからの一括実行（`./gradlew assembleDebug`等）または`:mobile:`
   配下のタスク（`:mobile:installDebug`/`:mobile:bundleDebug`/`:mobile:bundleRelease`）経由で行う。
   `:wear:assembleDebug`等のモジュール単体タスクは存在しない。
+- ローカルビルドの実機インストールは、`ANDROID_SERIAL`環境変数でインストール先を1台へ固定すれば、
+  スマホとWatchを同時接続したまま`:mobile:installDebug`をデバイスごとに実行できる。AABから
+  デバイス構成に応じたsplit APKが生成され、Watch側には`wear`モジュールが配信される
+  （2026-09-05にPixel 8 Pro + Pixel Watch 2で確認済み。手順は`docs/INSTALL.md`）。
+- `minSdk=26`（BL-036で`mobile`と統一。旧30）でも、Wear OS向けライブラリを用いたTileの表示・
+  施錠/解錠がPixel Watch実機で動作することを確認済み（2026-08-30）。
 - **未確認事項**: 標準配布方式の「スマートフォンへインストール後、ペアリング済みのWearデバイスへ
   自動的にwearアプリをインストールする」機能（Google Playの自動プッシュインストール）が実際に
-  機能するかは実機・Play Console経由での確認が必要（BL-038、人手検証）。`minSdk=26`
-  （BL-036で`mobile`と統一。旧30）でWear OS向けライブラリが正常動作するかも実機未検証（BL-038）。
+  機能するかは、Play Console経由での確認が必要（BL-038、人手検証）。
 
 ### GitHub公開対応
 
@@ -336,9 +359,10 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
 登録（上記「Google Play配布方式」参照）を前提に、アプリ名・短い説明・詳細な説明・カテゴリ案・
 対象デバイスと、収集する情報（uuid/apikey/secretKey、利用者本人が入力しサーバー側では収集しない）・
 保存方法（mobile側のEncryptedSharedPreferencesのみ）・送信先（CANDY HOUSE Sesame APIのみ、
-広告/分析SDK不使用）・削除方法を記載している。問い合わせ先メールアドレスは実際のアドレス確定前の
-ためプレースホルダーのまま「未確認」と明記している。実際の公開URLでのホスティングとPlay Console
-のData safety申告への反映はBL-033（人手検証）、実際のPlay Console提出はBL-034（人手検証）で行う。
+広告/分析SDK不使用）・削除方法を記載している。問い合わせ先メールアドレスは確定済みの値を記載済み。
+Play Console提出用の高解像度アイコン（512x512 PNG）は`docs/store/images/play_store_icon_512.png`
+として用意済み。実際の公開URLでのホスティングとPlay ConsoleのData safety申告への反映はBL-033
+（人手検証）、実際のPlay Console提出はBL-034（人手検証）で行う。
 
 ## 設計方針
 

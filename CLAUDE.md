@@ -87,6 +87,22 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
   スナップショット化してTile/Complicationの表示に反映する。他経路（Sesame純正アプリでの操作等）
   による状態変化はこの仕組みでは検知されない（README.md「既知の未確認事項・制約」参照）。
 
+上記は対象デバイス1台分の流れです。本アプリは複数のSesameデバイスを扱うため、実際には以下が加わります
+（詳細は DESIGN.md「複数Sesameデバイス対応方針」参照）。
+
+- コマンド・状態取得の各メッセージは、対象デバイスの`uuid`をペイロードへ載せる
+  （`core.SesameWearProtocol.encodeDeviceUuid` / `decodeDeviceUuid`）。`ALL_DEVICES_TARGET_UUID`
+  （`"__all_devices__"`）は「登録済み全デバイス」を表す特別値で、`wear.action.SesameActionTargetResolver`
+  が解決した全uuidへwear側が個別にメッセージを送る（mobile側は単一デバイス処理をN回受けるだけ）。
+- Tile / Complicationは、インスタンス固有のID（`tileId` / `complicationInstanceId`）ごとに対象デバイスを
+  `wear.tile.TileDeviceAssignmentStore` / `wear.complication.ComplicationDeviceAssignmentStore`へ
+  永続化する（機密情報を含まないため非暗号化の`SharedPreferences`）。
+- 状態取得は`PATH_STATUS_REQUEST`のFire-and-forget送信で、結果は返らず`STATUS_DATA_ITEM_PATH`の
+  DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けてTile/Complicationの
+  再描画を要求する）。
+- mobile側は`mobile.messaging.CommandDebouncer`が同一uuidへの2秒以内の重複コマンドを無視する
+  （Tile連打による多重送信・多重ハプティクスの防止）。
+
 ### ディレクトリと参照関係
 
 - `CLAUDE.md`（本ファイル）: Claude Code 向け運用ルールのエントリポイント。冒頭の `@import` で
@@ -95,6 +111,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
   上記「指示参照の優先順位」を参照。
 - `README.md`: セットアップ・ビルド・実行・テスト手順、リリースビルド手順、プロジェクト構成、
   既知の未確認事項・制約の一次情報源。
+- `docs/INSTALL.md`: スマホ・スマートウォッチへの実機インストール手順の一次情報源（Wi-Fi経由の
+  ADBペア設定、`ANDROID_SERIAL`によるインストール先の指定、Google Play経由の想定手順）。
 - `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
 - `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
   基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある
@@ -131,6 +149,7 @@ Gradle Wrapper経由ですべてリポジトリルートから実行します（
 ```
 
 上記5コマンドが本リポジトリの品質ゲート（後述「本リポジトリの品質ゲート定義」段階B）です。
+ktlintの違反は `./gradlew ktlintFormat` で自動修正できます（品質ゲートには含めません）。
 資格情報の設定手順、リリースビルド（署名・ProGuard/R8・`scripts/release-build.bat`）は
 [README.md](README.md) を参照してください。
 
@@ -143,11 +162,24 @@ Gradle Wrapper経由ですべてリポジトリルートから実行します（
 ./gradlew :wear:testDebugUnitTest --tests "com.sesamiwear.wear.tile.SesameTileActionsTest"
 ```
 
+単体テストはAndroid非依存のクラス（`core`全般、`mobile.messaging.SesameCommandHandler`、
+`wear.tile.SesameTileContent`等）に集中しており、Android依存クラス（`*Service` / `*Activity` /
+Compose画面）はテスト対象外です。ロジックを追加する際は、Android依存部から切り離した純Kotlinの
+クラス・objectへ置くと検証可能になります（detektの`LongMethod`/`TooManyFunctions`回避にもなります。
+DESIGN.md「実装制約 > 技術制約」参照）。
+
 `wear` は `mobile` の dynamic feature（BL-036、単一 `applicationId` へ統合済み）のため、
 `:wear:assembleDebug` / `:wear:installDebug` 等のモジュール単体タスクは base module
 （`mobile`）側のメタデータを解決できず失敗します。ビルド・インストールは必ずルートからの
 一括実行（`./gradlew assembleDebug` 等）または `:mobile:` 配下のタスク
 （`:mobile:installDebug` / `:mobile:bundleDebug` / `:mobile:bundleRelease`）経由で行ってください。
+スマホとスマートウォッチを同時接続している場合は、`ANDROID_SERIAL`でインストール先を1台へ固定して
+デバイスごとに実行します（手順の詳細は [docs/INSTALL.md](docs/INSTALL.md)）。
+
+```bash
+ANDROID_SERIAL=<デバイスID> ./gradlew :mobile:installDebug
+```
+
 detekt設定は `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
 ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所に分かれています。
 
@@ -160,10 +192,9 @@ npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 ```
 
 - 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効）。
-- `CONTRIBUTING.md` はCIワークフロー `.github/workflows/markdown-quality.yml.disabled` に言及していますが、
-  本リポジトリの `.github/` 配下には `workflows/` ディレクトリ自体が存在しません（未確認の差異）。
-  そのためMarkdownlint/Gradle品質ゲートいずれもCI自動実行はなく、上記コマンドのローカル実行が
-  唯一の品質ゲートです。
+- 本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体が
+  存在しない、2026-09-05確認）。Markdownlint・Gradle品質ゲートいずれもCI自動実行はなく、上記コマンドの
+  ローカル実行が唯一の品質ゲートです。
 
 ## セキュリティ要件（MUST）
 

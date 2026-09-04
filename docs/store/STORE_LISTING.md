@@ -49,8 +49,9 @@ Watch単体には保持しません。
 
 ## 対象デバイス
 
-- Wear OS 3以降を搭載したスマートウォッチ（Pixel Watchで動作確認予定、BL-011参照）
-- Android 8.0（API 26）以降のスマートフォン（mobile側の対応OSバージョン、BL-034で実機確認予定）
+- Wear OS 3以降を搭載したスマートウォッチ（Pixel Watch 2で動作確認済み）
+- Android 8.0（API 26）以降のスマートフォン（mobile側の対応OSバージョン。Pixel 8 Proで動作確認済み。
+  下限のAPI 26端末での確認は未実施）
 
 ## アプリアイコン
 

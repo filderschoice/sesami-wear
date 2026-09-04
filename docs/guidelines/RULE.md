@@ -35,7 +35,8 @@ docs/guidelines/RULE.md （汎用フレームワーク）
 │  └─ 出力要件（実装粒度、要件対応表）
 │
 └─ CLAUDE.md （このリポジトリでのClaude Code実行ルール）
-   ├─ guardrails-unified.v1.md / RULE.md / CONTRIBUTING.md を @import で自動読み込み
+   ├─ guardrails-unified.v1.md を @import で自動読み込み
+   │  （RULE.md / CONTRIBUTING.md は内容を具体化済みのため通常のリンク参照）
    ├─ セキュリティ要件・開発プロセス要件・品質信頼性要件
    ├─ ドキュメント管理（DESIGN/EXECUTE/BACKLOG）
    └─ 出力要件（実装粒度、要件対応表、PR説明文・レビュー言語設定）

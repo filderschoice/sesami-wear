@@ -5,6 +5,55 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-08-30 17:59
+  summary: ランチャーアイコンにコンプリケーション風リングを追加し、人手検証完了項目
+    （BL-063/064/066/067/071）をBACKLOGから削除した
+  details:
+    変更内容: >
+      人手検証タスクのヒアリングをユーザーと実施し、実機確認の結果を反映した。
+      BL-063（Tileデザイン）/BL-064（コマンド成功後のTile自動更新）/BL-066（アプリアイコン1つへの
+      統一と設定画面起動）/BL-067（デバイス切替時の無関係画面の非表示）/BL-071（全デバイス一括
+      施錠/解錠）はいずれも実機で期待どおり動作することが確認できたため、BACKLOGから削除した。
+      BL-042（ランチャーアイコンのリング）は「リングが全く表示されない」との報告を受けて調査した
+      ところ、検証NGではなく前提の失効であることが判明した。mobile/wear統合（BL-036）と1アイコン
+      統一（BL-066）により、ランチャーへ表示されるアイコンはmobileのandroid:icon="@mipmap/ic_launcher"
+      （実体はic_launcher_foreground.xml）のみとなったが、コンプリケーション風リングのpathは
+      Tile/Complicationピッカー用のic_launcher_wear_foreground.xml（wear側マニフェストの
+      TileService/ComplicationDataSourceServiceのandroid:iconから参照）にしか存在せず、
+      ランチャーアイコンには元から描かれていなかった。ユーザー判断により「ランチャーにもリングを
+      追加して意匠を統一する」方針を採り、ic_launcher_foreground.xmlへリングのpathを追加した。
+      wear側は Tileピッカーでの見え方に合わせて意匠全体を50%縮小している（BL-068）が、
+      ランチャーアイコンは等倍で描画する。リングは半径30・ストローク幅4で外周が中心(54,54)から
+      32dpとなり、Adaptive Iconのセーフゾーン（108dp viewport中心から半径33dp）内に収まるため
+      円形マスクでも欠けない。実機での再確認はBL-042として残している。
+      BL-055（複数Tile/Complicationのデバイス別対応）は、実機（Wear OS 7のPixel Watch）で同一Tileを
+      2つ以上追加できないことが判明した。Watch上のタイル編集の「＋」でもスマホのPixel Watchアプリの
+      タイル管理画面でも、追加済みのSesami Wearはチェック済み扱いで再選択できない。コード側は
+      tileIdごとの多重インスタンス対応済みでマニフェスト定義にも制約はないため、Wear OS側の
+      タイル（ウィジェット）管理UIの制約と推測されるが未確認であり、DESIGN.mdへ未確認事項として
+      追記した。ユーザー判断により、BL-055の完了条件を「単一Tileでのデバイス切り替え」と
+      「複数Complication枠でのデバイス別表示」の2点へ縮小した。あわせて、Complication枠へ
+      デバイスを割り当てても状態文言が表示されず空欄になる不具合を新たに検出し、切り分け観点を
+      添えてBL-072として登録した（Tile側は同一のSesameTileStateResolverで正常表示できているため
+      Complication固有の要因を疑う）。Complicationが設定済み状態でtapActionを持たない読み取り専用
+      表示であることは設計どおりであり、ユーザー確認のうえ現行仕様を維持する。
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_launcher_foreground.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
+    検証結果: 成功 - BUILD SUCCESSFUL（5タスクすべて成功）
+    関連ID:
+      - BL-042
+      - BL-055
+      - BL-063
+      - BL-064
+      - BL-066
+      - BL-067
+      - BL-071
+      - BL-072
+
 - date: 2026-08-23 17:18
   summary: 管理ドキュメントの最新化・最適化を実施し、DESIGN.mdを履歴蓄積型からFORMAT.md準拠の
     最新版統合設計書へ全面圧縮した
