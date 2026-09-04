@@ -5,6 +5,95 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 02:05
+  summary: Complicationのデバイス設定導線をWear OS標準の設定導線へ対応させ、設定済み枠の
+    デバイス変更を可能にした（BL-073）
+  details:
+    変更内容: >
+      BL-072の修正で状態文言が表示されるようになった結果、デバイス割り当ての導線が
+      「未設定枠に出る『タップして設定』を押す」1経路しかないことが実機確認で顕在化した。
+      設定済みComplicationにはtapActionを付けていなかったため、一度割り当てると変更できず、
+      複数の枠へ別々のデバイスを割り当てることも実質できなかった。次の2点で解消した。
+      (1) Wear OS標準の設定導線への対応: wear/AndroidManifest.xmlの
+      SesameComplicationDataSourceServiceへ、ComplicationDataSourceServiceの
+      METADATA_KEY_DATA_SOURCE_CONFIG_ACTION（android.support.wearable.complications.
+      PROVIDER_CONFIG_ACTION）のmeta-dataを追加し、ComplicationConfigurationActivityへ同じactionと
+      CATEGORY_DATA_SOURCE_CONFIG（android.support.wearable.complications.category.PROVIDER_CONFIG）
+      を持つintent-filterを追加した。actionは他アプリと混同しないようアプリ固有の名前
+      （com.sesamiwear.wear.complication.CONFIG_COMPLICATION）とした。Activity側は、システムが渡す
+      EXTRA_CONFIG_COMPLICATION_ID（Int）を優先し、無ければ従来のtapAction経由のextra（文字列）を
+      使う形で対象instanceIdを解決する。選択完了時にsetResult(RESULT_OK)を返すようにした
+      （RESULT_OKを返さないと文字盤側がデータソース選択自体をキャンセル扱いにするため）。
+      これにより、文字盤のピッカーで枠ごとにデータソースを選んだ直後にデバイス選択画面が開く。
+      (2) 設定済み枠のデバイス変更: SesameComplicationDataSourceServiceのtapAction生成を
+      configurationTapAction()へ切り出し、未設定枠・設定済み枠・状態解決失敗時のフォールバック表示の
+      すべてへ付与した。タップで開くのは設定画面のみで、施錠/解錠のコマンド送信は行わない
+      （操作導線はTile側に限定する既存方針は維持）。
+      いずれもAndroid Complications API依存でユニットテスト対象外のため、テストの追加はない。
+      実機での確認はBL-073として人手検証項目に登録した。
+      あわせて、実機で状態文言の表示を確認できたBL-072をBACKLOGから削除し、BL-055の完了条件から
+      複数Complicationのデバイス別表示（BL-073へ移管）を外して依存を解消した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest / ./gradlew assembleDebug / npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 品質ゲート5コマンドすべてBUILD SUCCESSFUL。markdownlintは0 issues。
+      複数枠への割り当て・設定済み枠の変更は実機確認が必要なためBL-073として人手検証に残す。
+    関連ID:
+      - BL-073
+      - BL-072
+      - BL-055
+
+- date: 2026-09-05 01:37
+  summary: Complicationの状態文言が空欄になる不具合（BL-072）へ、想定3要因すべてに対する
+    防御的修正と切り分け用ログを実装した
+  details:
+    変更内容: >
+      文字盤のComplication枠にデバイスを割り当てても状態文言が表示されない事象（BL-072）について、
+      実機ログを採取できない状態では想定した3要因を切り分けられないため、いずれの要因であっても
+      表示が復帰するよう防御的な修正をまとめて実装した。
+      (a) 要求ComplicationTypeへの対応: SUPPORTED_TYPESへLONG_TEXTを追加し、
+      onComplicationRequestがrequest.complicationTypeを見てShortTextComplicationData／
+      LongTextComplicationDataを作り分けるようにした。SHORT_TEXTしか返せない実装では、LONG_TEXT枠へ
+      配置された際に型不一致でデータが破棄され空欄になるため。getPreviewDataも両型へ対応させた
+      （従来はSHORT_TEXT以外でnullを返していた）。LONG_TEXTは表示領域に余裕があるため、
+      SesameComplicationContent.longText()でデバイス名と状態文言を併記する。
+      (b) データ未返却の排除: 状態解決（Wearable APIの往復）をwithTimeout(10秒)で打ち切り、
+      runCatchingで例外・タイムアウトを捕捉して「不明」表示のデータへフォールバックするようにした。
+      従来はCoroutineScope(Dispatchers.IO).launch内で例外が発生するとlistener.onComplicationDataが
+      呼ばれず、Complicationが空欄のままになる経路があった。対応外の型を除き、必ずデータを返す。
+      (c) 更新契機の追加: マニフェストのUPDATE_PERIOD_SECONDSを0（定期更新なし）から600へ変更し、
+      ComplicationDataSourceUpdateRequesterからの更新要求が届かない場合でも定期更新で表示が
+      回復するようにした（Wear OSの実効最小間隔は300秒のため、消費電力を考慮して600秒とした）。
+      あわせて切り分け用にLog（TAG=SesameComplication）で、要求されたComplicationType・
+      データ返却有無・解決した状態・例外内容を出力する。実機で再現する場合は
+      adb logcat -s SesameComplication で3要因のどれに該当するかを判別できる。
+      Complication表示はAndroid Complications API依存でユニットテスト対象外のため、テストは
+      Android非依存のSesameComplicationContent.longText()に対して追加した。
+      本修正の実機確認はBL-072として人手検証項目に残している。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest / ./gradlew assembleDebug / npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 品質ゲート5コマンドすべてBUILD SUCCESSFUL（detektのReturnCount違反は
+      resolveComplicationDataのearly returnを1箇所へ集約して解消）。markdownlintは0 issues。
+      実機での表示確認は自動実行対象外のためBL-072として人手検証に残す。
+    関連ID:
+      - BL-072
+
 - date: 2026-08-30 17:59
   summary: ランチャーアイコンにコンプリケーション風リングを追加し、人手検証完了項目
     （BL-063/064/066/067/071）をBACKLOGから削除した

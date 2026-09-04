@@ -210,20 +210,41 @@
 ### Complication
 
 - `wear.complication.SesameComplicationDataSourceService`（`ComplicationDataSourceService`実装、
-  `SUPPORTED_TYPES=SHORT_TEXT`）: `SesameTileStateResolver`を共用し、`ShortTextComplicationData`
-  で状態を表示する（BL-009, BL-071）。設定済み状態では`tapAction`を持たない読み取り専用表示のため、
-  全デバイス選択時も集約状態の表示のみでコマンド送信は行わない（Tile側のみが操作対象）。
+  `SUPPORTED_TYPES=SHORT_TEXT,LONG_TEXT`）: `SesameTileStateResolver`を共用し、要求された
+  `ComplicationType`に応じて`ShortTextComplicationData`（状態文言のみ）または
+  `LongTextComplicationData`（デバイス名＋状態文言）で状態を表示する（BL-009, BL-071, BL-072）。
+  タップは設定画面（デバイス変更）を開くだけで施錠/解錠のコマンド送信は行わないため、
+  全デバイス選択時も集約状態の表示のみとする（操作導線はTile側に限定、BL-073）。
+  状態解決は`withTimeout`（10秒）で打ち切り、例外・タイムアウト時も「不明」表示へフォールバック
+  して必ず`listener.onComplicationData`を呼ぶ（データ未返却＝空欄表示を作らないための防御、
+  BL-072）。切り分け用に`Log`（TAG=`SesameComplication`）で要求された型とデータ返却有無を出力する。
 - `wear.complication.SesameComplicationContent`（Android非依存）: `TileDisplayState`→短い表示文言
-  （MIXED用の🔀アイコン・「施錠/解錠混在」ラベルを含む、BL-071）。
+  （MIXED用の🔀アイコン・「施錠/解錠混在」ラベルを含む、BL-071）と、`LONG_TEXT`枠向けの
+  「デバイス名＋状態文言」（BL-072）。
 - `wear.complication.ComplicationConfigurationActivity` / `ComplicationDeviceAssignmentStore`:
   Complicationインスタンス（`complicationInstanceId`）ごとに対象デバイスを永続化する
-  「複数Complicationインスタンス方式」（BL-054）。未設定時は`SesameComplicationDataSourceService`
-  の`tapAction`からこのActivityを起動する。
-- **既知の不具合（BL-072、未解決）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
-  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出している。
-  同一の`SesameTileStateResolver`を使うTile側は正しく表示できているため、状態解決ロジックではなく
+  「複数Complicationインスタンス方式」（BL-054）。設定画面の起動経路は2つある（BL-073）。
+  (1) 文字盤のComplicationピッカーでデータソースを選んだ直後にシステムが起動する標準の設定導線
+  （マニフェストのサービス側`PROVIDER_CONFIG_ACTION` meta-dataと、Activity側の同じactionを持つ
+  intent-filter＋`category.PROVIDER_CONFIG`）。対象は`EXTRA_CONFIG_COMPLICATION_ID`でInt値として
+  渡され、選択完了時に`RESULT_OK`を返さないと文字盤側がデータソース選択自体をキャンセル扱いにする。
+  (2) `SesameComplicationDataSourceService`が付与する`tapAction`。未設定枠の「タップして設定」と、
+  設定済み枠のデバイス変更の双方で使う。この2経路が無かった当初は「未設定枠を1度タップする」
+  1経路しか無く、枠ごとに別デバイスを割り当てることも、割り当て済みの枠を変更することも
+  できなかった（BL-073）。
+- 更新契機は、(1) `SesameStatusListenerService`がDataItem変更を受けて発行する
+  `ComplicationDataSourceUpdateRequester.requestUpdateAll()`、(2) `ComplicationConfigurationActivity`
+  がデバイス割り当て後に発行する`requestUpdate(complicationInstanceId)`、(3) マニフェストの
+  `UPDATE_PERIOD_SECONDS=600`による定期更新の3つ。(3)は更新要求が届かなかった場合でも表示が
+  自己回復するための保険として、従来の`0`（定期更新なし）から変更した（BL-072）。
+- **解消済みの不具合（BL-072）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
+  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出していた。
+  同一の`SesameTileStateResolver`を使うTile側は正しく表示できていたため、状態解決ロジックではなく
   Complication固有の要因（要求される`ComplicationType`、`onComplicationRequest`の非同期実装、
-  更新契機）を疑っている。切り分け観点はBACKLOGのBL-072を参照。
+  更新契機）を疑い、実機ログなしでは切り分けられないことから上記3要因すべてへの防御的修正を実装し、
+  2026-09-05の実機確認で状態文言の表示を確認した。
+- **未確認事項（BL-073）**: 上記の設定導線2経路により、複数のComplication枠へ別々のデバイスを
+  割り当てられること・割り当て済みの枠を変更できることの実機確認が残っている。
 
 ### 施錠/解錠操作画面
 
