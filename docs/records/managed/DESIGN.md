@@ -151,13 +151,14 @@
 - `wear.messaging.SesameDeviceListReader`: `DEVICE_LIST_DATA_ITEM_PATH`から登録済みデバイス一覧
   （`SesameDeviceSummary`のリスト）を読み取る。Tile/Complication Configuration画面の選択肢表示に
   用いる（BL-052）。
-- **既知の未解決事項（BL-064、調査中）**: 施錠/解錠成功後、Tileの状態表示が自動更新されない場合が
-  あるとユーザーから複数回報告されている。`DataClient.putDataItem`の`urgent`フラグ付き書き込みでも
-  mobile→wear間の物理的な同期完了は保証されない（`await()`はローカル書き込み完了のみを示す）ため、
-  `SesameResultListenerService`のコマンド結果受信直後の再描画リクエストが、DataItem同期完了前に
-  発火し古いスナップショットを読む競合状態が有力な仮説だが未確認。原因切り分け用のログ
-  （`mobile.messaging.SesameMessageListenerService`・`wear.messaging.SesameResultListenerService`・
-  `wear.tile.SesameTileService`の各段階、`Log.d`）を仕込み済みで、次回実機操作時に検証する。
+- **状態更新に関する実装メモ（BL-064、確認済み）**: 施錠/解錠成功後にTileの状態表示が自動更新
+  されない事象が報告されていたが、2026-08-30の実機確認で期待どおり自動更新されることを確認した。
+  ただし`DataClient.putDataItem`の`urgent`フラグ付き書き込みでもmobile→wear間の物理的な同期完了は
+  保証されない（`await()`はローカル書き込み完了のみを示す）ため、コマンド結果受信直後の再描画
+  リクエストがDataItem同期完了前に発火する競合の可能性は構造上残る。再発時の切り分け用に、各段階の
+  ログ（`mobile.messaging.SesameMessageListenerService`・`wear.messaging.SesameResultListenerService`・
+  `wear.tile.SesameTileService`の`Log.d`）を残置している。出力内容はパス・成否・状態の真偽値のみで、
+  資格情報は含めない。
 
 ### Tile
 
@@ -218,6 +219,11 @@
   Complicationインスタンス（`complicationInstanceId`）ごとに対象デバイスを永続化する
   「複数Complicationインスタンス方式」（BL-054）。未設定時は`SesameComplicationDataSourceService`
   の`tapAction`からこのActivityを起動する。
+- **既知の不具合（BL-072、未解決）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
+  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出している。
+  同一の`SesameTileStateResolver`を使うTile側は正しく表示できているため、状態解決ロジックではなく
+  Complication固有の要因（要求される`ComplicationType`、`onComplicationRequest`の非同期実装、
+  更新契機）を疑っている。切り分け観点はBACKLOGのBL-072を参照。
 
 ### 施錠/解錠操作画面
 
@@ -326,10 +332,15 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
 - ビルド・インストールは常にルートからの一括実行（`./gradlew assembleDebug`等）または`:mobile:`
   配下のタスク（`:mobile:installDebug`/`:mobile:bundleDebug`/`:mobile:bundleRelease`）経由で行う。
   `:wear:assembleDebug`等のモジュール単体タスクは存在しない。
+- ローカルビルドの実機インストールは、`ANDROID_SERIAL`環境変数でインストール先を1台へ固定すれば、
+  スマホとWatchを同時接続したまま`:mobile:installDebug`をデバイスごとに実行できる。AABから
+  デバイス構成に応じたsplit APKが生成され、Watch側には`wear`モジュールが配信される
+  （2026-09-05にPixel 8 Pro + Pixel Watch 2で確認済み。手順は`docs/INSTALL.md`）。
+- `minSdk=26`（BL-036で`mobile`と統一。旧30）でも、Wear OS向けライブラリを用いたTileの表示・
+  施錠/解錠がPixel Watch実機で動作することを確認済み（2026-08-30）。
 - **未確認事項**: 標準配布方式の「スマートフォンへインストール後、ペアリング済みのWearデバイスへ
   自動的にwearアプリをインストールする」機能（Google Playの自動プッシュインストール）が実際に
-  機能するかは実機・Play Console経由での確認が必要（BL-038、人手検証）。`minSdk=26`
-  （BL-036で`mobile`と統一。旧30）でWear OS向けライブラリが正常動作するかも実機未検証（BL-038）。
+  機能するかは、Play Console経由での確認が必要（BL-038、人手検証）。
 
 ### GitHub公開対応
 
@@ -348,9 +359,10 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
 登録（上記「Google Play配布方式」参照）を前提に、アプリ名・短い説明・詳細な説明・カテゴリ案・
 対象デバイスと、収集する情報（uuid/apikey/secretKey、利用者本人が入力しサーバー側では収集しない）・
 保存方法（mobile側のEncryptedSharedPreferencesのみ）・送信先（CANDY HOUSE Sesame APIのみ、
-広告/分析SDK不使用）・削除方法を記載している。問い合わせ先メールアドレスは実際のアドレス確定前の
-ためプレースホルダーのまま「未確認」と明記している。実際の公開URLでのホスティングとPlay Console
-のData safety申告への反映はBL-033（人手検証）、実際のPlay Console提出はBL-034（人手検証）で行う。
+広告/分析SDK不使用）・削除方法を記載している。問い合わせ先メールアドレスは確定済みの値を記載済み。
+Play Console提出用の高解像度アイコン（512x512 PNG）は`docs/store/images/play_store_icon_512.png`
+として用意済み。実際の公開URLでのホスティングとPlay ConsoleのData safety申告への反映はBL-033
+（人手検証）、実際のPlay Console提出はBL-034（人手検証）で行う。
 
 ## 設計方針
 

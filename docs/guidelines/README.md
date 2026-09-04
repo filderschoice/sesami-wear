@@ -21,11 +21,15 @@
 
 ### Claude Code指示で参照する場合
 
-`CLAUDE.md` では `@docs/guidelines/RULE.md` の import 記法でセッション開始時に自動読み込みします：
+`CLAUDE.md` では `@` から始まる import 記法でセッション開始時に自動読み込みできます：
 
 ```markdown
 @docs/guidelines/RULE.md
 ```
+
+自動読み込みはセッション開始時のコンテキストを消費するため、対象は配布先ごとに選びます。本リポジトリの
+`CLAUDE.md` は `rules/guardrails-unified.v1.md` のみを `@import` し、`RULE.md` は内容を `CLAUDE.md` へ
+具体化したうえで通常のリンクから参照する構成です（経緯は `CHANGELOG.md` の2026-08-22エントリを参照）。
 
 ### プロジェクト固有の指示を追加する場合
 

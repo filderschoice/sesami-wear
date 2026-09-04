@@ -34,8 +34,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 ### 1. Sesame APIの資格情報を取得する
 
 施錠/解錠・状態取得には次の3点が必要です。いずれも biz.candyhouse.co（SESAME Biz 開発者ページ）
-で確認・発行できます（詳細は [PLAN.md](PLAN.md) の「API仕様」を参照。ただし取得元URLの記述は
-BL-057/BL-059で本セクションの内容が最新です）。
+で確認・発行できます（[PLAN.md](PLAN.md) の「API仕様」にも記述がありますが、同ファイルは初回依頼時点の
+メモであり取得元の記載が古いため、本セクションが最新です）。
 
 - `uuid`（sesame2_uuid）: 対象Sesameデバイスの識別子
 - `apikey`: x-api-key
@@ -160,18 +160,24 @@ sesami-wear/
 
 - Sesame APIのレスポンス構造（`SesameStatus`）と施錠/解錠コマンドの署名・ペイロード仕様は、
   参考実装 [pysesame3](https://github.com/mochipon/pysesame3) のソースコードを読んで判明した内容であり、
-  CANDY HOUSE公式ドキュメントそのものは未参照です。実機での疎通確認（BACKLOG.md BL-010）で
-  最終確認が必要です。
-- Mobile側からWear側への状態同期（Tile / Complicationの表示更新）は、コマンド送信成功時にのみ行われます。
-  Sesame純正アプリでの操作など他経路による状態変化は反映されません。
+  CANDY HOUSE公式ドキュメントそのものは未参照です。ただし実機（Sesame 5 + Hub 3）での状態取得・
+  施錠/解錠の疎通確認は完了しています。
+- Mobile側からWear側への状態同期（Tile / Complicationの表示更新）は、コマンド送信成功時と
+  Tile/Complication表示時の状態取得リクエスト時に行われます。定期ポーリングは行わないため、
+  Sesame純正アプリでの操作など他経路による状態変化は、次の表示更新まで反映されません。
+- 文字盤のComplicationにデバイスを割り当てても状態文言が表示されない不具合を確認しています
+  （[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-072）。Tile側は正常に
+  表示・操作できます。
 - `mobile` / `wear` の実アイコンはVectorDrawableベースのAdaptive Icon（簡易的な図案）です。
-  Google Play提出用の高解像度アイコン画像（512x512 PNG）は別途用意が必要です
-  （[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-034参照）。
+  Google Play提出用の高解像度アイコン画像（512x512 PNG）は
+  [docs/store/images/play_store_icon_512.png](docs/store/images/play_store_icon_512.png) に用意済みです。
 - 実機（Pixel Watch + Sesame 5 + Hub 3）を用いる動作確認は自動実行できないため、
   [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) に人手検証タスクとして記録しています。
 - `wear`のdynamic feature化（BL-036）に伴い`minSdk`を30から26（`mobile`と統一）へ変更しました。
-  Wear OS向けライブラリが実機でminSdk26でも正常動作するか、Google Playの自動プッシュ
-  インストールが実際に機能するかは未検証です（BL-038、人手検証）。
+  minSdk26のビルドでもPixel Watch実機でTileの表示・施錠/解錠が動作することは確認済みです。
+  Google Playの自動プッシュインストール（スマホへのインストールだけでWatch側にもwearが導入される）が
+  実際に機能するかは未検証です（BL-038、人手検証）。ローカルビルドを両デバイスへ直接インストールする
+  手順は [docs/INSTALL.md](docs/INSTALL.md) を参照してください。
 
 ## 関連ドキュメント
 

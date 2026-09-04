@@ -46,8 +46,11 @@
 - `docs/records/spec/FORMAT.md`
 - `CHANGELOG.md`
 
-`CLAUDE.md` は `rules/guardrails-unified.v1.md` / `docs/guidelines/RULE.md` / `CONTRIBUTING.md` を
-`@import` 記法でセッション開始時に自動読み込みするため、リポジトリルートからの相対パスが崩れていないことを確認する。
+`CLAUDE.md` は `@import` 記法で指定したファイルをセッション開始時に自動読み込みするため、リポジトリ
+ルートからの相対パスが崩れていないことを確認する。自動読み込みの対象は、セッション開始時のコンテキスト量と
+内容の重複を踏まえて配布先ごとに決める（本リポジトリでは `rules/guardrails-unified.v1.md` のみを `@import`
+とし、`docs/guidelines/RULE.md` と `CONTRIBUTING.md` は内容を `CLAUDE.md` へ具体化したうえで通常のリンク
+参照としている。経緯は `CHANGELOG.md` の2026-08-22エントリを参照）。
 
 ## 4. 既存リポジトリへの適用手順
 

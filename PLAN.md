@@ -1,5 +1,11 @@
 # Sesame Wear アプリ 実装計画
 
+> 本ファイルは初回依頼時点の要件・API仕様メモをそのまま保存したものです。実装の進行に伴い内容が
+> 実装と異なる箇所があります（特に「API仕様」の資格情報の取得元。現在はuuid・apikey・secretKeyの
+> 3点とも biz.candyhouse.co から取得します。[README.md](README.md)「セットアップ手順」参照）。
+> 実装済み内容の最新版は [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) を参照し、
+> 矛盾する場合はDESIGN.mdを優先してください。
+
 ## 背景・目的
 
 Pixel WatchからSesami（CANDY HOUSE Sesame）のスマートロックを操作するAndroid/Wear OSアプリを開発したい。
