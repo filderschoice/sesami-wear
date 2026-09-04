@@ -23,4 +23,17 @@ class SesameComplicationContentTest {
     fun `short text for mixed state`() {
         assertEquals("混在", SesameComplicationContent.shortText(TileDisplayState.MIXED))
     }
+
+    @Test
+    fun `long text includes display name and state`() {
+        assertEquals("玄関 施錠", SesameComplicationContent.longText("玄関", TileDisplayState.LOCKED))
+        assertEquals("全デバイス 混在", SesameComplicationContent.longText("全デバイス", TileDisplayState.MIXED))
+    }
+
+    @Test
+    fun `long text is defined for every state`() {
+        TileDisplayState.entries.forEach { state ->
+            assertTrue(SesameComplicationContent.longText("玄関", state).isNotBlank())
+        }
+    }
 }

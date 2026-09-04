@@ -16,4 +16,14 @@ object SesameComplicationContent {
             TileDisplayState.DISCONNECTED -> "未接続"
             TileDisplayState.UNKNOWN -> "不明"
         }
+
+    /**
+     * `LONG_TEXT`枠向けの文言（BL-072）。`SHORT_TEXT`枠しか受け付けない文字盤で本データソースが
+     * 選べない・表示されない事象を避けるため、`LONG_TEXT`もサポート対象に加えた際に追加した。
+     * 表示領域に余裕があるため、状態文言に加えて対象デバイス名も併記する。
+     */
+    fun longText(
+        displayName: String,
+        state: TileDisplayState,
+    ): String = "$displayName ${shortText(state)}"
 }

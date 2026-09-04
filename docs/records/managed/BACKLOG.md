@@ -6,23 +6,23 @@
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
 - id: BL-072
-  区分: 不具合対応
+  区分: 人手検証
   タスク内容: 文字盤のComplication枠にSesami Wearを配置しデバイスを割り当てても、状態文言
     （「施錠」「解錠」「未接続」等）が一切表示されず空欄のままになる（2026-08-30の実機確認、
-    Wear OS 7のPixel Watch）。同一の SesameTileStateResolver を使うTile側は正しく状態表示できて
-    いるため、状態解決ロジックではなくComplication固有の要因を疑う。切り分け観点は
-    (a) 配置した文字盤の枠が要求するComplicationTypeがSHORT_TEXT以外
-    （SesameComplicationDataSourceServiceはSUPPORTED_TYPES=SHORT_TEXTのみ、getPreviewDataも
-    SHORT_TEXT以外はnullを返す）、(b) onComplicationRequestがCoroutineScope(Dispatchers.IO)から
-    listener.onComplicationDataを呼ぶ非同期実装のため、Wearable API呼び出しの遅延・例外で
-    listenerが呼ばれずデータ未返却になっている、(c) UPDATE_PERIOD_SECONDS=0のため
-    ComplicationDataSourceUpdateRequesterでの更新要求のみが更新契機となっており、
-    ComplicationConfigurationActivityからのrequestUpdateが届いていない、の3点
+    Wear OS 7のPixel Watch）。実機ログを採取できない状態では3つの想定要因を切り分けられないため、
+    2026-09-05にすべての要因に対する防御的修正を実装済み（実施記録はEXECUTE.md参照）。
+    (a) 対応ComplicationTypeへLONG_TEXTを追加し、要求された型に応じてデータを作り分ける、
+    (b) 状態解決を10秒でタイムアウトさせ、例外・タイムアウト時も「不明」表示へフォールバックして
+    listener.onComplicationDataを必ず呼ぶ、(c) UPDATE_PERIOD_SECONDSを0から600へ変更し、更新要求が
+    届かない場合も定期更新で表示が回復するようにする。あわせて切り分け用のログ出力
+    （TAG=SesameComplication）を追加したため、なお再現する場合は
+    `adb logcat -s SesameComplication` で要求されたComplicationTypeとデータ返却有無・例外内容を
+    確認できる
   優先度: P1
   状態: 未着手
-  担当: Claude Code
-  完了条件: Complication枠にデバイスを割り当てた後、対象デバイスの状態文言が文字盤に表示され、
-    品質ゲート（ktlintCheck/detekt/lintDebug/testDebugUnitTest/assembleDebug）が成功する
+  担当: ユーザー
+  完了条件: 上記修正を反映したビルドをPixel Watchへインストールし、Complication枠にデバイスを
+    割り当てた後、対象デバイスの状態文言が文字盤に表示されることを確認する
   依存: []
 
 - id: BL-055

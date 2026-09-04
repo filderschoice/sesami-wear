@@ -5,6 +5,50 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 01:37
+  summary: Complicationの状態文言が空欄になる不具合（BL-072）へ、想定3要因すべてに対する
+    防御的修正と切り分け用ログを実装した
+  details:
+    変更内容: >
+      文字盤のComplication枠にデバイスを割り当てても状態文言が表示されない事象（BL-072）について、
+      実機ログを採取できない状態では想定した3要因を切り分けられないため、いずれの要因であっても
+      表示が復帰するよう防御的な修正をまとめて実装した。
+      (a) 要求ComplicationTypeへの対応: SUPPORTED_TYPESへLONG_TEXTを追加し、
+      onComplicationRequestがrequest.complicationTypeを見てShortTextComplicationData／
+      LongTextComplicationDataを作り分けるようにした。SHORT_TEXTしか返せない実装では、LONG_TEXT枠へ
+      配置された際に型不一致でデータが破棄され空欄になるため。getPreviewDataも両型へ対応させた
+      （従来はSHORT_TEXT以外でnullを返していた）。LONG_TEXTは表示領域に余裕があるため、
+      SesameComplicationContent.longText()でデバイス名と状態文言を併記する。
+      (b) データ未返却の排除: 状態解決（Wearable APIの往復）をwithTimeout(10秒)で打ち切り、
+      runCatchingで例外・タイムアウトを捕捉して「不明」表示のデータへフォールバックするようにした。
+      従来はCoroutineScope(Dispatchers.IO).launch内で例外が発生するとlistener.onComplicationDataが
+      呼ばれず、Complicationが空欄のままになる経路があった。対応外の型を除き、必ずデータを返す。
+      (c) 更新契機の追加: マニフェストのUPDATE_PERIOD_SECONDSを0（定期更新なし）から600へ変更し、
+      ComplicationDataSourceUpdateRequesterからの更新要求が届かない場合でも定期更新で表示が
+      回復するようにした（Wear OSの実効最小間隔は300秒のため、消費電力を考慮して600秒とした）。
+      あわせて切り分け用にLog（TAG=SesameComplication）で、要求されたComplicationType・
+      データ返却有無・解決した状態・例外内容を出力する。実機で再現する場合は
+      adb logcat -s SesameComplication で3要因のどれに該当するかを判別できる。
+      Complication表示はAndroid Complications API依存でユニットテスト対象外のため、テストは
+      Android非依存のSesameComplicationContent.longText()に対して追加した。
+      本修正の実機確認はBL-072として人手検証項目に残している。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest / ./gradlew assembleDebug / npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 品質ゲート5コマンドすべてBUILD SUCCESSFUL（detektのReturnCount違反は
+      resolveComplicationDataのearly returnを1箇所へ集約して解消）。markdownlintは0 issues。
+      実機での表示確認は自動実行対象外のためBL-072として人手検証に残す。
+    関連ID:
+      - BL-072
+
 - date: 2026-08-30 17:59
   summary: ランチャーアイコンにコンプリケーション風リングを追加し、人手検証完了項目
     （BL-063/064/066/067/071）をBACKLOGから削除した

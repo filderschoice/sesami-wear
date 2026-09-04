@@ -210,20 +210,32 @@
 ### Complication
 
 - `wear.complication.SesameComplicationDataSourceService`（`ComplicationDataSourceService`実装、
-  `SUPPORTED_TYPES=SHORT_TEXT`）: `SesameTileStateResolver`を共用し、`ShortTextComplicationData`
-  で状態を表示する（BL-009, BL-071）。設定済み状態では`tapAction`を持たない読み取り専用表示のため、
+  `SUPPORTED_TYPES=SHORT_TEXT,LONG_TEXT`）: `SesameTileStateResolver`を共用し、要求された
+  `ComplicationType`に応じて`ShortTextComplicationData`（状態文言のみ）または
+  `LongTextComplicationData`（デバイス名＋状態文言）で状態を表示する（BL-009, BL-071, BL-072）。
+  設定済み状態では`tapAction`を持たない読み取り専用表示のため、
   全デバイス選択時も集約状態の表示のみでコマンド送信は行わない（Tile側のみが操作対象）。
+  状態解決は`withTimeout`（10秒）で打ち切り、例外・タイムアウト時も「不明」表示へフォールバック
+  して必ず`listener.onComplicationData`を呼ぶ（データ未返却＝空欄表示を作らないための防御、
+  BL-072）。切り分け用に`Log`（TAG=`SesameComplication`）で要求された型とデータ返却有無を出力する。
 - `wear.complication.SesameComplicationContent`（Android非依存）: `TileDisplayState`→短い表示文言
-  （MIXED用の🔀アイコン・「施錠/解錠混在」ラベルを含む、BL-071）。
+  （MIXED用の🔀アイコン・「施錠/解錠混在」ラベルを含む、BL-071）と、`LONG_TEXT`枠向けの
+  「デバイス名＋状態文言」（BL-072）。
 - `wear.complication.ComplicationConfigurationActivity` / `ComplicationDeviceAssignmentStore`:
   Complicationインスタンス（`complicationInstanceId`）ごとに対象デバイスを永続化する
   「複数Complicationインスタンス方式」（BL-054）。未設定時は`SesameComplicationDataSourceService`
   の`tapAction`からこのActivityを起動する。
-- **既知の不具合（BL-072、未解決）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
-  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出している。
+- 更新契機は、(1) `SesameStatusListenerService`がDataItem変更を受けて発行する
+  `ComplicationDataSourceUpdateRequester.requestUpdateAll()`、(2) `ComplicationConfigurationActivity`
+  がデバイス割り当て後に発行する`requestUpdate(complicationInstanceId)`、(3) マニフェストの
+  `UPDATE_PERIOD_SECONDS=600`による定期更新の3つ。(3)は更新要求が届かなかった場合でも表示が
+  自己回復するための保険として、従来の`0`（定期更新なし）から変更した（BL-072）。
+- **既知の不具合（BL-072、実機確認待ち）**: 文字盤のComplication枠へデバイスを割り当てても状態文言が
+  表示されず空欄のままになる事象を2026-08-30の実機確認（Wear OS 7のPixel Watch）で検出した。
   同一の`SesameTileStateResolver`を使うTile側は正しく表示できているため、状態解決ロジックではなく
   Complication固有の要因（要求される`ComplicationType`、`onComplicationRequest`の非同期実装、
-  更新契機）を疑っている。切り分け観点はBACKLOGのBL-072を参照。
+  更新契機）を疑い、実機ログなしでは切り分けられないことから上記のとおり3要因すべてへの防御的修正を
+  実装済み。修正版での実機再確認が残っている（BACKLOGのBL-072を参照）。
 
 ### 施錠/解錠操作画面
 

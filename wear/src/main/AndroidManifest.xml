@@ -84,12 +84,22 @@
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
             </intent-filter>
+            <!--
+                SHORT_TEXTのみを宣言していると、LONG_TEXT枠しか受け付けない文字盤で本データソースを
+                選べない（または選べても型不一致でデータが破棄され空欄になる）ため、LONG_TEXTも
+                対応型に加えた（BL-072）。型ごとの表示内容はSesameComplicationDataSourceServiceが
+                request.complicationTypeを見て作り分ける。
+                UPDATE_PERIOD_SECONDSは、従来の0（定期更新なし・更新要求のみが契機）では
+                ComplicationDataSourceUpdateRequesterからの更新要求が届かなかった場合に空欄のまま
+                復帰しないため、定期更新ありへ変更した（Wear OSの実効最小間隔は300秒のため、
+                消費電力を考慮して600秒とする）。
+            -->
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT" />
+                android:value="SHORT_TEXT,LONG_TEXT" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="0" />
+                android:value="600" />
         </service>
 
         <service
