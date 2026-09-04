@@ -68,12 +68,28 @@
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
+        <!--
+            Complicationのデバイス割り当て画面。tapActionからの起動に加えて、文字盤のComplication
+            ピッカーでデータソースを選んだ直後にシステムから起動される標準の設定導線
+            （ComplicationDataSourceService.METADATA_KEY_DATA_SOURCE_CONFIG_ACTION）へ対応する
+            ため、intent-filterを追加した（BL-073）。この導線が無いと、未設定Complicationの
+            「タップして設定」を押す1経路でしかデバイスを割り当てられず、枠ごとに別デバイスを
+            設定したり、設定済みの枠のデバイスを変更したりできなかった。
+            actionは他アプリの設定画面と混同しないようアプリ固有の名前を用いる（システムは
+            EXTRA_CONFIG_DATA_SOURCE_COMPONENTでデータソースを明示して起動する）。
+        -->
         <activity
             android:name=".complication.ComplicationConfigurationActivity"
             android:exported="true"
             android:noHistory="true"
             android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.DeviceDefault" />
+            android:theme="@android:style/Theme.DeviceDefault">
+            <intent-filter>
+                <action android:name="com.sesamiwear.wear.complication.CONFIG_COMPLICATION" />
+                <category android:name="android.support.wearable.complications.category.PROVIDER_CONFIG" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".complication.SesameComplicationDataSourceService"
@@ -100,6 +116,13 @@
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="600" />
+            <!--
+                データソース選択直後にComplicationConfigurationActivityを起動させるための設定
+                （BL-073）。値は上記Activityのintent-filterのactionと一致させる必要がある。
+            -->
+            <meta-data
+                android:name="android.support.wearable.complications.PROVIDER_CONFIG_ACTION"
+                android:value="com.sesamiwear.wear.complication.CONFIG_COMPLICATION" />
         </service>
 
         <service

@@ -23,12 +23,13 @@ import kotlinx.coroutines.withTimeout
  * （[ComplicationRequest.complicationInstanceId]）が1台のSesameデバイスに対応する
  * 「複数Complicationインスタンス方式」を採る（BL-054、[com.sesamiwear.wear.tile.SesameTileService]
  * と同型）。対象デバイスは[ComplicationDeviceAssignmentStore]でinstanceIdごとに永続化され、
- * 未設定の場合はタップで[ComplicationConfigurationActivity]へ誘導するtapActionを設定する。
+ * 未設定・設定済みのいずれもタップで[ComplicationConfigurationActivity]へ誘導するtapActionを
+ * 設定する（設定済み枠のデバイス変更導線、BL-073）。
  * スマホ接続状態・ロック状態は[SesameConnectedNodeProvider]・[SesameTileStateResolver]から
  * 取得する（BL-015）。対象デバイスuuidが`SesameWearProtocol.ALL_DEVICES_TARGET_UUID`
  * （「全デバイス」選択）の場合は登録済み全デバイスの状態を集約表示する（BL-071、複数デバイス
- * 一括操作。Complicationは設定済み状態ではtapActionを持たない読み取り専用表示のため、
- * 集約表示のみでコマンド送信は行わない）。
+ * 一括操作。Complicationのタップは設定画面を開くだけで施錠/解錠のコマンド送信は行わないため、
+ * 集約表示のみとする。操作導線はTile側に限定する）。
  *
  * 状態文言が文字盤へ一切表示されない不具合（BL-072）への対応として、以下3点を実装している。
  * いずれも「システムへデータを返せない状態」を作らないための防御的な措置であり、原因を実機ログで
@@ -78,15 +79,22 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
             buildUnconfiguredComplicationData(complicationInstanceId, type)
         } else {
             runCatching {
-                withTimeout(RESOLVE_TIMEOUT_MILLIS) { buildConfiguredComplicationData(deviceUuid, type) }
+                withTimeout(RESOLVE_TIMEOUT_MILLIS) {
+                    buildConfiguredComplicationData(complicationInstanceId, deviceUuid, type)
+                }
             }.getOrElse { error ->
                 Log.w(TAG, "failed to resolve state id=$complicationInstanceId", error)
-                buildComplicationData(type, SesameComplicationContent.shortText(TileDisplayState.UNKNOWN))
+                buildComplicationData(
+                    type,
+                    SesameComplicationContent.shortText(TileDisplayState.UNKNOWN),
+                    configurationTapAction(complicationInstanceId),
+                )
             }
         }
     }
 
     private suspend fun buildConfiguredComplicationData(
+        complicationInstanceId: Int,
         deviceUuid: String,
         type: ComplicationType,
     ): ComplicationData {
@@ -100,22 +108,32 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
             } else {
                 SesameComplicationContent.shortText(state)
             }
-        return buildComplicationData(type, text)
+        return buildComplicationData(type, text, configurationTapAction(complicationInstanceId))
     }
 
     private fun buildUnconfiguredComplicationData(
         complicationInstanceId: Int,
         type: ComplicationType,
-    ): ComplicationData {
+    ): ComplicationData =
+        buildComplicationData(
+            type,
+            text = UNCONFIGURED_TEXT,
+            tapAction = configurationTapAction(complicationInstanceId),
+        )
+
+    /**
+     * タップで[ComplicationConfigurationActivity]を開く[PendingIntent]。未設定枠だけでなく設定済み枠へも
+     * 付与し、枠ごとの対象デバイスをあとから変更できるようにする（BL-073）。施錠/解錠のコマンド送信は
+     * 行わない（Complicationは読み取り専用表示とし、操作導線はTile側に限定する方針を維持する）。
+     */
+    private fun configurationTapAction(complicationInstanceId: Int): PendingIntent {
         val intent = ComplicationConfigurationActivity.createIntent(applicationContext, complicationInstanceId)
-        val tapAction =
-            PendingIntent.getActivity(
-                applicationContext,
-                complicationInstanceId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        return buildComplicationData(type, text = UNCONFIGURED_TEXT, tapAction = tapAction)
+        return PendingIntent.getActivity(
+            applicationContext,
+            complicationInstanceId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? =

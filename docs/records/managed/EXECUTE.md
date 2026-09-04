@@ -5,6 +5,51 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 02:05
+  summary: Complicationのデバイス設定導線をWear OS標準の設定導線へ対応させ、設定済み枠の
+    デバイス変更を可能にした（BL-073）
+  details:
+    変更内容: >
+      BL-072の修正で状態文言が表示されるようになった結果、デバイス割り当ての導線が
+      「未設定枠に出る『タップして設定』を押す」1経路しかないことが実機確認で顕在化した。
+      設定済みComplicationにはtapActionを付けていなかったため、一度割り当てると変更できず、
+      複数の枠へ別々のデバイスを割り当てることも実質できなかった。次の2点で解消した。
+      (1) Wear OS標準の設定導線への対応: wear/AndroidManifest.xmlの
+      SesameComplicationDataSourceServiceへ、ComplicationDataSourceServiceの
+      METADATA_KEY_DATA_SOURCE_CONFIG_ACTION（android.support.wearable.complications.
+      PROVIDER_CONFIG_ACTION）のmeta-dataを追加し、ComplicationConfigurationActivityへ同じactionと
+      CATEGORY_DATA_SOURCE_CONFIG（android.support.wearable.complications.category.PROVIDER_CONFIG）
+      を持つintent-filterを追加した。actionは他アプリと混同しないようアプリ固有の名前
+      （com.sesamiwear.wear.complication.CONFIG_COMPLICATION）とした。Activity側は、システムが渡す
+      EXTRA_CONFIG_COMPLICATION_ID（Int）を優先し、無ければ従来のtapAction経由のextra（文字列）を
+      使う形で対象instanceIdを解決する。選択完了時にsetResult(RESULT_OK)を返すようにした
+      （RESULT_OKを返さないと文字盤側がデータソース選択自体をキャンセル扱いにするため）。
+      これにより、文字盤のピッカーで枠ごとにデータソースを選んだ直後にデバイス選択画面が開く。
+      (2) 設定済み枠のデバイス変更: SesameComplicationDataSourceServiceのtapAction生成を
+      configurationTapAction()へ切り出し、未設定枠・設定済み枠・状態解決失敗時のフォールバック表示の
+      すべてへ付与した。タップで開くのは設定画面のみで、施錠/解錠のコマンド送信は行わない
+      （操作導線はTile側に限定する既存方針は維持）。
+      いずれもAndroid Complications API依存でユニットテスト対象外のため、テストの追加はない。
+      実機での確認はBL-073として人手検証項目に登録した。
+      あわせて、実機で状態文言の表示を確認できたBL-072をBACKLOGから削除し、BL-055の完了条件から
+      複数Complicationのデバイス別表示（BL-073へ移管）を外して依存を解消した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationConfigurationActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest / ./gradlew assembleDebug / npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 品質ゲート5コマンドすべてBUILD SUCCESSFUL。markdownlintは0 issues。
+      複数枠への割り当て・設定済み枠の変更は実機確認が必要なためBL-073として人手検証に残す。
+    関連ID:
+      - BL-073
+      - BL-072
+      - BL-055
+
 - date: 2026-09-05 01:37
   summary: Complicationの状態文言が空欄になる不具合（BL-072）へ、想定3要因すべてに対する
     防御的修正と切り分け用ログを実装した
