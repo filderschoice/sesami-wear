@@ -47,21 +47,6 @@
   依存:
     - BL-072
 
-- id: BL-042
-  区分: 人手検証
-  タスク内容: 2026-08-30の実機確認で、スマホ・Pixel Watch双方のアプリ一覧でコンプリケーション風
-    リングが全く表示されないことが判明した。原因は、mobile/wear統合（BL-036）と1アイコン統一
-    （BL-066）によりランチャーへ表示されるアイコンがmobileのic_launcher_foreground.xmlのみと
-    なった一方、リングのpathは Tile/Complicationピッカー用の ic_launcher_wear_foreground.xml
-    にしか存在しなかったこと。対応としてic_launcher_foreground.xmlへ等倍のリングpathを追加済み
-    （実施記録はEXECUTE.md参照）。この修正を反映したビルドでの実機再確認が残っている
-  優先度: P2
-  状態: 未着手
-  担当: ユーザー
-  完了条件: 実機（スマホ・Pixel Watch）のランチャー・アプリ一覧でアプリアイコンのリングが
-    欠けずに表示されることを確認する
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
