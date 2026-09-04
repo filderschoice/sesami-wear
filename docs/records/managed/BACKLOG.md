@@ -5,27 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-073
-  区分: 人手検証
-  タスク内容: Complicationのデバイス割り当て導線が「未設定枠に表示される『タップして設定』を押す」
-    1経路しかなく、枠ごとに別のSesameデバイスを設定できない・設定済み枠のデバイスを変更できない
-    問題（2026-09-05の実機確認で判明。BL-072の修正で状態文言が表示されるようになった後に顕在化）。
-    対応として次の2点を実装済み（実施記録はEXECUTE.md参照）。
-    (1) Wear OS標準の設定導線へ対応した。ComplicationDataSourceServiceへ
-    PROVIDER_CONFIG_ACTIONのmeta-dataを、ComplicationConfigurationActivityへ対応する
-    intent-filterを追加し、システムが渡すEXTRA_CONFIG_COMPLICATION_IDから対象instanceIdを解決して
-    選択完了時にRESULT_OKを返す。これにより文字盤のピッカーでデータソースを選んだ直後に
-    デバイス選択画面が開く。(2) 設定済みComplicationにもtapActionを付与し、タップでデバイスを
-    変更できるようにした（施錠/解錠のコマンド送信は行わず、操作導線はTile側に限定する方針は維持）。
-    枠ごとのcomplicationInstanceIdが実際に異なるかは
-    `adb logcat -s SesameComplication` の `onComplicationRequest id=` で確認できる
-  優先度: P1
-  状態: 未着手
-  担当: ユーザー
-  完了条件: 文字盤の複数のComplication枠へそれぞれ異なるSesameデバイスを割り当てられること、
-    および割り当て済みの枠をタップして別デバイスへ変更できることを実機で確認する
-  依存: []
-
 - id: BL-055
   区分: 人手検証
   タスク内容: 2026-08-30の実機確認（Wear OS 7のPixel Watch）で、同一Tileを複数追加することが
