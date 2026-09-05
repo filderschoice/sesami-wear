@@ -76,21 +76,6 @@
     - BL-077
     - BL-078
 
-- id: BL-081
-  区分: ドキュメント
-  タスク内容: docs/store 配下をストア掲載情報の管理場所として整理する。docs/store/README.md
-    （掲載情報の索引・更新手順・Play Consoleの入力項目との対応）を新規作成し、
-    PRIVACY_POLICY.md のドラフト表記と公開URL方針を明確化、STORE_LISTING.md へリリースノート・
-    サポート導線（BL-078/BL-079）の参照を追加する
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: docs/store 配下の各ファイルの役割・更新手順が索引から辿れ、Play Console入力項目と
-    対応づけられている
-  依存:
-    - BL-078
-    - BL-079
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の

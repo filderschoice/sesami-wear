@@ -199,3 +199,9 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   を削除し、実態に合わせてTileの多重追加制約とComplicationの枠別割り当て確認済みの記述へ置き換えた。
   プロジェクト構成ツリーへ`docs/`配下と`scripts/`・`config/`・`rules/`を反映し、関連ドキュメントを
   利用者向け・開発者向けに分けて最新化した。
+- `docs/store/` をストア掲載情報の管理場所として整理した（BL-081）。索引となる
+  [docs/store/README.md](docs/store/README.md) を新規作成し、Play Consoleの各入力項目と参照元ファイル・
+  文字数上限の対応表、更新手順（原本をリポジトリ側に置きPlay Console側を直接書き換えない運用）を
+  定義した。`PRIVACY_POLICY.md` はPublic公開後のGitHub上のURLをそのまま公開URLとして使う方針を明記し、
+  「ドラフト」表記を解消して問い合わせ導線を追加した。`STORE_LISTING.md` の詳細な説明へ、利用ガイド・
+  リリースノート・サポート情報のURLを追加した。

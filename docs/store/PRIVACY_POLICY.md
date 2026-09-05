@@ -1,10 +1,17 @@
-# Sesami Wear プライバシーポリシー（ドラフト）
+# Sesami Wear プライバシーポリシー
 
-最終更新日: 2026-08-21
+最終更新日: 2026-09-05
 
-本ドキュメントはGoogle Play Console提出用のプライバシーポリシーのドラフトです。
-実際の公開URLでのホスティングとPlay ConsoleのData safety申告への反映はBL-033
-（人手検証）で行います。
+本ドキュメントは、Android / Wear OSアプリ「Sesami Wear」のプライバシーポリシーです。
+本ファイル自体が公開版であり、次のURLで参照できます（Google Play Consoleのプライバシーポリシー欄には
+このURLを登録します）。
+
+```text
+https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY.md
+```
+
+Play ConsoleのData safety（データ安全性）セクションへの申告は、本ポリシーの記載内容に基づいて行います
+（申告作業自体はBACKLOG BL-033）。
 
 ## 収集する情報
 
@@ -54,8 +61,11 @@ apikey・secretKeyは、施錠・解錠・状態取得のためにCANDY HOUSE社
 
 ## ポリシーの変更
 
-本ポリシーの内容を変更する場合は、本ドキュメントおよび公開URLの内容を更新します。
+本ポリシーの内容を変更する場合は、本ドキュメントを更新し、冒頭の最終更新日を改めます。
+変更の履歴は、GitHubリポジトリの本ファイルの変更履歴で確認できます。
 
 ## お問い合わせ先
 
-<filderschoice.release@gmail.com>
+- メール: <filderschoice.release@gmail.com>
+- GitHub Issues: <https://github.com/filderschoice/sesami-wear/issues>
+  （問い合わせの詳細は [サポート情報](../SUPPORT.md) を参照してください）
