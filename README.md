@@ -185,6 +185,7 @@ sesami-wear/
 - [PLAN.md](PLAN.md): 要件・API仕様メモ・アーキテクチャ方針
 - [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md): 実装済み内容の統合設計書
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
+- [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
 - [CONTRIBUTING.md](CONTRIBUTING.md): 開発プロセス・ブランチ運用・Markdown品質チェック
 - [CLAUDE.md](CLAUDE.md): Claude Code運用ルール（品質ゲート定義を含む）
 

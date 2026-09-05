@@ -167,18 +167,6 @@
   完了条件: 外部の開発者がCONTRIBUTING.mdのみでPR提出までの手順と要件を把握できる
   依存: []
 
-- id: BL-074
-  区分: ドキュメント
-  タスク内容: 脆弱性報告の受付方針を定めた SECURITY.md をリポジトリルートへ新規作成する。
-    対象範囲（本アプリのコードのみ。CANDY HOUSE社のSesame本体・APIは対象外）、報告手段
-    （GitHub Security Advisories / メール）、公開Issueへ報告しない依頼、対応目安、
-    サポート対象バージョン、利用者が守るべき事項（資格情報を報告に含めない）を記載する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: GitHubのSecurity policyとして認識される位置にSECURITY.mdがあり、READMEから参照できる
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
