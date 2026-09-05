@@ -187,3 +187,8 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   `scripts/version.properties`との整合、Google Play「このリリースの新機能」欄への転記）を定義し、
   現行の0.1.0（未リリース）の内容を記載した。あわせて本ファイル冒頭へ、`CHANGELOG.md` /
   `RELEASE_NOTES.md` / `EXECUTE.md` の記録先の使い分けを明記した。
+- アプリ利用者向けの [docs/SUPPORT.md](docs/SUPPORT.md) を新規作成した（BL-078）。アップデート内容の
+  確認先（リリースノートを一次情報とし、GitHub Releases・Google Playの「新機能」を併記）、
+  配布経路ごとのアップデート方法、現在の配布状況、問い合わせ窓口（GitHub Issuesのテンプレート別・
+  メール・脆弱性は非公開経路）、報告時に資格情報を含めない依頼、対応方針、サポートの対象範囲
+  （Sesame本体・純正アプリ・OS自体は対象外）、免責を記載した。
