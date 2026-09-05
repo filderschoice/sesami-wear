@@ -43,7 +43,8 @@ import kotlinx.coroutines.launch
  * パディングで内側へ寄せ、各チップ間にも隙間を設けることで、円形画面のセーフエリア（内接正方形）
  * からのテキストのはみ出し・欠けを防ぐ。
  * TileServiceはビルド確認までとする
- * （Android Tiles APIへの依存のためユニットテスト対象外、プレビュー確認は自動実行不可のためBL-055で人手検証）。
+ * （Android Tiles APIへの依存のためユニットテスト対象外、実機での表示・デバイス切り替えは
+ * BL-055の人手検証で2026-09-05に確認済み）。
  */
 class SesameTileService : TileService() {
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
