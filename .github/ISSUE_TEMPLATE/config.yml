@@ -9,3 +9,6 @@ contact_links:
   - name: リリースノート
     url: https://github.com/filderschoice/sesami-wear/blob/main/docs/RELEASE_NOTES.md
     about: バージョンごとの変更点はこちらで確認できます。
+  - name: 受け付けている報告について
+    url: https://github.com/filderschoice/sesami-wear/blob/main/CONTRIBUTING.md
+    about: Issueは受け付けていますが、外部からのPull Requestは受け付けていません。実装は開発者が行います。

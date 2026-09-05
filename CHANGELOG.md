@@ -235,3 +235,9 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   「外部コントリビューターの方へ」配下にあった品質ゲートを開発者向けの独立セクションへ移し、
   「レビュー要件」へAI実装主体である旨と、レビュー対象が開発者・AIエージェントの変更に限られる旨を
   追記した。
+- Issue・Pull Requestのテンプレートを新方針へ合わせた（BL-088）。
+  `.github/ISSUE_TEMPLATE/feature_request.yml` から「実装への参加意思」（Pull Request作成を選択肢に
+  含む項目）を削除し、実装は開発者が行い外部PRを受け付けていない旨の案内へ置き換えた。
+  `.github/ISSUE_TEMPLATE/config.yml` へ受け付け方針（CONTRIBUTING.md）への導線を追加した。
+  `.github/PULL_REQUEST_TEMPLATE.md` の冒頭コメントへ、本テンプレートが開発者・AIエージェント専用で
+  あることを明記した。

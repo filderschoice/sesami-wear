@@ -21,19 +21,6 @@
     - BL-087
     - BL-088
 
-- id: BL-088
-  区分: ドキュメント
-  タスク内容: Issue・PRテンプレートを新方針へ合わせる。.github/ISSUE_TEMPLATE/feature_request.yml
-    の「実装への参加意思」（Pull Request作成を選択肢に含む）を削除し、実装は開発者が行う旨の
-    案内へ置き換える。.github/PULL_REQUEST_TEMPLATE.md は開発者・AIエージェント専用である旨を
-    冒頭コメントへ明記する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: Issueフォームから外部実装を前提とした選択肢がなくなり、PRテンプレートの用途が明示される
-  依存:
-    - BL-087
-
 - id: BL-086
   区分: 人手検証
   タスク内容: BL-081で確定するプライバシーポリシーの公開URL方針に従い、GitHub上の

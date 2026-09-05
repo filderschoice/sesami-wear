@@ -1,6 +1,11 @@
 <!-- markdownlint-disable-file MD041 -->
 <!-- I want to review and to create summaries in Japanese. -->
 <!-- for GitHub Copilot review rule -->
+<!--
+本テンプレートは、開発者およびAIエージェント（Claude Code / GitHub Copilot）が作成するPR用です。
+本リポジトリでは外部からのPull Requestを受け付けていません（CONTRIBUTING.md 参照）。
+不具合の報告・機能の要望・質問は Issue へお願いします。
+-->
 
 ## 概要
 

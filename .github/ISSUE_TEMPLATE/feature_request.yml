@@ -10,9 +10,11 @@ body:
         ご提案ありがとうございます。個人が余暇に開発しているプロジェクトのため、
         いただいた提案すべてに対応できるとは限りません。あらかじめご了承ください。
 
-        本アプリの設計方針（secretKeyをウォッチ側へ保持しない、広告・解析SDKを組み込まない等）は
+        **実装は開発者が行います。本リポジトリでは外部からのPull Requestを受け付けていません。**
+        受け付けている報告の種類と、要望を実装するかどうかの判断基準（secretKeyをウォッチ側へ
+        保持しない、広告・解析SDKを組み込まない等の設計方針を含む）は
         [CONTRIBUTING.md](https://github.com/filderschoice/sesami-wear/blob/main/CONTRIBUTING.md)
-        の「受け入れの判断基準」に記載しています。
+        に記載しています。
 
   - type: textarea
     id: problem
@@ -36,17 +38,6 @@ body:
       description: 他の方法で回避できるか、試した内容があれば記載してください。
     validations:
       required: false
-
-  - type: dropdown
-    id: contribution
-    attributes:
-      label: 実装への参加意思
-      options:
-        - 提案のみ（実装は希望しない）
-        - 自分でPull Requestを作成したい
-        - 相談しながら実装を検討したい
-    validations:
-      required: true
 
   - type: textarea
     id: additional
