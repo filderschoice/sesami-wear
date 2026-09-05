@@ -126,7 +126,9 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 - `.github/ISSUE_TEMPLATE/`: Issueフォーム（`bug_report.yml` / `feature_request.yml` /
   `question.yml`）と`config.yml`（空Issueの無効化、脆弱性報告・サポート情報・リリースノートへの導線）。
 - `.github/PULL_REQUEST_TEMPLATE.md`: PR説明の既定構成（本ファイル「PR説明文・コードレビューの
-  言語設定」に対応）と、品質ゲート実行・資格情報混入確認のチェックリスト。
+  言語設定」に対応）と、品質ゲート実行・資格情報混入確認のチェックリスト。開発者・AIエージェント
+  専用（外部からのPull Requestは受け付けない。`CONTRIBUTING.md`「受け付けている報告と、
+  受け付けていないもの」参照）。
 - `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
 - `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
   基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある

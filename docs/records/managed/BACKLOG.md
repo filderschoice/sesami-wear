@@ -5,22 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-089
-  区分: ドキュメント
-  タスク内容: 外部Pull Requestを受け付けない方針を、関連ドキュメントへ反映する。docs/SUPPORT.md
-    （対応方針・受け入れ判断基準の参照）、README.md（CONTRIBUTING.mdの説明文）、SECURITY.md
-    （修正対応の主体）、docs/records/managed/DESIGN.md（GitHub公開対応の記述）、CLAUDE.md /
-    .github/copilot-instructions.md（参照関係の記述）を実態に合わせる。あわせてBL-085の
-    タスク内容へ、Public切り替え時にfork/Pull Requestを抑止する設定（Allow forkingの無効化）の
-    検討を追記する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 外部PRを受け付ける前提の記述がリポジトリ内に残っておらず、markdownlintが成功する
-  依存:
-    - BL-087
-    - BL-088
-
 - id: BL-086
   区分: 人手検証
   タスク内容: BL-081で確定するプライバシーポリシーの公開URL方針に従い、GitHub上の
@@ -40,7 +24,10 @@
   タスク内容: GitHubリポジトリをPublicへ切り替え、公開リポジトリとしての設定を行う。
     Description・Topics（wear-os / android / sesame / smart-lock / kotlin 等）の設定、Issues有効化、
     SECURITY.mdのSecurity policy認識確認、初回リリースタグ（v0.1.0）とGitHub Releasesの作成、
-    Secret scanningの有効化を含む
+    Secret scanningの有効化を含む。あわせて、外部からのPull Requestを受け付けない方針
+    （BL-087）に対し、リポジトリ設定でforkを抑止できるかを設定画面で確認する（個人アカウントの
+    Publicリポジトリでfork禁止の設定が提供されているかは未確認。提供されていない場合は
+    CONTRIBUTING.md・PRテンプレートでの明示と、届いたPRをクローズする運用で対応する）
   優先度: P3
   状態: 未着手
   担当: ユーザー

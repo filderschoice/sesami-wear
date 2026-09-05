@@ -241,3 +241,10 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   `.github/ISSUE_TEMPLATE/config.yml` へ受け付け方針（CONTRIBUTING.md）への導線を追加した。
   `.github/PULL_REQUEST_TEMPLATE.md` の冒頭コメントへ、本テンプレートが開発者・AIエージェント専用で
   あることを明記した。
+- 新方針を関連ドキュメントへ反映した（BL-089）。`docs/SUPPORT.md`「対応方針」へ、修正・改善は
+  すべて開発者側で実装し外部PRを受け付けない旨と、判断基準の参照先（章名変更に追随）を反映した。
+  `README.md`の`CONTRIBUTING.md`の説明を受け付け方針が分かる文言へ改め、`CLAUDE.md`の
+  `.github/PULL_REQUEST_TEMPLATE.md`の説明へ開発者・AIエージェント専用である旨を追記した。
+  `docs/records/managed/DESIGN.md`「GitHub公開対応」の記述を新方針へ更新した。あわせて`BACKLOG.md`の
+  BL-085（Public切り替え）へ、fork抑止設定の可否確認（個人アカウントのPublicリポジトリで
+  提供されているかは未確認）と、提供されない場合の運用を追記した。
