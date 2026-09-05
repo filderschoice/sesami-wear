@@ -380,10 +380,29 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
   株式会社とは提携・協力関係にない」旨を明記した。
 - `.github/CODEOWNERS`のプレースホルダー（テンプレート由来の実在しないチーム名）を実際のGitHub
   ユーザー名へ修正した。
+- Public公開に向けた整備（BL-074〜BL-084）。git履歴の秘密情報スキャン（apikey/secretKey形状の
+  16進32文字・実uuid・鍵ファイル・メールアドレス）を実施し、混入はダミー値とRFC 4493公開テスト
+  ベクタのみであることを確認済み。
+  - `SECURITY.md`（脆弱性報告の受付方針。対象範囲は本リポジトリのコードのみで、CANDY HOUSE社の
+    Sesame本体・クラウドAPIは対象外。非公開の報告経路と、報告に資格情報を含めない依頼を明記）。
+  - `.github/ISSUE_TEMPLATE/`（不具合報告・機能要望・使い方の質問のIssueフォームと`config.yml`）と
+    `.github/PULL_REQUEST_TEMPLATE.md`（`CLAUDE.md`規定のPR説明構成＋品質ゲート・資格情報混入確認の
+    チェックリスト）。不具合報告・質問のフォームには資格情報を含めていないことの必須チェックを置く。
+  - `CONTRIBUTING.md`へ外部コントリビューター向けの受け入れ方針（Issue先行、判断基準として
+    secretKeyをwear側へ持たせない設計と広告/解析SDK非導入の維持、PR前の品質ゲート実行）を追加し、
+    テンプレート由来の役割分担（セキュリティ担当等）をメンテナー1名兼務の実態へ修正した。
+  - 利用者向けドキュメント`docs/USER_GUIDE.md`（操作ガイド）・`docs/SUPPORT.md`（アップデート内容の
+    確認先と問い合わせ窓口）・`docs/RELEASE_NOTES.md`（バージョンごとの変更点）を新設し、
+    `README.md`を「利用者向け導線→開発者向け情報」の構成へ再編した。
+  - 記録先の使い分けを`CHANGELOG.md`（運用ルール・ドキュメント）／`docs/RELEASE_NOTES.md`
+    （利用者向け変更点）／`EXECUTE.md`（コード修正）として明文化した。
 
 ### ストア掲載情報・プライバシーポリシー
 
-`docs/store/STORE_LISTING.md` / `docs/store/PRIVACY_POLICY.md`（BL-030、ドラフト）。単一アプリ
+`docs/store/STORE_LISTING.md` / `docs/store/PRIVACY_POLICY.md`（BL-030。BL-081で索引
+`docs/store/README.md`を追加し、Play Consoleの入力項目・文字数上限との対応表と更新手順を定義。
+掲載情報の原本をリポジトリ側に置き、Play Console側を直接書き換えない運用とする。
+プライバシーポリシーはPublic公開後のGitHub上のURLをそのままPlay Consoleへ登録する方針）。単一アプリ
 登録（上記「Google Play配布方式」参照）を前提に、アプリ名・短い説明・詳細な説明・カテゴリ案・
 対象デバイスと、収集する情報（uuid/apikey/secretKey、利用者本人が入力しサーバー側では収集しない）・
 保存方法（mobile側のEncryptedSharedPreferencesのみ）・送信先（CANDY HOUSE Sesame APIのみ、
