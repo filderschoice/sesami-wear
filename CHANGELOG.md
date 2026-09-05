@@ -164,3 +164,10 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   記録ファイルの使い分け（EXECUTE.md / CHANGELOG.md / RELEASE_NOTES.md）を追記した。
   「レビュー要件」のテンプレート由来だった役割分担（セキュリティ担当・プライバシー担当・
   プロダクトオーナー）を、メンテナー1名が兼務する現在の体制の記述へ修正した。
+- Issue・Pull Requestのテンプレートを整備した（BL-076）。`.github/ISSUE_TEMPLATE/` へ
+  `bug_report.yml`（不具合報告）・`feature_request.yml`（機能要望）・`question.yml`（使い方の質問）・
+  `config.yml`（空Issueの無効化と、脆弱性報告・サポート情報・リリースノートへの導線）を新規作成した。
+  不具合報告・質問のテンプレートには、資格情報を記載しないことを確認するチェック項目を必須で設けた。
+  `.github/PULL_REQUEST_TEMPLATE.md`（従来はCopilot向けコメント2行のみ）へ、`CLAUDE.md`が規定する
+  PR説明構成（概要・変更内容・変更理由・テスト方法・関連事項）と、品質ゲート実行・資格情報混入確認を
+  含むチェックリストを追加した。

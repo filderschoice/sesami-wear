@@ -1,0 +1,47 @@
+name: 使い方の質問
+description: セットアップや操作方法について質問する場合はこちら
+title: "[Question] "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        質問の前に、以下のドキュメントをご確認ください。多くの手順はこちらに記載しています。
+
+        - [利用ガイド](https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md):
+          資格情報の登録、タイル・コンプリケーションの設定、操作方法、トラブル対処
+        - [インストール方法](https://github.com/filderschoice/sesami-wear/blob/main/docs/INSTALL.md)
+        - [サポート情報](https://github.com/filderschoice/sesami-wear/blob/main/docs/SUPPORT.md)
+
+        **資格情報（apikey / secretKey / uuid）は記載しないでください。**
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 質問内容
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 試したこと・確認したドキュメント
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 利用環境
+      placeholder: "Pixel 8 Pro / Pixel Watch 2 / Sesame 5 + Hub 3"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 確認事項
+      options:
+        - label: 本文に資格情報（apikey / secretKey / uuid）が含まれていないことを確認しました
+          required: true
