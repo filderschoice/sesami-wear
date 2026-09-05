@@ -52,17 +52,6 @@
     - BL-079
     - BL-081
 
-- id: BL-083
-  区分: 実装
-  タスク内容: リリースビルド（R8 minify有効）でデバッグ用ログ（Log.d / Log.v）が実行ファイルへ
-    残る状態を解消する。mobile / wear の proguard-rules.pro へ -assumenosideeffects による除去
-    ルールを追加する。障害切り分けに必要な Log.w / Log.e は残す
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: リリースビルドでLog.d/Log.vが除去される設定が入り、段階Bの品質ゲートが成功する
-  依存: []
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の

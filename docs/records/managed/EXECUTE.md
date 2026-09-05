@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 22:41
+  summary: リリースビルドから切り分け用デバッグログ（Log.d / Log.v）を除去するR8ルールを追加した
+  details:
+    変更内容: >
+      BL-072/BL-073の切り分け用に残置しているLog.d呼び出し（mobile.messaging
+      .SesameMessageListenerService、wear.messaging.SesameResultListenerService、
+      wear.tile.SesameTileService、wear.complication.SesameComplicationDataSourceService）が、
+      isMinifyEnabled=trueのリリースビルドにもそのまま残っていた。出力内容はパス・成否・
+      状態の真偽値のみで資格情報は含まないが、Public公開・ストア配布を控え、配布物へ内部状態を
+      残さないためmobile/proguard-rules.proへ-assumenosideeffectsを追加し、
+      android.util.LogのdとvをR8の最適化で除去するようにした。障害調査に必要なLog.w/Log.eは
+      残している。wearはdynamic featureでminifyEnabled/proguardFilesを持たず、base（mobile）側の
+      設定がアプリ全体へ適用されるため、追加はmobile側のみで足りる（wear/proguard-rules.proは
+      BL-036の統合時に廃止済み）。あわせてDESIGN.mdのProGuard/R8の記述が「mobile/wear双方の
+      proguard-rules.pro」という統合前の内容のままだったため、現在の構成へ更新した。
+      デバッグビルドの挙動は変更していない。
+    変更ファイル:
+      - mobile/proguard-rules.pro
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:assembleRelease / npx markdownlint-cli2
+    検証結果: >
+      成功 - 段階Bの品質ゲートすべてBUILD SUCCESSFUL、R8適用の:mobile:assembleReleaseも
+      BUILD SUCCESSFUL（ルール追加によるビルド破壊がないことを確認）、markdownlint 0 issues
+    関連ID:
+      - BL-083
+
 - date: 2026-09-05 03:10
   summary: BL-055（単一Tileのデバイス切り替え）の実機確認完了を記録へ反映し、コード中の
     人手検証待ち注記を確認済みへ更新した

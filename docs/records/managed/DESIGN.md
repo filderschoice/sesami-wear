@@ -322,9 +322,13 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
   `RELEASE_STORE_FILE`/`RELEASE_STORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`を読み込み、
   存在する場合のみ`signingConfigs.release`を構築する。未設定時は`assembleDebug`/`assembleRelease`
   ともunsignedのまま成功する。Keystoreの実際の生成は完了済み（BL-032、人手検証）。
-- ProGuard/R8（BL-029）: `mobile`/`wear`双方の`proguard-rules.pro`にkotlinx.serializationの
-  `@Serializable`クラス・`$$serializer`・`serializer()`companionを保護するkeepルールを追加し、
-  リリースビルドは`isMinifyEnabled=true`。
+- ProGuard/R8（BL-029, BL-036, BL-083）: `mobile`（base module）の`proguard-rules.pro`へ
+  kotlinx.serializationの`@Serializable`クラス・`$$serializer`・`serializer()`companionを保護する
+  keepルールを置き、リリースビルドは`isMinifyEnabled=true`。`wear`はdynamic featureのため
+  `minifyEnabled`/`proguardFiles`を持たず、base側の設定がアプリ全体へ適用される（BL-036の統合時に
+  `wear`側の`proguard-rules.pro`は廃止済み）。あわせて`-assumenosideeffects`により
+  `android.util.Log`の`d`/`v`呼び出しをリリースビルドから除去する（BL-083。出力内容に資格情報は
+  含まれないが配布物へ内部状態を残さないための措置。障害調査に必要な`w`/`e`は残す）。
 - `scripts/release-build.bat`（`scripts/release-build.ps1`への薄いエントリポイント、BL-035）:
   `scripts/version.properties`に現在のversionCode/versionNameを永続化。引数なし実行時はversionCode
   を1インクリメント、`-VersionCode`/`-VersionName`指定時はその値を固定使用する。`pwsh`優先、
