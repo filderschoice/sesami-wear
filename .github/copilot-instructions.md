@@ -118,6 +118,12 @@ Copilot は本モードの対象外であり、git操作の例外規定も適用
 - `docs/records/managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
 - `docs/records/managed/EXECUTE.md`: コード修正を伴う変更のみ記録（実施済み内容のみ）
 - `docs/records/managed/BACKLOG.md`: 未対応事項、課題、次ステップ
+- `CHANGELOG.md`: リポジトリの運用ルール・ドキュメント・ガードレールの変更履歴
+- `docs/RELEASE_NOTES.md`: アプリ利用者向けのバージョンごとの変更点。利用者に影響する変更
+  （機能追加、UIの変更、不具合修正）を行った場合に追記する（内部リファクタリング・ドキュメントのみの
+  変更は対象外）
+- 利用者向けドキュメント（`docs/USER_GUIDE.md` / `docs/SUPPORT.md`）は、UIの表示文言や配布状況を
+  変更した場合に追随させる
 
 ### EXECUTE.md記録形式（MUST）
 

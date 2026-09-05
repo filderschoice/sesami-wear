@@ -322,9 +322,13 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
   `RELEASE_STORE_FILE`/`RELEASE_STORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`を読み込み、
   存在する場合のみ`signingConfigs.release`を構築する。未設定時は`assembleDebug`/`assembleRelease`
   ともunsignedのまま成功する。Keystoreの実際の生成は完了済み（BL-032、人手検証）。
-- ProGuard/R8（BL-029）: `mobile`/`wear`双方の`proguard-rules.pro`にkotlinx.serializationの
-  `@Serializable`クラス・`$$serializer`・`serializer()`companionを保護するkeepルールを追加し、
-  リリースビルドは`isMinifyEnabled=true`。
+- ProGuard/R8（BL-029, BL-036, BL-083）: `mobile`（base module）の`proguard-rules.pro`へ
+  kotlinx.serializationの`@Serializable`クラス・`$$serializer`・`serializer()`companionを保護する
+  keepルールを置き、リリースビルドは`isMinifyEnabled=true`。`wear`はdynamic featureのため
+  `minifyEnabled`/`proguardFiles`を持たず、base側の設定がアプリ全体へ適用される（BL-036の統合時に
+  `wear`側の`proguard-rules.pro`は廃止済み）。あわせて`-assumenosideeffects`により
+  `android.util.Log`の`d`/`v`呼び出しをリリースビルドから除去する（BL-083。出力内容に資格情報は
+  含まれないが配布物へ内部状態を残さないための措置。障害調査に必要な`w`/`e`は残す）。
 - `scripts/release-build.bat`（`scripts/release-build.ps1`への薄いエントリポイント、BL-035）:
   `scripts/version.properties`に現在のversionCode/versionNameを永続化。引数なし実行時はversionCode
   を1インクリメント、`-VersionCode`/`-VersionName`指定時はその値を固定使用する。`pwsh`優先、
@@ -376,10 +380,34 @@ Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mob
   株式会社とは提携・協力関係にない」旨を明記した。
 - `.github/CODEOWNERS`のプレースホルダー（テンプレート由来の実在しないチーム名）を実際のGitHub
   ユーザー名へ修正した。
+- Public公開に向けた整備（BL-074〜BL-084）。git履歴の秘密情報スキャン（apikey/secretKey形状の
+  16進32文字・実uuid・鍵ファイル・メールアドレス）を実施し、混入はダミー値とRFC 4493公開テスト
+  ベクタのみであることを確認済み。
+  - `SECURITY.md`（脆弱性報告の受付方針。対象範囲は本リポジトリのコードのみで、CANDY HOUSE社の
+    Sesame本体・クラウドAPIは対象外。非公開の報告経路と、報告に資格情報を含めない依頼を明記）。
+  - `.github/ISSUE_TEMPLATE/`（不具合報告・機能要望・使い方の質問のIssueフォームと`config.yml`）と
+    `.github/PULL_REQUEST_TEMPLATE.md`（`CLAUDE.md`規定のPR説明構成＋品質ゲート・資格情報混入確認の
+    チェックリスト）。不具合報告・質問のフォームには資格情報を含めていないことの必須チェックを置く。
+  - `CONTRIBUTING.md`へ報告の受け付け方針を明記した（BL-087）。本アプリの実装はClaude Codeによる
+    AI実装を主体として開発者本人が行う体制のため、コードの変更経路を開発者側へ一本化し、
+    **外部からのPull Requestは受け付けない**。Issue（不具合報告・機能要望・使い方の質問・
+    ドキュメントの誤り）と脆弱性の非公開報告は受け付け、対応は開発者が実装する。要望を実装するか
+    どうかの判断基準（secretKeyをwear側へ持たせない設計と広告/解析SDK非導入の維持を含む）と、
+    テンプレート由来の役割分担（セキュリティ担当等）をメンテナー1名兼務の実態へ修正した点は維持する。
+    Issueフォームおよび`.github/PULL_REQUEST_TEMPLATE.md`もこの方針に合わせている（BL-088。
+    PRテンプレートは開発者・AIエージェント専用）。
+  - 利用者向けドキュメント`docs/USER_GUIDE.md`（操作ガイド）・`docs/SUPPORT.md`（アップデート内容の
+    確認先と問い合わせ窓口）・`docs/RELEASE_NOTES.md`（バージョンごとの変更点）を新設し、
+    `README.md`を「利用者向け導線→開発者向け情報」の構成へ再編した。
+  - 記録先の使い分けを`CHANGELOG.md`（運用ルール・ドキュメント）／`docs/RELEASE_NOTES.md`
+    （利用者向け変更点）／`EXECUTE.md`（コード修正）として明文化した。
 
 ### ストア掲載情報・プライバシーポリシー
 
-`docs/store/STORE_LISTING.md` / `docs/store/PRIVACY_POLICY.md`（BL-030、ドラフト）。単一アプリ
+`docs/store/STORE_LISTING.md` / `docs/store/PRIVACY_POLICY.md`（BL-030。BL-081で索引
+`docs/store/README.md`を追加し、Play Consoleの入力項目・文字数上限との対応表と更新手順を定義。
+掲載情報の原本をリポジトリ側に置き、Play Console側を直接書き換えない運用とする。
+プライバシーポリシーはPublic公開後のGitHub上のURLをそのままPlay Consoleへ登録する方針）。単一アプリ
 登録（上記「Google Play配布方式」参照）を前提に、アプリ名・短い説明・詳細な説明・カテゴリ案・
 対象デバイスと、収集する情報（uuid/apikey/secretKey、利用者本人が入力しサーバー側では収集しない）・
 保存方法（mobile側のEncryptedSharedPreferencesのみ）・送信先（CANDY HOUSE Sesame APIのみ、

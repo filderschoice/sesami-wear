@@ -1,0 +1,47 @@
+name: 機能の要望・改善提案
+description: 新しい機能や既存機能の改善を提案する場合はこちら
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ご提案ありがとうございます。個人が余暇に開発しているプロジェクトのため、
+        いただいた提案すべてに対応できるとは限りません。あらかじめご了承ください。
+
+        **実装は開発者が行います。本リポジトリでは外部からのPull Requestを受け付けていません。**
+        受け付けている報告の種類と、要望を実装するかどうかの判断基準（secretKeyをウォッチ側へ
+        保持しない、広告・解析SDKを組み込まない等の設計方針を含む）は
+        [CONTRIBUTING.md](https://github.com/filderschoice/sesami-wear/blob/main/CONTRIBUTING.md)
+        に記載しています。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい課題
+      description: どのような場面で困っているかを記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案する機能・改善内容
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 検討した代替案
+      description: 他の方法で回避できるか、試した内容があれば記載してください。
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足情報
+    validations:
+      required: false

@@ -1,7 +1,7 @@
-# Google Play ストア掲載情報（ドラフト）
+# Google Play ストア掲載情報
 
-Google Play Console提出用のストア掲載情報のドラフトです。実際の入力・公開はBL-034
-（人手検証、限定公開）で行います。`mobile`と`wear`はBL-036で単一の`applicationId`・単一AABへ
+Google Play Console提出用のストア掲載情報の原本です。Play Consoleの入力項目との対応と更新手順は
+[README.md](README.md) を参照してください。実際の入力・公開はBL-034（人手検証、限定公開）で行います。`mobile`と`wear`はBL-036で単一の`applicationId`・単一AABへ
 統合済みのため、Google Playには1つのアプリとして登録します（登録先は1ページのみで、
 mobile用・wear用を別アプリとして登録する必要はありません。DESIGN.md「Google Play配布方式」参照）。
 
@@ -32,6 +32,14 @@ Sesami Wearは、Pixel WatchからCANDY HOUSE Sesame（Sesame 5 + Hub 3）スマ
 利用には biz.candyhouse.co（SESAME Biz 開発者ページ）で確認・発行できるuuid・apikey・secretKey
 の3点が必要です。これらはスマートフォン側のSesami Wearアプリ（mobile）に暗号化して保存し、
 Watch単体には保持しません。
+
+### 使い方・サポートについて
+
+使い方の詳細、更新内容の確認先、不具合の報告方法は、GitHubリポジトリで公開しています。
+
+- 利用ガイド: <https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md>
+- 更新内容（リリースノート）: <https://github.com/filderschoice/sesami-wear/blob/main/docs/RELEASE_NOTES.md>
+- サポート情報・お問い合わせ: <https://github.com/filderschoice/sesami-wear/blob/main/docs/SUPPORT.md>
 
 ### プライバシーについて
 

@@ -35,7 +35,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $versionFile = Join-Path $PSScriptRoot "version.properties"
 
 $currentVersionCode = 0
-$currentVersionName = "0.1.0"
+$currentVersionName = "0.9.0"
 
 if (Test-Path $versionFile) {
     foreach ($line in Get-Content $versionFile) {

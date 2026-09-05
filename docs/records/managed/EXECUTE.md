@@ -5,6 +5,64 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 23:02
+  summary: アプリのversionNameを0.1.0から0.9.0へ更新した
+  details:
+    変更内容: >
+      Google Play公開前の公開準備段階に合わせ、ユーザー指示によりversionNameを0.1.0から
+      0.9.0へ引き上げた。versionNameは3箇所（scripts/version.propertiesの永続値、
+      mobile/build.gradle.ktsの既定値、scripts/release-build.ps1のversion.properties読み込み
+      失敗時フォールバック）に分散しているため、すべてを0.9.0へ揃えた。release-build.ps1は
+      Windows PowerShell 5.1対策でUTF-8 BOM付きのため、編集後にBOMが保持されていることを
+      確認済み（BL-035）。あわせて表記の一貫性のため、docs/RELEASE_NOTES.mdのバージョン見出しと
+      .github/ISSUE_TEMPLATE/bug_report.ymlのバージョン入力欄プレースホルダ、BACKLOG.md
+      BL-085の初回リリースタグ名（v0.9.0）も更新した。versionCodeはリリースビルド時に
+      scripts/release-build.batが自動採番するため、現行値（1）のまま変更していない。
+      機能面の変更はないためdocs/RELEASE_NOTES.mdの記載内容（新機能・既知の問題）は据え置き、
+      見出しのバージョン番号のみを変更した。
+    変更ファイル:
+      - scripts/version.properties
+      - mobile/build.gradle.kts
+      - scripts/release-build.ps1
+      - docs/RELEASE_NOTES.md
+      - .github/ISSUE_TEMPLATE/bug_report.yml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 / bug_report.ymlのYAML構文チェック
+    検証結果: 成功 - 段階Bの品質ゲートすべてBUILD SUCCESSFUL、markdownlint 0 issues、YAML構文OK
+    関連ID:
+      - BL-090
+
+- date: 2026-09-05 22:41
+  summary: リリースビルドから切り分け用デバッグログ（Log.d / Log.v）を除去するR8ルールを追加した
+  details:
+    変更内容: >
+      BL-072/BL-073の切り分け用に残置しているLog.d呼び出し（mobile.messaging
+      .SesameMessageListenerService、wear.messaging.SesameResultListenerService、
+      wear.tile.SesameTileService、wear.complication.SesameComplicationDataSourceService）が、
+      isMinifyEnabled=trueのリリースビルドにもそのまま残っていた。出力内容はパス・成否・
+      状態の真偽値のみで資格情報は含まないが、Public公開・ストア配布を控え、配布物へ内部状態を
+      残さないためmobile/proguard-rules.proへ-assumenosideeffectsを追加し、
+      android.util.LogのdとvをR8の最適化で除去するようにした。障害調査に必要なLog.w/Log.eは
+      残している。wearはdynamic featureでminifyEnabled/proguardFilesを持たず、base（mobile）側の
+      設定がアプリ全体へ適用されるため、追加はmobile側のみで足りる（wear/proguard-rules.proは
+      BL-036の統合時に廃止済み）。あわせてDESIGN.mdのProGuard/R8の記述が「mobile/wear双方の
+      proguard-rules.pro」という統合前の内容のままだったため、現在の構成へ更新した。
+      デバッグビルドの挙動は変更していない。
+    変更ファイル:
+      - mobile/proguard-rules.pro
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:assembleRelease / npx markdownlint-cli2
+    検証結果: >
+      成功 - 段階Bの品質ゲートすべてBUILD SUCCESSFUL、R8適用の:mobile:assembleReleaseも
+      BUILD SUCCESSFUL（ルール追加によるビルド破壊がないことを確認）、markdownlint 0 issues
+    関連ID:
+      - BL-083
+
 - date: 2026-09-05 03:10
   summary: BL-055（単一Tileのデバイス切り替え）の実機確認完了を記録へ反映し、コード中の
     人手検証待ち注記を確認済みへ更新した

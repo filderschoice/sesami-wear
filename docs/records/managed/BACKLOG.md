@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-086
+  区分: 人手検証
+  タスク内容: BL-081で確定するプライバシーポリシーの公開URL方針に従い、GitHub上の
+    docs/store/PRIVACY_POLICY.md をPublic公開後のURL（またはGitHub Pages）としてホスティングし、
+    Play ConsoleのData safety申告へ登録する。実作業はBL-033と同一のため、BL-033完了時に本タスクも
+    完了とみなす
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: プライバシーポリシーが恒久URLで参照でき、Play Consoleへ登録されている
+  依存:
+    - BL-081
+    - BL-085
+
+- id: BL-085
+  区分: 人手検証
+  タスク内容: GitHubリポジトリをPublicへ切り替え、公開リポジトリとしての設定を行う。
+    Description・Topics（wear-os / android / sesame / smart-lock / kotlin 等）の設定、Issues有効化、
+    SECURITY.mdのSecurity policy認識確認、初回リリースタグ（v0.9.0）とGitHub Releasesの作成、
+    Secret scanningの有効化を含む。あわせて、外部からのPull Requestを受け付けない方針
+    （BL-087）に対し、リポジトリ設定でforkを抑止できるかを設定画面で確認する（個人アカウントの
+    Publicリポジトリでfork禁止の設定が提供されているかは未確認。提供されていない場合は
+    CONTRIBUTING.md・PRテンプレートでの明示と、届いたPRをクローズする運用で対応する）
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: リポジトリがPublicで公開され、Issues・Security policy・Releasesがユーザーから
+    参照できる状態になっている
+  依存:
+    - BL-074
+    - BL-076
+    - BL-080
+
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の

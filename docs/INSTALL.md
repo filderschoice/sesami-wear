@@ -15,6 +15,10 @@ BL-034が未着手）。そのため、現時点で実際にインストール�
 「[1. 開発者・検証者向け](#1-開発者検証者向けローカルビルドを実機にインストールする)」の
 ローカルビルド経由のみです。「[2. 一般ユーザー向け](#2-一般ユーザー向けgoogle-play経由のインストール公開後の想定現状未対応)」は
 Google Play公開後を見据えた想定手順であり、公開作業（BL-034）が完了するまでは実行できません。
+最新の配布状況は [SUPPORT.md](SUPPORT.md)「現在の配布状況」でも確認できます。
+
+インストール後の使い方（資格情報の登録、タイル・コンプリケーションの設定、施錠/解錠の操作）は
+[USER_GUIDE.md](USER_GUIDE.md) を参照してください。
 
 ## 1. 開発者・検証者向け：ローカルビルドを実機にインストールする
 
@@ -143,11 +147,14 @@ bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォ
    （[README.md](../README.md)「セットアップ手順」参照）
 2. スマートウォッチ側で`wear`アプリのTileをウォッチフェイスに追加する
 
+各手順の詳細（デバイスの割り当て、コンプリケーションの設定、操作方法、トラブル時の確認事項）は
+[USER_GUIDE.md](USER_GUIDE.md) にまとめています。
+
 ## 2. 一般ユーザー向け：Google Play経由のインストール（公開後の想定、現状未対応）
 
-**現状（2026-08-22時点）、このアプリはGoogle Playに公開されていません**
-（[BL-034](records/managed/BACKLOG.md)が未着手）。以下は公開後を想定した手順であり、
-実際の画面・文言は公開時の設定により変わり得ます（未確認）。
+**現状、このアプリはGoogle Playに公開されていません**（上記
+「[現状（2026-09-05時点）](#現状2026-09-05時点)」参照。[BL-034](records/managed/BACKLOG.md)が未着手）。
+以下は公開後を想定した手順であり、実際の画面・文言は公開時の設定により変わり得ます（未確認）。
 
 `mobile`と`wear`は単一の`applicationId`・単一AABとして登録されるため（BL-036、
 [DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）、標準的なWear OSアプリの
@@ -166,6 +173,8 @@ bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォ
 
 ## 関連ドキュメント
 
+- [USER_GUIDE.md](USER_GUIDE.md): インストール後の初期設定・操作方法・トラブル時の確認事項
+- [SUPPORT.md](SUPPORT.md): 現在の配布状況・アップデート方法・問い合わせ窓口
 - [README.md](../README.md): 前提環境・セットアップ・ビルド手順
 - [docs/records/managed/DESIGN.md](records/managed/DESIGN.md): Google Play配布方式の実装詳細
 - [docs/records/managed/BACKLOG.md](records/managed/BACKLOG.md):

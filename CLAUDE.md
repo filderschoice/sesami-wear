@@ -109,10 +109,26 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
   `rules/guardrails-unified.v1.md` をセッション開始時に自動読み込みする（`docs/guidelines/RULE.md` /
   `CONTRIBUTING.md` は内容を具体化済みのため参照リンクのみで自動読み込み対象外）。矛盾時の優先順位は
   上記「指示参照の優先順位」を参照。
-- `README.md`: セットアップ・ビルド・実行・テスト手順、リリースビルド手順、プロジェクト構成、
-  既知の未確認事項・制約の一次情報源。
+- `README.md`: 冒頭がアプリ概要と利用者向けドキュメントへの導線、以降がセットアップ・ビルド・実行・
+  テスト手順、リリースビルド手順、プロジェクト構成、既知の未確認事項・制約の一次情報源。
+- `SECURITY.md`: 脆弱性報告の受付方針（対象範囲・非公開の報告経路・サポート対象バージョン）。
+  GitHubがSecurity policyとして参照するため、リポジトリルートから移動しない。
 - `docs/INSTALL.md`: スマホ・スマートウォッチへの実機インストール手順の一次情報源（Wi-Fi経由の
   ADBペア設定、`ANDROID_SERIAL`によるインストール先の指定、Google Play経由の想定手順）。
+- `docs/USER_GUIDE.md`: アプリ利用者向けの操作ガイド（資格情報の登録、Tile/Complicationの設定、
+  施錠/解錠操作、状態表示の更新タイミング、トラブル時の確認事項）。UIの表示文言を変更した場合は
+  本ファイルの記述も追随させる。
+- `docs/SUPPORT.md`: 利用者向けのアップデート内容の確認先（`docs/RELEASE_NOTES.md`を一次情報とし、
+  GitHub Releases・Google Playの「新機能」を併記）と問い合わせ窓口・サポート対象範囲。
+- `docs/RELEASE_NOTES.md`: アプリのバージョンごとの変更点（利用者向け）。利用者に影響する変更を
+  行った場合に追記する。`CHANGELOG.md`（リポジトリ運用ルール・ドキュメントの変更履歴）および
+  `docs/records/managed/EXECUTE.md`（コード修正1件ごとの実施記録）とは記録先が異なる。
+- `.github/ISSUE_TEMPLATE/`: Issueフォーム（`bug_report.yml` / `feature_request.yml` /
+  `question.yml`）と`config.yml`（空Issueの無効化、脆弱性報告・サポート情報・リリースノートへの導線）。
+- `.github/PULL_REQUEST_TEMPLATE.md`: PR説明の既定構成（本ファイル「PR説明文・コードレビューの
+  言語設定」に対応）と、品質ゲート実行・資格情報混入確認のチェックリスト。開発者・AIエージェント
+  専用（外部からのPull Requestは受け付けない。`CONTRIBUTING.md`「受け付けている報告と、
+  受け付けていないもの」参照）。
 - `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
 - `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
   基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある
@@ -124,8 +140,10 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
   `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する。
 - `docs/guidelines/`: 本ガードレール一式を他リポジトリへ配布・導入するための汎用ガイド
   （`RULE.md` はルール本体、`ADOPTION.md` は導入手順）。
-- `docs/store/`: Google Play Console提出用のストア掲載情報・プライバシーポリシーのドラフト
-  （`STORE_LISTING.md` / `PRIVACY_POLICY.md`）。
+- `docs/store/`: Google Play Console提出用のストア掲載情報の原本。`README.md`が索引（Play Consoleの
+  入力項目との対応・文字数上限・更新手順）で、`STORE_LISTING.md`（掲載文面）・`PRIVACY_POLICY.md`
+  （公開版のプライバシーポリシー。Public公開後のGitHub上のURLをPlay Consoleへ登録する）・
+  `images/`（512x512のアイコン）を持つ。
 - `scripts/`: バージョン管理付きリリースビルド用スクリプト（`release-build.bat` / `.ps1`、
   `version.properties`）。詳細は README.md「リリースビルド・Google Play公開」参照。
 - `config/detekt/detekt.yml`: detekt静的解析のルール設定（`MagicNumber`無効、`LongMethod`閾値60等）。
@@ -387,6 +405,10 @@ npx markdownlint-cli2 "**/*.md"
 - `docs/records/managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
 - `docs/records/managed/EXECUTE.md`: コード修正を伴う変更のみ記録（実施済み内容のみ）
 - `docs/records/managed/BACKLOG.md`: 未対応事項、課題、次ステップ
+- `CHANGELOG.md`: リポジトリの運用ルール・ドキュメント・ガードレールの変更履歴
+- `docs/RELEASE_NOTES.md`: アプリ利用者向けのバージョンごとの変更点。利用者に影響する変更
+  （機能追加、UIの変更、不具合修正）を行った場合に追記する（内部リファクタリング・ドキュメントのみの
+  変更は対象外）
 
 ### EXECUTE.md記録形式（MUST）
 

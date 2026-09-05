@@ -1,0 +1,116 @@
+name: 不具合の報告
+description: アプリが期待どおりに動作しない場合はこちら
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ご報告ありがとうございます。以下の点にご注意ください。
+
+        - **資格情報（apikey / secretKey / uuid）は絶対に記載しないでください。**
+          ログやスクリーンショットを添付する場合も、写り込んでいないか確認してください。
+        - セキュリティ上の脆弱性は公開Issueではなく
+          [SECURITY.md](https://github.com/filderschoice/sesami-wear/blob/main/SECURITY.md)
+          の手順に従ってご連絡ください。
+        - 既知の制約は
+          [README.md](https://github.com/filderschoice/sesami-wear/blob/main/README.md)
+          の「既知の未確認事項・制約」に記載しています。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 事象の概要
+      description: 何が起きたかを簡潔に記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 事象が起きるまでの操作を順に記載してください。
+      placeholder: |
+        1. ウォッチのタイルを開く
+        2. 「解錠」をタップする
+        3. 確認画面で「解錠」をタップする
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: アプリのバージョン
+      description: スマートフォンの「設定 > アプリ > Sesami Wear」で確認できます。
+      placeholder: "0.9.0"
+    validations:
+      required: true
+
+  - type: input
+    id: phone
+    attributes:
+      label: スマートフォンの機種とAndroidバージョン
+      placeholder: "Pixel 8 Pro / Android 15"
+    validations:
+      required: true
+
+  - type: input
+    id: watch
+    attributes:
+      label: スマートウォッチの機種とWear OSバージョン
+      placeholder: "Pixel Watch 2 / Wear OS 5"
+    validations:
+      required: true
+
+  - type: input
+    id: sesame
+    attributes:
+      label: Sesameデバイスの構成
+      placeholder: "Sesame 5 + Hub 3、登録台数2台"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: 再現性
+      options:
+        - 毎回発生する
+        - ときどき発生する
+        - 一度だけ発生した
+        - 不明
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足情報
+      description: スクリーンショット、ログ（資格情報をマスクしたもの）、気づいた点など。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 確認事項
+      options:
+        - label: 本文・添付に資格情報（apikey / secretKey / uuid）が含まれていないことを確認しました
+          required: true
+        - label: 既存のIssueに同じ報告がないことを確認しました
+          required: true

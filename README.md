@@ -1,12 +1,42 @@
 # Sesami Wear
 
-Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid / Wear OSアプリです。
-要件・API仕様の背景は [PLAN.md](PLAN.md)、実装済み内容の詳細設計は
-[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) を参照してください。
+Pixel WatchなどのWear OSスマートウォッチから、CANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid /
+Wear OSアプリです。タイルからワンタップで施錠・解錠でき、ウォッチフェイスのコンプリケーションに
+施錠状態を表示できます。
 
 > 本アプリは個人による非公式プロジェクトであり、CANDY HOUSE株式会社とは提携・協力関係にありません。
 > 「CANDY HOUSE」「Sesame」は同社の商標または登録商標です。公開されているSesame APIを利用して
 > 実装していますが、CANDY HOUSE社による動作保証・サポート対象外です。
+
+## 主な機能
+
+- タイルから施錠・解錠をワンタップで実行（解錠は誤操作防止の確認画面付き）
+- 成功／失敗を振動パターンで区別して通知
+- ウォッチフェイスのコンプリケーションへ施錠状態を表示
+- 複数台のSesameを登録し、タイル・コンプリケーションごとに対象を切り替え
+- 2台以上を登録している場合、「全デバイス」での一括操作
+- スマートフォン未接続時はタイル上に明示して誤操作を防止
+
+secretKeyは機密性が高いためウォッチ単体には保持させず、施錠/解錠の実行は常にスマートフォン側で
+行う設計です。
+
+## アプリを使う方へ
+
+**現在、Google Playへは未公開です（2026-09-05時点）。** 利用にはリポジトリからのローカルビルドが
+必要です。
+
+| 目的 | 参照先 |
+| --- | --- |
+| 使い方を知りたい（初期設定・タイル・操作） | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) |
+| インストールしたい | [docs/INSTALL.md](docs/INSTALL.md) |
+| 更新内容を確認したい | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) |
+| 不具合を報告したい・質問したい | [docs/SUPPORT.md](docs/SUPPORT.md) |
+| 収集する情報を知りたい | [docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md) |
+| 脆弱性を報告したい | [SECURITY.md](SECURITY.md) |
+
+---
+
+以降は開発者向けの情報です。
 
 ## アーキテクチャ概要
 
@@ -20,8 +50,6 @@ Android application（`mobile`）とWear OS向けdynamic feature（`wear`）、�
   （`MessageClient`）でスマホ側へ送信する。secretKeyは保持しない。
 - `core`: `mobile` / `wear` 双方から参照する非機密のロジック（AES-CMAC実装、APIクライアント、
   Data Layer APIのメッセージパス定数、状態解決ロジック等）を配置する。Android依存コードは置かない。
-
-secretKeyは機密性が高いためWatch単体には保持させず、施錠/解錠の実行は常にスマホ側で行う方針です。
 
 ## 前提環境
 
@@ -45,7 +73,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 
 `mobile` アプリを起動すると設定画面（`CredentialsSettingsScreen`）が表示されるので、上記3点を入力して
 保存してください。資格情報は `androidx.security.crypto` の `EncryptedSharedPreferences` で暗号化保存され、
-ログへは出力されません。
+ログへは出力されません。利用者向けの詳細な操作手順は [docs/USER_GUIDE.md](docs/USER_GUIDE.md) に
+記載しています。
 
 ## ビルド・実行・テスト
 
@@ -133,13 +162,15 @@ scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
 上書きしており（`wear`は`mobile`から継承するため個別指定不要）、通常の`./gradlew assembleDebug`等
 には影響しません。
 
+リリース時は、利用者向けの変更点を [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) へ追記してください
+（Google Play Consoleの「このリリースの新機能」欄への転記元になります）。
+
 `mobile`と`wear`は単一の`applicationId`・単一AABとしてGoogle Playへ登録します
 （Wear OSアプリの標準的な配布方式、詳細は
 [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。
 
 Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトは
-[docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md) /
-[docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md) を参照してください。
+[docs/store/](docs/store/) 配下で管理しています。
 
 ## プロジェクト構成
 
@@ -148,12 +179,23 @@ sesami-wear/
 ├── core/    # 純Kotlin/JVMライブラリ（AES-CMAC、APIクライアント、Data Layerプロトコル定義等）
 ├── mobile/  # Androidアプリ（資格情報保存、Sesame API通信、Data Layer受信）。base module
 ├── wear/    # Wear OSアプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
-             # mobileのdynamic feature（applicationId/署名/バージョンをmobileから継承）
-├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針
-└── docs/records/managed/
-    ├── DESIGN.md    # 実装済み内容を統合した設計書（最新版）
-    ├── BACKLOG.md   # 未対応事項・課題・次ステップ
-    └── EXECUTE.md   # 実施記録
+│            # mobileのdynamic feature（applicationId/署名/バージョンをmobileから継承）
+├── scripts/ # バージョン管理付きリリースビルド（release-build.bat / .ps1）
+├── config/  # detekt設定
+├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
+├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針（初回依頼時点のメモ）
+└── docs/
+    ├── USER_GUIDE.md     # 利用ガイド（アプリ利用者向け）
+    ├── SUPPORT.md        # アップデート確認先・問い合わせ窓口
+    ├── RELEASE_NOTES.md  # バージョンごとの変更点（アプリ利用者向け）
+    ├── INSTALL.md        # 実機へのインストール手順
+    ├── store/            # Google Play提出用のストア掲載情報・プライバシーポリシー
+    ├── guidelines/       # ガードレール一式を他リポジトリへ導入するための汎用ガイド
+    └── records/
+        ├── managed/DESIGN.md    # 実装済み内容を統合した設計書（最新版）
+        ├── managed/BACKLOG.md   # 未対応事項・課題・次ステップ
+        ├── managed/EXECUTE.md   # 実施記録
+        └── spec/FORMAT.md       # records配下の記述仕様
 ```
 
 ## 既知の未確認事項・制約
@@ -165,9 +207,9 @@ sesami-wear/
 - Mobile側からWear側への状態同期（Tile / Complicationの表示更新）は、コマンド送信成功時と
   Tile/Complication表示時の状態取得リクエスト時に行われます。定期ポーリングは行わないため、
   Sesame純正アプリでの操作など他経路による状態変化は、次の表示更新まで反映されません。
-- 文字盤のComplicationにデバイスを割り当てても状態文言が表示されない不具合を確認しています
-  （[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-072）。Tile側は正常に
-  表示・操作できます。
+- 同一のTileを2つ以上追加することが、Wear OS側のタイル管理UIの制約でできません（コード側の
+  多重インスタンス対応は実装済み）。実運用では単一Tileでのデバイス切り替えが主な使い方になります。
+  Complicationは枠ごとに別デバイスを割り当てられることを実機確認済みです。
 - `mobile` / `wear` の実アイコンはVectorDrawableベースのAdaptive Icon（簡易的な図案）です。
   Google Play提出用の高解像度アイコン画像（512x512 PNG）は
   [docs/store/images/play_store_icon_512.png](docs/store/images/play_store_icon_512.png) に用意済みです。
@@ -181,11 +223,23 @@ sesami-wear/
 
 ## 関連ドキュメント
 
+### 利用者向け
+
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md): 初期設定・タイル・コンプリケーション・操作方法
 - [docs/INSTALL.md](docs/INSTALL.md): スマホ・スマートウォッチへのアプリインストール方法
+- [docs/SUPPORT.md](docs/SUPPORT.md): アップデート内容の確認先・問い合わせ窓口
+- [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md): バージョンごとの変更点
+- [docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md): プライバシーポリシー
+
+### 開発者向け
+
 - [PLAN.md](PLAN.md): 要件・API仕様メモ・アーキテクチャ方針
 - [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md): 実装済み内容の統合設計書
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
-- [CONTRIBUTING.md](CONTRIBUTING.md): 開発プロセス・ブランチ運用・Markdown品質チェック
+- [CONTRIBUTING.md](CONTRIBUTING.md): 報告の受け付け方針（Issueは受付、外部Pull Requestは非受付）・
+  開発プロセス・品質ゲート
+- [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
+- [CHANGELOG.md](CHANGELOG.md): リポジトリの運用ルール・ドキュメントの変更履歴
 - [CLAUDE.md](CLAUDE.md): Claude Code運用ルール（品質ゲート定義を含む）
 
 ## ライセンス
