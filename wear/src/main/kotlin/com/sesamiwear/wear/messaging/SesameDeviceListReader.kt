@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
  * DataClient（DataItem）からMobile側が同期した登録済みデバイス一覧を読み取る（BL-052）。
  * Tile Configuration Activityでのデバイス選択肢表示に用いる。
  * Android Google Play Services依存の薄いアダプタのためユニットテスト対象外
- * （実際の同期動作はBL-055で人手検証）。
+ * （実際の同期動作はBL-055の人手検証で2026-09-05に実機確認済み）。
  */
 object SesameDeviceListReader {
     suspend fun readLatest(context: Context): List<SesameDeviceSummary> {

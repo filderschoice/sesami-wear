@@ -43,7 +43,8 @@ import kotlinx.coroutines.withTimeout
  *    次の定期更新で表示が回復するようにする。
  *
  * Android Complications APIへの依存のためユニットテスト対象外（表示文言ロジックは
- * [SesameComplicationContent]でテスト済み、実機表示確認はBL-072/BL-055で人手検証）。
+ * [SesameComplicationContent]でテスト済み、実機表示はBL-072/BL-055の人手検証で2026-09-05に
+ * 確認済み）。
  */
 class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     override fun onComplicationRequest(

@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 03:10
+  summary: BL-055（単一Tileのデバイス切り替え）の実機確認完了を記録へ反映し、コード中の
+    人手検証待ち注記を確認済みへ更新した
+  details:
+    変更内容: >
+      ユーザーへのヒアリングにより、実機（Pixel Watch + Sesame 5実機2台以上）で
+      単一Tileのデバイス切り替えを検証した結果を確認した。デバイス切り替え後の
+      デバイス名・状態表示（🔒/🔓）が選択デバイスの実態と一致すること、施錠/解錠が
+      選択中のデバイスのみに作用すること、成否をハプティクスで判別できること、
+      「全デバイス」選択時の一括操作と🔀混在表示が正しく動作することの4点すべてで
+      問題がないと報告されたため、BL-055を完了としてBACKLOG.mdから削除した。
+      あわせて、削除済みidへの参照が残らないよう、KDocの「BL-055で人手検証」という
+      注記を「BL-055の人手検証で2026-09-05に確認済み」へ更新した（コメントのみの変更で
+      挙動への影響はない）。DESIGN.mdは、Tileの多重インスタンス追加が実機で行えない
+      未確認事項の記述を残したまま、単一Tileでのデバイス切り替えが実機確認済みである旨を
+      追記した。Google Play公開まわりの人手検証3件（BL-033/BL-034/BL-038）は
+      ユーザー判断により保留のまま据え置いた。
+    変更ファイル:
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - CHANGELOG.md
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameDeviceListReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+    検証コマンド: >
+      npx markdownlint-cli2 "CHANGELOG.md" "docs/records/managed/*.md" /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: 成功 - markdownlint 0 issues、Gradle品質ゲート BUILD SUCCESSFUL
+    関連ID:
+      - BL-055
+
 - date: 2026-09-05 02:05
   summary: Complicationのデバイス設定導線をWear OS標準の設定導線へ対応させ、設定済み枠の
     デバイス変更を可能にした（BL-073）

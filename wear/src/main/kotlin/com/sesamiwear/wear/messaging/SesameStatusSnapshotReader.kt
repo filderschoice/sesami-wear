@@ -12,7 +12,7 @@ import kotlinx.coroutines.tasks.await
  * DataClient（DataItem）からMobile側が同期した、指定デバイス（[uuid]）の最新のロック状態を
  * 読み取る（BL-050/BL-053、[SesameWearProtocol.statusDataItemPath]でデバイスごとに区別）。
  * Android Google Play Services依存の薄いアダプタのためユニットテスト対象外
- * （実際の同期動作はBL-055で人手検証）。
+ * （実際の同期動作はBL-055の人手検証で2026-09-05に実機確認済み）。
  */
 object SesameStatusSnapshotReader {
     suspend fun readLatest(
