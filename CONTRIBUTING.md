@@ -1,62 +1,64 @@
 # コントリビューションガイド
 
 本リポジトリは、Pixel WatchからCANDY HOUSE Sesameを操作する非公式アプリ「Sesami Wear」の
-開発リポジトリです。本ドキュメントは、外部からのコントリビューションの受け入れ方針（次章）と、
-リポジトリ内部の開発プロセス規約（「規定ブランチ定義」以降）の2部構成です。
+開発リポジトリです。本ドキュメントは、外部の方からの報告の受け付け方針（次章）と、
+開発者向けの開発プロセス規約（「規定ブランチ定義」以降）の2部構成です。
 
 - アプリの使い方・不具合の相談は [docs/SUPPORT.md](docs/SUPPORT.md) を参照してください。
 - 脆弱性の報告は公開Issueではなく [SECURITY.md](SECURITY.md) の手順に従ってください。
 
-## 外部コントリビューターの方へ
+## 受け付けている報告と、受け付けていないもの
 
-個人が余暇に開発しているプロジェクトのため、対応には時間がかかります。以下をご了承のうえ
-ご参加ください。
+本アプリの実装は、Claude Code によるAI実装を主体として開発者本人が行う体制で進めています。
+コードの変更経路を開発者側へ一本化しているため、**外部からのPull Requestは受け付けていません**。
+一方で、Issueでのご報告・ご要望は歓迎します。いただいた内容は開発者が確認し、対応する場合は
+開発者側で実装します。
 
-### 受け入れの流れ
+| 種類 | 受け付け | 窓口 |
+| --- | --- | --- |
+| 不具合の報告 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
+| 機能の要望・改善提案 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
+| 使い方の質問 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
+| 誤字・ドキュメントの誤りの指摘 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
+| 脆弱性の報告 | 受け付けます（非公開経路） | [SECURITY.md](SECURITY.md) |
+| Pull Request | 受け付けていません | — |
 
-1. **Issueを先に作成してください。** 実装内容の合意前に大きなPull Requestをいただいても、
-   方針が合わずマージできない場合があります。誤字修正・軽微なドキュメント修正はIssueなしで
-   Pull Requestを送っていただいて構いません。
-2. `main` から作業ブランチを作成します（ブランチ名は `feature/` `fix/` `docs/` `chore/` のいずれかで
-   開始）。
-3. 変更後、後述の品質ゲートをローカルで実行し、すべて成功することを確認します。
-4. Pull Requestを作成します。説明はテンプレート（`.github/PULL_REQUEST_TEMPLATE.md`）の構成に
-   従ってください。日本語・英語のどちらでも構いません。
+### Pull Requestを受け付けていない理由
 
-### 受け入れの判断基準
+- 実装・テスト・記録ファイル（`docs/records/managed/`）の更新を、AIエージェントを含む一貫した手順で
+  行っており、外部からの変更を取り込むとこの手順と記録の整合を保てないためです。
+- 資格情報（apikey / secretKey / uuid）を扱うアプリのため、コードの変更経路を開発者に限定し、
+  変更の監査を単純に保っています。
+- 個人が余暇で開発しており、外部のPull Requestをレビューする体制を維持できないためです。
 
-- 本アプリの目的（Wear OSからSesameを操作する）に沿った変更であること
-- 資格情報（apikey / secretKey / uuid）の取り扱い方針を変えないこと。secretKeyはウォッチ側へ
-  保持させず、施錠/解錠はスマートフォン側で実行する設計を前提とします
+Pull Requestをいただいても、内容を確認せずにクローズする場合があります。あらかじめご了承ください。
+ご提案は Issue へお願いします。
+
+### Issueを作成するときのお願い
+
+- 目的に合ったテンプレート（不具合の報告 / 機能の要望・改善提案 / 使い方の質問）を選んでください。
+- **実際の資格情報（apikey / secretKey / uuid）を含めないでください。** ログやスクリーンショットに
+  写り込んでいないかもご確認ください。
+- 既に同じ内容のIssueがないかご確認ください。
+- 個人が余暇に開発しているため、返信までに数日〜数週間かかる場合があります。
+- ご要望に対応するかどうか、対応する時期は開発者が判断します。対応しないままクローズする場合も
+  あります。
+
+### 要望・提案を実装するかどうかの判断基準
+
+いただいたご要望は、次の観点で判断します（開発者自身の実装にも同じ基準を適用します）。
+
+- 本アプリの目的（Wear OSからSesameを操作する）に沿っていること
+- 資格情報の取り扱い方針を変えないこと。secretKeyはウォッチ側へ保持させず、施錠/解錠は
+  スマートフォン側で実行する設計を前提とします
   （[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md)「アーキテクチャ方針」参照）
 - 広告SDK・アクセス解析SDK・外部への送信を伴う機能を追加しないこと
-- 既存の公開仕様・UXを壊す変更は、移行方針の提示があること
+- 既存の公開仕様・UXを壊す場合は、移行方針を示せること
+- 個人で保守を継続できる範囲に収まること
 
-### コントリビューション時の注意
+---
 
-- コミット・Issue・Pull Requestに、実際の資格情報や端末のログをそのまま含めないでください。
-- 本リポジトリへのコントリビューションは [MIT License](LICENSE) の下で公開されることに同意した
-  ものとみなします。
-- レビューはメンテナー（[@filderschoice](https://github.com/filderschoice)）が行います。
-  応答までに数日〜数週間かかる場合があります。
-- 提案いただいた内容でも、保守負荷や設計方針の観点でお断りする場合があります。
-
-### 品質ゲート（Pull Request作成前に実行）
-
-本リポジトリにはCIがありません（[Markdownlintのローカル実行](#markdownlintのローカル実行)参照）。
-以下をローカルで実行し、すべて成功することを確認してください。
-
-```bash
-./gradlew ktlintCheck
-./gradlew detekt
-./gradlew lintDebug
-./gradlew testDebugUnitTest test
-./gradlew assembleDebug
-npx markdownlint-cli2 "**/*.md"
-```
-
-ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビルド環境の準備は
-[README.md](README.md)「前提環境」を参照してください。
+以降は、開発者（メンテナーおよびAIエージェント）向けの規約です。
 
 ## 規定ブランチ定義
 
@@ -74,8 +76,26 @@ ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビル
      `docs/records/managed/DESIGN.md`
    - リポジトリのルール・ドキュメントのみの変更: `CHANGELOG.md`
    - 利用者向けの機能変更・不具合修正: `docs/RELEASE_NOTES.md`
-4. 品質ゲート（[外部コントリビューターの方へ](#品質ゲートpull-request作成前に実行)参照）を実行します。
+4. 後述の[品質ゲート](#品質ゲート)を実行し、すべて成功することを確認します。
 5. 根拠とリスクメモを添えてプルリクエストを作成します。
+
+## 品質ゲート
+
+本リポジトリにはCIがありません（[Markdownlintのローカル実行](#markdownlintのローカル実行)参照）。
+変更をコミットする前に以下をローカルで実行し、すべて成功することを確認します。
+
+```bash
+./gradlew ktlintCheck
+./gradlew detekt
+./gradlew lintDebug
+./gradlew testDebugUnitTest test
+./gradlew assembleDebug
+npx markdownlint-cli2 "**/*.md"
+```
+
+ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビルド環境の準備は
+[README.md](README.md)「前提環境」を参照してください。コマンドの定義は
+[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」に集約しており、変更した場合は両方を更新します。
 
 ## レビュー要件
 
@@ -87,7 +107,10 @@ ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビル
 - `rules/guardrails-unified.v1.md` の変更は、セキュリティ観点・プライバシー観点の双方をレビューで
   確認します（担当を分離できる体制になった場合は、それぞれ1名以上を必須とします）。
 - 互換性に影響する変更は、移行方針の提示とメンテナーの承認を必須とします。
-- AIエージェント（Claude Code / GitHub Copilot）が作成した変更も、同じレビュー要件を適用します。
+- 本リポジトリの実装はClaude CodeによるAI実装を主体としています。AIエージェント（Claude Code /
+  GitHub Copilot）が作成した変更にも、人手による変更と同じレビュー要件を適用します。
+- 外部からのPull Requestは受け付けていないため（[前掲](#受け付けている報告と受け付けていないもの)）、
+  レビュー対象は開発者およびAIエージェントによる変更に限られます。
 
 ## 開発プロセス規約
 
