@@ -5,6 +5,180 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-086
+  区分: 人手検証
+  タスク内容: BL-081で確定するプライバシーポリシーの公開URL方針に従い、GitHub上の
+    docs/store/PRIVACY_POLICY.md をPublic公開後のURL（またはGitHub Pages）としてホスティングし、
+    Play ConsoleのData safety申告へ登録する。実作業はBL-033と同一のため、BL-033完了時に本タスクも
+    完了とみなす
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: プライバシーポリシーが恒久URLで参照でき、Play Consoleへ登録されている
+  依存:
+    - BL-081
+    - BL-085
+
+- id: BL-085
+  区分: 人手検証
+  タスク内容: GitHubリポジトリをPublicへ切り替え、公開リポジトリとしての設定を行う。
+    Description・Topics（wear-os / android / sesame / smart-lock / kotlin 等）の設定、Issues有効化、
+    SECURITY.mdのSecurity policy認識確認、初回リリースタグ（v0.1.0）とGitHub Releasesの作成、
+    Secret scanningの有効化を含む
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: リポジトリがPublicで公開され、Issues・Security policy・Releasesがユーザーから
+    参照できる状態になっている
+  依存:
+    - BL-074
+    - BL-076
+    - BL-080
+
+- id: BL-084
+  区分: ドキュメント
+  タスク内容: 新規追加ドキュメント（SECURITY.md / docs/USER_GUIDE.md / docs/SUPPORT.md /
+    docs/RELEASE_NOTES.md / docs/store/README.md 等）を CLAUDE.md「ディレクトリと参照関係」および
+    .github/copilot-instructions.md の該当箇所へ反映し、参照関係の記述を実態と一致させる
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code
+  完了条件: CLAUDE.md と .github/copilot-instructions.md がリポジトリの実ファイル構成と一致し、
+    markdownlintが成功する
+  依存:
+    - BL-074
+    - BL-077
+    - BL-078
+    - BL-079
+    - BL-081
+
+- id: BL-083
+  区分: 実装
+  タスク内容: リリースビルド（R8 minify有効）でデバッグ用ログ（Log.d / Log.v）が実行ファイルへ
+    残る状態を解消する。mobile / wear の proguard-rules.pro へ -assumenosideeffects による除去
+    ルールを追加する。障害切り分けに必要な Log.w / Log.e は残す
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code
+  完了条件: リリースビルドでLog.d/Log.vが除去される設定が入り、段階Bの品質ゲートが成功する
+  依存: []
+
+- id: BL-082
+  区分: ドキュメント
+  タスク内容: docs/INSTALL.md の状態記述を統一する（「現状（2026-08-22時点）」など古い日付の残存を
+    解消）。あわせて一般ユーザー向けセクションから docs/USER_GUIDE.md / docs/SUPPORT.md への導線を
+    追加する
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code
+  完了条件: INSTALL.md内の日付・公開状況の記述が一貫し、ユーザー向けドキュメントへの導線がある
+  依存:
+    - BL-077
+    - BL-078
+
+- id: BL-081
+  区分: ドキュメント
+  タスク内容: docs/store 配下をストア掲載情報の管理場所として整理する。docs/store/README.md
+    （掲載情報の索引・更新手順・Play Consoleの入力項目との対応）を新規作成し、
+    PRIVACY_POLICY.md のドラフト表記と公開URL方針を明確化、STORE_LISTING.md へリリースノート・
+    サポート導線（BL-078/BL-079）の参照を追加する
+  優先度: P2
+  状態: 未着手
+  担当: Claude Code
+  完了条件: docs/store 配下の各ファイルの役割・更新手順が索引から辿れ、Play Console入力項目と
+    対応づけられている
+  依存:
+    - BL-078
+    - BL-079
+
+- id: BL-080
+  区分: ドキュメント
+  タスク内容: README.md をPublic公開を前提に再構成する。冒頭にアプリ概要と一般ユーザー向け導線
+    （利用ガイド・サポート・リリースノート）、その後に開発者向け導線（ビルド・テスト・設計）を
+    配置する。あわせて「既知の未確認事項・制約」のBL-072に関する古い記述（解消済みの不具合を
+    未解決として記載）を修正し、プロジェクト構成ツリーと関連ドキュメント一覧を最新化する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: READMEが初見のユーザー・開発者双方の入口として機能し、記載内容が実装状態と一致する
+  依存:
+    - BL-074
+    - BL-077
+    - BL-078
+    - BL-079
+
+- id: BL-079
+  区分: ドキュメント
+  タスク内容: アプリのバージョンごとの変更点をユーザー向けに記録する docs/RELEASE_NOTES.md を
+    新規作成する。Google Play Consoleの「このリリースの新機能」欄（500文字以内）へ転記できる
+    形式とし、CHANGELOG.md（リポジトリ運用ルール・ドキュメントの変更履歴）との役割分担を
+    双方へ明記する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: リリースノートの様式と運用手順が定義され、現行バージョン（0.1.0）の記載がある
+  依存: []
+
+- id: BL-078
+  区分: ドキュメント
+  タスク内容: アプリ利用者向けのサポート窓口・アップデート内容の確認先を整理した docs/SUPPORT.md を
+    新規作成する。更新内容の確認先（GitHub Releases / docs/RELEASE_NOTES.md / Play Storeの
+    「新機能」）、不具合報告・要望の送り先（GitHub Issues、メール）、対応方針と免責、
+    既知の制約の確認先を記載する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: アプリ利用者がアップデート内容と問い合わせ先を1ページから辿れる
+  依存:
+    - BL-079
+
+- id: BL-077
+  区分: ドキュメント
+  タスク内容: エンドユーザー向けの利用ガイド docs/USER_GUIDE.md を新規作成する。資格情報
+    （uuid / apikey / secretKey）の取得と登録、Tileの追加とデバイス割り当て、Complicationの設定、
+    施錠/解錠操作とハプティクス、状態表示の更新タイミング、よくあるトラブルと対処を記載する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: アプリ利用者が本ドキュメントのみで初期設定から日常操作まで到達できる
+  依存: []
+
+- id: BL-076
+  区分: ドキュメント
+  タスク内容: Public公開に伴い外部からの報告を受け付けられるよう、.github/ISSUE_TEMPLATE
+    （不具合報告 / 機能要望 / 質問）と config.yml を新規作成し、内容が2行のコメントのみの
+    .github/PULL_REQUEST_TEMPLATE.md をCLAUDE.md規定のPR説明構成へ整備する。
+    不具合報告テンプレートには、資格情報（apikey / secretKey / uuid）を記載しない旨の注意を含める
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: Issue作成時にテンプレートが選択でき、PRテンプレートが日本語の規定構成になっている
+  依存: []
+
+- id: BL-075
+  区分: ドキュメント
+  タスク内容: CONTRIBUTING.md をPublicリポジトリの実態へ合わせる。外部コントリビューター向けの
+    受け入れ方針（Issue先行・PR手順・品質ゲートの事前実行・レビュー体制）を追加し、
+    テンプレート由来で実在しない役割前提のレビュー要件（セキュリティ担当・プライバシー担当・
+    プロダクトオーナーの承認）を個人リポジトリの実態に合う記述へ修正する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: 外部の開発者がCONTRIBUTING.mdのみでPR提出までの手順と要件を把握できる
+  依存: []
+
+- id: BL-074
+  区分: ドキュメント
+  タスク内容: 脆弱性報告の受付方針を定めた SECURITY.md をリポジトリルートへ新規作成する。
+    対象範囲（本アプリのコードのみ。CANDY HOUSE社のSesame本体・APIは対象外）、報告手段
+    （GitHub Security Advisories / メール）、公開Issueへ報告しない依頼、対応目安、
+    サポート対象バージョン、利用者が守るべき事項（資格情報を報告に含めない）を記載する
+  優先度: P1
+  状態: 未着手
+  担当: Claude Code
+  完了条件: GitHubのSecurity policyとして認識される位置にSECURITY.mdがあり、READMEから参照できる
+  依存: []
+
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
