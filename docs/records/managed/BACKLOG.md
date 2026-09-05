@@ -35,23 +35,6 @@
     - BL-076
     - BL-080
 
-- id: BL-084
-  区分: ドキュメント
-  タスク内容: 新規追加ドキュメント（SECURITY.md / docs/USER_GUIDE.md / docs/SUPPORT.md /
-    docs/RELEASE_NOTES.md / docs/store/README.md 等）を CLAUDE.md「ディレクトリと参照関係」および
-    .github/copilot-instructions.md の該当箇所へ反映し、参照関係の記述を実態と一致させる
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: CLAUDE.md と .github/copilot-instructions.md がリポジトリの実ファイル構成と一致し、
-    markdownlintが成功する
-  依存:
-    - BL-074
-    - BL-077
-    - BL-078
-    - BL-079
-    - BL-081
-
 - id: BL-038
   区分: 人手検証
   タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の

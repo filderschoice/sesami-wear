@@ -168,6 +168,16 @@ npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 
 ドキュメントは以下のフォルダ配置で管理されています：
 
+### docs/（利用者向け）
+
+アプリ利用者が参照するドキュメントです。UIの表示文言・配布状況・仕様を変更した場合は追随させます。
+
+- `USER_GUIDE.md`: 初期設定・タイル/コンプリケーションの設定・操作方法・トラブル時の確認事項
+- `INSTALL.md`: 実機へのインストール手順
+- `SUPPORT.md`: アップデート内容の確認先・問い合わせ窓口・サポート対象範囲
+- `RELEASE_NOTES.md`: バージョンごとの変更点（利用者に影響する変更を行った場合に追記）
+- `store/`: Google Play提出用の掲載情報の原本（索引は `store/README.md`）
+
 ### docs/records/
 
 プロジェクトの運用記録を管理します：

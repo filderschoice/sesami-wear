@@ -209,3 +209,13 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   「現状（2026-08-22時点）」を、冒頭の「現状（2026-09-05時点）」への参照へ置き換えた。あわせて、
   インストール後の使い方は `docs/USER_GUIDE.md`、配布状況とアップデート方法は `docs/SUPPORT.md` を
   参照する導線を追加した。
+- リリースビルドから切り分け用のデバッグログ（`Log.d` / `Log.v`）を除去するR8ルールを
+  `mobile/proguard-rules.pro` へ追加した（BL-083。コード修正のため詳細は
+  [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md) を参照）。
+- エージェント向けルールの参照関係を、今回追加したドキュメントを含む実ファイル構成へ更新した
+  （BL-084）。`CLAUDE.md`「ディレクトリと参照関係」へ`SECURITY.md`・`docs/USER_GUIDE.md`・
+  `docs/SUPPORT.md`・`docs/RELEASE_NOTES.md`・`.github/ISSUE_TEMPLATE/`・
+  `.github/PULL_REQUEST_TEMPLATE.md`を追加し、`docs/store/`の説明を索引付きの現構成へ改めた。
+  `CLAUDE.md` / `.github/copilot-instructions.md` の「記録対象」へ`CHANGELOG.md`と
+  `docs/RELEASE_NOTES.md`の使い分けを追記し、`CONTRIBUTING.md`「ドキュメント管理」へ利用者向け
+  ドキュメントの一覧を追加した。
