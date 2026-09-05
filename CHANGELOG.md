@@ -248,3 +248,21 @@ git履歴の秘密情報スキャンを実施し、混入がダミー値とRFC 4
   `docs/records/managed/DESIGN.md`「GitHub公開対応」の記述を新方針へ更新した。あわせて`BACKLOG.md`の
   BL-085（Public切り替え）へ、fork抑止設定の可否確認（個人アカウントのPublicリポジトリで
   提供されているかは未確認）と、提供されない場合の運用を追記した。
+
+## 2026-09-06（プライバシーポリシーの記述を実装と一致させた）
+
+Google Play Consoleのデータセーフティ申告の準備にあたり実装を確認したところ、
+`docs/store/PRIVACY_POLICY.md`「情報の送信先」の記述が実装と一致していないことが判明したため修正した。
+実装上、secretKeyは端末内でのAES-CMAC署名の計算にのみ使用され、Sesame APIへ送信されるのは
+その計算結果である署名値（`sign`）である（`core` の `SesameApiClient.sendCommand()` および
+`SesameCommandSigner.sign()`）。
+
+- `docs/store/PRIVACY_POLICY.md`
+  - 「情報の送信先」を、Sesame APIへ実際に送信する項目（uuid・apikey・コマンド種別・操作履歴タグ・
+    コマンド署名）の一覧へ改め、secretKeyは端末外へ送信しない旨を明記した。
+  - 「保存方法」末尾の「外部のサーバーへ送信・バックアップすることはありません」を、Sesame APIへの
+    送信と矛盾して読めないよう、開発者が管理するサーバーが存在しない旨の記述へ改めた。
+  - 最終更新日を2026-09-06へ更新した。
+
+なお本修正はドキュメントのみの変更であり、アプリの動作に変更はないため
+`docs/RELEASE_NOTES.md` および `docs/records/managed/EXECUTE.md` は更新していない。
