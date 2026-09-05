@@ -29,7 +29,7 @@ android {
         // リリースビルド時はscripts/release-build.bat経由で-PappVersionCode/-PappVersionNameを
         // 渡すことでバージョンを上書きできる（BL-035）。未指定時は既定値のまま。
         versionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = findProperty("appVersionName") as String? ?: "0.1.0"
+        versionName = findProperty("appVersionName") as String? ?: "0.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

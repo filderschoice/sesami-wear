@@ -23,7 +23,7 @@
   区分: 人手検証
   タスク内容: GitHubリポジトリをPublicへ切り替え、公開リポジトリとしての設定を行う。
     Description・Topics（wear-os / android / sesame / smart-lock / kotlin 等）の設定、Issues有効化、
-    SECURITY.mdのSecurity policy認識確認、初回リリースタグ（v0.1.0）とGitHub Releasesの作成、
+    SECURITY.mdのSecurity policy認識確認、初回リリースタグ（v0.9.0）とGitHub Releasesの作成、
     Secret scanningの有効化を含む。あわせて、外部からのPull Requestを受け付けない方針
     （BL-087）に対し、リポジトリ設定でforkを抑止できるかを設定画面で確認する（個人アカウントの
     Publicリポジトリでfork禁止の設定が提供されているかは未確認。提供されていない場合は

@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-05 23:02
+  summary: アプリのversionNameを0.1.0から0.9.0へ更新した
+  details:
+    変更内容: >
+      Google Play公開前の公開準備段階に合わせ、ユーザー指示によりversionNameを0.1.0から
+      0.9.0へ引き上げた。versionNameは3箇所（scripts/version.propertiesの永続値、
+      mobile/build.gradle.ktsの既定値、scripts/release-build.ps1のversion.properties読み込み
+      失敗時フォールバック）に分散しているため、すべてを0.9.0へ揃えた。release-build.ps1は
+      Windows PowerShell 5.1対策でUTF-8 BOM付きのため、編集後にBOMが保持されていることを
+      確認済み（BL-035）。あわせて表記の一貫性のため、docs/RELEASE_NOTES.mdのバージョン見出しと
+      .github/ISSUE_TEMPLATE/bug_report.ymlのバージョン入力欄プレースホルダ、BACKLOG.md
+      BL-085の初回リリースタグ名（v0.9.0）も更新した。versionCodeはリリースビルド時に
+      scripts/release-build.batが自動採番するため、現行値（1）のまま変更していない。
+      機能面の変更はないためdocs/RELEASE_NOTES.mdの記載内容（新機能・既知の問題）は据え置き、
+      見出しのバージョン番号のみを変更した。
+    変更ファイル:
+      - scripts/version.properties
+      - mobile/build.gradle.kts
+      - scripts/release-build.ps1
+      - docs/RELEASE_NOTES.md
+      - .github/ISSUE_TEMPLATE/bug_report.yml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 / bug_report.ymlのYAML構文チェック
+    検証結果: 成功 - 段階Bの品質ゲートすべてBUILD SUCCESSFUL、markdownlint 0 issues、YAML構文OK
+    関連ID:
+      - BL-090
+
 - date: 2026-09-05 22:41
   summary: リリースビルドから切り分け用デバッグログ（Log.d / Log.v）を除去するR8ルールを追加した
   details:
