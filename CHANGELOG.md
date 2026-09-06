@@ -329,3 +329,29 @@ Google Play Consoleへ提出したストア素材を、掲載情報の原本と�
 
 作業中に生成したPlay Console貼り付け用のプレーンテキスト（`play_full_description.txt`）は、
 `STORE_LISTING.md` からの派生物で原本と乖離するリスクがあるためリポジトリへは追加していない。
+
+## 2026-09-06（Public化完了の反映と人手検証タスクの棚卸し、BL-096）
+
+GitHubリポジトリのPublic化（BL-085）が完了したため、`docs/records/managed/BACKLOG.md` へ反映した。
+あわせて、Google Play Consoleでの作業が進んだことで記述が実態と合わなくなった人手検証タスクを
+更新し、完了済みタスクを指したままの依存を整理した。
+
+- BL-085（Public化）を完了として削除した。Public化・Description/Topics・Issues有効化・
+  Ruleset（`protect-main`、承認数0）・Code security（Secret scanning / Push protection /
+  Dependabot / 非公開脆弱性報告）・Actionsのフォークワークフロー承認設定・Security policyの認識は
+  すべて完了。fork抑止は個人アカウントのPublicリポジトリではGitHubが設定を提供しておらず
+  不可能であることを確認し、`CONTRIBUTING.md`・PRテンプレートでの明示と、届いたPRをクローズする
+  運用で対応する（記述は整備済みのため追加の変更は不要だった）。
+- BL-085の残件だった初回リリースタグ v0.9.0 とGitHub Releasesの作成をBL-098として分離した。
+  配信した成果物とタグを対応させるため、BL-097の完了を待って実施する。
+- BL-086（プライバシーポリシーの公開URL確定）へ、Public化により
+  `https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY.md` が
+  HTTP 200で到達可能であること、GitHub Pagesは不要と判断したこと、Play Consoleへ登録済みで
+  あることを追記した。
+- BL-033（データ安全性の申告）へ、実装確認の結果に基づく申告方針を記録した。apikeyを
+  「個人情報 > ユーザーID」、uuidを「デバイスIDまたはその他のID」として収集・共有の両方で申告し、
+  secretKeyはGoogleの「収集」の定義（端末外への送信）に該当しないため申告対象外とする。
+- BL-034（Play Consoleへの登録）へ、アプリ新規作成・ストア掲載情報・アプリのコンテンツが
+  完了済みであることを記録し、残るトラックへのアップロードとテスター登録はBL-097で扱う旨を
+  明記した。
+- 完了済みで既に削除されたタスク（BL-029 / BL-030 / BL-081 / BL-085）を指していた依存を整理した。
