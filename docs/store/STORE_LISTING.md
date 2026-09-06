@@ -1,9 +1,12 @@
 # Google Play ストア掲載情報
 
 Google Play Console提出用のストア掲載情報の原本です。Play Consoleの入力項目との対応と更新手順は
-[README.md](README.md) を参照してください。実際の入力・公開はBL-034（人手検証、限定公開）で行います。`mobile`と`wear`はBL-036で単一の`applicationId`・単一AABへ
-統合済みのため、Google Playには1つのアプリとして登録します（登録先は1ページのみで、
-mobile用・wear用を別アプリとして登録する必要はありません。DESIGN.md「Google Play配布方式」参照）。
+[README.md](README.md) を参照してください。実際の入力・公開はBL-034（人手検証、限定公開）で行います。
+`mobile`と`wear`は同一の`applicationId`を共有するため、Google Playには**1つのアプリ**として
+登録します（掲載ページは1つで、mobile用・wear用を別アプリとして登録する必要はありません）。
+ただし成果物は2つに分かれており、スマホ用AABは電話・タブレット系トラックへ、ウォッチ用AABは
+**Wear OS専用トラック**へアップロードします（BL-090。DESIGN.md「Google Play配布方式」参照）。
+そのためスクリーンショットも、スマートフォン用とWear OS用でそれぞれの枠へ投入します。
 
 ## アプリ名
 

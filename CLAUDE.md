@@ -56,9 +56,16 @@ Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid/Wear OS
   Sesame APIクライアント、Data Layer APIのメッセージパス定数、状態解決ロジック等）。
   Android依存コードは置かない。
 - `mobile`: apikey / secretKey / uuidを保持し、AES-CMAC署名生成とSesame APIへのHTTP通信を担当する
-  Androidアプリ。
+  スマートフォン用Androidアプリ（`com.android.application`）。
 - `wear`: Tile / Complicationの表示と、施錠/解錠の意図（コマンド種別のみ）をWearable Data Layer API
-  （`MessageClient`）でスマホ側へ送信するWear OSアプリ。secretKeyは保持しない。
+  （`MessageClient`）でスマホ側へ送信するWear OS用アプリ（`com.android.application`）。
+  secretKeyは保持しない。
+
+`mobile` と `wear` は同一の `applicationId`（`com.sesamiwear.mobile`）を共有する独立した2つの
+applicationモジュールで、それぞれ別のAABとしてビルドします。Google Playでは1つのストア掲載
+ページの中で、電話・タブレット系トラックとWear OS専用トラックへ別々に配信します（BL-090。
+Googleは単一AABへWear OSをdynamic featureとして同梱する構成をサポートしていません。
+詳細は DESIGN.md「Google Play配布方式」参照）。
 
 secretKeyは機密性が高いためWatch単体には保持させず、施錠/解錠の実行は常にスマホ側で行う方針です
 （詳細は DESIGN.md「アーキテクチャ方針」参照）。
@@ -186,16 +193,25 @@ Compose画面）はテスト対象外です。ロジックを追加する際は�
 クラス・objectへ置くと検証可能になります（detektの`LongMethod`/`TooManyFunctions`回避にもなります。
 DESIGN.md「実装制約 > 技術制約」参照）。
 
-`wear` は `mobile` の dynamic feature（BL-036、単一 `applicationId` へ統合済み）のため、
-`:wear:assembleDebug` / `:wear:installDebug` 等のモジュール単体タスクは base module
-（`mobile`）側のメタデータを解決できず失敗します。ビルド・インストールは必ずルートからの
-一括実行（`./gradlew assembleDebug` 等）または `:mobile:` 配下のタスク
-（`:mobile:installDebug` / `:mobile:bundleDebug` / `:mobile:bundleRelease`）経由で行ってください。
-スマホとスマートウォッチを同時接続している場合は、`ANDROID_SERIAL`でインストール先を1台へ固定して
-デバイスごとに実行します（手順の詳細は [docs/INSTALL.md](docs/INSTALL.md)）。
+`mobile` と `wear` はそれぞれ独立した application モジュールで、同一の `applicationId`
+（`com.sesamiwear.mobile`）を共有します（BL-090）。**インストール先のデバイス種別に応じて
+実行するタスクが異なります。** 同一 `applicationId` のため、1台のデバイスに両方は入りません
+（後から入れた方が前のものを置き換えます）。
 
 ```bash
-ANDROID_SERIAL=<デバイスID> ./gradlew :mobile:installDebug
+ANDROID_SERIAL=<スマホのデバイスID>       ./gradlew :mobile:installDebug
+ANDROID_SERIAL=<ウォッチのデバイスID>     ./gradlew :wear:installDebug
+```
+
+スマホとスマートウォッチを同時接続している場合は、`ANDROID_SERIAL` でインストール先を1台へ
+固定してデバイスごとに実行します（手順の詳細は [docs/INSTALL.md](docs/INSTALL.md)）。
+
+リリースAABは2つ生成する必要があります。`scripts\release-build.bat` は1回の実行で両方を
+ビルドします（`versionCode` は `mobile` が1始まり、`wear` が1001始まりの独立系列）。
+
+```bash
+./gradlew :mobile:bundleRelease   # → Play Consoleの電話・タブレット系トラックへ
+./gradlew :wear:bundleRelease     # → Play ConsoleのWear OS専用トラックへ
 ```
 
 detekt設定は `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、

@@ -7,7 +7,7 @@
 ```yaml
 - id: BL-097
   区分: 人手検証
-  タスク内容: BL-093/BL-094完了後、スマホ用AAB（mobile-release.aab、wearを含まない）を
+  タスク内容: スマホ用AAB（mobile-release.aab、wearを含まない）を
     電話・タブレットの内部テストトラックへ、ウォッチ用AAB（wear-release.aab）をWear OS専用
     トラックへそれぞれアップロードし、エラーなくリリースを作成できることを確認する。あわせて
     テスターとしてインストールし、スマホ側の資格情報登録とウォッチ側のTile/Complicationが
@@ -19,8 +19,7 @@
   担当: ユーザー
   完了条件: 両トラックへのアップロードが成功し、テスター配信でスマホ・ウォッチ双方の主要機能が
     動作する
-  依存:
-    - BL-094
+  依存: []
 
 - id: BL-096
   区分: ドキュメント
@@ -48,21 +47,6 @@
   状態: 未着手
   担当: Claude Code
   完了条件: ストア素材がリポジトリに追加され、docs/store配下の記述が実態と一致している
-  依存: []
-
-- id: BL-094
-  区分: ドキュメント
-  タスク内容: wearを独立applicationモジュールへ変更したことに伴い、単一AAB構成を前提とした記述を
-    全ドキュメントで更新する。対象はREADME.md（プロジェクト構成・リリースビルド・ビルドコマンドの
-    制約）、docs/records/managed/DESIGN.md（Google Play配布方式・実装制約）、CLAUDE.md
-    （モジュール構成・よく使うコマンド・wearのモジュール単体タスクが失敗するという記述）、
-    docs/INSTALL.md（インストール手順）、.github/copilot-instructions.md（CLAUDE.mdとの同期）、
-    docs/store/README.md・STORE_LISTING.md（単一アプリとして登録する旨の記述）
-  優先度: P2
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 単一AAB・dynamic feature前提の記述が残っておらず、2成果物・2トラック構成が正しく
-    記載されている。npx markdownlint-cli2が成功する
   依存: []
 
 - id: BL-086

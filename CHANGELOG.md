@@ -266,3 +266,44 @@ Google Play Consoleのデータセーフティ申告の準備にあたり実装�
 
 なお本修正はドキュメントのみの変更であり、アプリの動作に変更はないため
 `docs/RELEASE_NOTES.md` および `docs/records/managed/EXECUTE.md` は更新していない。
+
+## 2026-09-06（Wear OS配布方式の変更に伴うドキュメント更新、BL-090〜BL-094）
+
+Google Play Consoleへの初回アップロードで、Wear OS向けリリースは専用トラックでの公開が必須という
+エラーが発生した。Googleは単一App BundleへWear OSアプリをdynamic featureとして同梱する構成を
+サポートしていないため、`wear`を独立したapplicationモジュールへ変更し、`applicationId`を共通に
+したまま2つのAABを生成する構成へ改めた（実装の詳細は
+[docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md) を参照）。
+これに伴い、単一AAB構成を前提としていた記述を更新した。
+
+- `README.md`
+  - 「アーキテクチャ概要」を、同一`applicationId`を共有する独立2モジュール構成の記述へ改めた。
+  - 「リリースビルド・Google Play公開」に、スマホ用とウォッチ用の2つのAABをビルドするコマンドと、
+    それぞれのPlay Consoleでのアップロード先を対応表として追加した。
+  - 「プロジェクト構成」の`wear`の説明からdynamic featureの記述を除いた。
+  - 「既知の未確認事項・制約」へ、旧構成が非サポートだった経緯と、旧構成では
+    `uses-feature android.hardware.type.watch`のマージによりスマートフォンが配信対象から
+    除外される状態だったことを追記した。
+- `CLAUDE.md`
+  - 「モジュール構成」へ、`mobile`/`wear`が同一`applicationId`を共有する独立した2つの
+    applicationモジュールである旨と、Play Consoleでのトラック分離を追記した。
+  - ビルド・インストール手順を、デバイス種別ごとにタスクを使い分ける形
+    （スマホは`:mobile:installDebug`、ウォッチは`:wear:installDebug`）へ変更した。
+    従来の「`:wear:`配下のモジュール単体タスクは失敗する」という記述は成立しなくなったため削除した。
+- `docs/INSTALL.md`
+  - 冒頭の構成説明を2成果物構成へ改め、同一`applicationId`のため1台のデバイスに両方は
+    インストールできない旨の注意を追加した。
+  - ローカルビルドのインストール手順を、インストール先に応じたタスクの対応表とともに更新した。
+  - Google Play経由のインストール手順を、1つの掲載ページ内で2トラックへ配信する構成の説明へ改めた。
+- `docs/records/managed/DESIGN.md`
+  - 「Google Play配布方式」を全面的に書き換え、Googleの要件・旧構成が失敗した理由・
+    versionCodeの系列分離・署名鍵の共通化・guava依存の整理・ランチャーアイコンの扱いを記載した。
+  - 「対象システム概要」「Androidアイコンリソース」「ProGuard/R8」「モジュール構成・パッケージ方針」
+    「実装制約」を新構成へ合わせて更新した。
+- `docs/store/STORE_LISTING.md`
+  - Google Playには1つのアプリとして登録するが、成果物は2つに分かれ、スクリーンショットも
+    スマートフォン用とWear OS用の枠へそれぞれ投入する旨を追記した。
+
+`.github/copilot-instructions.md` はモジュール構成・ビルド手順を記載していないため、今回の同期対象外。
+`docs/RELEASE_NOTES.md` / `docs/SUPPORT.md` / `docs/USER_GUIDE.md` は利用者から見た動作・手順に
+変更がないため更新していない。
