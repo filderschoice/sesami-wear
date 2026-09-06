@@ -53,7 +53,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | スクリーンショット（スマートフォン） | images/screenshots/phone_*.png | 最低2枚 |
 | スクリーンショット（Wear OS） | images/screenshots/wear_*.png | スマートフォン用とは別の枠へ投入する |
 | プライバシーポリシーURL | PRIVACY_POLICY.md（下記「公開URL」） | 必須項目 |
-| データ安全性（Data safety） | PRIVACY_POLICY.md の記載内容 | 申告はBACKLOG BL-033 |
+| データ安全性（Data safety） | PRIVACY_POLICY.md の記載内容 | 申告済み（下記「データ安全性の申告内容」） |
 | サポートメールアドレス | PRIVACY_POLICY.md「お問い合わせ先」 | 必須項目 |
 | このリリースの新機能 | ../RELEASE_NOTES.md「ストア掲載用の要約」 | 500文字以内 |
 
@@ -68,6 +68,32 @@ https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY
 
 - URLはブランチ名（`main`）を含むため、ブランチ名を変更した場合はPlay Console側の登録も更新します。
 - 恒久的なURLが必要になった場合はGitHub Pagesでの公開へ切り替えます（その場合も原本は本ファイル群です）。
+
+## データ安全性の申告内容
+
+2026-09-07にPlay Consoleへ申告済みの内容です。実装（`core.api.SesameApiClient.sendCommand`が
+実際に送信する項目）に基づいて決定しています。再申告・内容変更の際はこの表を基準にします。
+
+| 設問 | 回答 |
+| --- | --- |
+| ユーザーデータを収集または共有するか | はい |
+| 転送中のデータは暗号化されるか | はい（Sesame APIはHTTPS） |
+| ユーザーがデータの削除をリクエストできるか | いいえ（削除導線は未実装。端末内の登録削除のみ可能） |
+| 独立したセキュリティ審査（MASA）を受けたか | いいえ |
+
+申告したデータタイプは次の2つのみです。いずれも「収集」「共有」の両方に該当し、一時的な処理ではなく、
+利用者にとって必須、目的は「アプリの機能」のみとしています。
+
+| データタイプ | 該当する値 |
+| --- | --- |
+| 個人情報 > ユーザーID | `apikey` |
+| デバイスIDまたはその他のID | Sesameデバイスの `uuid` |
+
+- **`secretKey` は申告対象外です。** 端末内でAES-CMAC署名の計算にのみ使用され、端末外へ送信されないため、
+  Googleの「収集」の定義（端末外への送信）に該当しません。認証情報として申告しないよう注意してください。
+- 送信先のSesame APIはCANDY HOUSE社（第三者）が運営するため、「収集」だけでなく「共有」にも該当します。
+- 広告ID（`AD_ID`）は使用していません。広告SDKを含まないため、マージ後のマニフェスト・AABのいずれにも
+  `com.google.android.gms.permission.AD_ID` は含まれません（広告の宣言は「いいえ」）。
 
 ## 更新手順
 
@@ -84,4 +110,4 @@ https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY
 - [../SUPPORT.md](../SUPPORT.md): 利用者向けのサポート窓口・アップデート確認先
 - [../../README.md](../../README.md): リリースビルド手順（署名・AAB作成）
 - [../records/managed/BACKLOG.md](../records/managed/BACKLOG.md): Google Play公開に関する人手検証タスク
-  （BL-033 / BL-034 / BL-086 / BL-097）
+  （残件はBL-098のみ。BL-033 / BL-034 / BL-086 / BL-097は完了済み）
