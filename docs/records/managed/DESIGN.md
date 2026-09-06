@@ -431,8 +431,12 @@ Play Consoleは2023年3月以降、Wear OS向けリリースを専用トラッ�
 保存方法（mobile側のEncryptedSharedPreferencesのみ）・送信先（CANDY HOUSE Sesame APIのみ、
 広告/分析SDK不使用）・削除方法を記載している。問い合わせ先メールアドレスは確定済みの値を記載済み。
 Play Console提出用の高解像度アイコン（512x512 PNG）は`docs/store/images/play_store_icon_512.png`
-として用意済み。実際の公開URLでのホスティングとPlay ConsoleのData safety申告への反映はBL-033
-（人手検証）、実際のPlay Console提出はBL-034（人手検証）で行う。
+として用意済み。プライバシーポリシーの公開URLでのホスティングとPlay Consoleへの登録、および
+Data safety（データ セーフティ）申告は2026-09-07に完了した（BL-033 / BL-086）。申告内容は
+apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「デバイスIDまたはその他のID」とし、
+いずれも収集・共有の両方・目的はアプリの機能のみ。secretKeyは端末内での署名計算にのみ使われ
+端末外へ送信されないため、Googleの「収集」の定義に該当せず申告対象外としている。Play Consoleへの
+アップロード（内部テスト）はBL-097で完了済み。
 
 ## 設計方針
 
