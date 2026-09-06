@@ -416,3 +416,39 @@ Play Consoleのデータ セーフティ申告の内容をユーザーが提示�
 
 これにより、`BACKLOG.md` の残タスクはBL-098（v0.9.0タグとGitHub Releasesの作成）のみとなった。
 本タスクは `git push` を伴うためユーザーによる実施が必須である。
+
+## 2026-09-07（v0.9.0タグとGitHub Releasesの公開、BL-098）
+
+初回リリースタグ `v0.9.0` の作成とGitHub Releasesの公開が完了したため、
+`docs/records/managed/BACKLOG.md` から完了タスクを削除した。
+
+- BL-098（v0.9.0タグとGitHub Releasesの作成）を完了として削除した。タグはmainの `ca16754`
+  （PR #20 のsquashマージコミット）を指しており、Releasesの本文は `docs/RELEASE_NOTES.md` の
+  0.9.0の内容（新機能・既知の問題）に、secretKeyが端末外へ出ないことの説明と利用者向け
+  ドキュメントへのリンクを加えたものとした。一般公開前かつ0.9.0であるためPre-releaseとして
+  公開している。Play Console向けの「ストア掲載用の要約」はPlay Consoleの入力欄専用のため
+  転記していない。
+- BL-098の任意項目だった「`v*` タグを対象としたRulesetによる削除・更新の制限」を、BL-105として
+  独立したタスクへ切り出した。リポジトリ設定の変更は作業ツリー外への影響を伴うため、自律ループ
+  実行モードでは実行せず `状態: 要確認` としてユーザーの承認を待つ。
+- `docs/store/README.md` の関連ドキュメント欄を、人手検証タスクがすべて完了した状態へ更新した。
+- `docs/RELEASE_NOTES.md` の見出しは `0.9.0（未リリース・内部テスト配信中）` のまま維持した。
+  同ファイルはアプリ利用者向けであり、利用者にとっての入手経路であるGoogle Playでの一般公開が
+  まだ行われていないためである。
+
+これにより、`BACKLOG.md` の未完了タスクはBL-105（`状態: 要確認`）のみとなった。
+
+## 2026-09-07（リリースタグ保護Rulesetの追加、BL-105）
+
+配信済み成果物とタグの対応が事後に壊れることを防ぐため、リリースタグを保護するRulesetを
+GitHubへ追加した。ユーザーの承認を得たうえで `gh api` により作成している。
+
+- Ruleset `protect-release-tags`（id: 22392023）を作成した。対象は `refs/tags/v*`、
+  enforcement は `active`、bypass actors は無し。適用ルールは `deletion`（タグの削除を禁止）と
+  `non_fast_forward`（強制上書きによるタグの付け替えを禁止）の2つ。既存の `protect-main`
+  （branch対象、`deletion` / `non_fast_forward` / `pull_request`）と同じ考え方をタグへ適用した。
+- 動作確認は設定内容の照合（対象パターン・enforcement・ルール種別・bypass actorsが空であること）
+  までとした。実際に削除・強制上書きを試す検証は、Rulesetが未適用だった場合に公開済みの
+  v0.9.0タグを破壊するため実施していない。
+- `docs/records/managed/BACKLOG.md` からBL-105を完了として削除した。これにより未対応事項は
+  すべて解消し、同ファイルは空のリストになった。
