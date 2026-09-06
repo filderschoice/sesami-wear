@@ -37,6 +37,8 @@ import kotlinx.coroutines.launch
 /**
  * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
  * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
+ * 保存時のリスト更新は[CredentialsListEditor]が担う。編集は一覧内の同じ位置を保ったまま置き換え、
+ * uuidを変更した場合も元の項目が重複して残らない（BL-100）。
  * uuid/apikey/secretKeyはすべてbiz.candyhouse.co（SESAME Biz 開発者ページ）から取得する想定
  * （BL-059、Sesameアプリの「鍵をシェア」QRコードは使わない）。secretKeyは16進数32文字（BL-058）。
  * 取得元の詳細説明は初期表示せず、ヘルプボタンからのダイアログへ集約して情報量を抑える（BL-059）。
@@ -96,7 +98,11 @@ fun CredentialsSettingsScreen(
             formState = formState,
             onSave = {
                 val updatedList =
-                    credentialsList.filterNot { it.uuid == formState.uuid } + formState.toCredentials()
+                    CredentialsListEditor.upsert(
+                        credentialsList = credentialsList,
+                        editingUuid = formState.editingUuid,
+                        edited = formState.toCredentials(),
+                    )
                 credentialsStore.saveAll(updatedList)
                 credentialsList = updatedList
                 syncDeviceList(updatedList)

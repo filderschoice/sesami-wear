@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 15:45
+  summary: 既存デバイスの資格情報を編集すると新規追加になる不具合を修正した
+  details:
+    変更内容: >
+      Play Console経由でインストールしたアプリの実機確認で、スマートフォン側の設定画面から
+      既存デバイスを編集して「更新」を押すと、更新ではなく新規追加になる不具合が報告された。
+      原因はCredentialsSettingsScreenの保存処理が
+      credentialsList.filterNot { it.uuid == formState.uuid } + formState.toCredentials()
+      となっていた点にある。編集対象を特定するキーとして、編集を開始した時点のuuid
+      （formState.editingUuid）ではなくフォームの現在値（formState.uuid）を使っていたため、
+      編集中にuuidを変更すると元の項目が絞り込みに掛からず残り、新しい項目が追加されて
+      重複していた。あわせて、filterNotの結果へ追記する実装のため編集した項目が常にリスト末尾へ
+      移動し、一覧の並び順が保持されない問題もあった。
+      保存時のリスト更新ロジックをCredentialsListEditorとして画面から切り出し、Android非依存の
+      objectにしてユニットテストを追加した。挙動は次の3点。(1)新規追加は末尾へ追加するが、
+      入力uuidが既存項目と一致する場合は上書きする（従来からの画面仕様を維持）。(2)既存項目の
+      編集はeditingUuidで対象を特定し、リスト内の同じ位置で置き換える。(3)編集でuuidを他の
+      既存項目と同じ値に変更した場合は、衝突した項目を取り除く（uuidをデバイスの一意キーとして
+      扱うため重複を残さない）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsListEditor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsListEditorTest.kt
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - 品質ゲート184タスクがBUILD SUCCESSFUL。新規追加したCredentialsListEditorTestは
+      6件すべて通過（failures=0, errors=0）。テストのsecretKeyには実資格情報を用いず、
+      AES-128鍵長を満たすダミー値を使用している。
+    関連ID:
+      - BL-100
+
 - date: 2026-09-06 14:05
   summary: targetSdkを36へ引き上げ、AGP 8.13.0 / Gradle 8.13へ更新した
   details:

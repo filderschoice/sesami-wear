@@ -51,22 +51,6 @@
     状態変化時に更新される
   依存: []
 
-- id: BL-100
-  区分: 実装
-  タスク内容: スマートフォン側で既存デバイスの資格情報を編集すると、更新ではなく新規追加に
-    なる不具合を修正する。CredentialsSettingsScreenの保存処理が
-    credentialsList.filterNot { it.uuid == formState.uuid } + formState.toCredentials()
-    となっており、編集対象の元uuid（formState.editingUuid）ではなくフォームの現在値
-    （formState.uuid）で絞り込んでいる。このため編集中にuuidを変更すると元の項目が残り
-    重複する。あわせて、編集した項目が常にリスト末尾へ移動し順序が保持されない問題も
-    修正する。保存ロジックはAndroid非依存の純Kotlin関数へ切り出してユニットテストを追加する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 既存デバイスの編集がリスト内の同じ位置で更新され、uuidを変更した場合も
-    重複が発生しない。ユニットテストが追加され品質ゲートが成功する
-  依存: []
-
 - id: BL-099
   区分: 人手検証
   タスク内容: targetSdkを35から36（Android 16）へ引き上げたことによる挙動変化を実機で確認する。
