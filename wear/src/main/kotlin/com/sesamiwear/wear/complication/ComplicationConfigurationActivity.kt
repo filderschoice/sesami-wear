@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.wear.compose.material.MaterialTheme
@@ -31,7 +32,10 @@ class ComplicationConfigurationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val complicationInstanceId = resolveComplicationInstanceId()
+        Log.w(TAG, "onCreate instanceId=$complicationInstanceId action=${intent.action}")
         if (complicationInstanceId == null) {
+            // 対象が特定できない起動は文字盤側でキャンセル扱いになる。原因調査のため記録する。
+            Log.w(TAG, "instanceId could not be resolved. finishing without RESULT_OK")
             finish()
             return
         }
@@ -42,8 +46,14 @@ class ComplicationConfigurationActivity : ComponentActivity() {
                     onDeviceSelected = { uuid ->
                         ComplicationDeviceAssignmentStore(applicationContext)
                             .assignDevice(complicationInstanceId, uuid)
-                        requestComplicationUpdate(complicationInstanceId)
+                        // RESULT_OKを先に返す（BL-101）。更新要求は表示を即座に反映するための
+                        // 最適化にすぎず、失敗しても定期更新で回復する。一方RESULT_OKはユーザーの
+                        // 選択そのものを確定させる処理で、返さないと文字盤側がデータソースの選択を
+                        // キャンセル扱いにする（BL-073）。更新要求の失敗に巻き込ませない。
                         setResult(RESULT_OK)
+                        Log.w(TAG, "device selected instanceId=$complicationInstanceId RESULT_OK set")
+                        runCatching { requestComplicationUpdate(complicationInstanceId) }
+                            .onFailure { Log.w(TAG, "failed to request complication update", it) }
                         finish()
                     },
                 )
@@ -73,6 +83,11 @@ class ComplicationConfigurationActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_COMPLICATION_INSTANCE_ID = "complication_instance_id"
+
+        // 文字盤へ枠が載らない不具合（BL-101）の調査用。リリースビルドでもproguardの
+        // -assumenosideeffectsで除去されないよう、Log.dではなくLog.wで出力する。
+        // 出力内容はinstanceIdとactionのみで、資格情報やデバイスuuidは含めない。
+        private const val TAG = "SesameComplicationConfig"
 
         private const val INVALID_INSTANCE_ID = -1
 

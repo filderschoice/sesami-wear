@@ -5,6 +5,84 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 17:15
+  summary: タイルの状態ラベルの末尾省略を修正し、ストア用スクリーンショットを撮り直した
+  details:
+    変更内容: >
+      ストア用スクリーンショットの撮り直し中に、複数デバイスの施錠状態が混在したタイルで
+      状態ラベルが「施錠/解…」と末尾省略されることを実機で確認した。BL-102では操作ラベル
+      （actionLabel）とデバイス変更チップのみを修正しており、状態ラベル（statusLabel）の
+      見落としだった。MIXEDの「施錠/解錠混在」は7文字で、TYPOGRAPHY_TITLE2の表示幅
+      （「全施錠中」の4文字は収まる）に対して長すぎる。
+      文言を「一部解錠」（4文字）へ短縮した。1台でも解錠されているという利用者の行動に
+      つながる事実を残す表現で、🔀アイコンと「タップで全施錠」が併記されるため意味は通る。
+      あわせて状態ラベルのTextへsetMaxLines(2)・省略記号・中央揃えを指定し、今後文言を
+      増やしたときに同じ末尾省略が起きない安全網を入れた。「通信中...」「スマホ未接続」は
+      いずれも6文字で省略の可能性があるが実機で確認できていないため、文言は変更せず
+      安全網による保護に留めた。
+      ストア用スクリーンショットは全点を撮り直した。BL-102/BL-103/BL-101の修正が反映された
+      状態で、Wear OS用にタイルの解錠状態と解錠確認画面の2枚を新規追加し5枚構成とした。
+      解錠状態はユーザーの許可を得てSesame実機を実際に解錠して撮影し、撮影後に施錠へ戻している。
+      スマートフォン用2枚は、システムバーのアイコンが暗色になり時刻・電池残量が判読できる
+      ようになったことを確認できる。登録済みデバイスの表示名は従来どおり画像上でマスクした。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/store/README.md
+      - docs/store/images/screenshots/
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - 品質ゲート184タスクがBUILD SUCCESSFUL、npx markdownlint-cli2も0 issues。
+      実機（Pixel Watch 2）で、BL-102の修正により「タップで全解錠」と「変更」が省略・折り返し
+      なしで表示されること、BL-103の修正によりスマートフォンのステータスバーが判読できること、
+      BL-101の対応後にComplicationが「施錠」を表示しタップでデバイス変更できることを確認済み。
+      本コミットのstatusLabel修正自体の表示確認は次回の実機検証で行う。
+    関連ID:
+      - BL-104
+
+- date: 2026-09-06 16:55
+  summary: Complicationが文字盤に載らない事象を切り分け、設定確定処理を防御的に修正した
+  details:
+    変更内容: >
+      文字盤のComplicationへデバイスを割り当てても枠が空のままで、状態表示もタップも
+      できないという報告を調査した。実機での切り分けにより、原因はアプリではなく
+      Wear OSのシステムサービス側にあることを特定した。
+      切り分けの過程で確認した事実は次のとおり。(1)SesameComplicationDataSourceServiceは
+      enabled=true / exported=true で正しく登録され、cmd package query-servicesからも発見できる。
+      (2)デバッグビルドで診断ログを入れたところ、ComplicationConfigurationActivityは
+      instanceIdを正しく解決し、デバイス選択のコールバックも発火し、setResult(RESULT_OK)まで
+      到達していた。(3)にもかかわらずonComplicationRequestは一度も呼ばれていなかった。
+      (4)システム側のログに、文字盤編集の確定処理で例外が発生していた。
+      com.google.wear.services.watchfaces.editing.WatchFaceEditingSessionController
+      .commitFavoriteAndNotifyListener から AndroidXWatchFaceEngine.switchTo が呼ばれ、
+      ImmutableMap.Builder.buildOrThrowで
+      「Multiple entries with same key: 3=ComplicationData{mType=10} と 3=ComplicationData{mType=3}」
+      （NO_DATAとSHORT_TEXTが同一スロットIDに重複）が投げられていた。この例外で確定処理が
+      中断するため、枠がデータソースへ紐付かない。
+      ウォッチを再起動したところ正常に動作するようになり、アンインストールと再インストールを
+      繰り返した結果としてシステム側にスロットの不整合な状態が残っていたことが原因と判明した。
+      アプリ側の実装は正常だったが、調査で見つかった脆さを2点修正した。
+      ComplicationConfigurationActivityでsetResult(RESULT_OK)をrequestComplicationUpdateより
+      前に呼ぶよう順序を入れ替え、更新要求をrunCatchingで囲んだ。更新要求は表示を即座に反映する
+      ための最適化にすぎず失敗しても定期更新で回復するのに対し、setResult(RESULT_OK)は
+      ユーザーの選択そのものを確定させる処理で、返さないと文字盤側がデータソースの選択を
+      キャンセル扱いにする（BL-073）。従来は前者の失敗が後者を巻き添えにする構造だった。
+      あわせて設定画面の各段階へLog.wで診断出力を追加した。リリースビルドでも
+      -assumenosideeffectsで除去されないようLog.dではなくLog.wを用いる。出力内容は
+      instanceIdとactionのみで、資格情報やデバイスuuidは含めない。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/ComplicationConfigurationActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - 実機（Pixel Watch 2）で再起動後にComplicationが正常に表示され、タップでの
+      デバイス変更と状態確認も動作することをユーザーが確認した。
+    関連ID:
+      - BL-101
+
 - date: 2026-09-06 16:40
   summary: スマートフォン側のシステムバーのアイコンを暗色にして視認性を確保した
   details:

@@ -232,9 +232,15 @@ class SesameTileService : TileService() {
                         .build(),
                 )
                 .addContent(
+                    // 操作ラベルと同様、既定の1行では長い状態文言が末尾で省略される（BL-104）。
+                    // 「施錠/解錠混在」は文言側を短縮したが、今後文言を増やしたときに同じ事故が
+                    // 起きないよう、折り返しを許可して末尾省略を避ける安全網も入れておく。
                     Text.Builder(this, SesameTileContent.statusLabel(state, isAllDevices))
                         .setTypography(Typography.TYPOGRAPHY_TITLE2)
                         .setColor(textColor)
+                        .setMaxLines(2)
+                        .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+                        .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
                         .build(),
                 )
         val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
