@@ -223,7 +223,7 @@
   して必ず`listener.onComplicationData`を呼ぶ（データ未返却＝空欄表示を作らないための防御、
   BL-072）。切り分け用に`Log`（TAG=`SesameComplication`）で要求された型とデータ返却有無を出力する。
 - `wear.complication.SesameComplicationContent`（Android非依存）: `TileDisplayState`→短い表示文言
-  （MIXED用の🔀アイコン・「施錠/解錠混在」ラベルを含む、BL-071）と、`LONG_TEXT`枠向けの
+  （MIXED用の🔀アイコン・「一部解錠」ラベルを含む。BL-071、文言はBL-104で短縮）と、`LONG_TEXT`枠向けの
   「デバイス名＋状態文言」（BL-072）。
 - `wear.complication.ComplicationConfigurationActivity` / `ComplicationDeviceAssignmentStore`:
   Complicationインスタンス（`complicationInstanceId`）ごとに対象デバイスを永続化する
@@ -527,6 +527,16 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
   `<application>`直下の属性（`icon`等）を表示先ごとに変えられない（BL-068）、featureが参照する
   リソースをbase側へ置く必要がある（BL-043）といった制約があったが、独立モジュール化により
   いずれも解消している。
+- **アプリを再インストールすると、文字盤のComplicationスロットにシステム側の不整合な状態が残り、
+  データソースを割り当てても枠が空のままになることがある**（BL-101で判明）。原因はWear OSの
+  システムサービス側で、文字盤編集の確定処理
+  （`WatchFaceEditingSessionController.commitFavoriteAndNotifyListener` →
+  `AndroidXWatchFaceEngine.switchTo`）が同一スロットIDに対する`NO_DATA`と`SHORT_TEXT`の重複で
+  `IllegalArgumentException: Multiple entries with same key`を投げ、確定処理が中断する。
+  この状態では`onComplicationRequest`が一度も呼ばれない。**ウォッチの再起動で解消する。**
+  アプリ側の実装に問題はなく修正は不要だが、実機検証でComplicationが表示されない場合は
+  まず再起動を試すこと。切り分けには`ComplicationConfigurationActivity`が出力する
+  `SesameComplicationConfig`タグのログ（`Log.w`のためリリースビルドでも残る）が使える。
 - **`@Serializable`クラスに`private companion object`を持たせてはならない**（BL-099で判明）。
   kotlinx.serializationは`@Serializable`クラスのcompanion objectへ`serializer()`を生成するため、
   companionを`private`にすると生成される`Companion`フィールドも`private`になり、他クラスからの

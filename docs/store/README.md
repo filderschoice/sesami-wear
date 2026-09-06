@@ -11,7 +11,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
-| [images/screenshots/](images/screenshots/) | スマートフォン用2枚・Wear OS用3枚 | スクリーンショット |
+| [images/screenshots/](images/screenshots/) | スマートフォン用2枚・Wear OS用6枚 | スクリーンショット |
 
 `images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
 対応します（スマートフォン用とWear OS用は別の枠です）。
@@ -21,13 +21,21 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `phone_1_credentials.png` | 資格情報の設定画面（登録済みデバイス一覧と追加フォーム） | 1683x2992 |
 | `phone_2_help.png` | 値の取得方法を案内するヘルプダイアログ | 1683x2992 |
 | `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |
-| `wear_2_tile_locked.png` | タイル（全施錠中） | 384x384 |
-| `wear_3_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
+| `wear_2_tile_locked.png` | タイル（全施錠中、タップで全解錠） | 384x384 |
+| `wear_3_tile_unlocked.png` | タイル（全解錠中、タップで全施錠） | 384x384 |
+| `wear_4_tile_mixed.png` | タイル（一部解錠、タップで全施錠）。複数デバイスの状態が混在した場合 | 384x384 |
+| `wear_5_unlock_confirm.png` | 解錠時の確認画面（キャンセル／全解錠） | 384x384 |
+| `wear_6_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
 
 - スマートフォン用は実機（Pixel 8 Pro）の1344x2992を、内容を切らずに左右へ背景色の帯を足して
   16:9へ整えたものです。Play Consoleは縦横比の上限があり、実解像度のままでは弾かれる可能性が
   あるためです。
 - 登録済みデバイスの表示名は、公開を避けるため画像上でモザイク処理しています。
+- ファイル名の番号はPlay Consoleへ投入する順序に対応します。Wear OS用は「状態表示 → タイルの
+  各状態 → 操作の確認 → 設定」の流れで並べています。
+- 2026-09-06に全点を撮り直しました。タイルの文言の省略・折り返しの改善（BL-102）と、
+  スマートフォンのシステムバーのアイコンを暗色にした修正（BL-103）を反映済みです。解錠状態と
+  解錠確認画面は、実際にSesame実機を解錠して撮影しています（撮影後に施錠へ戻しています）。
 
 リリースごとの「このリリースの新機能」欄の文面は、このディレクトリではなく
 [../RELEASE_NOTES.md](../RELEASE_NOTES.md) の各バージョンの「ストア掲載用の要約」で管理します。
@@ -76,4 +84,4 @@ https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY
 - [../SUPPORT.md](../SUPPORT.md): 利用者向けのサポート窓口・アップデート確認先
 - [../../README.md](../../README.md): リリースビルド手順（署名・AAB作成）
 - [../records/managed/BACKLOG.md](../records/managed/BACKLOG.md): Google Play公開に関する人手検証タスク
-  （BL-033 / BL-034 / BL-038 / BL-086）
+  （BL-033 / BL-034 / BL-086 / BL-097）

@@ -29,7 +29,10 @@ object SesameTileContent {
         when (state) {
             TileDisplayState.LOCKED -> if (isAllDevices) "全施錠中" else "施錠中"
             TileDisplayState.UNLOCKED -> if (isAllDevices) "全解錠中" else "解錠中"
-            TileDisplayState.MIXED -> "施錠/解錠混在"
+            // 「施錠/解錠混在」（7文字）はタイルの表示幅に収まらず「施錠/解…」と省略されていた
+            // ため短縮した（BL-104）。1文字でも解錠中のデバイスがあるという、利用者にとって
+            // 行動につながる事実を残す表現にする。🔀アイコンと「タップで全施錠」が併記される。
+            TileDisplayState.MIXED -> "一部解錠"
             TileDisplayState.IN_PROGRESS -> "通信中..."
             TileDisplayState.DISCONNECTED -> "スマホ未接続"
             TileDisplayState.UNKNOWN -> "状態不明"
