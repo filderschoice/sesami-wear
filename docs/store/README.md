@@ -10,6 +10,24 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [STORE_LISTING.md](STORE_LISTING.md) | アプリ名・短い説明・詳細な説明・カテゴリ・対象デバイス | ストアの掲載情報 |
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
+| [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
+| [images/screenshots/](images/screenshots/) | スマートフォン用2枚・Wear OS用3枚 | スクリーンショット |
+
+`images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
+対応します（スマートフォン用とWear OS用は別の枠です）。
+
+| ファイル | 内容 | サイズ |
+| --- | --- | --- |
+| `phone_1_credentials.png` | 資格情報の設定画面（登録済みデバイス一覧と追加フォーム） | 1683x2992 |
+| `phone_2_help.png` | 値の取得方法を案内するヘルプダイアログ | 1683x2992 |
+| `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |
+| `wear_2_tile_locked.png` | タイル（全施錠中） | 384x384 |
+| `wear_3_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
+
+- スマートフォン用は実機（Pixel 8 Pro）の1344x2992を、内容を切らずに左右へ背景色の帯を足して
+  16:9へ整えたものです。Play Consoleは縦横比の上限があり、実解像度のままでは弾かれる可能性が
+  あるためです。
+- 登録済みデバイスの表示名は、公開を避けるため画像上でモザイク処理しています。
 
 リリースごとの「このリリースの新機能」欄の文面は、このディレクトリではなく
 [../RELEASE_NOTES.md](../RELEASE_NOTES.md) の各バージョンの「ストア掲載用の要約」で管理します。
@@ -23,7 +41,9 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | 詳細な説明 | STORE_LISTING.md「詳細な説明」 | 4000文字以内 |
 | アプリのカテゴリ | STORE_LISTING.md「カテゴリ（案）」 | |
 | アプリアイコン | images/play_store_icon_512.png | 512x512、32bit PNG（アルファなし） |
-| スクリーンショット | 未作成 | 実機での撮影が必要（BACKLOG BL-034） |
+| 機能グラフィック | images/play_feature_graphic_1024x500.png | 1024x500、24bit PNG（アルファなし） |
+| スクリーンショット（スマートフォン） | images/screenshots/phone_*.png | 最低2枚 |
+| スクリーンショット（Wear OS） | images/screenshots/wear_*.png | スマートフォン用とは別の枠へ投入する |
 | プライバシーポリシーURL | PRIVACY_POLICY.md（下記「公開URL」） | 必須項目 |
 | データ安全性（Data safety） | PRIVACY_POLICY.md の記載内容 | 申告はBACKLOG BL-033 |
 | サポートメールアドレス | PRIVACY_POLICY.md「お問い合わせ先」 | 必須項目 |
