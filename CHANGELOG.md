@@ -437,3 +437,18 @@ Play Consoleのデータ セーフティ申告の内容をユーザーが提示�
   まだ行われていないためである。
 
 これにより、`BACKLOG.md` の未完了タスクはBL-105（`状態: 要確認`）のみとなった。
+
+## 2026-09-07（リリースタグ保護Rulesetの追加、BL-105）
+
+配信済み成果物とタグの対応が事後に壊れることを防ぐため、リリースタグを保護するRulesetを
+GitHubへ追加した。ユーザーの承認を得たうえで `gh api` により作成している。
+
+- Ruleset `protect-release-tags`（id: 22392023）を作成した。対象は `refs/tags/v*`、
+  enforcement は `active`、bypass actors は無し。適用ルールは `deletion`（タグの削除を禁止）と
+  `non_fast_forward`（強制上書きによるタグの付け替えを禁止）の2つ。既存の `protect-main`
+  （branch対象、`deletion` / `non_fast_forward` / `pull_request`）と同じ考え方をタグへ適用した。
+- 動作確認は設定内容の照合（対象パターン・enforcement・ルール種別・bypass actorsが空であること）
+  までとした。実際に削除・強制上書きを試す検証は、Rulesetが未適用だった場合に公開済みの
+  v0.9.0タグを破壊するため実施していない。
+- `docs/records/managed/BACKLOG.md` からBL-105を完了として削除した。これにより未対応事項は
+  すべて解消し、同ファイルは空のリストになった。
