@@ -20,12 +20,12 @@ val hasReleaseSigningConfig = releaseKeystoreProperties.containsKey("RELEASE_STO
 
 android {
     namespace = "com.sesamiwear.mobile"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sesamiwear.mobile"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // リリースビルド時はscripts/release-build.bat経由で-PappVersionCode/-PappVersionNameを
         // 渡すことでバージョンを上書きできる（BL-035）。未指定時は既定値のまま。
         versionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1

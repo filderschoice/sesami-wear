@@ -20,7 +20,7 @@
   してビルドし、Google Playの別トラックへ配信する（BL-090）。CANDY HOUSE Sesame 5 + Hub 3の
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
   登録済みの複数Sesameデバイス（3〜5台程度を想定）を1つのアプリから個別または一括で操作できる。
-- 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 35、build-tools 35.0.0）、Gradle 8.10.2
+- 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 36、build-tools 36.0.0）、Gradle 8.13
   （Gradle Wrapper経由）。詳細は `CLAUDE.md`「本リポジトリの品質ゲート定義」段階Bを参照。
 
 ## 実装済み機能要件
@@ -457,7 +457,7 @@ Play Console提出用の高解像度アイコン（512x512 PNG）は`docs/store/
   （`required`属性を付けず既定値`true`）と
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
-  （AGP 8.7.3 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
+  （AGP 8.13.0 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 
 ### UI/UX方針（現状の実装内容）
 
@@ -527,6 +527,17 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
   `<application>`直下の属性（`icon`等）を表示先ごとに変えられない（BL-068）、featureが参照する
   リソースをbase側へ置く必要がある（BL-043）といった制約があったが、独立モジュール化により
   いずれも解消している。
+- **`@Serializable`クラスに`private companion object`を持たせてはならない**（BL-099で判明）。
+  kotlinx.serializationは`@Serializable`クラスのcompanion objectへ`serializer()`を生成するため、
+  companionを`private`にすると生成される`Companion`フィールドも`private`になり、他クラスからの
+  シリアライズ時に`IllegalAccessError: tried to access private field ...Companion`が実行時に
+  発生する。コンパイルは通り、AGP 8.7.3では顕在化していなかったが、AGP 8.13.0への更新で
+  表面化した。クラス固有の定数はファイルプライベートのトップレベル`private const val`へ置く
+  （`SesameCredentials.kt`の`AES_128_KEY_LENGTH_BYTES`が該当）。
+- Google Playの対象APIレベル要件により`targetSdk`は36以上が必須（2026-09時点）。`targetSdk`は
+  `compileSdk`を超えられないため両方を36とする。compileSdk 36はAGP 8.13.0以上でサポートされ
+  （最大API 36.1）、AGP 8.13.0はGradle 8.13を要求する。AGP 8.7.3でもビルド自体は通るが
+  「tested up to compileSdk = 35」の警告が出るため、ストア配布物のビルドには用いない。
 - detekt: `LongMethod`（60行）・`TooManyFunctions`（クラス内関数数の実測上限10）に複数回抵触した
   実績があり、状態解決等のロジック追加時はクラス内に増やすのではなく別ファイルの新規object等へ
   切り出す設計を優先する（BL-063, BL-071）。
