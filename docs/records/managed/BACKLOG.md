@@ -12,14 +12,14 @@
     トラックへそれぞれアップロードし、エラーなくリリースを作成できることを確認する。あわせて
     テスターとしてインストールし、スマホ側の資格情報登録とウォッチ側のTile/Complicationが
     動作すること、ウォッチのアプリ一覧にアイコンが1つ表示されること（BL-091でLAUNCHERを
-    復活させたため）を実機で確認する
+    復活させたため）を実機で確認する。2つのAABは scripts\release-build.bat の1回の実行で
+    生成される（BL-093）
   優先度: P3
   状態: 未着手
   担当: ユーザー
   完了条件: 両トラックへのアップロードが成功し、テスター配信でスマホ・ウォッチ双方の主要機能が
     動作する
   依存:
-    - BL-093
     - BL-094
 
 - id: BL-096
@@ -63,23 +63,6 @@
   担当: Claude Code
   完了条件: 単一AAB・dynamic feature前提の記述が残っておらず、2成果物・2トラック構成が正しく
     記載されている。npx markdownlint-cli2が成功する
-  依存:
-    - BL-093
-
-- id: BL-093
-  区分: 実装
-  タスク内容: リリースビルドスクリプト（scripts/release-build.ps1 / .bat、scripts/version.properties）
-    をスマホ用・ウォッチ用の2成果物へ対応させる。GoogleはversionCodeが全フォームファクタで一意で
-    あることを求めるため、mobileとwearでversionCode体系を分離する。あわせてSet-Contentが
-    version.propertiesの末尾改行をCRLFへ書き換えビルドのたびに無意味なgit差分が出る問題も修正する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: 1回の実行でmobile/wear双方の署名付きAABが生成され、versionCodeが衝突しない。
-    version.propertiesに不要な改行コード差分が出ない
-  根拠: versionCodeの体系はmobileを1始まり、wearを1001始まりの独立系列とする。Googleは独立した
-    体系を推奨しており、どちらが新しいかを人が判別しやすい単純な規則を既定値として採用した。
-    BL-090でwear/build.gradle.ktsへappWearVersionCode/appWearVersionNameプロパティを実装済み
   依存: []
 
 - id: BL-086

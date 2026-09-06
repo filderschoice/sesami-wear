@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 10:27
+  summary: リリースビルドスクリプトをmobile/wearの2成果物へ対応させた
+  details:
+    変更内容: >
+      BL-090でwearを独立applicationモジュールへ分離したため、リリースビルドスクリプトを
+      2つのAABを生成する構成へ更新した。scripts/version.propertiesへWEAR_VERSION_CODEを追加し、
+      GoogleがversionCodeを全フォームファクタで一意であることを要求する点に対応して、mobileを
+      1始まり、wearを1001始まりの独立した系列で管理する。versionNameは利用者から見たアプリの
+      バージョンであり、ストア掲載ページも1つであるため両者で共通とした。
+      release-build.ps1へ-WearVersionCodeパラメータを追加し、:mobile:bundleReleaseと
+      :wear:bundleReleaseを1回の実行でビルドするようにした。両者のversionCodeが同一になった
+      場合はビルド前に例外を投げるガードも追加した。完了メッセージには各AABの出力先と、
+      どちらのトラックへアップロードすべきかを明示する。
+      あわせて、version.propertiesの書き戻しをSet-ContentからSystem.IO.File.WriteAllTextへ
+      変更した。Set-Contentは環境依存の改行コード（CRLF）を付与するため、値が変わっていなくても
+      ビルドのたびに末尾改行の差分がgitに現れていた。改行をLFに固定しBOMなしUTF-8で書き出す
+      ことで解消した。release-build.ps1自体はWindows PowerShell 5.1対策でUTF-8 BOM付き・CRLFの
+      ため、編集後にその形式を復元している。
+    変更ファイル:
+      - scripts/release-build.ps1
+      - scripts/release-build.bat
+      - scripts/version.properties
+    検証コマンド: >
+      scripts\release-build.bat -VersionCode 1 -WearVersionCode 1001 -VersionName 0.9.0 /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - スクリプト実行でBUILD SUCCESSFULとなり、mobile-release.aab（versionCode=1）と
+      wear-release.aab（versionCode=1001）が1回の実行で生成された。version.propertiesの
+      git差分はWEAR_VERSION_CODE=1001の1行追加のみで、従来出ていた改行コードのみの差分が
+      発生しないことを確認した。品質ゲート6タスクもBUILD SUCCESSFUL。
+    関連ID:
+      - BL-093
+
 - date: 2026-09-06 10:22
   summary: wearをdynamic featureから独立applicationモジュールへ分離し、Wear OS専用トラックへ対応した
   details:
