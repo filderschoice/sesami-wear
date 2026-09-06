@@ -1,24 +1,19 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:dist="http://schemas.android.com/apk/distribution">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <dist:module
-        dist:instant="false"
-        dist:title="@string/wear_module_title">
-        <dist:delivery>
-            <dist:install-time>
-                <dist:conditions>
-                    <dist:device-feature dist:name="android.hardware.type.watch" />
-                </dist:conditions>
-            </dist:install-time>
-        </dist:delivery>
-        <dist:fusing dist:include="true" />
-    </dist:module>
-
+    <!--
+        Wear OSアプリであることの宣言（BL-090）。Google Playはこの宣言により本成果物を
+        Wear OS向けと判定し、Wear OS専用トラックでの配信対象とする。required属性は付けず
+        既定値のtrueとする（Googleはrequired="false"を非サポートと明記している）。
+        以前はwearがmobileのdynamic featureで、この宣言がbaseマニフェストへマージされた結果、
+        アプリ全体が腕時計必須と判定されスマートフォンが配信対象から除外されていた。
+    -->
     <uses-feature android:name="android.hardware.type.watch" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher_wear"
+        android:roundIcon="@mipmap/ic_launcher_wear_round"
         android:label="@string/app_name">
 
         <meta-data
@@ -26,26 +21,30 @@
             android:value="false" />
 
         <!--
-            ランチャーアイコンは持たない（BL-066）。以前はLAUNCHER intent-filterを持っていたが、
-            baseモジュール（mobile）は常にウォッチ側にもインストールされるため、
-            mobile.MainActivityと合わせてウォッチのアプリ一覧にアイコンが2つ表示される問題が
-            あった。ウォッチ上での主要な操作導線はTile/Complicationであり本Activityの独立起動は
-            不要なため、LAUNCHER属性を除去して1アイコンに統一する。mobile.MainActivityが
-            ウォッチ実行時にexplicit Intent（クラス名文字列）で本Activityへ委譲するため、
-            exported属性は不要（同一アプリ内からの起動はexported=falseでも可能）。
+            ウォッチのアプリ一覧に表示されるランチャーActivity（BL-091）。BL-066でLAUNCHER属性を
+            除去していたのは、wearがmobileのdynamic featureで、baseモジュール（mobile）が常に
+            ウォッチ側にもインストールされ、mobile.MainActivityと合わせてアイコンが2つ表示される
+            という単一AAB構成固有の問題への対処だった。独立成果物へ分離した以降はウォッチ側に
+            mobileが存在せず、LAUNCHER属性が無いとアイコンが1つも表示されなくなるため復活させる。
+            ウォッチ上での主要な操作導線は依然としてTile/Complicationである。
             noHistory/excludeFromRecentsは以下の5つのActivity共通の対応（BL-067）: いずれも
             taskAffinityを明示指定しておらずデフォルト（アプリ共通）のため、Tileタップによる
-            LaunchAction起動とmobile.MainActivityからの委譲起動が同一タスクへ積み重なり、
-            finish()後に無関係な古いActivity（本MainActivity）が背後から現れる不具合が
-            ユーザー報告で判明した。noHistory="true"によりフォアグラウンドを外れた時点で
-            即座に破棄されるようにし、タスクに残留して後続の起動に巻き込まれることを防ぐ。
+            LaunchAction起動と他の起動経路が同一タスクへ積み重なり、finish()後に無関係な古い
+            Activityが背後から現れる不具合がユーザー報告で判明した。noHistory="true"により
+            フォアグラウンドを外れた時点で即座に破棄されるようにし、タスクに残留して後続の
+            起動に巻き込まれることを防ぐ。
         -->
         <activity
             android:name=".MainActivity"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
             android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.DeviceDefault" />
+            android:theme="@android:style/Theme.DeviceDefault">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".action.SesameActionActivity"

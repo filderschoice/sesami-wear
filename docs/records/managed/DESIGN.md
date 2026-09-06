@@ -15,8 +15,9 @@
 
 ## 対象システム概要
 
-- 対象: Android（スマホ側）+ Wear OS（Watch側）の構成。`wear`は`mobile`のdynamic feature
-  （単一AAB・単一`applicationId`、BL-036）として統合されている。CANDY HOUSE Sesame 5 + Hub 3の
+- 対象: Android（スマホ側）+ Wear OS（Watch側）の構成。`mobile`と`wear`は同一の`applicationId`
+  （`com.sesamiwear.mobile`）を共有する独立した2つのapplicationモジュールで、それぞれ別のAABと
+  してビルドし、Google Playの別トラックへ配信する（BL-090）。CANDY HOUSE Sesame 5 + Hub 3の
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
   登録済みの複数Sesameデバイス（3〜5台程度を想定）を1つのアプリから個別または一括で操作できる。
 - 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 35、build-tools 35.0.0）、Gradle 8.10.2
@@ -299,15 +300,15 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
 
 - ランチャーアイコン: `mobile/src/main/res/`の`ic_launcher_background.xml`/
   `ic_launcher_foreground.xml`/`ic_launcher.xml`/`ic_launcher_round.xml`。
-  `mobile/AndroidManifest.xml`の`android:icon`/`android:roundIcon`から参照する。
-  mobile/wear統合（BL-036）と1アイコン統一（BL-066）により、スマホ・Watch双方のランチャーへ表示
-  されるのはこのアイコンのみとなるため、リング意匠も等倍でこちらに含める（BL-042）。
-- Tile/Complicationピッカー用: `ic_launcher_wear_background.xml`/`ic_launcher_wear_foreground.xml`/
-  `ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
-  **`mobile/src/main/res/`側に配置**している（`wear`モジュール側には置いていない。AGPの制約で
-  dynamic featureの`AndroidManifest.xml`が参照するリソースはbase module側に存在する必要があるため。
-  `wear/AndroidManifest.xml`のTileService/ComplicationDataSourceServiceの`android:icon`から
-  `@mipmap/ic_launcher_wear`の名前で参照する）。
+  `mobile/AndroidManifest.xml`の`android:icon`/`android:roundIcon`から参照する。スマートフォンの
+  ランチャーへ表示されるのはこのアイコンで、リング意匠も等倍でこちらに含める（BL-042）。
+- ウォッチ側のランチャー・Tile/Complicationピッカー用: `ic_launcher_wear_background.xml`/
+  `ic_launcher_wear_foreground.xml`/`ic_launcher_wear.xml`/`ic_launcher_wear_round.xml`。
+  **`wear/src/main/res/`側に配置**している（BL-091で`mobile`側から移設した。dynamic feature構成では
+  featureのマニフェストが参照するリソースをbase側へ置く必要があったが、独立モジュール化により
+  その制約が解消したため）。`wear/AndroidManifest.xml`の`<application>`の`android:icon`/
+  `android:roundIcon`と、TileService/ComplicationDataSourceServiceの`android:icon`から
+  `@mipmap/ic_launcher_wear`の名前で参照する。
   - Tile追加ピッカーでの見え方に合わせ、`ic_launcher_wear_foreground.xml`の全パスを
     `<group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="54" android:pivotY="54">`で
     包み中心基準50%縮小している（BL-068。Tile表示時アイコンとピッカーアイコンは同一リソースしか
@@ -322,11 +323,11 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
   `RELEASE_STORE_FILE`/`RELEASE_STORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`を読み込み、
   存在する場合のみ`signingConfigs.release`を構築する。未設定時は`assembleDebug`/`assembleRelease`
   ともunsignedのまま成功する。Keystoreの実際の生成は完了済み（BL-032、人手検証）。
-- ProGuard/R8（BL-029, BL-036, BL-083）: `mobile`（base module）の`proguard-rules.pro`へ
+- ProGuard/R8（BL-029, BL-083, BL-090）: `mobile`と`wear`がそれぞれ`proguard-rules.pro`を持ち、
   kotlinx.serializationの`@Serializable`クラス・`$$serializer`・`serializer()`companionを保護する
-  keepルールを置き、リリースビルドは`isMinifyEnabled=true`。`wear`はdynamic featureのため
-  `minifyEnabled`/`proguardFiles`を持たず、base側の設定がアプリ全体へ適用される（BL-036の統合時に
-  `wear`側の`proguard-rules.pro`は廃止済み）。あわせて`-assumenosideeffects`により
+  keepルールを置く。リリースビルドは両モジュールとも`isMinifyEnabled=true`。dynamic feature構成では
+  base（`mobile`）側の設定がアプリ全体へ適用されていたが、独立モジュール化（BL-090）に伴い
+  `wear/proguard-rules.pro`を追加した。あわせて`-assumenosideeffects`により
   `android.util.Log`の`d`/`v`呼び出しをリリースビルドから除去する（BL-083。出力内容に資格情報は
   含まれないが配布物へ内部状態を残さないための措置。障害調査に必要な`w`/`e`は残す）。
 - `scripts/release-build.bat`（`scripts/release-build.ps1`への薄いエントリポイント、BL-035）:
@@ -338,37 +339,54 @@ VectorDrawableベースのAdaptive Icon（BL-027）。背景色`#1E3A5F`（濃�
 
 ### Google Play配布方式
 
-`wear`を`com.android.dynamic-feature`へ変更して`mobile`（base module）へ統合し、単一の
-`applicationId`（`com.sesamiwear.mobile`）・単一AAB・単一のPlay Store掲載ページで公開する
-Google Play推奨の標準的なWear OSアプリ配布方式（BL-036、旧: mobile/wearが別々の`applicationId`を
-持つ独立2アプリ構成だった）。
+`mobile`と`wear`をいずれも`com.android.application`とし、同一の`applicationId`
+（`com.sesamiwear.mobile`）を共有する**独立した2つのAAB**としてビルドする。Google Playでは
+1つのストア掲載ページの中で、スマホ用AABを電話・タブレット系トラックへ、ウォッチ用AABを
+**Wear OS専用トラック**へアップロードする（BL-090）。
 
-- `wear/build.gradle.kts`は`applicationId`/`signingConfigs`/`versionCode`・`versionName`/
-  `minifyEnabled`・`proguardFiles`を持たず、すべて`mobile`（base）から継承する。
-  `implementation(project(":mobile"))`依存が必須（AGPの制約）。
-- `wear/AndroidManifest.xml`に`dist:module`（`dist:instant=false`、install-time delivery、
-  `dist:fusing dist:include=true`）と、`dist:conditions`/`dist:device-feature`
-  （`dist:name="android.hardware.type.watch"`）を設定し、`wear`モジュールがwatchハードウェア機能を
-  持つデバイスにのみ配信されるようにしている（BL-039。無条件配信だとスマホ側にも
-  `wear.MainActivity`がインストールされアイコンが重複する）。
-- `dist:title`が参照する文字列リソース（`wear_module_title`）は`mobile`側の`strings.xml`にのみ
-  定義する（BL-043。`wear`側に同名リソースが存在するとbundletoolがbase resource table内でタイトルを
-  解決できずAABパッケージングが失敗する）。
-- リリースビルド（R8 minify有効）時、`wear`が直接持つguavaと`mobile`が`play-services-wearable`
-  経由で間接的に持つguavaが重複し`ListenableFutureが2重定義`エラーになるため、`wear`側のguava依存を
-  `compileOnly`へ変更し、`mobile`側に`implementation(libs.guava)`を追加している。
-- ビルド・インストールは常にルートからの一括実行（`./gradlew assembleDebug`等）または`:mobile:`
-  配下のタスク（`:mobile:installDebug`/`:mobile:bundleDebug`/`:mobile:bundleRelease`）経由で行う。
-  `:wear:assembleDebug`等のモジュール単体タスクは存在しない。
-- ローカルビルドの実機インストールは、`ANDROID_SERIAL`環境変数でインストール先を1台へ固定すれば、
-  スマホとWatchを同時接続したまま`:mobile:installDebug`をデバイスごとに実行できる。AABから
-  デバイス構成に応じたsplit APKが生成され、Watch側には`wear`モジュールが配信される
-  （2026-09-05にPixel 8 Pro + Pixel Watch 2で確認済み。手順は`docs/INSTALL.md`）。
-- `minSdk=26`（BL-036で`mobile`と統一。旧30）でも、Wear OS向けライブラリを用いたTileの表示・
+この構成はGoogleの要件に基づく。Googleは「Wear OS APKs are separate from mobile APKs」
+「You cannot use a single app bundle with a dynamic feature module for Wear OS」と明記しており、
+単一App BundleへWear OSをdynamic featureとして同梱する構成をサポートしていない。また
+Play Consoleは2023年3月以降、Wear OS向けリリースを専用トラックで公開することを必須としている。
+
+- **旧構成（BL-036、失敗）**: `wear`を`com.android.dynamic-feature`にして`mobile`へ統合し、
+  単一AABで配布しようとしていた。`wear/AndroidManifest.xml`の
+  `uses-feature android:name="android.hardware.type.watch"`が`mobile`のマージ済みマニフェストへ
+  取り込まれ、`android:required`の既定値`true`によってアプリ全体が腕時計必須と宣言される状態に
+  なっていた。この結果Play Consoleは、(1)バンドル全体をWear OSアプリと分類して専用トラックを要求し、
+  (2)スマートフォンを配信対象から除外する。ローカルの`adb install`はPlayのデバイスフィルタを
+  通らないため、実機検証では表面化しなかった。`required="false"`を付ける回避策はGoogleが
+  明示的に非サポートとしている（Android/Wear OS双方で動く単一APKは未サポート構成）。
+- `wear/build.gradle.kts`は`applicationId`（mobileと同値）・`targetSdk`・`signingConfigs`・
+  `versionCode`/`versionName`・`minifyEnabled`/`proguardFiles`を自前で持つ。署名は`mobile`と同じ
+  Keystore（`local.properties`から読み込み）を使う。同一`applicationId`の成果物は同じ鍵で署名する
+  必要があるため。
+- `versionCode`は全フォームファクタで一意である必要がある（Googleの要件）。`mobile`は1始まり、
+  `wear`は1001始まりの独立した系列とし、`scripts/version.properties`の`VERSION_CODE`/
+  `WEAR_VERSION_CODE`で管理する。`versionName`は利用者から見たアプリのバージョンであり、
+  掲載ページも1つであるため両者で共通とする。
+- `wear`のソースは`mobile`のクラスを一切参照していなかったため、dynamic feature時代にAGPの制約で
+  必須だった`implementation(project(":mobile"))`依存は削除した。`wear`は`:core`のみに依存する。
+- guavaは`wear`が`implementation`で直接持つ。dynamic feature構成ではbase/feature間でクラスが
+  重複し`ListenableFutureが2重定義`エラーになるため`compileOnly`にしていたが、成果物が分かれた
+  以降はその問題が発生しない。`mobile`側に置いていた`wear`のためのguava依存は削除した。
+- `wear/AndroidManifest.xml`は`dist:module`ブロックを持たない。
+  `uses-feature android:name="android.hardware.type.watch"`は宣言したままとし、`required`属性は
+  付けない（既定値`true`）。Google Playはこの宣言により当該成果物をWear OS向けと判定する。
+- ウォッチ側のランチャーアイコンは`wear`の`MainActivity`が持つ（BL-091）。BL-066でLAUNCHER
+  intent-filterを除去していたのは、baseモジュール（`mobile`）が常にウォッチへもインストールされ
+  アイコンが2つ表示されるという単一AAB構成固有の問題への対処であり、分離後はウォッチ側に`mobile`が
+  存在しないため復活させた。
+- ビルド・インストールはモジュールごとに行う。ローカルビルドの実機インストールは、
+  `ANDROID_SERIAL`環境変数でインストール先を1台へ固定し、スマホへは`:mobile:installDebug`、
+  ウォッチへは`:wear:installDebug`を実行する（手順は`docs/INSTALL.md`）。同一`applicationId`の
+  ため、1台のデバイスに両方をインストールすることはできない（後から入れた方が置き換える）。
+- リリースAABは`scripts\release-build.bat`の1回の実行で両方が生成される（BL-093）。
+- `minSdk=26`（`mobile`と統一。旧30）でも、Wear OS向けライブラリを用いたTileの表示・
   施錠/解錠がPixel Watch実機で動作することを確認済み（2026-08-30）。
-- **未確認事項**: 標準配布方式の「スマートフォンへインストール後、ペアリング済みのWearデバイスへ
-  自動的にwearアプリをインストールする」機能（Google Playの自動プッシュインストール）が実際に
-  機能するかは、Play Console経由での確認が必要（BL-038、人手検証）。
+- **未確認事項**: 「スマートフォンへインストール後、ペアリング済みのWearデバイスへ自動的に
+  ウォッチ用アプリをインストールする」機能（Google Playの自動プッシュインストール）が2成果物構成で
+  実際に機能するかは、Play Console経由での確認が必要（BL-038、BL-097、人手検証）。
 
 ### GitHub公開対応
 
@@ -431,11 +449,12 @@ Play Console提出用の高解像度アイコン（512x512 PNG）は`docs/store/
 ### モジュール構成・パッケージ方針
 
 - ルートパッケージ: `com.sesamiwear`（`core` / `mobile` / `wear` 配下にサブパッケージ）。
-- `mobile`: `applicationId=com.sesamiwear.mobile`、`minSdk=26`。`com.android.application`。
-  Google Play配布上のbase moduleであり、`wear`をdynamic featureとして含む。
-- `wear`: `com.android.dynamic-feature`。`applicationId`・署名設定・`versionCode`/`versionName`は
-  持たず`mobile`から継承する。`minSdk=26`。`AndroidManifest.xml`に
-  `uses-feature android:name="android.hardware.type.watch"`と
+- `mobile`: `com.android.application`。`applicationId=com.sesamiwear.mobile`、`minSdk=26`、
+  `versionCode`は1始まりの系列。スマートフォン向け成果物。
+- `wear`: `com.android.application`。`applicationId`は`mobile`と同値
+  （`com.sesamiwear.mobile`）、`minSdk=26`、`versionCode`は1001始まりの独立系列（BL-090）。
+  `AndroidManifest.xml`に`uses-feature android:name="android.hardware.type.watch"`
+  （`required`属性を付けず既定値`true`）と
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.7.3 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
@@ -500,12 +519,14 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
   （`partners.candyhouse.co`ではない、BL-057, BL-059）。
 - Wear Tilesの`LaunchAction`で起動するActivityは`android:exported="true"`が必須（BL-060。
   `exported="false"`のままだと`Activity constraints not met`でLaunchActionが機能しない）。
-- dynamic feature構成のAGP制約: base（`mobile`）とfeature（`wear`）は最終的に1つの
-  `<application>`タグへマージされるため、`<application>`直下の属性（`icon`等）は両モジュール間で
-  一致している必要があり、表示先ごとに別リソースを割り当てることはできない（BL-068で判明）。
-  `dist:title`が参照する文字列リソースはbase側にのみ定義する必要がある（BL-043）。dynamic feature
-  が参照するdrawable/mipmapリソースもbase側に配置する必要がある（「実装済み機能要件 >
-  Androidアイコンリソース」参照）。
+- Wear OSの配布制約: Googleは単一App BundleへWear OSアプリをdynamic featureとして同梱する構成を
+  サポートしておらず、Wear OS向けリリースは専用トラックでの公開が必須である。そのため`mobile`と
+  `wear`は同一`applicationId`の独立した2成果物とする（BL-090。詳細は「Google Play配布方式」参照）。
+  `versionCode`は全フォームファクタで一意である必要があり、両モジュールで重複させられない。
+  なおdynamic feature構成だった時期には、base/featureの`<application>`タグがマージされる制約により
+  `<application>`直下の属性（`icon`等）を表示先ごとに変えられない（BL-068）、featureが参照する
+  リソースをbase側へ置く必要がある（BL-043）といった制約があったが、独立モジュール化により
+  いずれも解消している。
 - detekt: `LongMethod`（60行）・`TooManyFunctions`（クラス内関数数の実測上限10）に複数回抵触した
   実績があり、状態解決等のロジック追加時はクラス内に増やすのではなく別ファイルの新規object等へ
   切り出す設計を優先する（BL-063, BL-071）。

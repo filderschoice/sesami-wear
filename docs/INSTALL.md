@@ -1,12 +1,16 @@
 # アプリのインストール方法（スマホ・スマートウォッチ）
 
 本ドキュメントは、`mobile`（スマホ側）と`wear`（スマートウォッチ側）のアプリを実機へインストールする
-手順をまとめたものです。`wear`は`mobile`のdynamic feature（BL-036）として統合されており、
-`applicationId`・署名・バージョンは`mobile`から継承する単一のAndroid App Bundle（AAB）です
-（[docs/records/managed/DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）。
+手順をまとめたものです。`mobile`と`wear`は同一の`applicationId`（`com.sesamiwear.mobile`）を共有する
+**独立した2つのアプリ**で、それぞれ別のAndroid App Bundle（AAB）としてビルドします（BL-090。
+[docs/records/managed/DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）。
 Google Play経由の配布では、標準的なWear OSアプリの配布方式（スマホへのインストール後、
-ペアリング済みのWatchへ自動的にwear分がプッシュインストールされる）が利用できる見込みです
+ペアリング済みのWatchへウォッチ用アプリが自動的にプッシュインストールされる）が利用できる見込みです
 （**未確認**: 実機・Play Console経由での動作確認はBL-038、人手検証）。
+
+> ⚠️ `applicationId`が同一のため、**1台のデバイスにスマホ用とウォッチ用の両方は入りません**。
+> 後からインストールした方が前のものを置き換えます。ローカルビルドでは、デバイスの種別に応じて
+> 実行するGradleタスクを使い分けてください。
 
 ## 現状（2026-09-05時点）
 
@@ -79,14 +83,18 @@ adb devices -l
 
 ### 1.5 アプリをビルド・インストールする
 
-`wear`は`mobile`のdynamic feature（BL-036）のため、`:wear:installDebug`という独立タスクは
-存在しません（feature モジュール単体ではbaseのapplicationId解決に失敗しビルドできません）。
-インストールは`:mobile:installDebug`経由で行います。
+インストール先のデバイスに応じて、実行するタスクが異なります。
+
+| インストール先 | Gradleタスク |
+| --- | --- |
+| スマートフォン | `:mobile:installDebug` |
+| スマートウォッチ | `:wear:installDebug` |
 
 接続しているデバイスが1台だけの場合は、そのまま実行できます。
 
 ```bash
-./gradlew :mobile:installDebug
+./gradlew :mobile:installDebug   # スマホのみ接続時
+./gradlew :wear:installDebug     # スマートウォッチのみ接続時
 ```
 
 スマホとスマートウォッチを同時に接続している場合は、`ANDROID_SERIAL` 環境変数でインストール先を
@@ -97,7 +105,7 @@ adb devices -l
 # スマホへ
 ANDROID_SERIAL=192.168.1.149:41235 ./gradlew :mobile:installDebug
 # スマートウォッチへ
-ANDROID_SERIAL=192.168.1.105:37515 ./gradlew :mobile:installDebug
+ANDROID_SERIAL=192.168.1.105:37515 ./gradlew :wear:installDebug
 ```
 
 Windows PowerShellでは、環境変数の設定とビルドを同一コマンドで実行してください
@@ -156,17 +164,20 @@ bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォ
 「[現状（2026-09-05時点）](#現状2026-09-05時点)」参照。[BL-034](records/managed/BACKLOG.md)が未着手）。
 以下は公開後を想定した手順であり、実際の画面・文言は公開時の設定により変わり得ます（未確認）。
 
-`mobile`と`wear`は単一の`applicationId`・単一AABとして登録されるため（BL-036、
-[DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）、標準的なWear OSアプリの
-配布方式に従います。
+`mobile`と`wear`は同一の`applicationId`を共有し、1つのストア掲載ページの中で、電話・タブレット系
+トラックとWear OS専用トラックへ別々に配信されます（BL-090、
+[DESIGN.md](records/managed/DESIGN.md)「Google Play配布方式」参照）。利用者から見ると1つのアプリで、
+標準的なWear OSアプリの配布方式に従います。
 
 1. スマホのGoogle Playストアで本アプリのページを開き、インストールする
-2. ペアリング済みのスマートウォッチへ、wear部分が自動的にプッシュインストールされる見込み
+2. ペアリング済みのスマートウォッチへ、ウォッチ用アプリが自動的にプッシュインストールされる見込み
    （**未確認**: 実機・Play Console経由での動作確認はBL-038、人手検証）
 3. インストール後の初期設定は [1.6](#16-インストール後の初期設定) と同様
 
 自動プッシュインストールが行われない場合でも、スマートウォッチのPlay Store
 （Wear OS上のGoogle Playストア）から本アプリを直接検索してインストールできる想定です（未確認）。
+Wear OS向けの成果物はWear OS専用トラックで公開するため、ウォッチ側のPlay Storeからは
+ウォッチ用アプリが配信されます。
 
 限定公開（内部テスト・クローズドテスト）中は、Google Play Consoleが発行するテスターリンクを開き、
 テスト参加への同意を行った上で、上記と同じ手順でインストールします。

@@ -1,20 +1,67 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
-    alias(libs.plugins.android.dynamic.feature)
+    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
-// dynamic-featureモジュールはbaseモジュール（mobile）のapplicationId・署名設定・
-// versionCode/versionNameを継承するため、applicationId/signingConfigs/versionは持たない
-// （BL-036、mobileと別々のapplicationIdを持つ構成からの統合）。
+// リリース署名情報はlocal.properties（.gitignore対象、BL-032でユーザーが作成）から読み込む。
+// mobileと同一のKeystoreを使う（同一applicationIdの成果物は同じ鍵で署名する必要がある）。
+val releaseKeystoreProperties =
+    Properties().apply {
+        val propertiesFile = rootProject.file("local.properties")
+        if (propertiesFile.exists()) {
+            FileInputStream(propertiesFile).use { load(it) }
+        }
+    }
+val hasReleaseSigningConfig = releaseKeystoreProperties.containsKey("RELEASE_STORE_FILE")
+
+// wearは独立したapplicationモジュールで、mobileとは別のAABとしてビルドする（BL-090）。
+// Googleは単一App BundleへWear OSをdynamic featureとして同梱する構成を非サポートとしており、
+// Play ConsoleはWear OS向けリリースを専用トラックで公開することを必須としている。
 android {
     namespace = "com.sesamiwear.wear"
     compileSdk = 35
 
     defaultConfig {
+        // スマホ用アプリと同一のapplicationIdを使う。Googleは、同一パッケージ名で同じストア掲載
+        // ページへ登録することを推奨している（別々のapplicationIdだと別アプリ扱いになる）。
+        applicationId = "com.sesamiwear.mobile"
         minSdk = 26
+        targetSdk = 35
+        // versionCodeは全フォームファクタで一意である必要があるため、mobileとは独立した系列
+        // （1001始まり）を使う（BL-093）。リリースビルド時はscripts/release-build.bat経由で
+        // -PappWearVersionCode/-PappWearVersionNameを渡して上書きする。
+        versionCode = (findProperty("appWearVersionCode") as String?)?.toIntOrNull() ?: 1001
+        versionName = findProperty("appWearVersionName") as String? ?: "0.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(releaseKeystoreProperties.getProperty("RELEASE_STORE_FILE"))
+                storePassword = releaseKeystoreProperties.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = releaseKeystoreProperties.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = releaseKeystoreProperties.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     compileOptions {
@@ -32,7 +79,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":mobile"))
     implementation(project(":core"))
 
     implementation(libs.androidx.core.ktx)
@@ -52,11 +98,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     // SesameDeviceListReaderでデバイス一覧のJSONをデコードするために使用（BL-052）。
     implementation(libs.kotlinx.serialization.json)
-    // mobile側がplay-services-wearable経由でguavaを実行時クラスパスへ提供するため、
-    // compileOnlyでコンパイル時の参照のみとし、統合後のR8実行時の重複クラス検出
-    // （com.google.common.util.concurrent.ListenableFutureがbase/featureの両方に
-    // 含まれるエラー）を避ける（BL-036）。
-    compileOnly(libs.guava)
+    // Futures/SettableFuture等の実装クラスを実行時に必要とする。単一AAB構成では
+    // base（mobile）がランタイムクラスパスへ提供していたためcompileOnlyで足りていたが、
+    // 独立成果物となった以降は自前で解決する必要がある（BL-092）。
+    implementation(libs.guava)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

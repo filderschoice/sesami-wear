@@ -1,9 +1,12 @@
 # Google Play ストア掲載情報
 
 Google Play Console提出用のストア掲載情報の原本です。Play Consoleの入力項目との対応と更新手順は
-[README.md](README.md) を参照してください。実際の入力・公開はBL-034（人手検証、限定公開）で行います。`mobile`と`wear`はBL-036で単一の`applicationId`・単一AABへ
-統合済みのため、Google Playには1つのアプリとして登録します（登録先は1ページのみで、
-mobile用・wear用を別アプリとして登録する必要はありません。DESIGN.md「Google Play配布方式」参照）。
+[README.md](README.md) を参照してください。実際の入力・公開はBL-034（人手検証、限定公開）で行います。
+`mobile`と`wear`は同一の`applicationId`を共有するため、Google Playには**1つのアプリ**として
+登録します（掲載ページは1つで、mobile用・wear用を別アプリとして登録する必要はありません）。
+ただし成果物は2つに分かれており、スマホ用AABは電話・タブレット系トラックへ、ウォッチ用AABは
+**Wear OS専用トラック**へアップロードします（BL-090。DESIGN.md「Google Play配布方式」参照）。
+そのためスクリーンショットも、スマートフォン用とWear OS用でそれぞれの枠へ投入します。
 
 ## アプリ名
 
@@ -69,8 +72,23 @@ Play Console提出用の512x512 PNG（アルファチャンネルなし）を用
 
 - [images/play_store_icon_512.png](images/play_store_icon_512.png)
 
-## 未確認事項
+## 文字数の実測値
 
-- スクリーンショットはBL-034の実機検証時に撮影します
-- 上記の説明文の文字数はGoogle Playの上限内に収まるよう記載していますが、
-  実際のPlay Console入力時に再確認が必要です（未確認）
+2026-09-06時点の各項目の文字数です。いずれもGoogle Playの上限内に収まっています。
+本ファイルを更新した際は再計測してください。
+
+| 項目 | 実測 | 上限 |
+| --- | --- | --- |
+| アプリ名 | 11 | 30 |
+| 短い説明 | 50 | 80 |
+| 詳細な説明 | 1052 | 4000 |
+| このリリースの新機能（`../RELEASE_NOTES.md`） | 160 | 500 |
+
+「詳細な説明」の実測値はMarkdown記法を含む本ファイル上の文字数です。Play Consoleの入力欄は
+Markdownを解釈しないため、転記時は見出し・箇条書きの記法を除き、段落途中の改行も詰めてください。
+
+## スクリーンショット
+
+実機（Pixel 8 Pro / Pixel Watch 2）で撮影したものを
+[images/screenshots/](images/screenshots/) に用意済みです。内訳と加工内容は
+[README.md](README.md)「ファイル一覧」を参照してください。

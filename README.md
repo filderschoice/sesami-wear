@@ -40,9 +40,10 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 
 ## アーキテクチャ概要
 
-Android application（`mobile`）とWear OS向けdynamic feature（`wear`）、両者が参照する純Kotlin/JVM
-ライブラリ（`core`）の3モジュール構成です。`wear`は`mobile`の`applicationId`・署名・バージョンを
-継承する単一のAndroid App Bundleとしてビルドされます
+スマートフォン向けAndroid application（`mobile`）、Wear OS向けAndroid application（`wear`）、
+両者が参照する純Kotlin/JVMライブラリ（`core`）の3モジュール構成です。`mobile`と`wear`は同一の
+`applicationId`（`com.sesamiwear.mobile`）を共有しつつ、**それぞれ独立したAndroid App Bundle**
+としてビルドされ、Google Playでは1つのストア掲載ページの中で別々のトラックへ配信されます
 （[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) 参照）。
 
 - `mobile`: apikey / secretKey / uuidを保持し、AES-CMAC署名生成とSesame APIへのHTTP通信を担当する。
@@ -135,13 +136,18 @@ keytool -genkeypair -v -keystore release-keystore.jks -alias <key aliasの名前
 コミットしないでください**。`local.properties`が存在しない、または上記キーが未設定の場合、
 `assembleDebug`等の通常のビルドには影響しません（リリースビルドの署名のみ未設定のままになります）。
 
-署名済みのAAB（Android App Bundle、Google Play提出用）は以下でビルドします。
-`wear`は`mobile`のdynamic featureのため、`:mobile:bundleRelease`1本でwear分も含めてビルドされます
-（`:wear:bundleRelease`という独立タスクはfeatureモジュール単体では実行できません）。
+署名済みのAAB（Android App Bundle、Google Play提出用）は以下でビルドします。スマートフォン用と
+ウォッチ用で別々のAABが必要なため、2つのタスクを実行します。
 
 ```bash
-./gradlew :mobile:bundleRelease
+./gradlew :mobile:bundleRelease   # スマートフォン用
+./gradlew :wear:bundleRelease     # Wear OS用
 ```
+
+| 成果物 | 出力先 | Play Consoleでのアップロード先 |
+| --- | --- | --- |
+| スマートフォン用 | `mobile/build/outputs/bundle/release/mobile-release.aab` | 電話・タブレット系のトラック |
+| Wear OS用 | `wear/build/outputs/bundle/release/wear-release.aab` | **Wear OS専用トラック** |
 
 ### バージョン管理付きの簡易リリースビルド（`scripts/release-build.bat`）
 
@@ -165,9 +171,13 @@ scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
 リリース時は、利用者向けの変更点を [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) へ追記してください
 （Google Play Consoleの「このリリースの新機能」欄への転記元になります）。
 
-`mobile`と`wear`は単一の`applicationId`・単一AABとしてGoogle Playへ登録します
-（Wear OSアプリの標準的な配布方式、詳細は
-[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の実装制約を参照）。
+`mobile`と`wear`は同一の`applicationId`を共有し、Google Playでは1つのストア掲載ページの中で
+別々のトラック（電話・タブレット系トラックとWear OS専用トラック）へ配信します。Googleは
+単一のApp BundleへWear OSアプリをdynamic featureとして同梱する構成をサポートしておらず、
+Wear OS向けリリースは専用トラックでの公開が必須です（詳細は
+[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) の「Google Play配布方式」を参照）。
+`versionCode`は全フォームファクタで一意である必要があるため、`mobile`は1始まり、`wear`は
+1001始まりの独立した系列で管理します（`scripts/version.properties`）。
 
 Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトは
 [docs/store/](docs/store/) 配下で管理しています。
@@ -177,9 +187,9 @@ Play Console提出用のストア掲載情報・プライバシーポリシー�
 ```text
 sesami-wear/
 ├── core/    # 純Kotlin/JVMライブラリ（AES-CMAC、APIクライアント、Data Layerプロトコル定義等）
-├── mobile/  # Androidアプリ（資格情報保存、Sesame API通信、Data Layer受信）。base module
-├── wear/    # Wear OSアプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
-│            # mobileのdynamic feature（applicationId/署名/バージョンをmobileから継承）
+├── mobile/  # スマートフォン用アプリ（資格情報保存、Sesame API通信、Data Layer受信）
+├── wear/    # Wear OS用アプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
+│            # mobileと同一のapplicationIdを持つ独立したapplicationモジュール
 ├── scripts/ # バージョン管理付きリリースビルド（release-build.bat / .ps1）
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
@@ -215,11 +225,16 @@ sesami-wear/
   [docs/store/images/play_store_icon_512.png](docs/store/images/play_store_icon_512.png) に用意済みです。
 - 実機（Pixel Watch + Sesame 5 + Hub 3）を用いる動作確認は自動実行できないため、
   [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) に人手検証タスクとして記録しています。
-- `wear`のdynamic feature化（BL-036）に伴い`minSdk`を30から26（`mobile`と統一）へ変更しました。
-  minSdk26のビルドでもPixel Watch実機でTileの表示・施錠/解錠が動作することは確認済みです。
-  Google Playの自動プッシュインストール（スマホへのインストールだけでWatch側にもwearが導入される）が
-  実際に機能するかは未検証です（BL-038、人手検証）。ローカルビルドを両デバイスへ直接インストールする
-  手順は [docs/INSTALL.md](docs/INSTALL.md) を参照してください。
+- `wear`の`minSdk`は26（`mobile`と統一。旧30）です。minSdk26のビルドでもPixel Watch実機で
+  Tileの表示・施錠/解錠が動作することは確認済みです。
+- Google Playの自動プッシュインストール（スマホへのインストールだけでWatch側にもウォッチ用アプリが
+  導入される）が実際に機能するかは未検証です（BL-038、人手検証）。ローカルビルドを両デバイスへ
+  直接インストールする手順は [docs/INSTALL.md](docs/INSTALL.md) を参照してください。
+- `wear`は当初`mobile`のdynamic featureとして単一AABへ統合していましたが、Googleがこの構成を
+  Wear OSアプリの配布方式としてサポートしていないため、独立したapplicationモジュールへ変更しました
+  （BL-090）。旧構成では`wear`の`uses-feature android.hardware.type.watch`が`mobile`側の
+  マニフェストへマージされ、アプリ全体が腕時計必須と判定されてスマートフォンが配信対象から
+  除外される状態でした。
 
 ## 関連ドキュメント
 

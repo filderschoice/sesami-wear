@@ -5,6 +5,96 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 10:27
+  summary: リリースビルドスクリプトをmobile/wearの2成果物へ対応させた
+  details:
+    変更内容: >
+      BL-090でwearを独立applicationモジュールへ分離したため、リリースビルドスクリプトを
+      2つのAABを生成する構成へ更新した。scripts/version.propertiesへWEAR_VERSION_CODEを追加し、
+      GoogleがversionCodeを全フォームファクタで一意であることを要求する点に対応して、mobileを
+      1始まり、wearを1001始まりの独立した系列で管理する。versionNameは利用者から見たアプリの
+      バージョンであり、ストア掲載ページも1つであるため両者で共通とした。
+      release-build.ps1へ-WearVersionCodeパラメータを追加し、:mobile:bundleReleaseと
+      :wear:bundleReleaseを1回の実行でビルドするようにした。両者のversionCodeが同一になった
+      場合はビルド前に例外を投げるガードも追加した。完了メッセージには各AABの出力先と、
+      どちらのトラックへアップロードすべきかを明示する。
+      あわせて、version.propertiesの書き戻しをSet-ContentからSystem.IO.File.WriteAllTextへ
+      変更した。Set-Contentは環境依存の改行コード（CRLF）を付与するため、値が変わっていなくても
+      ビルドのたびに末尾改行の差分がgitに現れていた。改行をLFに固定しBOMなしUTF-8で書き出す
+      ことで解消した。release-build.ps1自体はWindows PowerShell 5.1対策でUTF-8 BOM付き・CRLFの
+      ため、編集後にその形式を復元している。
+    変更ファイル:
+      - scripts/release-build.ps1
+      - scripts/release-build.bat
+      - scripts/version.properties
+    検証コマンド: >
+      scripts\release-build.bat -VersionCode 1 -WearVersionCode 1001 -VersionName 0.9.0 /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - スクリプト実行でBUILD SUCCESSFULとなり、mobile-release.aab（versionCode=1）と
+      wear-release.aab（versionCode=1001）が1回の実行で生成された。version.propertiesの
+      git差分はWEAR_VERSION_CODE=1001の1行追加のみで、従来出ていた改行コードのみの差分が
+      発生しないことを確認した。品質ゲート6タスクもBUILD SUCCESSFUL。
+    関連ID:
+      - BL-093
+
+- date: 2026-09-06 10:22
+  summary: wearをdynamic featureから独立applicationモジュールへ分離し、Wear OS専用トラックへ対応した
+  details:
+    変更内容: >
+      Google Play Consoleへの初回アップロードで「Wear OSのバンドルを削除し、専用のWear OS
+      トラックを作成してください」というエラーが発生した。調査の結果、wearモジュールの
+      uses-feature android.hardware.type.watch がbase（mobile）のマージ済みマニフェストへ
+      取り込まれ、required属性の既定値trueによってアプリ全体が腕時計必須と宣言されていた。
+      この状態ではPlayがバンドル全体をWear OSアプリと分類し、専用トラックを要求すると同時に
+      スマートフォンを配信対象から除外する。ローカルのadb installはPlayのデバイスフィルタを
+      通らないため実機検証では表面化していなかった。
+      Googleの公式ドキュメントは単一App BundleへWear OSをdynamic featureとして同梱する構成を
+      非サポートと明記し（Wear OS APKs are separate from mobile APKs / You cannot use a single
+      app bundle with a dynamic feature module for Wear OS）、required="false"を付ける回避策も
+      非サポートとしている。そのためBL-036で採用した単一AAB構成を改め、applicationIdを
+      com.sesamiwear.mobileで共通にしたまま2つの独立したAABを生成する構成へ変更した。
+      wear/build.gradle.ktsをcom.android.applicationへ変更し、applicationId・targetSdk・署名設定・
+      R8設定を自前で保持させた。versionCodeは全フォームファクタで一意である必要があるため
+      appWearVersionCodeプロパティで1001始まりの独立系列とした。:mobile依存はAGPの
+      dynamic feature制約によるもので、wearのソースはmobileのクラスを一切参照していなかったため
+      削除できた。baseのproguard設定を継承しなくなるためwear/proguard-rules.proを追加した。
+      wearのマニフェストからdist:moduleブロックを削除し、uses-feature watchは宣言を維持した。
+      ウォッチ用アイコン（ic_launcher_wear系4ファイル）はmobile側にあったためwearへgit mvで
+      移設し、application要素へandroid:icon/roundIconを指定した。BL-066でwear.MainActivityから
+      LAUNCHER intent-filterを除去していたのは、baseモジュールが常にウォッチへもインストール
+      されアイコンが2つ表示されるという単一AAB構成固有の問題への対処だったが、分離後は
+      ウォッチ側にmobileが存在せずアイコンが1つも表示されなくなるため復活させた。
+      mobile側はdynamicFeatures指定とwear_module_title文字列リソース、wearのために追加していた
+      guava依存を削除し、MainActivityからPackageManager.FEATURE_WATCH判定による
+      wear.MainActivityへの委譲処理も削除した。guavaはwear側でcompileOnlyからimplementationへ
+      変更し自前で解決させた。
+    変更ファイル:
+      - wear/build.gradle.kts
+      - wear/proguard-rules.pro
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/res/drawable/ic_launcher_wear_background.xml
+      - wear/src/main/res/drawable/ic_launcher_wear_foreground.xml
+      - wear/src/main/res/mipmap-anydpi-v26/ic_launcher_wear.xml
+      - wear/src/main/res/mipmap-anydpi-v26/ic_launcher_wear_round.xml
+      - mobile/build.gradle.kts
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/res/values/strings.xml
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:bundleRelease :wear:bundleRelease
+    検証結果: >
+      成功 - 品質ゲート6タスクがBUILD SUCCESSFUL（176タスク）。リリースAABは
+      mobile-release.aab（3.69MB、baseのみでwearを含まない）とwear-release.aab（3.82MB）が
+      独立して生成され、いずれも同一のKeystore（META-INF/SESAMI-W.RSA）で署名済み。
+      根本原因の解消をマージ済みマニフェストで確認: mobile側にandroid.hardware.type.watchが
+      含まれず、wear側にのみ存在する。wear側のpackageはcom.sesamiwear.mobile（mobileと共通）、
+      versionCodeは1001（mobileの1と非衝突）、LAUNCHER intent-filterが1件存在する。
+    関連ID:
+      - BL-090
+      - BL-091
+      - BL-092
+
 - date: 2026-09-05 23:02
   summary: アプリのversionNameを0.1.0から0.9.0へ更新した
   details:

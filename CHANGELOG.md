@@ -266,3 +266,92 @@ Google Play Consoleのデータセーフティ申告の準備にあたり実装�
 
 なお本修正はドキュメントのみの変更であり、アプリの動作に変更はないため
 `docs/RELEASE_NOTES.md` および `docs/records/managed/EXECUTE.md` は更新していない。
+
+## 2026-09-06（Wear OS配布方式の変更に伴うドキュメント更新、BL-090〜BL-094）
+
+Google Play Consoleへの初回アップロードで、Wear OS向けリリースは専用トラックでの公開が必須という
+エラーが発生した。Googleは単一App BundleへWear OSアプリをdynamic featureとして同梱する構成を
+サポートしていないため、`wear`を独立したapplicationモジュールへ変更し、`applicationId`を共通に
+したまま2つのAABを生成する構成へ改めた（実装の詳細は
+[docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md) を参照）。
+これに伴い、単一AAB構成を前提としていた記述を更新した。
+
+- `README.md`
+  - 「アーキテクチャ概要」を、同一`applicationId`を共有する独立2モジュール構成の記述へ改めた。
+  - 「リリースビルド・Google Play公開」に、スマホ用とウォッチ用の2つのAABをビルドするコマンドと、
+    それぞれのPlay Consoleでのアップロード先を対応表として追加した。
+  - 「プロジェクト構成」の`wear`の説明からdynamic featureの記述を除いた。
+  - 「既知の未確認事項・制約」へ、旧構成が非サポートだった経緯と、旧構成では
+    `uses-feature android.hardware.type.watch`のマージによりスマートフォンが配信対象から
+    除外される状態だったことを追記した。
+- `CLAUDE.md`
+  - 「モジュール構成」へ、`mobile`/`wear`が同一`applicationId`を共有する独立した2つの
+    applicationモジュールである旨と、Play Consoleでのトラック分離を追記した。
+  - ビルド・インストール手順を、デバイス種別ごとにタスクを使い分ける形
+    （スマホは`:mobile:installDebug`、ウォッチは`:wear:installDebug`）へ変更した。
+    従来の「`:wear:`配下のモジュール単体タスクは失敗する」という記述は成立しなくなったため削除した。
+- `docs/INSTALL.md`
+  - 冒頭の構成説明を2成果物構成へ改め、同一`applicationId`のため1台のデバイスに両方は
+    インストールできない旨の注意を追加した。
+  - ローカルビルドのインストール手順を、インストール先に応じたタスクの対応表とともに更新した。
+  - Google Play経由のインストール手順を、1つの掲載ページ内で2トラックへ配信する構成の説明へ改めた。
+- `docs/records/managed/DESIGN.md`
+  - 「Google Play配布方式」を全面的に書き換え、Googleの要件・旧構成が失敗した理由・
+    versionCodeの系列分離・署名鍵の共通化・guava依存の整理・ランチャーアイコンの扱いを記載した。
+  - 「対象システム概要」「Androidアイコンリソース」「ProGuard/R8」「モジュール構成・パッケージ方針」
+    「実装制約」を新構成へ合わせて更新した。
+- `docs/store/STORE_LISTING.md`
+  - Google Playには1つのアプリとして登録するが、成果物は2つに分かれ、スクリーンショットも
+    スマートフォン用とWear OS用の枠へそれぞれ投入する旨を追記した。
+
+`.github/copilot-instructions.md` はモジュール構成・ビルド手順を記載していないため、今回の同期対象外。
+`docs/RELEASE_NOTES.md` / `docs/SUPPORT.md` / `docs/USER_GUIDE.md` は利用者から見た動作・手順に
+変更がないため更新していない。
+
+## 2026-09-06（ストア素材のリポジトリ追加、BL-095）
+
+Google Play Consoleへ提出したストア素材を、掲載情報の原本と同じ場所で管理するためリポジトリへ
+追加した。素材はPlay Consoleの入力欄へ直接アップロードするため、リポジトリ側を原本として
+更新履歴を追えるようにする。
+
+- `docs/store/images/play_feature_graphic_1024x500.png` を追加。機能グラフィックは必須項目で
+  未作成だったため、アプリアイコンと同じ配色（`#1E3A5F` / `#C99A46`）で作成した。
+- `docs/store/images/screenshots/` を追加（スマートフォン用2枚、Wear OS用3枚）。実機
+  （Pixel 8 Pro / Pixel Watch 2）で撮影したもの。スマートフォン用は実解像度1344x2992が
+  Play Consoleの縦横比の上限を超えるため、内容を切らずに左右へ背景色の帯を足して16:9へ整えた。
+  登録済みデバイスの表示名は公開を避けるため画像上でモザイク処理している。
+- `docs/store/README.md` のファイル一覧へ機能グラフィックとスクリーンショットを追加し、
+  各ファイルの内容・サイズ・加工内容を表で示した。「Play Consoleの入力項目との対応」の
+  「スクリーンショット: 未作成」を、スマートフォン用とWear OS用で枠が分かれる旨とともに更新した。
+- `docs/store/STORE_LISTING.md` の「未確認事項」を「文字数の実測値」へ置き換えた。文字数は
+  すべて上限内であることを実測で確認済み（アプリ名11/30、短い説明50/80、詳細な説明1052/4000、
+  新機能160/500）。スクリーンショットの所在も追記した。
+
+作業中に生成したPlay Console貼り付け用のプレーンテキスト（`play_full_description.txt`）は、
+`STORE_LISTING.md` からの派生物で原本と乖離するリスクがあるためリポジトリへは追加していない。
+
+## 2026-09-06（Public化完了の反映と人手検証タスクの棚卸し、BL-096）
+
+GitHubリポジトリのPublic化（BL-085）が完了したため、`docs/records/managed/BACKLOG.md` へ反映した。
+あわせて、Google Play Consoleでの作業が進んだことで記述が実態と合わなくなった人手検証タスクを
+更新し、完了済みタスクを指したままの依存を整理した。
+
+- BL-085（Public化）を完了として削除した。Public化・Description/Topics・Issues有効化・
+  Ruleset（`protect-main`、承認数0）・Code security（Secret scanning / Push protection /
+  Dependabot / 非公開脆弱性報告）・Actionsのフォークワークフロー承認設定・Security policyの認識は
+  すべて完了。fork抑止は個人アカウントのPublicリポジトリではGitHubが設定を提供しておらず
+  不可能であることを確認し、`CONTRIBUTING.md`・PRテンプレートでの明示と、届いたPRをクローズする
+  運用で対応する（記述は整備済みのため追加の変更は不要だった）。
+- BL-085の残件だった初回リリースタグ v0.9.0 とGitHub Releasesの作成をBL-098として分離した。
+  配信した成果物とタグを対応させるため、BL-097の完了を待って実施する。
+- BL-086（プライバシーポリシーの公開URL確定）へ、Public化により
+  `https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY.md` が
+  HTTP 200で到達可能であること、GitHub Pagesは不要と判断したこと、Play Consoleへ登録済みで
+  あることを追記した。
+- BL-033（データ安全性の申告）へ、実装確認の結果に基づく申告方針を記録した。apikeyを
+  「個人情報 > ユーザーID」、uuidを「デバイスIDまたはその他のID」として収集・共有の両方で申告し、
+  secretKeyはGoogleの「収集」の定義（端末外への送信）に該当しないため申告対象外とする。
+- BL-034（Play Consoleへの登録）へ、アプリ新規作成・ストア掲載情報・アプリのコンテンツが
+  完了済みであることを記録し、残るトラックへのアップロードとテスター登録はBL-097で扱う旨を
+  明記した。
+- 完了済みで既に削除されたタスク（BL-029 / BL-030 / BL-081 / BL-085）を指していた依存を整理した。
