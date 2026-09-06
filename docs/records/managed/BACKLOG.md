@@ -7,19 +7,18 @@
 ```yaml
 - id: BL-097
   区分: 人手検証
-  タスク内容: BL-090〜BL-094完了後、スマホ用AAB（wearを含まない）を電話・タブレットの内部テスト
-    トラックへ、ウォッチ用AABをWear OS専用トラックへそれぞれアップロードし、エラーなく
-    リリースを作成できることを確認する。あわせてテスターとしてインストールし、スマホ側の資格情報
-    登録とウォッチ側のTile/Complicationが動作することを実機で確認する
+  タスク内容: BL-093/BL-094完了後、スマホ用AAB（mobile-release.aab、wearを含まない）を
+    電話・タブレットの内部テストトラックへ、ウォッチ用AAB（wear-release.aab）をWear OS専用
+    トラックへそれぞれアップロードし、エラーなくリリースを作成できることを確認する。あわせて
+    テスターとしてインストールし、スマホ側の資格情報登録とウォッチ側のTile/Complicationが
+    動作すること、ウォッチのアプリ一覧にアイコンが1つ表示されること（BL-091でLAUNCHERを
+    復活させたため）を実機で確認する
   優先度: P3
   状態: 未着手
   担当: ユーザー
   完了条件: 両トラックへのアップロードが成功し、テスター配信でスマホ・ウォッチ双方の主要機能が
     動作する
   依存:
-    - BL-090
-    - BL-091
-    - BL-092
     - BL-093
     - BL-094
 
@@ -65,9 +64,6 @@
   完了条件: 単一AAB・dynamic feature前提の記述が残っておらず、2成果物・2トラック構成が正しく
     記載されている。npx markdownlint-cli2が成功する
   依存:
-    - BL-090
-    - BL-091
-    - BL-092
     - BL-093
 
 - id: BL-093
@@ -82,64 +78,8 @@
   完了条件: 1回の実行でmobile/wear双方の署名付きAABが生成され、versionCodeが衝突しない。
     version.propertiesに不要な改行コード差分が出ない
   根拠: versionCodeの体系はmobileを1始まり、wearを1001始まりの独立系列とする。Googleは独立した
-    体系を推奨しており、どちらが新しいかを人が判別しやすい単純な規則を既定値として採用した
-  依存:
-    - BL-090
-
-- id: BL-092
-  区分: 実装
-  タスク内容: mobile側のウォッチ向け委譲ロジックを削除する。mobile.MainActivityは
-    PackageManager.FEATURE_WATCHを判定してwear.MainActivityへexplicit Intentで委譲していたが、
-    分離後はmobileがウォッチへインストールされないため不要になる。あわせてwearのために
-    mobileへ追加していたguava依存（BL-036）と、wear側のcompileOnly(guava)を見直し、
-    wear側でimplementationとして持つ形へ整理する
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: mobile.MainActivityからウォッチ判定・委譲コードが除去され、両モジュールが
-    それぞれ必要なguavaを自前で解決する。品質ゲートが成功する
-  依存:
-    - BL-090
-
-- id: BL-091
-  区分: 実装
-  タスク内容: ウォッチ用アイコンリソースをmobileからwearへ移設し、ウォッチ上のランチャー導線を
-    復活させる。ic_launcher_wear.xml / ic_launcher_wear_round.xml（mipmap-anydpi-v26）と
-    ic_launcher_wear_background.xml / ic_launcher_wear_foreground.xml（drawable）はmobile側に
-    あるためwearへ移す。BL-066でwear.MainActivityからLAUNCHER intent-filterを除去したのは
-    「baseモジュール（mobile）が常にウォッチにもインストールされる」という単一AAB構成の前提に
-    基づくものであり、分離後はウォッチ側にmobileが存在しないためアイコンが1つも無くなる。
-    LAUNCHER intent-filterとapplicationのandroid:icon指定を復活させる
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: wearモジュール単体でアイコンリソースが解決でき、ウォッチのアプリ一覧に
-    アイコンが1つ表示される構成になっている。品質ゲートが成功する
-  依存:
-    - BL-090
-
-- id: BL-090
-  区分: 実装
-  タスク内容: wearモジュールをcom.android.dynamic-featureからcom.android.applicationへ変更し、
-    mobileとは独立したAABを生成できるようにする。Googleは単一App BundleへWear OSをdynamic feature
-    として同梱する構成を明確に非サポートとしており（Wear OS APKs are separate from mobile APKs /
-    You cannot use a single app bundle with a dynamic feature module for Wear OS）、Play Consoleは
-    Wear OS向けリリースを専用トラックで公開することを必須としている。applicationIdは
-    com.sesamiwear.mobileのまま両成果物で共通とする（同一パッケージ名がGoogleの推奨）。
-    wear/AndroidManifest.xmlからdist:moduleブロックを削除し、uses-feature
-    android.hardware.type.watchは宣言したまま（required属性は付けない）とする。mobile側は
-    dynamicFeatures指定とwear_module_title文字列リソースを削除し、uses-feature watchが
-    baseマニフェストへマージされない状態にする
-  優先度: P1
-  状態: 未着手
-  担当: Claude Code
-  完了条件: :mobile:bundleReleaseと:wear:bundleReleaseがそれぞれ独立したAABを生成し、
-    mobile側のマージ済みマニフェストにandroid.hardware.type.watchが含まれない。
-    品質ゲートがすべて成功する
-  根拠: 現行構成ではwearのuses-feature watchがbaseマニフェストへマージされ、required属性の
-    既定値trueによりアプリ全体が腕時計必須と宣言される。この結果Playはバンドル全体をWear OS
-    アプリと分類し、専用トラックを要求すると同時にスマートフォンを配信対象から除外する。
-    required=falseを付ける回避策はGoogleが明示的に非サポートとしているため採用しない
+    体系を推奨しており、どちらが新しいかを人が判別しやすい単純な規則を既定値として採用した。
+    BL-090でwear/build.gradle.ktsへappWearVersionCode/appWearVersionNameプロパティを実装済み
   依存: []
 
 - id: BL-086
@@ -177,20 +117,20 @@
 
 - id: BL-038
   区分: 人手検証
-  タスク内容: BL-036/BL-037完了後、Google Play Console限定公開トラック（BL-034）へ統合後の
-    AABをアップロードし、スマホへインストール後にペアリング済みPixel Watchへ自動的にwearアプリが
-    プッシュインストールされることを実機で確認する。なおローカルビルドの直接インストール
-    （ANDROID_SERIALでインストール先を指定した:mobile:installDebug）によるスマホ・Pixel Watch 2
-    双方への配信とwearモジュールの振り分けは2026-09-05に確認済みであり、本タスクの対象は
-    Google Play経由の自動プッシュインストールに限る（手順はdocs/INSTALL.md参照）
+  タスク内容: スマホへインストール後、ペアリング済みPixel WatchへGoogle Play経由でウォッチ用
+    アプリが自動的にプッシュインストールされることを実機で確認する。BL-090でwearを独立した
+    applicationモジュールへ分離したため、単一AABのdynamic featureによる配信ではなく、
+    同一applicationIdの2成果物（電話・タブレットのトラックとWear OS専用トラック）による
+    自動導入が対象となる。ローカルビルドの直接インストール（ANDROID_SERIALでインストール先を
+    指定した:mobile:installDebug）による配信は2026-09-05に確認済みだが、モジュール構成が
+    変わったため再確認が必要（手順はdocs/INSTALL.md参照）
   優先度: P3
   状態: 未着手
   担当: ユーザー
-  完了条件: スマホへのインストールのみでPixel Watch側にもwearアプリが自動導入されることを確認する
+  完了条件: スマホへのインストールのみでPixel Watch側にもウォッチ用アプリが自動導入されることを
+    確認する
   依存:
-    - BL-036
-    - BL-037
-    - BL-034
+    - BL-097
 
 - id: BL-033
   区分: 人手検証
