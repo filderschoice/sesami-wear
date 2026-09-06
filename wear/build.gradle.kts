@@ -23,14 +23,14 @@ val hasReleaseSigningConfig = releaseKeystoreProperties.containsKey("RELEASE_STO
 // Play ConsoleはWear OS向けリリースを専用トラックで公開することを必須としている。
 android {
     namespace = "com.sesamiwear.wear"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // スマホ用アプリと同一のapplicationIdを使う。Googleは、同一パッケージ名で同じストア掲載
         // ページへ登録することを推奨している（別々のapplicationIdだと別アプリ扱いになる）。
         applicationId = "com.sesamiwear.mobile"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // versionCodeは全フォームファクタで一意である必要があるため、mobileとは独立した系列
         // （1001始まり）を使う（BL-093）。リリースビルド時はscripts/release-build.bat経由で
         // -PappWearVersionCode/-PappWearVersionNameを渡して上書きする。

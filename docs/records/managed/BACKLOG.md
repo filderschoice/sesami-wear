@@ -5,6 +5,20 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-099
+  区分: 人手検証
+  タスク内容: targetSdkを35から36（Android 16）へ引き上げたことによる挙動変化を実機で確認する。
+    Android 15（targetSdk 35）で既に必須化されたエッジツーエッジ表示は、Android 16では
+    オプトアウトができなくなる。スマホ側はModifier.safeDrawingPadding()を適用済み（BL-045）だが、
+    ステータスバー・ナビゲーションバーとの重なりが発生していないかを実機で確認する。あわせて
+    ウォッチ側のTile・Complication・各Activityの表示崩れ、施錠/解錠の動作、ハプティクスに
+    影響がないことも確認する
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: Pixel 8 ProとPixel Watch 2で表示崩れがなく、施錠/解錠と状態表示が従来どおり動作する
+  依存: []
+
 - id: BL-098
   区分: 人手検証
   タスク内容: 初回リリースタグ v0.9.0 を作成し、GitHub Releasesを公開する。本文には

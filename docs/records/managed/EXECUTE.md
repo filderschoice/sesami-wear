@@ -5,6 +5,51 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 14:05
+  summary: targetSdkを36へ引き上げ、AGP 8.13.0 / Gradle 8.13へ更新した
+  details:
+    変更内容: >
+      Play Consoleへのアップロードで「現在、お客様のアプリはAPIレベル35を対象にしています。
+      APIレベル36以上を対象にする必要があります」というエラーが出たため対応した。
+      targetSdkはcompileSdkを超えられないため、両方を36へ引き上げた。
+      AGP 8.7.3のままcompileSdk 36でもビルドは通るが「This Android Gradle plugin (8.7.3) was
+      tested up to compileSdk = 35」の警告が出る。ストア配布物を未テストの組み合わせで
+      ビルドすることになるため、ユーザー判断によりAGPを更新する方針とした。最新のAGP 9.4.0は
+      Gradle 9.6を要求しメジャー跨ぎの破壊的変更を伴うため採用せず、compileSdk 36
+      （最大API 36.1）に対応する8.x系列の最新であるAGP 8.13.0を選択した。AGP 8.13.0は
+      Gradle 8.13を要求するため、gradlew wrapperタスクでラッパーも更新した。JDKは17のままで
+      要件を満たす。あわせてAndroid SDK Platform 36とbuild-tools 36.0.0をローカルへ導入した。
+      更新後、core:testの5件がIllegalAccessError（class SesameCredentialsStore tried to access
+      private field SesameCredentials.Companion）で失敗した。原因はSesameCredentialsが
+      @Serializableでありながらprivate companion objectを宣言していたことにある。
+      kotlinx.serializationは@Serializableクラスのcompanion objectへserializer()を生成するため、
+      companionをprivateにすると生成されたCompanionフィールドもprivateになり、他クラスからの
+      シリアライズ時にアクセスできない。AGP 8.7.3では顕在化していなかった潜在不具合であり、
+      アップグレードによって表面化したもの。定数AES_128_KEY_LENGTH_BYTESは同一ファイル内でのみ
+      使用されていたため、companion objectを廃してファイルプライベートのトップレベル定数へ移し、
+      なぜトップレベルへ置くのかをKDocへ明記した（将来companionへ戻されることを防ぐため）。
+      @Serializableかつprivate companion objectを持つクラスが他に存在しないことも横断確認した。
+    変更ファイル:
+      - gradle/libs.versions.toml
+      - gradle/wrapper/gradle-wrapper.properties
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - core/src/main/kotlin/com/sesamiwear/core/SesameCredentials.kt
+      - scripts/version.properties
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - .gitignore
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      scripts\release-build.bat -VersionCode 3 -WearVersionCode 1001 -VersionName 0.9.0
+    検証結果: >
+      成功 - 品質ゲート184タスクがBUILD SUCCESSFUL。core:testを含む全テストが通過し、
+      compileSdkに関する警告も出力されないことを確認した。なお検証中、メモリ不足
+      （物理メモリ7.7GB中の空きが1.4GB）によりGradleデーモンがクラッシュしたため、
+      --no-daemon --max-workers=2 で実行している。
+    関連ID:
+      - BL-099
+
 - date: 2026-09-06 10:27
   summary: リリースビルドスクリプトをmobile/wearの2成果物へ対応させた
   details:

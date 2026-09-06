@@ -55,8 +55,8 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ## 前提環境
 
 - JDK 17
-- Android SDK（compileSdk / targetSdk 35、build-tools 35.0.0）
-- Gradle 8.10.2（リポジトリ同梱のGradle Wrapperを使用するため別途インストール不要）
+- Android SDK（compileSdk / targetSdk 36、build-tools 36.0.0）
+- Gradle 8.13（リポジトリ同梱のGradle Wrapperを使用するため別途インストール不要）
 
 ## セットアップ手順
 

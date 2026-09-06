@@ -4,6 +4,18 @@ import kotlinx.serialization.Serializable
 import java.util.HexFormat
 
 /**
+ * AES-128の鍵長（バイト）。
+ *
+ * [SesameCredentials]のcompanion objectではなくトップレベルへ置く。kotlinx.serializationは
+ * `@Serializable`クラスのcompanion objectへ`serializer()`を生成するため、companionを
+ * `private`にすると生成されたCompanionフィールドも`private`になり、他クラスからの
+ * シリアライズ時に`IllegalAccessError: tried to access private field
+ * SesameCredentials.Companion`が発生する。`@Serializable`クラスに`private companion object`を
+ * 持たせてはならない。
+ */
+private const val AES_128_KEY_LENGTH_BYTES = 16
+
+/**
  * Sesame APIの認証情報3点セット。
  * secretKeyは16進数文字列として保持する（CANDY HOUSE公式ドキュメント
  * `API_document/SesameOS3/webapi.md`のコード例が16進数32文字表現であるため、Base64ではない）。
@@ -40,8 +52,4 @@ data class SesameCredentials(
                 }
             return decoded.takeIf { it.size == AES_128_KEY_LENGTH_BYTES }
         }
-
-    private companion object {
-        const val AES_128_KEY_LENGTH_BYTES = 16
-    }
 }
