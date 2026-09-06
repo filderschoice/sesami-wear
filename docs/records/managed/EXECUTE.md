@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 16:20
+  summary: タイルの操作ラベルが省略される問題とデバイス変更チップの不自然な折り返しを修正した
+  details:
+    変更内容: >
+      実機のスクリーンショットで、タイルの操作ラベルが「タップで全解…」と末尾で省略され、
+      左下のチップが「デバイス変／更」と不自然な位置で2行に折り返していた。
+      操作ラベルはSesameTileService側でsetMaxLinesを指定しておらず、ProtoLayoutのTextが
+      既定で1行であるため、CAPTION1の7文字（「タップで全解錠」）が幅に収まらず省略されていた。
+      状態ラベルより一段小さいCAPTION2へ変更したうえでsetMaxLines(2)と中央揃えを指定し、
+      収まらない場合も末尾で切れずに折り返すようにした。文言自体は「タップで」という操作の
+      示唆を残すため変更していない。
+      デバイス変更チップはsetMaxLines(2)が指定済みだったが、CAPTION2の6文字がチップ幅に
+      収まらず折り返していた。直上のデバイス名チップで「全デバイス」（5文字）が1行に収まって
+      いることから、このチップに収まるのは5文字程度と判断し、「変更」へ短縮した。直上に対象
+      デバイス名が表示されている文脈で意味が通るため、情報量の低下は許容できると判断した。
+      文言変更に伴いdocs/USER_GUIDE.mdのタイル操作表の記載も追随させた。
+      なおタイルの実際のレンダリング結果はビルドでは検証できず、確認にはデバッグビルドを
+      ウォッチへインストールする必要がある。それはPlay配信版を署名不一致で置き換えてしまうため
+      本対応では行わず、実機での見え方の確認はBL-097の人手検証へ集約する。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/USER_GUIDE.md
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >
+      成功 - 品質ゲート184タスクがBUILD SUCCESSFUL。npx markdownlint-cli2も0 issues。
+      表示結果そのものの確認は実機が必要なため未実施（BL-097へ集約）。
+    関連ID:
+      - BL-102
+
 - date: 2026-09-06 15:45
   summary: 既存デバイスの資格情報を編集すると新規追加になる不具合を修正した
   details:

@@ -240,9 +240,15 @@ class SesameTileService : TileService() {
         val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
         if (actionLabel != null) {
             statusColumnBuilder.addContent(
+                // ProtoLayoutのTextは既定で1行のため、指定がないと「タップで全解錠」のような
+                // 7文字の操作ラベルが「タップで全解…」と末尾で省略されていた（BL-102）。
+                // 状態ラベルより一段小さいCAPTION2にしたうえで2行までの折り返しを許可する。
                 Text.Builder(this, actionLabel)
-                    .setTypography(Typography.TYPOGRAPHY_CAPTION1)
+                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
                     .setColor(textColor)
+                    .setMaxLines(2)
+                    .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+                    .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
                     .build(),
             )
         }
@@ -288,7 +294,11 @@ class SesameTileService : TileService() {
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
             .setModifiers(buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
             .addContent(
-                Text.Builder(this, "デバイス変更")
+                // 「デバイス変更」の6文字はチップ幅に収まらず「デバイス変／更」と不自然な位置で
+                // 折り返していた（BL-102）。上のデバイス名チップ（「全デバイス」5文字）が1行に
+                // 収まっていることから、このチップに収まるのは5文字程度と判断し、直上に対象
+                // デバイス名が表示されている文脈で意味が通る「変更」へ短縮する。
+                Text.Builder(this, "変更")
                     .setTypography(Typography.TYPOGRAPHY_CAPTION2)
                     .setColor(ColorBuilders.argb(CHIP_NEUTRAL_TEXT_COLOR_ARGB))
                     .setMaxLines(2)
