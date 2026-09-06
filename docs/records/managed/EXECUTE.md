@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-06 16:40
+  summary: スマートフォン側のシステムバーのアイコンを暗色にして視認性を確保した
+  details:
+    変更内容: >
+      targetSdk 36化の検証で撮影したスクリーンショットの比較中に、ステータスバーの時刻・
+      アイコンが白のまま描画され、明るい背景に対してほとんど判読できない状態であることが
+      判明した。targetSdk 35時点のスクリーンショットでも同一であり、targetSdkの引き上げによる
+      回帰ではなく以前から存在した不具合である。
+      targetSdk 35以降はエッジツーエッジ表示が必須で、アプリの背景がシステムバーの領域まで
+      広がる。本アプリはMaterialThemeへcolorSchemeを渡しておらず既定のライトカラースキームを
+      使うため、背景は常に明るい。MainActivityのonCreateで
+      WindowCompat.getInsetsControllerからisAppearanceLightStatusBarsと
+      isAppearanceLightNavigationBarsをtrueにし、システムバーのアイコンを暗色へ切り替えた。
+      端末のダークモード設定にかかわらずアプリの配色は常にライトであるため条件分岐はせず、
+      将来ダークテーマへ対応する場合はこの指定もテーマへ追随させる必要がある旨をKDocへ記した。
+      ナビゲーションバーのアイコンも同様に白のままだったため、あわせて暗色にしている。
+      実際の見え方の確認は実機が必要であり、デバッグビルドをインストールするとPlay配信版を
+      署名不一致で置き換えてしまうため本対応では行わず、BL-097の人手検証へ集約する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+    検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: 成功 - 品質ゲート184タスクがBUILD SUCCESSFUL。表示結果の確認は実機が必要なため未実施
+    関連ID:
+      - BL-103
+
 - date: 2026-09-06 16:20
   summary: タイルの操作ラベルが省略される問題とデバイス変更チップの不自然な折り返しを修正した
   details:
