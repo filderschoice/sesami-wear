@@ -1,13 +1,9 @@
 package com.sesamiwear.wear.messaging
 
-import android.content.ComponentName
-import androidx.wear.tiles.TileService
-import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.WearableListenerService
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.wear.complication.SesameComplicationDataSourceService
-import com.sesamiwear.wear.tile.SesameTileService
+import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
 
 /**
  * mobile側が状態取得リクエスト（[SesameWearProtocol.PATH_STATUS_REQUEST]、BL-061）に応じて
@@ -23,10 +19,6 @@ class SesameStatusListenerService : WearableListenerService() {
         dataEvents.release()
         if (!statusChanged) return
 
-        TileService.getUpdater(applicationContext).requestUpdate(SesameTileService::class.java)
-        ComplicationDataSourceUpdateRequester.create(
-            applicationContext,
-            ComponentName(applicationContext, SesameComplicationDataSourceService::class.java),
-        ).requestUpdateAll()
+        SesameDisplayUpdateRequester.requestUpdateAll(applicationContext)
     }
 }

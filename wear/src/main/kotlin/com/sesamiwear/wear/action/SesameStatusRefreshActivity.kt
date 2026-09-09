@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.sesamiwear.core.SesameDemoMode
+import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 
@@ -60,6 +62,13 @@ private fun SesameStatusRefreshScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(deviceUuid) {
+        // デモモード（BL-109）は実デバイスが存在せず、状態はwear単体で保持しているため
+        // スマホへの状態取得リクエストは送らず、Tile/Complicationの再描画のみ要求する。
+        if (SesameDemoMode.isDemoDevice(deviceUuid)) {
+            SesameDisplayUpdateRequester.requestUpdateAll(context)
+            onFinished()
+            return@LaunchedEffect
+        }
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context)
         if (nodeId != null) {
             val sender = SesameCommandSenderProvider.create(context)

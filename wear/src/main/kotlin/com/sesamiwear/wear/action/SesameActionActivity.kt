@@ -30,10 +30,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.api.SesameCommandConfirmation
+import com.sesamiwear.wear.demo.DemoLockStateStore
+import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
+import com.sesamiwear.wear.haptics.HapticPattern
+import com.sesamiwear.wear.haptics.SesameHapticPlayer
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 import com.sesamiwear.wear.tile.SesameTileContent
@@ -45,6 +50,8 @@ import com.sesamiwear.wear.tile.SesameTileContent
  * 操作対象デバイスのuuid（BL-053、tileIdに割り当てられたデバイス）をIntent extra経由で受け取る。
  * uuidが[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択）の場合は登録済み
  * 全デバイスへ同一コマンドを送信する（BL-071、複数デバイス一括操作）。
+ * uuidが[SesameDemoMode.DEMO_DEVICE_UUID]（デモモード、BL-109）の場合はスマホへメッセージを
+ * 送らず、wear単体のダミー状態を書き換えるだけで完結する。
  */
 class SesameActionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,16 +98,10 @@ private fun SesameActionScreen(
 
     if (sending) {
         LaunchedEffect(command) {
-            val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context)
-            if (nodeId != null) {
-                val sender = SesameCommandSenderProvider.create(context)
-                val targetUuids = SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid)
-                targetUuids.forEach { targetUuid ->
-                    when (command) {
-                        SesameCommand.LOCK -> sender.requestLock(nodeId, targetUuid)
-                        SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, targetUuid)
-                    }
-                }
+            if (SesameDemoMode.isDemoDevice(deviceUuid)) {
+                applyDemoCommand(context, command)
+            } else {
+                sendCommand(context, command, deviceUuid)
             }
             onFinished()
         }
@@ -121,6 +122,40 @@ private fun SesameActionScreen(
             Text(text = "送信中...")
         }
     }
+}
+
+/**
+ * 実デバイスへのコマンド送信（Fire-and-forget）。結果は
+ * [com.sesamiwear.wear.messaging.SesameResultListenerService]がmobile側から受け取る。
+ */
+private suspend fun sendCommand(
+    context: Context,
+    command: SesameCommand,
+    deviceUuid: String,
+) {
+    val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context) ?: return
+    val sender = SesameCommandSenderProvider.create(context)
+    SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid).forEach { targetUuid ->
+        when (command) {
+            SesameCommand.LOCK -> sender.requestLock(nodeId, targetUuid)
+            SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, targetUuid)
+        }
+    }
+}
+
+/**
+ * デモモード（BL-109）のダミー施錠状態を書き換える。実デバイスが存在しないためスマホへは
+ * 一切メッセージを送らず、wear単体で状態更新・ハプティクス・再描画まで完結させる。
+ * 結果ハプティクスは実デバイス操作時（[com.sesamiwear.wear.messaging.SesameResultHandler]）と
+ * 同じ成功パターンを鳴らし、体験を揃える。
+ */
+private fun applyDemoCommand(
+    context: Context,
+    command: SesameCommand,
+) {
+    DemoLockStateStore(context).setLocked(SesameDemoMode.nextIsLocked(command))
+    SesameHapticPlayer(context).play(HapticPattern.SUCCESS)
+    SesameDisplayUpdateRequester.requestUpdateAll(context)
 }
 
 /**

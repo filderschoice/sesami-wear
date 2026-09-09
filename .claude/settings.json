@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Edit(docs/records/managed/BACKLOG.md)",
+      "Edit(docs/records/managed/DESIGN.md)",
+      "Edit(docs/records/managed/EXECUTE.md)",
+      "Write(docs/records/managed/BACKLOG.md)",
+      "Write(docs/records/managed/DESIGN.md)",
+      "Write(docs/records/managed/EXECUTE.md)",
+      "Edit(mobile/*)",
+      "Edit(wear/*)",
+      "Edit(scripts/*)",
+      "Edit(CHANGELOG.md)",
+      "Edit(README.md)",
+      "Write(mobile/*)",
+      "Write(wear/*)",
+      "Write(scripts/*)",
+      "Write(CHANGELOG.md)",
+      "Write(README.md)",
+      "Read(docs/records/**)"
+    ]
+  }
+}

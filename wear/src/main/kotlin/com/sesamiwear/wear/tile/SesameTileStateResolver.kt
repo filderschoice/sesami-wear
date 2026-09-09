@@ -1,9 +1,11 @@
 package com.sesamiwear.wear.tile
 
 import android.content.Context
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
+import com.sesamiwear.wear.demo.DemoLockStateStore
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
@@ -15,22 +17,26 @@ import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
  * [TileDisplayStateResolver.resolveAggregate]で集約し、それ以外は単一デバイスの状態を解決する。
  * いずれもDataItemが一定時間以上古い場合は状態取得をリクエストする（BL-061と同様の巻き戻り防止
  * 対応、コマンド実行直後に古いGET結果へ上書きされることを避けるため）。
+ * 対象デバイスuuidが[SesameDemoMode.DEMO_DEVICE_UUID]（デモモード、BL-109）の場合は
+ * wear単体で保持するダミー状態（[DemoLockStateStore]）から解決し、スマホへの状態取得
+ * リクエストは一切送らない。
  * Android Google Play Services依存の薄いアダプタのためユニットテスト対象外
- * （表示状態の判定ロジック自体は[TileDisplayStateResolver]でテスト済み）。
+ * （表示状態の判定ロジック自体は[TileDisplayStateResolver]・[SesameDemoMode]でテスト済み）。
  */
 object SesameTileStateResolver {
     suspend fun resolveDisplayName(
         context: Context,
         deviceUuid: String,
     ): String =
-        if (deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID) {
-            ALL_DEVICES_DISPLAY_NAME
-        } else {
-            SesameDeviceListReader.readLatest(context)
-                .find { it.uuid == deviceUuid }
-                ?.displayName
-                ?.ifBlank { null }
-                ?: deviceUuid
+        when {
+            SesameDemoMode.isDemoDevice(deviceUuid) -> SesameDemoMode.DEMO_DEVICE_DISPLAY_NAME
+            deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID -> ALL_DEVICES_DISPLAY_NAME
+            else ->
+                SesameDeviceListReader.readLatest(context)
+                    .find { it.uuid == deviceUuid }
+                    ?.displayName
+                    ?.ifBlank { null }
+                    ?: deviceUuid
         }
 
     suspend fun resolveState(
@@ -38,10 +44,11 @@ object SesameTileStateResolver {
         deviceUuid: String,
         nodeId: String?,
     ): TileDisplayState =
-        if (deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID) {
-            resolveAggregateState(context, nodeId)
-        } else {
-            resolveSingleDeviceState(context, deviceUuid, nodeId)
+        when {
+            SesameDemoMode.isDemoDevice(deviceUuid) ->
+                SesameDemoMode.displayState(DemoLockStateStore(context).isLocked())
+            deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID -> resolveAggregateState(context, nodeId)
+            else -> resolveSingleDeviceState(context, deviceUuid, nodeId)
         }
 
     private suspend fun resolveSingleDeviceState(
