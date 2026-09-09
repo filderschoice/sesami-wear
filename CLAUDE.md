@@ -225,7 +225,8 @@ npx markdownlint-cli2 "**/*.md"
 npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 ```
 
-- 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効）。
+- 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効、
+  MD024は`siblings_only`）。
 - 本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体が
   存在しない、2026-09-05確認）。Markdownlint・Gradle品質ゲートいずれもCI自動実行はなく、上記コマンドの
   ローカル実行が唯一の品質ゲートです。

@@ -7,3 +7,7 @@ config:
     code_blocks: false
     tables: false
   MD060: false
+  # docs/RELEASE_NOTES.md はバージョンごとに「新機能」「改善」等の同名見出しを繰り返す構成
+  # （同ファイル「運用ルール」参照）。同一階層内での重複のみを検出対象とする。
+  MD024:
+    siblings_only: true

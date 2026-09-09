@@ -266,6 +266,36 @@
   対応でき、mobile側の変更は不要だった、BL-071）。
 - `wear.action.SesameStatusRefreshActivity`: `PATH_STATUS_REQUEST`をFire-and-forgetで送信するのみの
   軽量Activity（施錠/解錠は行わない）。Tileのデバイス名チップタップから起動する（BL-063）。
+- 対象uuidがデモ用デバイス（`core.SesameDemoMode.DEMO_DEVICE_UUID`）の場合、`SesameActionActivity`は
+  `applyDemoCommand`へ分岐してMessageClientへ一切送信せず、`SesameStatusRefreshActivity`も
+  状態取得リクエストを送らない（後述「デモモード」、BL-109）。
+
+### デモモード
+
+資格情報が未登録でもTile・Complication・デバイス選択画面を一通り操作できるようにする仕組み
+（BL-109）。Google Playのクローズドテスト（BL-106）で、Sesame 5実機・Hub 3・APIキーを持たない
+テスターがアプリを操作できず、製品版アクセス申請フォームのパート1「テスターのエンゲージメント」に
+実態を伴う回答ができない問題への対策として追加した。
+
+- `core.SesameDemoMode`（Android非依存、ユニットテスト対象）: デモ用デバイスのuuid
+  （`__demo_device__`。実デバイスのUUID形式とも`ALL_DEVICES_TARGET_UUID`とも衝突しない固定文字列）・
+  表示名（「デモ（体験用）」）・初期状態（施錠中）と、提示可否（`isAvailable`）・選択肢生成
+  （`selectableDevices`）・表示状態（`displayState`）・コマンド適用後の状態（`nextIsLocked`）を定義する。
+- 提示条件は「mobile側から同期された登録済みデバイスが0台」に限定する。1台でも登録されている場合は
+  選択肢へ混ぜない（実際には施錠されていないのに施錠済みと誤認する事故を避けるため）。
+- `wear.demo.DemoLockStateStore`: ダミー施錠状態をwear単体で永続化する。実デバイスが存在せず
+  mobile側の関与がないため、DataItem経由の同期は使わない。機密情報を含まないため非暗号化の
+  `SharedPreferences`（`TileDeviceAssignmentStore`と同方針）。
+- `wear.ui.DeviceSelectionScreen`は0台時にデモ用デバイスのみを選択肢として表示し、説明文
+  （「スマホでSesameを登録すると実際の鍵を操作できます。今はデモを選べます」）を添える。
+- `wear.tile.SesameTileStateResolver`はデモ用uuidのとき`DemoLockStateStore`から状態を解決する。
+  スマホ接続状態・DataItemの鮮度に依存させず、ウォッチ単体で操作を体験できるようにしている
+  （DISCONNECTED/UNKNOWNへ落ちない）。
+- 施錠/解錠はローカル状態の書き換え・成功ハプティクス（実デバイス操作時と同じSUCCESSパターン）・
+  Tile/Complicationの再描画要求のみで完結し、Sesame APIへも`MessageClient`へも一切送信しない。
+- `wear.display.SesameDisplayUpdateRequester`: Tile/Complicationの再描画要求
+  （`TileService.getUpdater` + `ComplicationDataSourceUpdateRequester`）を共通化したもの。
+  `SesameStatusListenerService`とデモモードの双方から呼ぶ。
 
 ### ハプティクス
 
@@ -475,6 +505,8 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
 - Complicationで常時ロック状態を文字盤表示する。
 - 登録済みデバイスが2台以上の場合、Tile/Complicationのデバイス選択に「全デバイス」を選べる
   （BL-071）。
+- 登録済みデバイスが0台の場合は、デモ用デバイスのみを選択肢として提示し、Sesame実機を持たない
+  利用者でもTile・Complicationの操作感を確認できるようにする（BL-109、上記「デモモード」）。
 
 ### 複数Sesameデバイス対応方針
 

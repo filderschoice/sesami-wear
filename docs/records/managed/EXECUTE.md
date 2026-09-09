@@ -5,6 +5,60 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-10 08:05
+  summary: 資格情報が未登録でもTile・Complicationを操作できるデモモードを追加した
+  details:
+    変更内容: >
+      Google Playのクローズドテスト（BL-106）では、Sesame 5実機・Hub 3・APIキーを持たない
+      テスターが資格情報の登録画面から先へ進めず、製品版アクセス申請フォームのパート1で
+      問われる「テスターのエンゲージメント」に実態を伴う回答ができない。対策として、
+      mobile側に1台もデバイスが登録されていない場合に限り、ダミーの施錠状態を操作できる
+      デモモードを提示するようにした。実装するかはユーザーの判断待ち（状態: 要確認）で
+      あったため、2026-09-10に実装する旨の承認を得てから着手している。
+      判定ロジックはAndroid非依存のcore.SesameDemoModeへ切り出し、単体テスト8件で検証した。
+      デモ用デバイスのuuidは実デバイスのUUID形式ともALL_DEVICES_TARGET_UUIDとも衝突しない
+      固定文字列「__demo_device__」とし、登録済みデバイスが1台でもある場合は選択肢に混ぜない
+      （実際には施錠されていないのに施錠済みと誤認する事故を避けるため）。
+      wear側は、デバイス選択画面（DeviceSelectionScreen）が0台時にデモ用デバイスのみを提示し、
+      Tile/Complicationの状態解決（SesameTileStateResolver）がデモ用uuidならwear単体で保持する
+      DemoLockStateStore（非暗号化SharedPreferences、機密情報を含まない）から状態を返す。
+      施錠/解錠（SesameActionActivity）はデモ用uuidの場合にMessageClientへ一切送信せず、
+      ローカル状態の書き換え・成功ハプティクス・再描画要求のみで完結する。状態更新
+      （SesameStatusRefreshActivity）も同様にスマホへリクエストを送らない。
+      デモ状態はスマホ接続状態に依存させず、ウォッチ単体で操作を体験できるようにしている。
+      Tile/Complicationの再描画要求はSesameStatusListenerServiceと重複するため、
+      display.SesameDisplayUpdateRequesterへ共通化した。
+      既存の通信経路（SesameCommandSender / SesameApiClient）およびmobile側は変更していない。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDemoMode.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameDemoModeTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/demo/DemoLockStateStore.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/display/SesameDisplayUpdateRequester.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameStatusRefreshActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusListenerService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - scripts/version.properties
+      - .markdownlint-cli2.yaml
+      - CLAUDE.md
+      - CHANGELOG.md
+    検証コマンド: ./gradlew ktlintCheck / detekt / lintDebug / testDebugUnitTest test / assembleDebug
+    検証結果: >
+      成功 - 品質ゲート5コマンドがいずれもBUILD SUCCESSFUL。
+      core.SesameDemoModeTestは8件すべて成功（failures=0 / errors=0）。
+      Sesame APIへリクエストが飛ばないことは、デモ用uuidがMessageClient送信経路へ到達しない
+      分岐をコード上で担保し、状態解決・コマンド実行・状態更新の3経路すべてに分岐を入れて
+      確認した。実機（Pixel Watch 2）でのデモモードの表示・操作確認はBL-110として人手検証項目に
+      登録済み。
+      npx markdownlint-cli2 "**/*.md" は0 issues（MD024をsiblings_onlyへ緩和後）。
+    関連ID:
+      - BL-109
+
 - date: 2026-09-06 17:15
   summary: タイルの状態ラベルの末尾省略を修正し、ストア用スクリーンショットを撮り直した
   details:
