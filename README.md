@@ -29,6 +29,7 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 | 目的 | 参照先 |
 | --- | --- |
 | 使い方を知りたい（初期設定・タイル・操作） | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) |
+| クローズドテストに参加したい | [docs/CLOSED_TEST.md](docs/CLOSED_TEST.md) |
 | インストールしたい | [docs/INSTALL.md](docs/INSTALL.md) |
 | 更新内容を確認したい | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) |
 | 不具合を報告したい・質問したい | [docs/SUPPORT.md](docs/SUPPORT.md) |
@@ -197,6 +198,7 @@ sesami-wear/
 ├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針（初回依頼時点のメモ）
 └── docs/
     ├── USER_GUIDE.md     # 利用ガイド（アプリ利用者向け）
+    ├── CLOSED_TEST.md    # クローズドテストの参加手順（テスター向け）
     ├── SUPPORT.md        # アップデート確認先・問い合わせ窓口
     ├── RELEASE_NOTES.md  # バージョンごとの変更点（アプリ利用者向け）
     ├── INSTALL.md        # 実機へのインストール手順
@@ -242,6 +244,7 @@ sesami-wear/
 ### 利用者向け
 
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md): 初期設定・タイル・コンプリケーション・操作方法
+- [docs/CLOSED_TEST.md](docs/CLOSED_TEST.md): クローズドテストの参加手順（テスター向け）
 - [docs/INSTALL.md](docs/INSTALL.md): スマホ・スマートウォッチへのアプリインストール方法
 - [docs/SUPPORT.md](docs/SUPPORT.md): アップデート内容の確認先・問い合わせ窓口
 - [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md): バージョンごとの変更点

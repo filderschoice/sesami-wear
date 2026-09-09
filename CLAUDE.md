@@ -125,6 +125,10 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 - `docs/USER_GUIDE.md`: アプリ利用者向けの操作ガイド（資格情報の登録、Tile/Complicationの設定、
   施錠/解錠操作、状態表示の更新タイミング、トラブル時の確認事項）。UIの表示文言を変更した場合は
   本ファイルの記述も追随させる。
+- `docs/CLOSED_TEST.md`: Google Playのクローズドテストへ参加するテスター向けの手順（Googleグループ
+  への参加、オプトイン、インストール、テスト期間中の協力依頼、退会方法）。X・Qiitaでの募集からの
+  導線先となる単一の窓口（BL-107）。GoogleグループURLとオプトインURLはPlay Console側のトラック
+  作成後（BL-106）に確定するため、現時点ではプレースホルダを含む。
 - `docs/SUPPORT.md`: 利用者向けのアップデート内容の確認先（`docs/RELEASE_NOTES.md`を一次情報とし、
   GitHub Releases・Google Playの「新機能」を併記）と問い合わせ窓口・サポート対象範囲。
 - `docs/RELEASE_NOTES.md`: アプリのバージョンごとの変更点（利用者向け）。利用者に影響する変更を
