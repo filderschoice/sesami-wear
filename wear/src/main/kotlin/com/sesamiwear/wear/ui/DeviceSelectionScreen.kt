@@ -1,6 +1,8 @@
 package com.sesamiwear.wear.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,12 +49,7 @@ fun DeviceSelectionScreen(onDeviceSelected: (String) -> Unit) {
     ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
         if (isDemoMode) {
             item {
-                Text(
-                    text = "スマホでSesameを登録すると実際の鍵を操作できます。今はデモを選べます",
-                    style = MaterialTheme.typography.caption2,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                )
+                DemoHint()
             }
         }
         if (devices.size >= 2) {
@@ -69,5 +66,34 @@ fun DeviceSelectionScreen(onDeviceSelected: (String) -> Unit) {
                 onClick = { onDeviceSelected(device.uuid) },
             )
         }
+    }
+}
+
+/**
+ * デモモード時にデバイス選択肢の上へ出す説明（BL-109/BL-114）。文言は
+ * [DeviceSelectionContent]が円形画面の幅に収まる行へ分割済みで、ここでは左右パディングと
+ * 中央揃えだけを与える。画面幅に折り返しを委ねると、円形画面の縁で行頭・行末の文字が
+ * 見切れるため（BL-114）。
+ */
+@Composable
+private fun DemoHint() {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DeviceSelectionContent.HINT_HORIZONTAL_PADDING_DP.dp),
+    ) {
+        Text(
+            text = DeviceSelectionContent.DEMO_HINT_TITLE,
+            style = MaterialTheme.typography.caption1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = DeviceSelectionContent.demoHintBody,
+            style = MaterialTheme.typography.caption2,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

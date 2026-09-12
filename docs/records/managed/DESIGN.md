@@ -286,8 +286,14 @@
 - `wear.demo.DemoLockStateStore`: ダミー施錠状態をwear単体で永続化する。実デバイスが存在せず
   mobile側の関与がないため、DataItem経由の同期は使わない。機密情報を含まないため非暗号化の
   `SharedPreferences`（`TileDeviceAssignmentStore`と同方針）。
-- `wear.ui.DeviceSelectionScreen`は0台時にデモ用デバイスのみを選択肢として表示し、説明文
-  （「スマホでSesameを登録すると実際の鍵を操作できます。今はデモを選べます」）を添える。
+- `wear.ui.DeviceSelectionScreen`は0台時にデモ用デバイスのみを選択肢として表示し、見出し
+  （「デモモード」）と説明文（「スマホで登録すると」「実際の鍵を操作できます」）を添える。
+  文言は`wear.ui.DeviceSelectionContent`（Android非依存、ユニットテスト対象）が保持し、
+  **1行あたりの文字数上限（`MAX_LINE_CHARS` = 11）以内の行へあらかじめ分割しておく**（BL-114）。
+  当初は32文字の1文をそのまま`Text`へ渡し、折り返し位置を画面幅に委ねていたため、円形画面の
+  左右の縁で行頭・行末の文字が見切れていた。上限は最小構成の円形端末（幅192dp）から
+  ScalingLazyColumnの既定水平パディング（10dp）と本画面の水平パディング（12dp）を引いた
+  残り幅148dpに、caption2（12sp）の全角文字が12.3文字並ぶ計算に基づく。
 - `wear.tile.SesameTileStateResolver`はデモ用uuidのとき`DemoLockStateStore`から状態を解決する。
   スマホ接続状態・DataItemの鮮度に依存させず、ウォッチ単体で操作を体験できるようにしている
   （DISCONNECTED/UNKNOWNへ落ちない）。

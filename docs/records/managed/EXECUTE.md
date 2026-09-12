@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-13 15:20
+  summary: デモモードの説明文が円形画面の端で見切れる問題を修正した
+  details:
+    変更内容: >
+      wear側のデバイス選択画面は、デモモード（BL-109）時に32文字の1文をそのままTextへ渡し、
+      折り返し位置を画面幅に委ねていたため、円形画面の左右の縁で行頭・行末の文字が見切れていた。
+      文言をAndroid非依存の`wear.ui.DeviceSelectionContent`へ切り出し、見出し「デモモード」と
+      11文字以内の2行（「スマホで登録すると」「実際の鍵を操作できます」）へあらかじめ分割した。
+      表示側は左右12dpのパディングと中央揃えのみを与える。上限11文字は、最小構成の円形端末
+      （幅192dp）からScalingLazyColumnの既定水平パディング（10dp）と本画面の水平パディング
+      （12dp）を引いた148dpへ、caption2（12sp）の全角文字が12.3文字並ぶ計算に基づく。
+      1行あたりの文字数上限はユニットテストで検証し、以後の文言追加でも同じ事故が起きないようにした。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/ui/DeviceSelectionContentTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機での見え方の確認は
+      人手検証としてBACKLOGへ残す。
+    関連ID:
+      - BL-114
+
 - date: 2026-09-10 08:05
   summary: 資格情報が未登録でもTile・Complicationを操作できるデモモードを追加した
   details:
