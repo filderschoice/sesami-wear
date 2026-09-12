@@ -5,7 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- date: 2026-09-13 16:50
+- date: 2026-09-13 02:10
+  summary: BL-112〜BL-114を実機検証し、デモ用デバイスの表示名を短縮した
+  details:
+    変更内容: >
+      Pixel 8 Pro / Pixel Watch 2 の実機で BL-112 / BL-113 / BL-114 を検証した。検証は既存の
+      Play版アプリと登録済み資格情報へ影響を与えないよう、`applicationId`を
+      `com.sesamiwear.mobile.demotest`へ変えた検証専用のデバッグビルドで実施し、終了後に両端末から
+      アンインストールした（ビルド設定の一時変更はコミットしていない）。
+      BL-112は、日本語IMEの変換候補から全角の「１２３－ＤＥＦ」を確定しても入力欄が半角の
+      「123-DEF」になること、`!@#`が除去されること、secretKey欄が16進数以外を落として32文字で
+      打ち切り「追加」ボタンが有効になることを確認した。BL-113は、ヘルプがメニューとして開き、
+      3項目の本文・「戻る」・「閉じる」・SESAME Biz 開発者ページへの遷移が動作することを確認した。
+      BL-114は、デバイス選択画面の見出しと説明文が円形画面へ収まることを確認した一方、
+      Tileのデバイス名チップでは表示名「デモ（体験用）」7文字がチップの背景をはみ出しており、
+      ユーザー報告の見切れはこちらであることが判明した。BL-102・BL-104と同じく文言側を短縮する
+      方針で「デモ」へ変更し、チップ幅に収まることと、解錠操作後にTileが`解錠中`／`タップで施錠`
+      へ遷移すること（`SesameTileService`のログで`state=UNLOCKED`）を再確認した。
+      表示名の上限は`SesameDemoMode.MAX_DISPLAY_NAME_CHARS`としてユニットテストで固定した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDemoMode.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameDemoModeTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/CLOSED_TEST.md
+      - docs/SUPPORT.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 実機（adb経由のUI操作とスクリーンショット）
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機検証も上記3件すべて
+      確認済み。検証にはダミー値のみを使用し、実資格情報は入力していない。
+    関連ID:
+      - BL-115
+      - BL-112
+      - BL-113
+      - BL-114
+
+- date: 2026-09-13 01:38
   summary: mobileのヘルプをメニュー形式へ拡張しデモモードへの導線を追加した
   details:
     変更内容: >
@@ -33,7 +73,7 @@
     関連ID:
       - BL-113
 
-- date: 2026-09-13 16:05
+- date: 2026-09-13 01:33
   summary: 資格情報入力欄へ全角文字が入らないよう入力値を正規化した
   details:
     変更内容: >
@@ -60,7 +100,7 @@
     関連ID:
       - BL-112
 
-- date: 2026-09-13 15:20
+- date: 2026-09-13 01:29
   summary: デモモードの説明文が円形画面の端で見切れる問題を修正した
   details:
     変更内容: >

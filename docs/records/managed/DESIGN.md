@@ -295,7 +295,9 @@
 
 - `core.SesameDemoMode`（Android非依存、ユニットテスト対象）: デモ用デバイスのuuid
   （`__demo_device__`。実デバイスのUUID形式とも`ALL_DEVICES_TARGET_UUID`とも衝突しない固定文字列）・
-  表示名（「デモ（体験用）」）・初期状態（施錠中）と、提示可否（`isAvailable`）・選択肢生成
+  表示名（「デモ」。Tileのデバイス名チップ（左列76dp、CAPTION2）に収まる上限
+  `MAX_DISPLAY_NAME_CHARS` = 5文字以内。当初の「デモ（体験用）」7文字はチップの背景をはみ出して
+  表示されていた、BL-115）・初期状態（施錠中）と、提示可否（`isAvailable`）・選択肢生成
   （`selectableDevices`）・表示状態（`displayState`）・コマンド適用後の状態（`nextIsLocked`）を定義する。
 - 提示条件は「mobile側から同期された登録済みデバイスが0台」に限定する。1台でも登録されている場合は
   選択肢へ混ぜない（実際には施錠されていないのに施錠済みと誤認する事故を避けるため）。
@@ -315,11 +317,17 @@
   （DISCONNECTED/UNKNOWNへ落ちない）。
 - 施錠/解錠はローカル状態の書き換え・成功ハプティクス（実デバイス操作時と同じSUCCESSパターン）・
   Tile/Complicationの再描画要求のみで完結し、Sesame APIへも`MessageClient`へも一切送信しない。
+- 実機検証（BL-115、2026-09-13、Pixel Watch 2 + Pixel 8 Pro）: デバイス選択画面の見出し・説明文・
+  デモ用チップが円形画面の内側へ収まること、Tileのデバイス名チップに表示名が収まること、
+  タイル右側タップ→解錠確認→`解錠中`／`タップで施錠`への遷移（`SesameTileService`のログで
+  `state=UNLOCKED`を確認）を検証専用ビルド（`applicationId`を`com.sesamiwear.mobile.demotest`へ
+  変更、コミットしない）で確認した。この検証で、表示名「デモ（体験用）」がTileのデバイス名チップの
+  背景をはみ出していることが判明したため「デモ」へ短縮した。
 - `wear.display.SesameDisplayUpdateRequester`: Tile/Complicationの再描画要求
   （`TileService.getUpdater` + `ComplicationDataSourceUpdateRequester`）を共通化したもの。
   `SesameStatusListenerService`とデモモードの双方から呼ぶ。
 - 実機検証（BL-110、2026-09-13、Pixel Watch 2 + Pixel 8 Pro）: 登録済みデバイス0台の状態で、
-  デバイス選択画面が「デモ（体験用）」のみを提示すること（「全デバイス」チップは`devices.size >= 2`の
+  デバイス選択画面がデモ用デバイスのみを提示すること（「全デバイス」チップは`devices.size >= 2`の
   条件により非表示）、Tileが初期状態「施錠中／タップで解錠」を表示すること、タップ→解錠確認→
   「解錠中／タップで施錠」への遷移と再タップでの復帰、デバイス名チップのタップ
   （`SesameStatusRefreshActivity`）後もTileが崩れないこと、Complicationがデモ状態を表示し状態変更に

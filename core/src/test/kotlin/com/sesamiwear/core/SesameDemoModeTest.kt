@@ -29,6 +29,15 @@ class SesameDemoModeTest {
     }
 
     @Test
+    fun `demo display name fits the tile device name chip`() {
+        assertTrue(SesameDemoMode.DEMO_DEVICE_DISPLAY_NAME.contains("デモ"))
+        assertTrue(
+            "Tileのデバイス名チップ幅を超える表示名は見切れる（BL-115）",
+            SesameDemoMode.DEMO_DEVICE_DISPLAY_NAME.length <= SesameDemoMode.MAX_DISPLAY_NAME_CHARS,
+        )
+    }
+
+    @Test
     fun `selectable devices never mix the demo device into registered devices`() {
         val registered = listOf(SesameDeviceSummary("uuid-1", "玄関"), SesameDeviceSummary("uuid-2", "勝手口"))
 

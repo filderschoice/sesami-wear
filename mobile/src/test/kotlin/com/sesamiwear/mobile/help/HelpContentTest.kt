@@ -40,7 +40,7 @@ class HelpContentTest {
     @Test
     fun `demo topic explains how to reach the demo device on the watch`() {
         val body = HelpContent.demo.paragraphs.joinToString(separator = "")
-        assertTrue(body.contains("デモ（体験用）"))
+        assertTrue(body.contains("「デモ」"))
         assertTrue(body.contains("タイル"))
         assertTrue(body.contains("コンプリケーション"))
     }

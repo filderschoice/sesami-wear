@@ -24,8 +24,18 @@ object SesameDemoMode {
      */
     const val DEMO_DEVICE_UUID = "__demo_device__"
 
-    /** Tile・Complication・デバイス選択画面に表示する名前。実デバイスと取り違えないよう「デモ」を含める。 */
-    const val DEMO_DEVICE_DISPLAY_NAME = "デモ（体験用）"
+    /**
+     * Tile・Complication・デバイス選択画面に表示する名前。実デバイスと取り違えないよう「デモ」を含める。
+     *
+     * Tileのデバイス名チップ（左列76dp、CAPTION2）に収まる長さは1行あたり5文字程度で
+     * （BL-102で「デバイス変更」6文字が収まらないことを確認済み）、当初の「デモ（体験用）」7文字は
+     * チップの背景をはみ出して表示されていた（BL-115の実機検証で再現）。文言側を[MAX_DISPLAY_NAME_CHARS]
+     * 以内へ短縮して対処する。デモである旨は、デバイス選択画面の見出し「デモモード」と説明文が補う。
+     */
+    const val DEMO_DEVICE_DISPLAY_NAME = "デモ"
+
+    /** [DEMO_DEVICE_DISPLAY_NAME]がTileのデバイス名チップの1行へ収まる文字数の上限。 */
+    const val MAX_DISPLAY_NAME_CHARS = 5
 
     /** デモ用デバイスの初期状態。安全側（施錠中）から始め、最初の操作を解錠にする。 */
     const val INITIAL_IS_LOCKED = true
