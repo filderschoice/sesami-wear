@@ -105,10 +105,10 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ./gradlew assembleDebug
 ```
 
-上記5コマンドが本リポジトリの品質ゲート（段階B）です。詳細は
-[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」を参照してください。
-
-Markdownドキュメントの品質チェックは別コマンドです（[CONTRIBUTING.md](CONTRIBUTING.md) 参照）。
+上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
+次のMarkdownチェックを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
+[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
+[CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"

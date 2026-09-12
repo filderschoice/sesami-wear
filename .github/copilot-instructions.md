@@ -20,10 +20,7 @@
 | ドキュメント | 内容 | 読むタイミング |
 | --- | --- | --- |
 | `rules/guardrails-unified.v1.md` | セキュリティ・プライバシー・統制の正本 | 常時（統制判断の根拠） |
-| `CLAUDE.md` | アプリのアーキテクチャ概要、品質ゲートの実行コマンド | 実装・検証に着手する時 |
-| `README.md` | セットアップ・ビルド・実行・リリース手順、既知の制約 | 環境構築・リリース作業時 |
-| `docs/records/managed/DESIGN.md` | 実装済み内容・設計意図・制約（最新版） | 実装に着手する時 |
-| `docs/records/managed/BACKLOG.md` | 未対応事項・人手検証待ち項目 | 次の作業を選ぶ時 |
+| `CLAUDE.md` | アプリのアーキテクチャ概要、品質ゲートの実行コマンド、参照先マップ（`README.md` / `DESIGN.md` / `BACKLOG.md` など本リポジトリの正本の所在） | 実装・検証に着手する時 |
 | `CONTRIBUTING.md` | 規定ブランチ定義、ブランチ・コミット規約、レビュー要件 | ブランチ作成時・PR作成時 |
 | `docs/records/spec/FORMAT.md` | 記録ファイルの記述仕様（唯一の参照元） | 記録ファイル更新時 |
 | `.github/instructions/pr.instructions.md` | PR説明文・コードレビューの言語と構成（正本） | PR説明文・レビュー生成時 |

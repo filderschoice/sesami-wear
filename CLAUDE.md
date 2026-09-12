@@ -62,108 +62,68 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 ### 主要な処理フロー（Wearable Data Layer API経由）
 
 `core.SesameWearProtocol` が定義するメッセージパス定数を軸に、`mobile`/`wear`間は
-`MessageClient`（コマンド送受信）と`DataClient`（状態同期）の2系統で通信します。
+`MessageClient`（コマンド送受信）と`DataClient`（状態同期）の2系統で通信します。各経路の起点・終点は
+以下のとおりです。処理の詳細（引数・エラー時の挙動・画面仕様）は DESIGN.md の該当節が正本です。
 
-- **施錠/解錠コマンド送信**（`wear` → `mobile`）: Tile操作
-  （`wear.tile.SesameTileActions`）→ `wear.messaging.SesameCommandSender`
-  （`SesameCommandSenderProvider`経由で取得）→ `wear.messaging.MessageClientSesameMessageSender`
-  （`core.SesameMessageSender`のGoogle Play Services実装）が`MessageClient.sendMessage()`で
-  `PATH_LOCK_REQUEST`/`PATH_UNLOCK_REQUEST`へ送信する。
-- **コマンド実行**（`mobile`側）: `mobile.messaging.SesameMessageListenerService.onMessageReceived()`
-  が受信し、`mobile.messaging.SesameCommandHandler.handle(path)`（Android非依存、ユニットテスト対象）
-  が`core.api.SesameApiClient.sendCommand()`（AES-CMAC署名付きPOST）でSesame APIを呼び出す。
-  成功時は`mobile.messaging.SesameStatusSyncer.syncLocked()`が`DataClient.putDataItem()`で
-  `STATUS_DATA_ITEM_PATH`へ最新のロック状態を書き込む。
-- **結果返送**（`mobile` → `wear`）: `SesameCommandResult`（成功/失敗、1バイト）を
-  `MessageClient.sendMessage()`で`PATH_COMMAND_RESULT`へ返送し、`wear`側の
-  `wear.messaging.SesameResultListenerService`が受信、`wear.messaging.SesameResultHandler`が
-  再生すべき`HapticPattern`を判定して`wear.haptics.SesameHapticPlayer`で通知する。
-- **状態表示**（Tile/Complication）: `wear.messaging.SesameStatusSnapshotReader.readLatest()`が
-  `DataClient.dataItems`から`STATUS_DATA_ITEM_PATH`を読み取り、`core.SesameStatusSnapshotFactory`で
-  スナップショット化してTile/Complicationの表示に反映する。他経路（Sesame純正アプリでの操作等）
-  による状態変化はこの仕組みでは検知されない（README.md「既知の未確認事項・制約」参照）。
+| 経路 | 起点 → 終点 | DESIGN.md の該当節 |
+| --- | --- | --- |
+| 施錠/解錠コマンド送信（wear → mobile） | `wear.tile.SesameTileActions` → `wear.messaging.SesameCommandSender` → `PATH_LOCK_REQUEST` / `PATH_UNLOCK_REQUEST` | wear側コマンド送信・結果受信 |
+| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| 状態同期（mobile → wear） | `mobile.messaging.SesameStatusSyncer` → `STATUS_DATA_ITEM_PATH` の DataItem | Data Layer APIプロトコル定義 |
+| 結果返送（mobile → wear） | `PATH_COMMAND_RESULT` → `wear.messaging.SesameResultListenerService` → `SesameResultHandler` → `wear.haptics.SesameHapticPlayer` | wear側コマンド送信・結果受信 |
+| 状態表示（Tile/Complication） | `wear.messaging.SesameStatusSnapshotReader` → `core.SesameStatusSnapshotFactory` → Tile/Complication | Tile / Complication |
 
-上記は対象デバイス1台分の流れです。本アプリは複数のSesameデバイスを扱うため、実際には以下が加わります
-（詳細は DESIGN.md「複数Sesameデバイス対応方針」参照）。
+着手前に知っておく必要がある制約（詳細は DESIGN.md「複数Sesameデバイス対応方針」）:
 
-- コマンド・状態取得の各メッセージは、対象デバイスの`uuid`をペイロードへ載せる
+- 本アプリは複数のSesameデバイスを扱うため、各メッセージは対象デバイスの`uuid`をペイロードへ載せる
   （`core.SesameWearProtocol.encodeDeviceUuid` / `decodeDeviceUuid`）。`ALL_DEVICES_TARGET_UUID`
   （`"__all_devices__"`）は「登録済み全デバイス」を表す特別値で、`wear.action.SesameActionTargetResolver`
-  が解決した全uuidへwear側が個別にメッセージを送る（mobile側は単一デバイス処理をN回受けるだけ）。
-- Tile / Complicationは、インスタンス固有のID（`tileId` / `complicationInstanceId`）ごとに対象デバイスを
-  `wear.tile.TileDeviceAssignmentStore` / `wear.complication.ComplicationDeviceAssignmentStore`へ
-  永続化する（機密情報を含まないため非暗号化の`SharedPreferences`）。
-- 状態取得は`PATH_STATUS_REQUEST`のFire-and-forget送信で、結果は返らず`STATUS_DATA_ITEM_PATH`の
-  DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けてTile/Complicationの
-  再描画を要求する）。
+  が解決した全uuidへwear側が個別に送る（mobile側は単一デバイス処理をN回受けるだけ）。
+- 状態取得（`PATH_STATUS_REQUEST`）はFire-and-forget送信で結果が返らない。`STATUS_DATA_ITEM_PATH`の
+  DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けて再描画を要求する）。
+- 他経路（Sesame純正アプリでの操作等）による状態変化は検知されない
+  （README.md「既知の未確認事項・制約」参照）。
 - mobile側は`mobile.messaging.CommandDebouncer`が同一uuidへの2秒以内の重複コマンドを無視する
   （Tile連打による多重送信・多重ハプティクスの防止）。
+- Tile / Complicationの対象デバイスは、インスタンス固有のID（`tileId` / `complicationInstanceId`）ごとに
+  非暗号化の`SharedPreferences`へ永続化する（機密情報を含まないため）。
 
-### ディレクトリと参照関係
+### 参照先マップ
 
-- `CLAUDE.md`（本ファイル）: Claude Code 固有の差分と、本リポジトリ固有の情報のエントリポイント。
-  冒頭の `@import` で `rules/guardrails-unified.v1.md`（統制の正本）と
-  `.github/copilot-instructions.md`（全エージェント共通の実行ルールの正本）をセッション開始時に
-  自動読み込みする。矛盾時の優先順位は共通規約「指示参照の優先順位」を参照。
-- `.github/copilot-instructions.md`: **全AIエージェント共通の実行ルールの正本**。末尾に Copilot 固有の
-  差分節を持つ。役割分担は `CONTRIBUTING.md`「エージェント指示ファイルの構成規約」が正本。
-- `.github/instructions/pr.instructions.md`: PR説明文・コードレビューの言語と構成の正本。
-  Copilot Chat へは `applyTo` によりパス限定で自動適用される（`.vscode/settings.json` から参照）。
-  Claude Code は生成時に明示的に読む。
-- `.claude/skills/`: Claude Code のオンデマンド手順（`autonomous-loop` = 自律ループ実行モードの実行手順、
-  `docs-consistency-review` = ドキュメント整合性レビュー手順）。必要になった時点で読み込まれる。
-- `README.md`: 冒頭がアプリ概要と利用者向けドキュメントへの導線、以降がセットアップ・ビルド・実行・
-  テスト手順、リリースビルド手順、プロジェクト構成、既知の未確認事項・制約の一次情報源。
-- `SECURITY.md`: 脆弱性報告の受付方針（対象範囲・非公開の報告経路・サポート対象バージョン）。
-  GitHubがSecurity policyとして参照するため、リポジトリルートから移動しない。
-- `docs/INSTALL.md`: スマホ・スマートウォッチへの実機インストール手順の一次情報源（Wi-Fi経由の
-  ADBペア設定、`ANDROID_SERIAL`によるインストール先の指定、Google Play経由の想定手順）。
-- `docs/USER_GUIDE.md`: アプリ利用者向けの操作ガイド（資格情報の登録、Tile/Complicationの設定、
-  施錠/解錠操作、状態表示の更新タイミング、トラブル時の確認事項）。UIの表示文言を変更した場合は
-  本ファイルの記述も追随させる。
-- `docs/CLOSED_TEST.md`: Google Playのクローズドテストへ参加するテスター向けの手順（Googleグループ
-  への参加、オプトイン、インストール、テスト期間中の協力依頼、退会方法）。X・Qiitaでの募集からの
-  導線先となる単一の窓口（BL-107）。GoogleグループURLとオプトインURLはPlay Console側のトラック
-  作成後（BL-106）に確定するため、現時点ではプレースホルダを含む。
-- `docs/SUPPORT.md`: 利用者向けのアップデート内容の確認先（`docs/RELEASE_NOTES.md`を一次情報とし、
-  GitHub Releases・Google Playの「新機能」を併記）と問い合わせ窓口・サポート対象範囲。
-- `docs/RELEASE_NOTES.md`: アプリのバージョンごとの変更点（利用者向け）。利用者に影響する変更を
-  行った場合に追記する。`CHANGELOG.md`（リポジトリ運用ルール・ドキュメントの変更履歴）および
-  `docs/records/managed/EXECUTE.md`（コード修正1件ごとの実施記録）とは記録先が異なる。
-- `.github/ISSUE_TEMPLATE/`: Issueフォーム（`bug_report.yml` / `feature_request.yml` /
-  `question.yml`）と`config.yml`（空Issueの無効化、脆弱性報告・サポート情報・リリースノートへの導線）。
-- `.github/PULL_REQUEST_TEMPLATE.md`: PR説明の既定構成と、品質ゲート実行・資格情報混入確認の
-  チェックリスト。開発者・AIエージェント専用（外部からのPull Requestは受け付けない。
-  `CONTRIBUTING.md`「受け付けている報告と、受け付けていないもの」参照）。
-- `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
-- `docs/records/`: AIエージェントが自動更新する記録群。`spec/FORMAT.md` が記述仕様の唯一の参照元。
-  `managed/BACKLOG.md` / `DESIGN.md` / `EXECUTE.md` はユーザーの手動編集を想定しておらず、
-  `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する。
-- `docs/guidelines/`: 本ガードレール一式を他リポジトリへ配布・導入するための汎用ガイド
-  （`RULE.md` はルール本体、`ADOPTION.md` は導入手順）。
-- `docs/store/`: Google Play Console提出用のストア掲載情報の原本。`README.md`が索引（Play Consoleの
-  入力項目との対応・文字数上限・更新手順）で、`STORE_LISTING.md`（掲載文面）・`PRIVACY_POLICY.md`
-  （公開版のプライバシーポリシー。Public公開後のGitHub上のURLをPlay Consoleへ登録する）・
-  `images/`（512x512のアイコン）を持つ。
-- `scripts/`: バージョン管理付きリリースビルド用スクリプト（`release-build.bat` / `.ps1`、
-  `version.properties`）。詳細は README.md「リリースビルド・Google Play公開」参照。
-- `config/detekt/detekt.yml`: detekt静的解析のルール設定（`MagicNumber`無効、`LongMethod`閾値60等）。
-  `buildUponDefaultConfig = true` の指定自体はこのファイルではなくルート `build.gradle.kts` の
-  `subprojects` ブロックにある。
-- `templates/`: 配布先プロジェクトが複製して使うテンプレート
-  （`app-guardrail-template.yaml`、`model-risk-register-template.csv`）。
-- `PLAN.md`: このアプリの要件・API仕様メモ・アーキテクチャ方針の原初依頼内容。実装済み内容の
-  最新版は DESIGN.md を参照（矛盾する場合は DESIGN.md を優先する）。
+個別ファイルの内容は各正本が持ちます。ここでは「知りたいこと → 参照先」だけを示します。
+
+| 知りたいこと | 参照先 |
+| --- | --- |
+| 実装済み内容・設計意図・制約（実装の正本） | `docs/records/managed/DESIGN.md` |
+| 未対応事項・人手検証待ち項目 | `docs/records/managed/BACKLOG.md` |
+| セットアップ・ビルド・実行・リリース手順、既知の未確認事項・制約 | `README.md` |
+| 実機へのインストール手順（Wi-Fi経由のADBペア設定、`ANDROID_SERIAL`） | `docs/INSTALL.md` |
+| 利用者向けの操作説明（UIの表示文言を変えたら追随させる） | `docs/USER_GUIDE.md` |
+| 利用者向けの変更点・問い合わせ窓口・クローズドテスト参加手順 | `docs/RELEASE_NOTES.md` / `docs/SUPPORT.md` / `docs/CLOSED_TEST.md` |
+| Google Play掲載情報・プライバシーポリシー・アイコン | `docs/store/`（索引は `docs/store/README.md`） |
+| 脆弱性報告の受付方針 | `SECURITY.md`（GitHubがSecurity policyとして参照するためルートから移動しない） |
+| 開発プロセス・ブランチ規約・レビュー要件・Issue受付方針 | `CONTRIBUTING.md` |
+| 運用ルール・ドキュメントの変更履歴 | `CHANGELOG.md` |
+| 要件・API仕様の背景（原初の依頼内容） | `PLAN.md`（実装済み内容は DESIGN.md を優先する） |
+| 記録ファイルの記述仕様（唯一の参照元） | `docs/records/spec/FORMAT.md` |
+| 他リポジトリへの配布・導入手順 | `docs/guidelines/`、`templates/` |
+
+設定ファイルの所在（変更時に片方だけ直す事故が起きやすい箇所）:
+
+- detekt: `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
+  ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所。
+- markdownlint: `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは対象外、MD060無効、
+  MD024は`siblings_only`、`**/*.local.md` は検査対象外）。
+- リリースビルド: `scripts/release-build.bat` / `.ps1` と `scripts/version.properties`。
+- GitHub: `.github/ISSUE_TEMPLATE/`（Issueフォームと空Issueの無効化）、
+  `.github/PULL_REQUEST_TEMPLATE.md`（品質ゲート実行・資格情報混入確認のチェックリスト）。
+  外部からのPull Requestは受け付けていない（`CONTRIBUTING.md` 参照）。
 
 ### よく使うコマンド
 
 Gradle Wrapper経由ですべてリポジトリルートから実行します（`gradlew.bat` はWindows用）。
-品質ゲートとして実行するコマンドは後述「本リポジトリの品質ゲート定義」が正本です。
-
-```bash
-./gradlew assembleDebug            # デバッグAPKビルド
-./gradlew ktlintFormat             # ktlint違反の自動修正（品質ゲートには含めない）
-```
+品質ゲートのコマンドは後述「本リポジトリの品質ゲート定義」、ビルド・実行手順の詳細は `README.md`、
+実機インストール手順は `docs/INSTALL.md` が正本です。ここには、そちらに無い操作と制約だけを置きます。
 
 単一テストクラス・メソッドのみ実行する場合は `--tests` を使います（`core` は素の `test`
 タスク、`mobile`/`wear` は `testDebugUnitTest` タスクです）。
@@ -180,31 +140,19 @@ Compose画面）はテスト対象外です。ロジックを追加する際は�
 クラス・objectへ置くと検証可能になります（detektの`LongMethod`/`TooManyFunctions`回避にもなります。
 DESIGN.md「実装制約 > 技術制約」参照）。
 
-`mobile` と `wear` はそれぞれ独立した application モジュールで、同一の `applicationId`
-（`com.sesamiwear.mobile`）を共有します（BL-090）。**インストール先のデバイス種別に応じて
-実行するタスクが異なります。** 同一 `applicationId` のため、1台のデバイスに両方は入りません
-（後から入れた方が前のものを置き換えます）。
+`mobile` と `wear` は同一の `applicationId`（`com.sesamiwear.mobile`）を共有します（BL-090）。
+**インストール先のデバイス種別に応じて実行するタスクが異なり、1台のデバイスに両方は入りません**
+（後から入れた方が前のものを置き換えます）。同時接続時は `ANDROID_SERIAL` でインストール先を1台へ
+固定します。リリースAABも同じ理由で2つ生成が必要です（`versionCode` は `mobile` が1始まり、
+`wear` が1001始まりの独立系列。`scriptselease-build.bat` は1回の実行で両方をビルドします）。
 
 ```bash
-ANDROID_SERIAL=<スマホのデバイスID>       ./gradlew :mobile:installDebug
-ANDROID_SERIAL=<ウォッチのデバイスID>     ./gradlew :wear:installDebug
-```
+ANDROID_SERIAL=<スマホのデバイスID>    ./gradlew :mobile:installDebug
+ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
-スマホとスマートウォッチを同時接続している場合は、`ANDROID_SERIAL` でインストール先を1台へ
-固定してデバイスごとに実行します（手順の詳細は [docs/INSTALL.md](docs/INSTALL.md)）。
-
-リリースAABは2つ生成する必要があります。`scripts\release-build.bat` は1回の実行で両方を
-ビルドします（`versionCode` は `mobile` が1始まり、`wear` が1001始まりの独立系列）。
-
-```bash
 ./gradlew :mobile:bundleRelease   # → Play Consoleの電話・タブレット系トラックへ
 ./gradlew :wear:bundleRelease     # → Play ConsoleのWear OS専用トラックへ
 ```
-
-detekt設定は `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
-ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所に分かれています。
-markdownlintの設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、
-MD060無効、MD024は`siblings_only`、`**/*.local.md` は検査対象外）です。
 
 ## 本リポジトリの品質ゲート定義（MUST）
 
@@ -225,8 +173,8 @@ MD060無効、MD024は`siblings_only`、`**/*.local.md` は検査対象外）で
 - 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する
   （定義とドキュメントの乖離を禁止）
 - ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
-- 本リポジトリにはGitHub Actionsのワークフロー定義がない（`.github/workflows/` ディレクトリ自体が
-  存在しない、2026-09-05確認）。上記コマンドのローカル実行が唯一の品質ゲート
+- 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
+  （経緯は `CONTRIBUTING.md`「Markdownlintのローカル実行」参照）
 - Wear OS実機（Pixel Watch）およびSesame実機を伴う検証、実資格情報（apikey / secretKey）を用いる
   疎通確認は自動実行の対象外とし、`BACKLOG.md` へ `区分: 人手検証` として記録する。自動品質ゲートの
   合否判定からは除外する
