@@ -91,10 +91,16 @@
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
     （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
     `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
-  - 詳細な取得手順の説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`（`HelpDialog`）へ
-    集約し、`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ遷移する
-    `TextButton`（`Intent.ACTION_VIEW`）を含む（BL-057, BL-059）。uuid・apikey・secretKeyは
-    いずれもこのページから取得する（Sesameアプリの「鍵をシェア」QRコードは使わない運用）。
+  - 詳細な説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`へ集約する（BL-057, BL-059）。
+    ヘルプは**メニュー形式**で、項目一覧（`HelpMenuDialog`）と本文（`HelpTopicDialog`、「戻る」で
+    一覧へ戻る）の2段構成にする（BL-113）。文言と並び順はAndroid非依存の
+    `mobile.help.HelpContent`（`HelpTopic` / `HelpLink`、ユニットテスト対象）が保持し、
+    (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
+    遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの
+    ページから取得する。Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
+    (2)「Sesameが無くてもデモで試す」、(3)「登録後のウォッチでの使い方」の3項目を持つ。
+    デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
+    体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
   - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
     `LaunchedEffect`と`delay`で2秒間表示する（BL-024）。デバイス0件時は
     「まだSesameが登録されていません」を表示する（BL-056）。

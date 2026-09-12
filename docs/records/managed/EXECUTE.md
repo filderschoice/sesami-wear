@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-13 16:50
+  summary: mobileのヘルプをメニュー形式へ拡張しデモモードへの導線を追加した
+  details:
+    変更内容: >
+      従来のヘルプは値の取得方法だけを説明する単一のAlertDialogで、資格情報が未登録でもwear側で
+      デモ（BL-109）を操作できることに気づく導線がmobile側に無かった。文言をAndroid非依存の
+      `mobile.help.HelpContent`（HelpTopic / HelpLink）へ切り出し、項目一覧（HelpMenuDialog）と
+      本文（HelpTopicDialog、「戻る」で一覧へ復帰）の2段構成へ変更した。項目は「値の取得方法」
+      （SESAME Biz 開発者ページへのリンクを維持し、入力欄が半角のみを受け付ける旨を追記）・
+      「Sesameが無くてもデモで試す」（タイル追加からデモ選択・施錠解錠・コンプリケーション表示までの
+      手順）・「登録後のウォッチでの使い方」の3件。項目数・順序・重複・リンクの有無・デモ項目の
+      必須語をユニットテストで検証する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機でのダイアログ表示と
+      リンク遷移の確認は人手検証（BL-115）として残す。
+    関連ID:
+      - BL-113
+
 - date: 2026-09-13 16:05
   summary: 資格情報入力欄へ全角文字が入らないよう入力値を正規化した
   details:
