@@ -262,8 +262,10 @@ npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 
 Claude Code が必要になった時点で読み込むオンデマンド手順です（常時読み込みしません）。
 
-- `autonomous-loop/SKILL.md`: 自律ループ実行モードの実行手順
-- `docs-consistency-review/SKILL.md`: ドキュメント整合性レビューの手順
+- `autonomous-loop/SKILL.md`: 自律ループ実行モードの実行手順（配布元と共有）
+- `docs-consistency-review/SKILL.md`: ドキュメント整合性レビューの手順（配布元と共有）
+- `guardrail-sync-local/SKILL.md`: ガードレール取り込み時の本リポジトリ固有の事情
+  （配布元の所在、ファイルの三分類、取り込み後の確認事項）。本リポジトリ固有のため配布対象外
 
 ## 例外管理
 
