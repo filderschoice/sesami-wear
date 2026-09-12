@@ -1,49 +1,38 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Claude Code が本リポジトリで作業するときの実行ルールです。リポジトリルートに置かれているため、
+セッション開始時に自動読み込みされます。
 
-このリポジトリでは、Claude Code の応答生成と実装提案に本ガイドを適用します。
-`CLAUDE.md` はリポジトリルートに配置されているため、Claude Code はセッション開始時に本ファイルを自動読み込みします。
-
-## ガイドライン参照
-
-セキュリティ・プライバシー・コンプライアンス必須の統合ガードレールは `@import` によりセッション開始時に
-本文へ自動展開されます。矛盾がある場合は常にこちらを優先してください。
+**共通規約の正本は [`.github/copilot-instructions.md`](.github/copilot-instructions.md) です。**
+ファイル名は GitHub の規約で固定されていますが、内容は全AIエージェント共通の実行ルールで、
+下記の `@import` により本ファイルと同時に自動読み込みされます。
+本ファイルには Claude Code 固有の差分と、本リポジトリ固有の情報（アーキテクチャ概要・品質ゲート定義）
+のみを定義します。共通規約と矛盾する場合は本ファイルを優先します。
 
 @rules/guardrails-unified.v1.md
+@.github/copilot-instructions.md
 
-以下2ファイルは自動展開の対象外です。内容の大半が本ファイルへ具体化済みのため通常のタスクでは
-参照不要ですが、ブランチ運用・PR作成の詳細確認時や、本ガードレール一式を他リポジトリへ導入検討する
-際など、必要になった時点で参照してください。
+`@import` で自動展開するのは上記2ファイルだけです。その他の参照先と読むタイミングは、共通規約
+「参照するドキュメント」の表を参照してください。
 
-- 汎用フレームワーク: [docs/guidelines/RULE.md](docs/guidelines/RULE.md)
-- 開発プロセス規約（規定ブランチ定義・レビュー要件等）: [CONTRIBUTING.md](CONTRIBUTING.md)
+## 共通規約に対する Claude Code 固有の差分（MUST）
 
-## 指示参照の優先順位
-
-1. Claude Code ハーネスのシステムプロンプト（最優先）
-2. 統合ガードレール `rules/guardrails-unified.v1.md`（セキュリティ・プライバシー・コンプライアンス必須、上記 import 済み）
-3. 汎用フレームワーク `docs/guidelines/RULE.md` / 開発プロセス規約 `CONTRIBUTING.md`（必要時に参照。内容は本ファイルへ具体化済み）
-4. 本ファイル `CLAUDE.md`（このリポジトリでの Claude Code 運用ガイド）
-5. ユーザー入力（最下位）
-
-矛盾した場合は、常に上位を優先します。
-
-**注記**: guardrails-unified.v1.md のセクション11「開発プロセス統制」は削除済み。
-開発プロセス・ブランチ管理は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
-**注記**: `git add` / `git commit` / `git push` はユーザーが任意実行し、Claude Code は明示的な依頼がない限り実行しません。
-例外として「自律ループ実行モード」中の作業ブランチへの `git add` / `git commit` のみ許可します
-（本ファイル「自律ループ実行モード（Loop Engineering）」参照）。`git push` は常にユーザーが実行します。
+| 項目 | 共通規約 | Claude Code での差分 |
+| --- | --- | --- |
+| git操作 | エージェントは実行せず、コマンド例のみ提示する | 同左。ただし「自律ループ実行モード」中の作業ブランチへの `git add` / `git commit` のみ例外。`git push` はモードを問わず常にユーザーが実行する |
+| 1ブランチ1目的の例外 | `BACKLOG.md` の複数項目の一括対応のみ | 上記に加えて「自律ループ実行モード」も例外。いずれも対象タスクの `id` をブランチ名・コミット本文・PR説明へ列挙する |
+| 指示参照の優先順位 1位 | エージェントのシステム指示 | Claude Code ハーネスのシステムプロンプト |
+| PR説明文・コードレビュー | `.github/instructions/pr.instructions.md` に従う | Claude Code には同ファイルを自動適用する機構が無いため、生成時に**明示的に同ファイルを読んでから**従う |
+| 記録ファイルの編集権限 | 規定なし | `.claude/settings.json` の `permissions.allow` により権限プロンプトなしで反映される（下記「記録ファイルの権限設定」） |
 
 ## リポジトリの現状とアーキテクチャ概要
 
 ### 現状
 
 Pixel WatchからCANDY HOUSE Sesame 5（+ Hub 3）を操作するAndroid/Wear OSアプリの実装が進行中です
-（品質ゲート「本リポジトリの品質ゲート定義」でいう段階Bの状態。`core` / `mobile` / `wear`
-の3モジュールGradleプロジェクトが存在し、主要機能は実装済み）。実装済み内容・設計意図・制約は
-[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) に、セットアップ・ビルド・実行手順は
-[README.md](README.md) にまとまっています。未対応事項・人手検証待ち項目は
+（`core` / `mobile` / `wear` の3モジュールGradleプロジェクトが存在し、主要機能は実装済み）。
+実装済み内容・設計意図・制約は [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) に、
+セットアップ・ビルド・実行手順は [README.md](README.md) にまとまっています。未対応事項・人手検証待ち項目は
 [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) を参照してください。
 
 実装作業を依頼された場合は、まず上記3ファイル（DESIGN.md / BACKLOG.md / README.md）で現在の実装状況を
@@ -73,114 +62,68 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 ### 主要な処理フロー（Wearable Data Layer API経由）
 
 `core.SesameWearProtocol` が定義するメッセージパス定数を軸に、`mobile`/`wear`間は
-`MessageClient`（コマンド送受信）と`DataClient`（状態同期）の2系統で通信します。
+`MessageClient`（コマンド送受信）と`DataClient`（状態同期）の2系統で通信します。各経路の起点・終点は
+以下のとおりです。処理の詳細（引数・エラー時の挙動・画面仕様）は DESIGN.md の該当節が正本です。
 
-- **施錠/解錠コマンド送信**（`wear` → `mobile`）: Tile操作
-  （`wear.tile.SesameTileActions`）→ `wear.messaging.SesameCommandSender`
-  （`SesameCommandSenderProvider`経由で取得）→ `wear.messaging.MessageClientSesameMessageSender`
-  （`core.SesameMessageSender`のGoogle Play Services実装）が`MessageClient.sendMessage()`で
-  `PATH_LOCK_REQUEST`/`PATH_UNLOCK_REQUEST`へ送信する。
-- **コマンド実行**（`mobile`側）: `mobile.messaging.SesameMessageListenerService.onMessageReceived()`
-  が受信し、`mobile.messaging.SesameCommandHandler.handle(path)`（Android非依存、ユニットテスト対象）
-  が`core.api.SesameApiClient.sendCommand()`（AES-CMAC署名付きPOST）でSesame APIを呼び出す。
-  成功時は`mobile.messaging.SesameStatusSyncer.syncLocked()`が`DataClient.putDataItem()`で
-  `STATUS_DATA_ITEM_PATH`へ最新のロック状態を書き込む。
-- **結果返送**（`mobile` → `wear`）: `SesameCommandResult`（成功/失敗、1バイト）を
-  `MessageClient.sendMessage()`で`PATH_COMMAND_RESULT`へ返送し、`wear`側の
-  `wear.messaging.SesameResultListenerService`が受信、`wear.messaging.SesameResultHandler`が
-  再生すべき`HapticPattern`を判定して`wear.haptics.SesameHapticPlayer`で通知する。
-- **状態表示**（Tile/Complication）: `wear.messaging.SesameStatusSnapshotReader.readLatest()`が
-  `DataClient.dataItems`から`STATUS_DATA_ITEM_PATH`を読み取り、`core.SesameStatusSnapshotFactory`で
-  スナップショット化してTile/Complicationの表示に反映する。他経路（Sesame純正アプリでの操作等）
-  による状態変化はこの仕組みでは検知されない（README.md「既知の未確認事項・制約」参照）。
+| 経路 | 起点 → 終点 | DESIGN.md の該当節 |
+| --- | --- | --- |
+| 施錠/解錠コマンド送信（wear → mobile） | `wear.tile.SesameTileActions` → `wear.messaging.SesameCommandSender` → `PATH_LOCK_REQUEST` / `PATH_UNLOCK_REQUEST` | wear側コマンド送信・結果受信 |
+| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| 状態同期（mobile → wear） | `mobile.messaging.SesameStatusSyncer` → `STATUS_DATA_ITEM_PATH` の DataItem | Data Layer APIプロトコル定義 |
+| 結果返送（mobile → wear） | `PATH_COMMAND_RESULT` → `wear.messaging.SesameResultListenerService` → `SesameResultHandler` → `wear.haptics.SesameHapticPlayer` | wear側コマンド送信・結果受信 |
+| 状態表示（Tile/Complication） | `wear.messaging.SesameStatusSnapshotReader` → `core.SesameStatusSnapshotFactory` → Tile/Complication | Tile / Complication |
 
-上記は対象デバイス1台分の流れです。本アプリは複数のSesameデバイスを扱うため、実際には以下が加わります
-（詳細は DESIGN.md「複数Sesameデバイス対応方針」参照）。
+着手前に知っておく必要がある制約（詳細は DESIGN.md「複数Sesameデバイス対応方針」）:
 
-- コマンド・状態取得の各メッセージは、対象デバイスの`uuid`をペイロードへ載せる
+- 本アプリは複数のSesameデバイスを扱うため、各メッセージは対象デバイスの`uuid`をペイロードへ載せる
   （`core.SesameWearProtocol.encodeDeviceUuid` / `decodeDeviceUuid`）。`ALL_DEVICES_TARGET_UUID`
   （`"__all_devices__"`）は「登録済み全デバイス」を表す特別値で、`wear.action.SesameActionTargetResolver`
-  が解決した全uuidへwear側が個別にメッセージを送る（mobile側は単一デバイス処理をN回受けるだけ）。
-- Tile / Complicationは、インスタンス固有のID（`tileId` / `complicationInstanceId`）ごとに対象デバイスを
-  `wear.tile.TileDeviceAssignmentStore` / `wear.complication.ComplicationDeviceAssignmentStore`へ
-  永続化する（機密情報を含まないため非暗号化の`SharedPreferences`）。
-- 状態取得は`PATH_STATUS_REQUEST`のFire-and-forget送信で、結果は返らず`STATUS_DATA_ITEM_PATH`の
-  DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けてTile/Complicationの
-  再描画を要求する）。
+  が解決した全uuidへwear側が個別に送る（mobile側は単一デバイス処理をN回受けるだけ）。
+- 状態取得（`PATH_STATUS_REQUEST`）はFire-and-forget送信で結果が返らない。`STATUS_DATA_ITEM_PATH`の
+  DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けて再描画を要求する）。
+- 他経路（Sesame純正アプリでの操作等）による状態変化は検知されない
+  （README.md「既知の未確認事項・制約」参照）。
 - mobile側は`mobile.messaging.CommandDebouncer`が同一uuidへの2秒以内の重複コマンドを無視する
   （Tile連打による多重送信・多重ハプティクスの防止）。
+- Tile / Complicationの対象デバイスは、インスタンス固有のID（`tileId` / `complicationInstanceId`）ごとに
+  非暗号化の`SharedPreferences`へ永続化する（機密情報を含まないため）。
 
-### ディレクトリと参照関係
+### 参照先マップ
 
-- `CLAUDE.md`（本ファイル）: Claude Code 向け運用ルールのエントリポイント。冒頭の `@import` で
-  `rules/guardrails-unified.v1.md` をセッション開始時に自動読み込みする（`docs/guidelines/RULE.md` /
-  `CONTRIBUTING.md` は内容を具体化済みのため参照リンクのみで自動読み込み対象外）。矛盾時の優先順位は
-  上記「指示参照の優先順位」を参照。
-- `README.md`: 冒頭がアプリ概要と利用者向けドキュメントへの導線、以降がセットアップ・ビルド・実行・
-  テスト手順、リリースビルド手順、プロジェクト構成、既知の未確認事項・制約の一次情報源。
-- `SECURITY.md`: 脆弱性報告の受付方針（対象範囲・非公開の報告経路・サポート対象バージョン）。
-  GitHubがSecurity policyとして参照するため、リポジトリルートから移動しない。
-- `docs/INSTALL.md`: スマホ・スマートウォッチへの実機インストール手順の一次情報源（Wi-Fi経由の
-  ADBペア設定、`ANDROID_SERIAL`によるインストール先の指定、Google Play経由の想定手順）。
-- `docs/USER_GUIDE.md`: アプリ利用者向けの操作ガイド（資格情報の登録、Tile/Complicationの設定、
-  施錠/解錠操作、状態表示の更新タイミング、トラブル時の確認事項）。UIの表示文言を変更した場合は
-  本ファイルの記述も追随させる。
-- `docs/CLOSED_TEST.md`: Google Playのクローズドテストへ参加するテスター向けの手順（Googleグループ
-  への参加、オプトイン、インストール、テスト期間中の協力依頼、退会方法）。X・Qiitaでの募集からの
-  導線先となる単一の窓口（BL-107）。GoogleグループURLとオプトインURLはPlay Console側のトラック
-  作成後（BL-106）に確定するため、現時点ではプレースホルダを含む。
-- `docs/SUPPORT.md`: 利用者向けのアップデート内容の確認先（`docs/RELEASE_NOTES.md`を一次情報とし、
-  GitHub Releases・Google Playの「新機能」を併記）と問い合わせ窓口・サポート対象範囲。
-- `docs/RELEASE_NOTES.md`: アプリのバージョンごとの変更点（利用者向け）。利用者に影響する変更を
-  行った場合に追記する。`CHANGELOG.md`（リポジトリ運用ルール・ドキュメントの変更履歴）および
-  `docs/records/managed/EXECUTE.md`（コード修正1件ごとの実施記録）とは記録先が異なる。
-- `.github/ISSUE_TEMPLATE/`: Issueフォーム（`bug_report.yml` / `feature_request.yml` /
-  `question.yml`）と`config.yml`（空Issueの無効化、脆弱性報告・サポート情報・リリースノートへの導線）。
-- `.github/PULL_REQUEST_TEMPLATE.md`: PR説明の既定構成（本ファイル「PR説明文・コードレビューの
-  言語設定」に対応）と、品質ゲート実行・資格情報混入確認のチェックリスト。開発者・AIエージェント
-  専用（外部からのPull Requestは受け付けない。`CONTRIBUTING.md`「受け付けている報告と、
-  受け付けていないもの」参照）。
-- `core/` / `mobile/` / `wear/`: 3モジュールのソース本体（上記「モジュール構成」参照）。
-- `.github/copilot-instructions.md`: GitHub Copilot 向けの同等ルール。CLAUDE.md と同一のガードレールに
-  基づくが別ファイルのため、CLAUDE.md の内容を変更した場合は手動で同期させる必要がある
-  （本ファイル末尾「ガイドライン更新」参照）。
-- `.github/instructions/pr.instructions.md`: Copilot Chat のPR説明文生成・レビュー生成にパス限定で
-  適用される指示（`.vscode/settings.json` から参照）。
-- `docs/records/`: AIエージェントが自動更新する記録群。`spec/FORMAT.md` が記述仕様の唯一の参照元。
-  `managed/BACKLOG.md` / `DESIGN.md` / `EXECUTE.md` はユーザーの手動編集を想定しておらず、
-  `COPILOT_RECORDS:BEGIN` / `END` の間のみプロンプト指示経由で更新する。
-- `docs/guidelines/`: 本ガードレール一式を他リポジトリへ配布・導入するための汎用ガイド
-  （`RULE.md` はルール本体、`ADOPTION.md` は導入手順）。
-- `docs/store/`: Google Play Console提出用のストア掲載情報の原本。`README.md`が索引（Play Consoleの
-  入力項目との対応・文字数上限・更新手順）で、`STORE_LISTING.md`（掲載文面）・`PRIVACY_POLICY.md`
-  （公開版のプライバシーポリシー。Public公開後のGitHub上のURLをPlay Consoleへ登録する）・
-  `images/`（512x512のアイコン）を持つ。
-- `scripts/`: バージョン管理付きリリースビルド用スクリプト（`release-build.bat` / `.ps1`、
-  `version.properties`）。詳細は README.md「リリースビルド・Google Play公開」参照。
-- `config/detekt/detekt.yml`: detekt静的解析のルール設定（`MagicNumber`無効、`LongMethod`閾値60等）。
-  `buildUponDefaultConfig = true` の指定自体はこのファイルではなくルート `build.gradle.kts` の
-  `subprojects` ブロックにある。
-- `templates/`: 配布先プロジェクトが複製して使うテンプレート
-  （`app-guardrail-template.yaml`、`model-risk-register-template.csv`）。
-- `PLAN.md`: このアプリの要件・API仕様メモ・アーキテクチャ方針の原初依頼内容。実装済み内容の
-  最新版は DESIGN.md を参照（矛盾する場合は DESIGN.md を優先する）。
+個別ファイルの内容は各正本が持ちます。ここでは「知りたいこと → 参照先」だけを示します。
+
+| 知りたいこと | 参照先 |
+| --- | --- |
+| 実装済み内容・設計意図・制約（実装の正本） | `docs/records/managed/DESIGN.md` |
+| 未対応事項・人手検証待ち項目 | `docs/records/managed/BACKLOG.md` |
+| セットアップ・ビルド・実行・リリース手順、既知の未確認事項・制約 | `README.md` |
+| 実機へのインストール手順（Wi-Fi経由のADBペア設定、`ANDROID_SERIAL`） | `docs/INSTALL.md` |
+| 利用者向けの操作説明（UIの表示文言を変えたら追随させる） | `docs/USER_GUIDE.md` |
+| 利用者向けの変更点・問い合わせ窓口・クローズドテスト参加手順 | `docs/RELEASE_NOTES.md` / `docs/SUPPORT.md` / `docs/CLOSED_TEST.md` |
+| Google Play掲載情報・プライバシーポリシー・アイコン | `docs/store/`（索引は `docs/store/README.md`） |
+| 脆弱性報告の受付方針 | `SECURITY.md`（GitHubがSecurity policyとして参照するためルートから移動しない） |
+| 開発プロセス・ブランチ規約・レビュー要件・Issue受付方針 | `CONTRIBUTING.md` |
+| 運用ルール・ドキュメントの変更履歴 | `CHANGELOG.md` |
+| 要件・API仕様の背景（原初の依頼内容） | `PLAN.md`（実装済み内容は DESIGN.md を優先する） |
+| 記録ファイルの記述仕様（唯一の参照元） | `docs/records/spec/FORMAT.md` |
+| 他リポジトリへの配布・導入手順 | `docs/guidelines/`、`templates/` |
+
+設定ファイルの所在（変更時に片方だけ直す事故が起きやすい箇所）:
+
+- detekt: `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
+  ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所。
+- markdownlint: `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは対象外、MD060無効、
+  MD024は`siblings_only`、`**/*.local.md` は検査対象外）。
+- リリースビルド: `scripts/release-build.bat` / `.ps1` と `scripts/version.properties`。
+- GitHub: `.github/ISSUE_TEMPLATE/`（Issueフォームと空Issueの無効化）、
+  `.github/PULL_REQUEST_TEMPLATE.md`（品質ゲート実行・資格情報混入確認のチェックリスト）。
+  外部からのPull Requestは受け付けていない（`CONTRIBUTING.md` 参照）。
 
 ### よく使うコマンド
 
 Gradle Wrapper経由ですべてリポジトリルートから実行します（`gradlew.bat` はWindows用）。
-
-```bash
-./gradlew ktlintCheck              # コードスタイル（ktlint）
-./gradlew detekt                   # 静的解析（detekt）
-./gradlew lintDebug                # Android Lint
-./gradlew testDebugUnitTest test   # 単体テスト（core/mobile/wear全モジュール）
-./gradlew assembleDebug            # デバッグAPKビルド
-```
-
-上記5コマンドが本リポジトリの品質ゲート（後述「本リポジトリの品質ゲート定義」段階B）です。
-ktlintの違反は `./gradlew ktlintFormat` で自動修正できます（品質ゲートには含めません）。
-資格情報の設定手順、リリースビルド（署名・ProGuard/R8・`scripts/release-build.bat`）は
-[README.md](README.md) を参照してください。
+品質ゲートのコマンドは後述「本リポジトリの品質ゲート定義」、ビルド・実行手順の詳細は `README.md`、
+実機インストール手順は `docs/INSTALL.md` が正本です。ここには、そちらに無い操作と制約だけを置きます。
 
 単一テストクラス・メソッドのみ実行する場合は `--tests` を使います（`core` は素の `test`
 タスク、`mobile`/`wear` は `testDebugUnitTest` タスクです）。
@@ -197,338 +140,82 @@ Compose画面）はテスト対象外です。ロジックを追加する際は�
 クラス・objectへ置くと検証可能になります（detektの`LongMethod`/`TooManyFunctions`回避にもなります。
 DESIGN.md「実装制約 > 技術制約」参照）。
 
-`mobile` と `wear` はそれぞれ独立した application モジュールで、同一の `applicationId`
-（`com.sesamiwear.mobile`）を共有します（BL-090）。**インストール先のデバイス種別に応じて
-実行するタスクが異なります。** 同一 `applicationId` のため、1台のデバイスに両方は入りません
-（後から入れた方が前のものを置き換えます）。
+`mobile` と `wear` は同一の `applicationId`（`com.sesamiwear.mobile`）を共有します（BL-090）。
+**インストール先のデバイス種別に応じて実行するタスクが異なり、1台のデバイスに両方は入りません**
+（後から入れた方が前のものを置き換えます）。同時接続時は `ANDROID_SERIAL` でインストール先を1台へ
+固定します。リリースAABも同じ理由で2つ生成が必要です（`versionCode` は `mobile` が1始まり、
+`wear` が1001始まりの独立系列。`scriptselease-build.bat` は1回の実行で両方をビルドします）。
 
 ```bash
-ANDROID_SERIAL=<スマホのデバイスID>       ./gradlew :mobile:installDebug
-ANDROID_SERIAL=<ウォッチのデバイスID>     ./gradlew :wear:installDebug
-```
+ANDROID_SERIAL=<スマホのデバイスID>    ./gradlew :mobile:installDebug
+ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
-スマホとスマートウォッチを同時接続している場合は、`ANDROID_SERIAL` でインストール先を1台へ
-固定してデバイスごとに実行します（手順の詳細は [docs/INSTALL.md](docs/INSTALL.md)）。
-
-リリースAABは2つ生成する必要があります。`scripts\release-build.bat` は1回の実行で両方を
-ビルドします（`versionCode` は `mobile` が1始まり、`wear` が1001始まりの独立系列）。
-
-```bash
 ./gradlew :mobile:bundleRelease   # → Play Consoleの電話・タブレット系トラックへ
 ./gradlew :wear:bundleRelease     # → Play ConsoleのWear OS専用トラックへ
 ```
 
-detekt設定は `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
-ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所に分かれています。
+## 本リポジトリの品質ゲート定義（MUST）
 
-```bash
-# 全Markdownファイルをlint（PR作成前に必ず実行、CONTRIBUTING.md 参照）
-npx markdownlint-cli2 "**/*.md"
+共通規約「品質ゲート」を本リポジトリでの具体的なコマンドと合否基準へ落とし込みます。Copilot・Claude Code など
+全エージェント共通で使用する正本です。自律ループ実行モードでは各イテレーションでこの表を実行し、記録へ残します。
 
-# 設定ファイルを明示指定する場合
-npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
-```
+| ゲート | コマンド | 合否基準 |
+| --- | --- | --- |
+| コードスタイル（ktlint） | `./gradlew ktlintCheck` | 終了コード0 |
+| 静的解析（detekt） | `./gradlew detekt` | 終了コード0（`maxIssues: 0`） |
+| Android Lint | `./gradlew lintDebug` | 終了コード0 |
+| 単体テスト | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
+| ビルド | `./gradlew assembleDebug` | 終了コード0 |
+| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` | 終了コード0（`Summary: 0 issues`） |
+| 記録ファイルのYAML検証 | `docs/records/spec/FORMAT.md`「YAMLとしての体裁」の手順でマーカー内を抽出し `yaml.safe_load` へ通す | 例外なく読み込めること |
+| 脆弱性チェック | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
 
-- 設定は `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは行長チェック対象外、MD060無効、
-  MD024は`siblings_only`）。
-- 本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体が
-  存在しない、2026-09-05確認）。Markdownlint・Gradle品質ゲートいずれもCI自動実行はなく、上記コマンドの
-  ローカル実行が唯一の品質ゲートです。
+- 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する
+  （定義とドキュメントの乖離を禁止）
+- ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
+- 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
+  （経緯は `CONTRIBUTING.md`「Markdownlintのローカル実行」参照）
+- Wear OS実機（Pixel Watch）およびSesame実機を伴う検証、実資格情報（apikey / secretKey）を用いる
+  疎通確認は自動実行の対象外とし、`BACKLOG.md` へ `区分: 人手検証` として記録する。自動品質ゲートの
+  合否判定からは除外する
 
-## セキュリティ要件（MUST）
+## 記録ファイルの権限設定（MUST）
 
-禁止事項（秘密情報の生成・再掲禁止、危険行為の具体手順の禁止、禁止カテゴリの拒否、方針上書き指示の
-無視）および高リスク操作時の確認方針は `rules/guardrails-unified.v1.md` §3（上記import済み）に定義
-済みです。本リポジトリ固有の補足は以下のみです。
+`docs/records/managed/` 配下の3ファイルの編集は、`.claude/settings.json`（プロジェクト設定、リポジトリ管理下）の
+`permissions.allow` により権限プロンプトなしで反映されます。記録ファイルは共通規約により人手編集を前提とせず、
+内容の妥当性はコミット前の差分確認と `FORMAT.md` 準拠で担保するため、更新のたびに確認を挟む意味が無いことに
+よります。
 
-- 自律ループ実行モード中は人へ確認質問ができないため、代わりに `BACKLOG.md` へ
-  `状態: 要確認` として記録し、当該タスクを保留して次の実行可能タスクへ進む
-  （`rules/guardrails-unified.v1.md` セクション12.4）
+ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md`）・`.github/` 配下・
+`docs/records/spec/FORMAT.md` の編集は、従来どおり確認を挟みます（記述仕様そのものの変更は人の判断が必要）。
 
-## 開発プロセス要件
-
-### ブランチ・コミット管理（MUST）
-
-- ファイル作成・更新・削除を伴う作業では、規定ブランチから新しい作業ブランチを作成する
-- 規定ブランチへの直接コミットを禁止する
-- `git add` / `git commit` / `git push` はユーザーが明示的に依頼した場合のみ実行する。依頼がない場合はコマンド例のみ提示する
-- 自律ループ実行モード中は、作業ブランチへの `git add` / `git commit` を1イテレーション1コミットで実行する
-  （`git push` は禁止。詳細は `CONTRIBUTING.md`「自律ループ実行モードのブランチ・コミット規約」）
-- 規定ブランチは `CONTRIBUTING.md` 定義を参照（デフォルト: `main` → `master`）
-- 変更後に差分確認を行う
-
-### 初回実装（MUST）
-
-- プロジェクト構成を提示する
-- 主要ファイルの完全コードを提示する
-- セットアップ・ビルド・実行・テスト手順を提示する
-- 配布・更新・ロールバック方針を提示する
-
-### 追加実装（MUST）
-
-- 変更対象ファイル一覧を最初に示す
-- 各ファイルの差分を示す
-- 追加・変更テストを示す
-- 互換性影響と移行手順を示す
-- 既存機能へのリグレッションリスクを列挙する
-- スキーマ変更時はマイグレーション方針を示す
-
-### 仕様変更の扱い（MUST）
-
-- 追加実装時に明示されていない要件は既存仕様を維持する（暗黙の仕様変更を禁止）
-- 破壊的変更がある場合は段階的移行案を示す
+自律ループ実行モードでは、個別の指示がなくても各イテレーションの完了を記録ファイルの更新契機とします。
 
 ## 自律ループ実行モード（Loop Engineering）
 
-ユーザーの明示指示により、Claude Code が人の応答を待たずに複数イテレーションを連続実行して実装を
-進める運用モードです。統制要件は `rules/guardrails-unified.v1.md` セクション12、ブランチ・コミット規約は
-`CONTRIBUTING.md`「自律ループ実行モードのブランチ・コミット規約」を参照します。本セクションは
-Claude Code の実行手順を定義します。
+ユーザーの明示指示により、人の応答を待たずに複数イテレーションを連続実行する運用モードです。
+**Claude Code 固有であり Copilot は対象外です**（Copilot は常に git 操作を実行しません）。
 
 ### 適用条件（MUST）
 
-- ユーザーが自律ループ実行モードの開始を明示的に指示していること
-- 本モードは指示されたスコープ内でのみ有効で、ループ終了と同時に通常の対話モードへ戻る
+- ユーザーが本モードの開始を明示的に指示していること
+- 指示されたスコープ内でのみ有効で、ループ終了と同時に通常の対話モードへ戻る
 - 適用条件を満たさない場合、`git add` / `git commit` を実行してはならない
 
-### 開始手順（MUST）
-
-1. `git branch --show-current` で現在ブランチを確認し、規定ブランチ上であれば
-   `feature/loop-<YYYYMMDD>-<主題>` 形式の作業ブランチを作成する
-2. `PLAN.md` および `docs/records/managed/DESIGN.md` を読み、実装対象の要件を確認する
-3. `PLAN.md` の要件を実行可能な粒度のタスクへ分解し、`docs/records/managed/BACKLOG.md` へ登録する
-   （この分解自体を第1イテレーションとして扱う）
-4. 分解時に、自動検証できないタスク（実機検証・実資格情報を要する検証）は
-   `区分: 人手検証` として登録し、ループの完了判定から除外する
-
-### イテレーション手順（MUST）
-
-1件のタスクにつき以下を1サイクルとして実行し、次のタスクへ進みます。
-
-1. `BACKLOG.md` から次のタスクを選択する（選択規則は後述）
-2. 対象タスクの `状態` を `進行中` へ更新する
-3. 実装・テスト追加を行う
-4. 該当段階の品質ゲートをすべて実行する（「本リポジトリの品質ゲート定義」参照）
-5. 品質ゲートが失敗した場合は修正し再実行する。同一原因で3回連続して解消できない場合はループを停止する
-6. `EXECUTE.md` へ実施記録を追記し、`BACKLOG.md` の完了項目を削除する
-   （設計方針が変わった場合は `DESIGN.md` も更新する）
-7. `git status` と `git diff` で差分を確認し、資格情報・個人情報の混入がないことを検査する
-8. 作業ブランチへコミットする（1イテレーション1コミット、本文に対象タスクの `id` を列挙）
-
-### タスク選択規則（MUST）
-
-- `状態` が `要確認` またはブロック中のタスクは選択しない
-- `依存` に未完了タスクの `id` を含むタスクは選択しない
-- 上記を満たすタスクのうち `優先度` が高い順（`P1` → `P2` → `P3`）に選択する
-- 同一優先度が複数ある場合は `id` の昇順で選択する
-- `区分: 人手検証` のタスクは選択せず、常に保留する
-
-### 出力要件の読み替え（MUST）
-
-本ファイル「出力要件」はチャット応答を前提としています。自律ループ実行モードでは、人がリアルタイムに
-出力を読まないため、以下のとおり出力先を読み替えます。要件そのものは免除されません。
-
-- 「主要ファイルの完全コード提示」「各ファイルの差分提示」→ 実際のファイル編集とコミットをもって充足する
-  （応答本文への全文再掲は不要）
-- 「コミットメッセージ案の提示」→ 実コミットのメッセージをもって充足する
-- 「要件対応表」→ ループ終了時にまとめて提示し、未対応項目は `BACKLOG.md` に残す
-- 「セットアップ・ビルド・実行・テスト手順」→ リポジトリ内のドキュメント（`README.md` 等）へ記載する
-- 各イテレーションの人向け要約は `EXECUTE.md` の記録をもって充足する
-
-### 完了条件（MUST）
-
-以下をすべて満たした時点でループを終了し、ユーザーへ報告します。
-
-- `BACKLOG.md` に `区分: 人手検証` と `状態: 要確認` 以外の未完了タスクが存在しない
-- 該当段階の品質ゲートがすべて成功している
-- `DESIGN.md` が実装済み内容と整合している
-- `PLAN.md` の「次にやりたいこと」の各項目が、完了または人手検証待ちのいずれかに区分されている
-
-### 終了時の報告（MUST）
-
-- 実装した内容の要約と、要件対応表（対応済み/未対応/対象外）
-- 残存する `要確認` 項目と `人手検証` 項目の一覧
-- 作成した作業ブランチ名と、`git push` およびプルリクエスト作成のコマンド例
-- プルリクエスト説明文の案（本ファイル「PR説明文・コードレビューの言語設定」の構成に従う）
-
-## 品質・信頼性要件
-
-### 品質ゲート（MUST）
-
-- フォーマット、静的解析、型検査、テストを実行可能にする
-- 脆弱性チェック（`cargo audit` / `npm audit` など）手順を用意する
-- 実行結果（成功/失敗と根拠）を提示する
-
-### 本リポジトリの品質ゲート定義（MUST）
-
-自律ループ実行モードの合否判定に使用するコマンドを以下に定義します。段階に応じて有効な範囲が変わります。
-
-#### 段階A（Androidプロジェクト作成前の初期段階。本リポジトリでは完了済み、参考として保持）
-
-```bash
-npx markdownlint-cli2 "**/*.md"
-```
-
-#### 段階B（Androidプロジェクト雛形作成後。本リポジトリの現在の段階）
-
-```bash
-./gradlew ktlintCheck
-./gradlew detekt
-./gradlew lintDebug
-./gradlew testDebugUnitTest
-./gradlew assembleDebug
-```
-
-- 段階Bへ移行するイテレーションでは、上記コマンドが実行可能になるようビルド設定
-  （ktlint / detekt プラグイン、テスト依存）を同時に追加する
-- 上記コマンドを変更・追加した場合は本セクションを更新する（定義とスクリプトの乖離を禁止）
-- Wear OS実機（Pixel Watch）およびSesame実機を伴う検証は自動実行の対象外とし、
-  `BACKLOG.md` へ人手検証項目として記録する
-- 実資格情報（apikey / secretKey）を用いる疎通確認は自動実行しない。
-  AES-CMAC署名は RFC 4493 の公開テストベクタとダミー鍵で単体テストし、API通信はモックで検証する
-- ループ中の各イテレーションは、コミット前に該当段階の全コマンドを実行し、成否を `EXECUTE.md` に記録する
-
-### データ保護（MUST）
-
-- 個人情報・機密情報をログに記録しない
-- 外部入力はサニタイズ・バリデーションし、インジェクション対策を行う
-- 外部通信は要件で定義された操作に限定する
-
-### 耐障害性（SHOULD）
-
-- 永続データは破損耐性を考慮して保存設計する
-- 一時ファイル書き込みとアトミック置換で障害耐性を確保する
-- 起動時にデータ検証を行い、異常時は安全なフォールバックを実行する
-
-## ドキュメント管理要件
-
-ドキュメント管理ファイルは `docs/records/` 配下に格納されています。
-
-### records自動更新規約（MUST）
-
-- Claude Code は `docs/records/spec/FORMAT.md` を記述仕様の唯一の参照元として扱う
-- 更新対象は以下とする
-  - `docs/records/managed/BACKLOG.md`
-  - `docs/records/managed/DESIGN.md`
-  - `docs/records/managed/EXECUTE.md`
-- 各記録ファイルは `COPILOT_RECORDS:BEGIN` と `COPILOT_RECORDS:END` の間のみ更新する
-  （マーカー名は Copilot 導入時の命名を継続利用しており、Claude Code を含む全エージェント共通のマーカーです）
-- `BACKLOG.md` / `EXECUTE.md` は YAML の配列要素（`- key: value` 形式）を1件単位で追記・更新・削除する
-- `DESIGN.md` は同一要件の再実装用プロンプトとして文書全体を最新版へ更新する
-- `BACKLOG.md` / `EXECUTE.md` の追加は新着順（先頭追加）で行う
-- `docs/records/spec/FORMAT.md` に定義されていないキーを独自追加しない
-- records配下の記録ファイル本体はユーザ手動編集を前提にしない（必要変更はプロンプト指示経由）
-- 自律ループ実行モードでは、各イテレーションの完了をもって更新契機とする
-  （個別のプロンプト指示がなくても `BACKLOG.md` / `EXECUTE.md` / `DESIGN.md` を更新する）
-
-### 記録対象（MUST）
-
-- `docs/records/managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
-- `docs/records/managed/EXECUTE.md`: コード修正を伴う変更のみ記録（実施済み内容のみ）
-- `docs/records/managed/BACKLOG.md`: 未対応事項、課題、次ステップ
-- `CHANGELOG.md`: リポジトリの運用ルール・ドキュメント・ガードレールの変更履歴
-- `docs/RELEASE_NOTES.md`: アプリ利用者向けのバージョンごとの変更点。利用者に影響する変更
-  （機能追加、UIの変更、不具合修正）を行った場合に追記する（内部リファクタリング・ドキュメントのみの
-  変更は対象外）
-
-### EXECUTE.md記録形式（MUST）
-
-- 日時（`YYYY-MM-DD HH:mm`）、変更概要、変更ファイル、検証コマンドと成否を含める
-- 新しい記録を先頭に追加する（新着順）
-- 既存ログは削除しない
-
-### BACKLOG.md管理（MUST）
-
-- 完了した項目は削除する
-- 完了がコード修正を伴う場合のみ `EXECUTE.md` に記録する
-
-### EXECUTE.md更新対象外（SHOULD）
-
-- `DESIGN.md` のみ変更、または `BACKLOG.md` のみ変更の場合は更新しない
-- これらの変更は `CHANGELOG.md` 更新で十分
-
-## 出力要件
-
-### 言語要件（MUST）
-
-- 生成するファイル内容は、日本人エンジニアが理解しやすいように日本語で記述する
-- ユーザーから別言語の明示指示がある場合のみ、その指示を優先する
-
-### 実装粒度（MUST）
-
-- 実装に直結する粒度で回答する（設計メモではなく実装可能な成果物）
-- 推測で断定しない（未確認事項は「未確認」と明示）
-- 実現困難な要求には理由・代替案・影響範囲を示す
-
-### 品質と互換性（SHOULD）
-
-- 暗黙の仕様変更を避け、既存仕様の維持有無を明記する
-- 破壊的変更がある場合は段階的移行案を示す
-- 再現可能な手順と検証観点を含める
-
-### 要件対応表（MUST）
-
-- 実装完了時に「対応済み/未対応/対象外」を明示する
-- 未対応/対象外には理由と暫定対応を付記する
-- 追加実装時は「今回変更する要件」を明示する（未記載は既存維持）
-
-### コミット要件（MUST）
-
-- 完了時に変更点を要約したコミットメッセージ案を提示する
-- コミットメッセージ案は、コピペしやすいように必ずプレーンテキストのコードブロックで提示する
-- 必要に応じて `git commit -m` のコマンド例も別のコードブロックで提示する
-- Conventional Commits 形式（`feat:` `fix:` `refactor:` `docs:` など）
-- タイトル行に絵文字を含める（例：`docs: 📝 内容更新`）
-- コミット本文には絵文字を含めない
-- ルール変更時は `CHANGELOG.md` 更新を提案する
-- 自律ループ実行モードでは、上記形式のメッセージで実コミットを作成する（案の提示に代える）。
-  本文には対象タスクの `id` を列挙する
-
-### PR説明文・コードレビューの言語設定（MUST）
-
-Claude Code には Copilot の `.github/instructions/*.instructions.md` に相当する
-パス限定の自動適用インストラクション機構がないため、本セクションで直接定義します。
-
-- PR の説明文（Description）は**日本語**で生成する
-- コードレビューのコメント・指摘事項は**日本語**で記述する
-- レビューサマリーは**日本語**で記述する
-- セクション見出し・ラベルも日本語を使用する
-- PR の説明文は以下の構成に従う（`SHOULD`）
-
-```markdown
-## 概要
-（変更内容の簡潔な説明）
-
-## 変更内容
-（箇条書きで主な変更点を列挙）
-
-## 変更理由・背景
-（なぜこの変更が必要か）
-
-## テスト方法
-（動作確認手順）
-
-## 関連事項
-（関連するIssue番号、参考リンクなど）
-```
-
-- コードレビュー時は以下の観点で指摘する（`SHOULD`）
-  - **バグ・ロジック**: 誤った処理、エッジケースの見落とし
-  - **セキュリティ**: OWASP Top 10に基づく脆弱性の有無
-  - **パフォーマンス**: 非効率な処理、N+1問題など
-  - **可読性**: 命名の適切さ、コードの明確さ
-  - **テスト**: テストカバレッジの妥当性
-
-## 例外と保守
-
-### 例外管理
-
-`rules/guardrails-unified.v1.md` §9（上記import済み。理由・責任者・期限の明示、期限付き管理）を
-参照してください。本リポジトリ固有の追加規定はありません。
-
-### ガイドライン更新
-
-- 本ガイドラインの更新時は `rules/guardrails-unified.v1.md` と整合させる
-- 重大な方針変更はレビュー担当の承認後に反映する
-- `.github/copilot-instructions.md` と内容差異が生じた場合は、原則として本ファイルへも同期する
-  （両ファイルは同一のガードレール・運用規約に基づく、対象エージェント別の実行ルールです）
+### 起動方法（MUST）
+
+適用条件を満たしたら、**Skill `autonomous-loop` を起動し、その手順に従ってください**。
+開始手順・イテレーション手順・タスク選択規則・確認質問の代替・出力要件の読み替え・完了条件・終了時の
+報告は同スキルが正本です。手順を記憶や推測で代用せず、必ずスキルを読んでから開始します。
+
+手順をスキルへ分離しているのは、本モードが明示指示時にしか使われないためです。統制要件
+（許可・禁止される操作、停止条件、確認事項の非同期化、秘密情報の取り扱い、監査）は
+`rules/guardrails-unified.v1.md` セクション12として常時読み込みされており、スキルを読み込んでいない
+状態でも禁止事項は有効です。ブランチ・コミット規約は `CONTRIBUTING.md` の同名節が正本です。
+
+## 保守
+
+共通規約の変更は `.github/copilot-instructions.md` へ、Claude Code 固有の変更と本リポジトリ固有の情報は
+本ファイルへ反映します（役割分担の正本は `CONTRIBUTING.md`「エージェント指示ファイルの構成規約」）。
+ガードレール一式の配布元は `C:\Dev\repo\copilot-rules` で、追従判断は同リポジトリの `CHANGELOG.md` を
+参照します。

@@ -1576,7 +1576,8 @@
       - mobile/src/main/res/drawable/ic_launcher_wear_foreground.xml
       - docs/records/managed/BACKLOG.md
     検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
-    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 13 executed, 119 up-to-date）
+    検証結果: >-
+      成功 - BUILD SUCCESSFUL（132 actionable tasks: 13 executed, 119 up-to-date）
     関連ID:
       - BL-041
 
@@ -1598,7 +1599,8 @@
       - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
       - docs/records/managed/BACKLOG.md
     検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
-    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 25 executed, 107 up-to-date）
+    検証結果: >-
+      成功 - BUILD SUCCESSFUL（132 actionable tasks: 25 executed, 107 up-to-date）
     関連ID:
       - BL-040
 
@@ -1620,7 +1622,8 @@
       - wear/src/main/AndroidManifest.xml
       - docs/records/managed/BACKLOG.md
     検証コマンド: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug
-    検証結果: 成功 - BUILD SUCCESSFUL（132 actionable tasks: 22 executed, 110 up-to-date）
+    検証結果: >-
+      成功 - BUILD SUCCESSFUL（132 actionable tasks: 22 executed, 110 up-to-date）
     関連ID:
       - BL-039
 

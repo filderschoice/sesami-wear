@@ -105,10 +105,10 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ./gradlew assembleDebug
 ```
 
-上記5コマンドが本リポジトリの品質ゲート（段階B）です。詳細は
-[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」を参照してください。
-
-Markdownドキュメントの品質チェックは別コマンドです（[CONTRIBUTING.md](CONTRIBUTING.md) 参照）。
+上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
+次のMarkdownチェックを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
+[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
+[CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
@@ -259,7 +259,8 @@ sesami-wear/
   開発プロセス・品質ゲート
 - [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
 - [CHANGELOG.md](CHANGELOG.md): リポジトリの運用ルール・ドキュメントの変更履歴
-- [CLAUDE.md](CLAUDE.md): Claude Code運用ルール（品質ゲート定義を含む）
+- [.github/copilot-instructions.md](.github/copilot-instructions.md): AIエージェント共通の実行ルール（正本）
+- [CLAUDE.md](CLAUDE.md): Claude Code 固有の差分・アーキテクチャ概要・品質ゲート定義
 
 ## ライセンス
 

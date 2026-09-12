@@ -1,65 +1,54 @@
 # ガイドライン（docs/guidelines）
 
-このフォルダには、プロジェクト全体で共有・再利用できるガイドラインが格納されています。
-
-## ファイル一覧
+複数プロジェクトで共有・再利用できるガイドラインを格納しています。
 
 | ファイル | 説明 |
-|---------|------|
-| `RULE.md` | Copilot / Claude Code 運用ルール（汎用版）。複数プロジェクトで再利用可能な指示ガイド |
-| `ADOPTION.md` | 新規・既存リポジトリ向けの導入手順と日常運用ガイド |
+| --- | --- |
+| `RULE.md` | Copilot / Claude Code 運用ルール（汎用版）。基本原則・出力要件・完了条件 |
+| `ADOPTION.md` | 新規・既存リポジトリ向けの導入手順と日常運用ガイド。導入資産一覧の正本 |
 
-## 使い方
+推奨参照順は `RULE.md` → `ADOPTION.md` → プロジェクト側のエージェント指示ファイルです。
 
-### Copilot指示で参照する場合
+## エージェント指示ファイルからの参照方法
 
-`.github/copilot-instructions.md` で以下のように参照します：
+エージェント指示は「共通規約1ファイル + エージェント固有差分」で構成します。共通規約の正本は
+`.github/copilot-instructions.md` で、Copilot は自動読み込み、Claude Code は `CLAUDE.md` の
+`@import` 経由で読み込みます。役割分担は `CONTRIBUTING.md`「エージェント指示ファイルの構成規約」が正本です。
 
-```markdown
-統合ルール `docs/guidelines/RULE.md` で、品質・ドキュメント管理の汎用ルールを確認してください。
-```
-
-### Claude Code指示で参照する場合
-
-`CLAUDE.md` では `@` から始まる import 記法でセッション開始時に自動読み込みできます：
+Claude Code の `CLAUDE.md` は `@` から始まる import 記法でセッション開始時に自動読み込みできます。
 
 ```markdown
-@docs/guidelines/RULE.md
+@rules/guardrails-unified.v1.md
+@.github/copilot-instructions.md
 ```
 
-自動読み込みはセッション開始時のコンテキストを消費するため、対象は配布先ごとに選びます。本リポジトリの
-`CLAUDE.md` は `rules/guardrails-unified.v1.md` のみを `@import` し、`RULE.md` は内容を `CLAUDE.md` へ
-具体化したうえで通常のリンクから参照する構成です（経緯は `CHANGELOG.md` の2026-08-22エントリを参照）。
+自動読み込みはセッションのコンテキストを消費し続けるため、対象は最小限に絞ります。
+方針と現在の構成は `ADOPTION.md`「1.1 `CLAUDE.md` の `@import` について」を参照してください。
 
-### プロジェクト固有の指示を追加する場合
+## プロジェクト固有の指示を追加する場合
 
-プロジェクトのプロンプト（`.github/copilot-instructions.md` または `CLAUDE.md`）で、このガイドラインを参照した上で、プロジェクト特有の制約を追加してください：
+プロジェクトのエージェント指示ファイルで本ガイドラインを参照した上で、固有の制約を追加します。
+以下は記述例（汎用例であり、本リポジトリの構成ではありません）です。
 
 ```markdown
 ## プロジェクト固有制約
 
 - 対応OS: Windows 11
-- 言語: Rust + Tauri + Vue.js
+- 言語・フレームワーク: Rust + Tauri + Vue.js
 - UI フレームワーク: Vuetify
+- 制約: 外部APIの呼び出しは単一のクライアント実装へ集約する
 ```
+
+書く内容は「そのプロジェクトで作業するエージェントが、最初に知らないと誤った実装をしてしまうこと」に
+絞ります。実装済み機能の一覧や未対応事項の件数など、時点によって変わる情報は書かず、参照先
+（`README.md`・`docs/records/managed/*.md`）を示してください。指示ファイルはセッション開始時に
+読み込まれるため、時点情報を書くと更新漏れでそのまま陳腐化します。
 
 ## 更新管理
 
-ガイドラインを更新した場合は、以下を実施してください：
+ガイドラインを更新した場合は、以下を実施してください。
 
 1. `docs/records/managed/DESIGN.md` の再実装用プロンプト設計書を最新化
 2. `CHANGELOG.md` でリリースノートを更新
-3. `.github/copilot-instructions.md` と `CLAUDE.md` の参照情報があれば同期
-
-## 関連ドキュメント
-
-- `docs/records/spec/FORMAT.md`: records 記述仕様
-- `docs/records/managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
-- `docs/records/managed/EXECUTE.md`: 実施済み内容（コード修正を伴う変更）
-- `docs/records/managed/BACKLOG.md`: 未対応事項、課題、次ステップ
-
-## 推奨参照順
-
-1. `RULE.md` で汎用ルールを確認
-2. `ADOPTION.md` で新規導入/既存移行の手順を確認
-3. プロジェクト側 `.github/copilot-instructions.md`（Copilot）または `CLAUDE.md`（Claude Code）に固有制約を反映
+3. 共通規約に関わる変更は `.github/copilot-instructions.md` へ、Claude Code 固有の変更は `CLAUDE.md` へ反映
+   （役割分担は `CONTRIBUTING.md`「エージェント指示ファイルの構成規約」が正本）
