@@ -1,40 +1,37 @@
 # docs/records/ 運用・更新ルール
 
-このディレクトリは、Copilot・Claude Code などのAIエージェントが管理する記録ファイル群を役割ごとに分離して管理します。
+AIエージェント（GitHub Copilot・Claude Code など。以下「エージェント」）が管理する記録ファイル群を、
+役割ごとに分離して管理します。
 
 - `spec/`: 記述仕様（人間向け参照）
-- `managed/`: Copilot・Claude Code などのAIエージェント管理対象の記録本体（手動編集禁止）
+- `managed/`: エージェント管理対象の記録本体（手動編集禁止）
 
-`managed/` 配下の `BACKLOG.md`、`DESIGN.md`、`EXECUTE.md` は、Copilot・Claude Code などのAIエージェントがプロンプト指示の処理実行時に追記・更新・削除する専用ファイルです。ユーザは直接編集しないでください。
+`managed/` 配下の3ファイルは、エージェントがプロンプト指示の処理実行時に追記・更新・削除する専用ファイルです。
+機械可読性・一貫性・自動管理のため手動編集は想定しておらず、誤編集や競合を防ぐため、内容の追加・削除・修正は
+エージェントへのプロンプト指示経由でのみ行ってください。
 
-## 各ファイルの役割と自動管理の流れ
+## 各ファイルの役割
 
-- **managed/BACKLOG.md**: 未対応事項・課題・次ステップを1項目＝1YAMLブロックで管理。Copilot・Claude Code などのAIエージェントが追加・状態変更・削除を行います。
-  コード修正を伴って完了した項目は `managed/EXECUTE.md` へ実施内容を記録します。
-- **managed/DESIGN.md**: 実装済み機能の要件・設計・制約を統合した「再実装用プロンプト設計書（最新版）」として管理します。
-  同一要件をCopilot・Claude Code などのAIエージェントへ再実装依頼できるよう、差分確認結果を反映して文書全体を更新します。
-- **managed/EXECUTE.md**: コード修正を伴う変更の実施記録を1件ごとにYAMLブロックで管理。Copilot・Claude Code などのAIエージェントが追記・更新します。
+| ファイル | 形式 | 更新の流れ |
+| --- | --- | --- |
+| `managed/BACKLOG.md` | YAML（1項目＝1ブロック） | エージェントが追加・状態変更・削除。完了項目は都度削除するため、マーカー内が `[]`（空配列）になることもあります。コード修正を伴って完了した項目は `EXECUTE.md` へ実施内容を記録します |
+| `managed/DESIGN.md` | Markdown 設計書 | 実装済み機能の要件・設計・制約を統合した「再実装用プロンプト設計書（最新版）」。履歴は積み上げず、変更のたびに該当箇所を最新版へ書き換えます（日付を伴う実施記録は `EXECUTE.md` / `CHANGELOG.md` 側） |
+| `managed/EXECUTE.md` | YAML（1件＝1ブロック） | コード修正を伴う変更の実施記録。新着順に追記し、既存ログは削除しません |
 
-## 記述ルール・記述例
+## 記述ルール
 
-- 記述ルールと記述例は [spec/FORMAT.md](spec/FORMAT.md) に集約しています。
-- managed/BACKLOG.md / managed/EXECUTE.md はYAMLレコード形式、managed/DESIGN.md はMarkdown設計書形式で保持します。
-- Copilot・Claude Code などのAIエージェントは各ファイルの `COPILOT_RECORDS:BEGIN` と `COPILOT_RECORDS:END` の間を更新します。
-
-## 編集禁止の理由
-
-- 機械可読性・一貫性・自動管理のため、Copilot・Claude Code などのAIエージェント以外の手動編集は想定していません。
-- 誤編集や競合を防ぐため、内容の追加・削除・修正はCopilot・Claude Code などのAIエージェントのプロンプト指示経由でのみ行ってください。
+- 記述ルールと記述例は [spec/FORMAT.md](spec/FORMAT.md) に集約しています
+  （キーの定義・許容値の唯一の参照元）。
+- 更新するのは各ファイルの `COPILOT_RECORDS:BEGIN` と `COPILOT_RECORDS:END` の間だけです
+  （マーカー名は導入時の命名を継続利用しており、全エージェント共通です）。マーカー自体と外側は変更しません。
 
 ## 参照先
 
-- 詳細な運用ルールやCopilot・Claude Code などのAIエージェントの管理仕様は以下も参照してください。
-  - .github/copilot-instructions.md（Copilot向けリポジトリ運用ガイド・ドキュメント管理要件）
-  - CLAUDE.md（Claude Code向けリポジトリ運用ガイド・ドキュメント管理要件）
-  - docs/guidelines/RULE.md（Copilot・Claude Code などのAIエージェント運用ルール・汎用フレームワーク）
-  - rules/guardrails-unified.v1.md（セキュリティ・プライバシー・ガバナンス統制）
-  - docs/records/spec/FORMAT.md（records配下の記述ルール・記述例）
+- `.github/copilot-instructions.md` — 全エージェント共通の実行ルール・ドキュメント管理要件（正本）
+- `CLAUDE.md` — Claude Code 固有の差分と追加規約
+- `docs/guidelines/RULE.md` — エージェント運用ルール・汎用フレームワーク
+- `rules/guardrails-unified.v1.md` — セキュリティ・プライバシー・ガバナンス統制
 
 ---
 
-ご不明点や運用ルールの変更要望は、管理者またはCopilot・Claude Code などのAIエージェント運用担当までご連絡ください。
+ご不明点や運用ルールの変更要望は、管理者またはエージェント運用担当までご連絡ください。

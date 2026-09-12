@@ -259,7 +259,8 @@ sesami-wear/
   開発プロセス・品質ゲート
 - [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
 - [CHANGELOG.md](CHANGELOG.md): リポジトリの運用ルール・ドキュメントの変更履歴
-- [CLAUDE.md](CLAUDE.md): Claude Code運用ルール（品質ゲート定義を含む）
+- [.github/copilot-instructions.md](.github/copilot-instructions.md): AIエージェント共通の実行ルール（正本）
+- [CLAUDE.md](CLAUDE.md): Claude Code 固有の差分・アーキテクチャ概要・品質ゲート定義
 
 ## ライセンス
 
