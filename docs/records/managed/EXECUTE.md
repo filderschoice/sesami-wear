@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-13 16:05
+  summary: 資格情報入力欄へ全角文字が入らないよう入力値を正規化した
+  details:
+    変更内容: >
+      uuid / apikey / secretKeyの3欄は有効な値がASCII文字のみで構成されるのに対し、日本語IMEでは
+      全角英数字が入力されやすく、見た目で半角と区別できないまま保存されると署名検証がAPI側で
+      失敗する。`CredentialsInputSanitizer`（Android非依存）を追加し、全角ASCII（U+FF01〜U+FF5E）の
+      半角化とダッシュ類の半角ハイフンへの統一を行ったうえで、uuidは英数字とハイフン、apikeyは
+      空白を除くASCII印字可能文字、secretKeyは16進数32文字までへ絞り込む。3欄は`singleLine`と
+      ASCIIキーボード（secretKeyはPassword）を既定にし、`onValueChange`で毎回正規化してから状態へ
+      反映する。日本語を入力する表示名欄は対象外とした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputSanitizer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputSanitizerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機のIMEでの入力確認は
+      人手検証としてBACKLOGへ残す。
+    関連ID:
+      - BL-112
+
 - date: 2026-09-13 15:20
   summary: デモモードの説明文が円形画面の端で見切れる問題を修正した
   details:

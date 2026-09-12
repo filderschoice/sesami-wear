@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -26,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameCredentials
@@ -192,22 +194,31 @@ private fun CredentialsForm(
             label = { Text("表示名（任意）") },
             modifier = Modifier.fillMaxWidth(),
         )
+        // uuid/apikey/secretKeyはいずれもASCII文字のみで構成される。日本語IMEで全角文字が
+        // 入力されると見た目では半角と区別できないまま保存され、署名検証がAPI側で失敗する
+        // 原因になるため、ASCIIキーボードを既定にしたうえで入力値を都度正規化する（BL-112）。
         OutlinedTextField(
             value = formState.uuid,
-            onValueChange = { formState.uuid = it },
+            onValueChange = { formState.uuid = CredentialsInputSanitizer.sanitizeUuid(it) },
             label = { Text("uuid") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = formState.apiKey,
-            onValueChange = { formState.apiKey = it },
+            onValueChange = { formState.apiKey = CredentialsInputSanitizer.sanitizeApiKey(it) },
             label = { Text("apikey") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = formState.secretKeyHex,
-            onValueChange = { formState.secretKeyHex = it },
+            onValueChange = { formState.secretKeyHex = CredentialsInputSanitizer.sanitizeSecretKeyHex(it) },
             label = { Text("secretKey (16進数32文字)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
         )

@@ -77,10 +77,20 @@
   ログ出力（`android.util.Log`等）は一切使用しておらず、平文の資格情報がログへ出力される経路はない。
 - `mobile.credentials.CredentialsInputValidator`: uuid/apikey/secretKeyHexのいずれかが空欄、または
   `secretKeyBytesOrNull`がnullになる不正な鍵は無効と判定する（BL-024, BL-026）。
+- `mobile.credentials.CredentialsInputSanitizer`（Android非依存、ユニットテスト対象）: uuid/apikey/
+  secretKeyの入力値を、入力のたびに有効な値として取り得る形へ正規化する（BL-112）。
+  全角ASCII（U+FF01〜U+FF5E）を半角へ変換し、ダッシュ類（U+2010〜U+2015 / U+2212 / U+30FC）を
+  半角ハイフンへ寄せたうえで、uuidは英数字とハイフン、apikeyは空白を除くASCII印字可能文字、
+  secretKeyは16進数32文字までに絞り込む。日本語IMEで入力された全角英数字は見た目で半角と
+  区別できないまま保存され、署名検証がAPI側で失敗する原因になるため、入力時点で混入経路を塞ぐ。
+  表示名は日本語を入力する項目のため正規化しない。
 - `mobile.credentials.CredentialsSettingsScreen`: 複数デバイスの一覧・追加・編集・削除ができる
   Compose画面（BL-049）。現在の構成:
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
+  - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
+    （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
+    `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
   - 詳細な取得手順の説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`（`HelpDialog`）へ
     集約し、`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ遷移する
     `TextButton`（`Intent.ACTION_VIEW`）を含む（BL-057, BL-059）。uuid・apikey・secretKeyは
