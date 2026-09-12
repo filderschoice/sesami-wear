@@ -296,6 +296,19 @@
 - `wear.display.SesameDisplayUpdateRequester`: Tile/Complicationの再描画要求
   （`TileService.getUpdater` + `ComplicationDataSourceUpdateRequester`）を共通化したもの。
   `SesameStatusListenerService`とデモモードの双方から呼ぶ。
+- 実機検証（BL-110、2026-09-13、Pixel Watch 2 + Pixel 8 Pro）: 登録済みデバイス0台の状態で、
+  デバイス選択画面が「デモ（体験用）」のみを提示すること（「全デバイス」チップは`devices.size >= 2`の
+  条件により非表示）、Tileが初期状態「施錠中／タップで解錠」を表示すること、タップ→解錠確認→
+  「解錠中／タップで施錠」への遷移と再タップでの復帰、デバイス名チップのタップ
+  （`SesameStatusRefreshActivity`）後もTileが崩れないこと、Complicationがデモ状態を表示し状態変更に
+  追随すること（同一文字盤上の実デバイス用Complicationとは独立）を確認した。ハプティクスは
+  `dumpsys vibrator_manager`の履歴で`[0, 80, 40, 80]`ms（`SesameHapticPlayer.SUCCESS_TIMINGS_MS`と
+  一致）の再生完了を確認した。デモ中に通信が発生しないことは、wear成果物の要求パーミッションが
+  `VIBRATE`のみで`INTERNET`を含まないことと、Data Layer送信ログが0件であることで確認した。
+  mobile側へ1台登録するとデモの選択肢が消えて実デバイスのみになり、削除するとデモへ戻ることも
+  確認した。検証は既存のPlay版アプリと登録済み資格情報へ影響を与えないよう、`applicationId`を
+  `com.sesamiwear.mobile.demotest`へ変えた検証専用のデバッグビルドで実施し、終了後に両端末から
+  アンインストールした（ビルド設定の変更はコミットしていない）。
 
 ### ハプティクス
 

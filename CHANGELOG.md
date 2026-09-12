@@ -671,3 +671,27 @@ X・Qiitaでのテスター募集（BL-108）からの導線先となる単一�
 2,429 → 3,230 bytes（+801）となり、合計 45,249 bytes。新スキルの `description` は
 `guardrail-rules-sync`「skill description の圧縮」の指針（リポジトリ名の名乗りを削る、
 本文にある内容の列挙を削る、トリガーとなる依頼の言い回しは残す）に従い 978 → 801 bytes へ整理した。
+
+## 2026-09-13（デモモードの実機検証、BL-110）
+
+BL-110（デモモードのPixel Watch実機確認、`区分: 人手検証`）を、Claude Code が adb 経由で実施しました。
+実機検証そのものは自動品質ゲートの対象外ですが、実デバイスを操作せずに完結する検証であるため、
+ユーザーの指示によりエージェントが代替実施しています。
+
+- 検証は既存のPlay版アプリ・登録済み資格情報・文字盤設定へ影響を与えないよう、`applicationId` を
+  `com.sesamiwear.mobile.demotest` へ変えた検証専用のデバッグビルドで実施した。ビルド設定の一時変更
+  （`-PappIdSuffix` 対応とデバッグ用アプリ名）はコミットせず、検証後に両端末からアンインストールした。
+  デモモードは「mobile側の登録済みデバイスが0台」が前提のため、実機の資格情報を消さずに前提条件を
+  作るには別パッケージ化が必要だった。
+- 確認できた内容は `docs/records/managed/DESIGN.md`「デモモード」の実機検証の項に記録した。
+  デバイス選択画面・Tileの表示と施錠/解錠の往復・状態更新チップ・Complicationの表示と追随・
+  1台登録時のデモ非提示までを確認している。
+- ハプティクスは体感ではなく `dumpsys vibrator_manager` の履歴で、`SesameHapticPlayer` の
+  SUCCESSパターン（`[0, 80, 40, 80]` ms）の再生完了を機械的に確認した。デモ中の無通信は、
+  wear成果物の要求パーミッションに `INTERNET` が無いこととData Layer送信ログ0件で確認した。
+- 検証で用いた資格情報はダミー値（uuid・apikeyは任意文字列、secretKeyは16進32桁のダミー）のみで、
+  実資格情報は入力していない（`rules/guardrails-unified.v1.md` セクション12.5）。
+- `docs/records/managed/BACKLOG.md` から BL-110 を削除した。コード修正を伴わないため
+  `EXECUTE.md` は更新していない。
+- Complicationの枠追加のみ、文字盤の長押し編集が合成入力（`input swipe` / `motionevent`）で
+  反応しないためユーザーに操作を依頼した。その他の操作はすべて adb から実施している。
