@@ -695,3 +695,19 @@ BL-110（デモモードのPixel Watch実機確認、`区分: 人手検証`）�
   `EXECUTE.md` は更新していない。
 - Complicationの枠追加のみ、文字盤の長押し編集が合成入力（`input swipe` / `motionevent`）で
   反応しないためユーザーに操作を依頼した。その他の操作はすべて adb から実施している。
+
+## 2026-09-13（入力正規化・ヘルプのメニュー化・デモ表示の修正、BL-112〜BL-115）
+
+自律ループ実行モードで、ユーザーから指示された3件（mobileの入力欄の全角抑止、mobileヘルプへの
+デモ導線追加、wearのデモモード表示の見切れ修正）を起票・対応しました。コード修正の実施記録は
+`docs/records/managed/EXECUTE.md`、利用者向けの変更点は `docs/RELEASE_NOTES.md`（0.10.0）が正本です。
+
+- `docs/records/managed/BACKLOG.md` へ BL-112（入力欄の全角抑止）・BL-113（ヘルプのメニュー化）・
+  BL-114（デモ説明文の見切れ）を登録し、対応完了に伴い削除した。実機のIMEと画面サイズに依存する
+  確認は BL-115（`区分: 人手検証`）として残している。
+- `docs/records/managed/DESIGN.md` の「資格情報管理」「デモモード」を、
+  `CredentialsInputSanitizer`・`HelpContent`・`DeviceSelectionContent` の追加に合わせて更新した。
+- `docs/USER_GUIDE.md` へ、入力欄が半角のみを受け付けること、ヘルプがメニュー形式になったこと、
+  デモの手順をスマートフォン側のヘルプからも辿れることを追記した（UIの表示文言への追随）。
+- `docs/RELEASE_NOTES.md` の 0.10.0（未リリース）へ「改善」を追加し、ストア掲載用の要約にも
+  2行を追記した。デモモード自体が未リリースのため、BL-114 は修正としては記載していない。
