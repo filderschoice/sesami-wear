@@ -77,14 +77,30 @@
   ログ出力（`android.util.Log`等）は一切使用しておらず、平文の資格情報がログへ出力される経路はない。
 - `mobile.credentials.CredentialsInputValidator`: uuid/apikey/secretKeyHexのいずれかが空欄、または
   `secretKeyBytesOrNull`がnullになる不正な鍵は無効と判定する（BL-024, BL-026）。
+- `mobile.credentials.CredentialsInputSanitizer`（Android非依存、ユニットテスト対象）: uuid/apikey/
+  secretKeyの入力値を、入力のたびに有効な値として取り得る形へ正規化する（BL-112）。
+  全角ASCII（U+FF01〜U+FF5E）を半角へ変換し、ダッシュ類（U+2010〜U+2015 / U+2212 / U+30FC）を
+  半角ハイフンへ寄せたうえで、uuidは英数字とハイフン、apikeyは空白を除くASCII印字可能文字、
+  secretKeyは16進数32文字までに絞り込む。日本語IMEで入力された全角英数字は見た目で半角と
+  区別できないまま保存され、署名検証がAPI側で失敗する原因になるため、入力時点で混入経路を塞ぐ。
+  表示名は日本語を入力する項目のため正規化しない。
 - `mobile.credentials.CredentialsSettingsScreen`: 複数デバイスの一覧・追加・編集・削除ができる
   Compose画面（BL-049）。現在の構成:
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
-  - 詳細な取得手順の説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`（`HelpDialog`）へ
-    集約し、`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ遷移する
-    `TextButton`（`Intent.ACTION_VIEW`）を含む（BL-057, BL-059）。uuid・apikey・secretKeyは
-    いずれもこのページから取得する（Sesameアプリの「鍵をシェア」QRコードは使わない運用）。
+  - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
+    （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
+    `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
+  - 詳細な説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`へ集約する（BL-057, BL-059）。
+    ヘルプは**メニュー形式**で、項目一覧（`HelpMenuDialog`）と本文（`HelpTopicDialog`、「戻る」で
+    一覧へ戻る）の2段構成にする（BL-113）。文言と並び順はAndroid非依存の
+    `mobile.help.HelpContent`（`HelpTopic` / `HelpLink`、ユニットテスト対象）が保持し、
+    (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
+    遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの
+    ページから取得する。Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
+    (2)「Sesameが無くてもデモで試す」、(3)「登録後のウォッチでの使い方」の3項目を持つ。
+    デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
+    体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
   - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
     `LaunchedEffect`と`delay`で2秒間表示する（BL-024）。デバイス0件時は
     「まだSesameが登録されていません」を表示する（BL-056）。
@@ -279,25 +295,39 @@
 
 - `core.SesameDemoMode`（Android非依存、ユニットテスト対象）: デモ用デバイスのuuid
   （`__demo_device__`。実デバイスのUUID形式とも`ALL_DEVICES_TARGET_UUID`とも衝突しない固定文字列）・
-  表示名（「デモ（体験用）」）・初期状態（施錠中）と、提示可否（`isAvailable`）・選択肢生成
+  表示名（「デモ」。Tileのデバイス名チップ（左列76dp、CAPTION2）に収まる上限
+  `MAX_DISPLAY_NAME_CHARS` = 5文字以内。当初の「デモ（体験用）」7文字はチップの背景をはみ出して
+  表示されていた、BL-115）・初期状態（施錠中）と、提示可否（`isAvailable`）・選択肢生成
   （`selectableDevices`）・表示状態（`displayState`）・コマンド適用後の状態（`nextIsLocked`）を定義する。
 - 提示条件は「mobile側から同期された登録済みデバイスが0台」に限定する。1台でも登録されている場合は
   選択肢へ混ぜない（実際には施錠されていないのに施錠済みと誤認する事故を避けるため）。
 - `wear.demo.DemoLockStateStore`: ダミー施錠状態をwear単体で永続化する。実デバイスが存在せず
   mobile側の関与がないため、DataItem経由の同期は使わない。機密情報を含まないため非暗号化の
   `SharedPreferences`（`TileDeviceAssignmentStore`と同方針）。
-- `wear.ui.DeviceSelectionScreen`は0台時にデモ用デバイスのみを選択肢として表示し、説明文
-  （「スマホでSesameを登録すると実際の鍵を操作できます。今はデモを選べます」）を添える。
+- `wear.ui.DeviceSelectionScreen`は0台時にデモ用デバイスのみを選択肢として表示し、見出し
+  （「デモモード」）と説明文（「スマホで登録すると」「実際の鍵を操作できます」）を添える。
+  文言は`wear.ui.DeviceSelectionContent`（Android非依存、ユニットテスト対象）が保持し、
+  **1行あたりの文字数上限（`MAX_LINE_CHARS` = 11）以内の行へあらかじめ分割しておく**（BL-114）。
+  当初は32文字の1文をそのまま`Text`へ渡し、折り返し位置を画面幅に委ねていたため、円形画面の
+  左右の縁で行頭・行末の文字が見切れていた。上限は最小構成の円形端末（幅192dp）から
+  ScalingLazyColumnの既定水平パディング（10dp）と本画面の水平パディング（12dp）を引いた
+  残り幅148dpに、caption2（12sp）の全角文字が12.3文字並ぶ計算に基づく。
 - `wear.tile.SesameTileStateResolver`はデモ用uuidのとき`DemoLockStateStore`から状態を解決する。
   スマホ接続状態・DataItemの鮮度に依存させず、ウォッチ単体で操作を体験できるようにしている
   （DISCONNECTED/UNKNOWNへ落ちない）。
 - 施錠/解錠はローカル状態の書き換え・成功ハプティクス（実デバイス操作時と同じSUCCESSパターン）・
   Tile/Complicationの再描画要求のみで完結し、Sesame APIへも`MessageClient`へも一切送信しない。
+- 実機検証（BL-115、2026-09-13、Pixel Watch 2 + Pixel 8 Pro）: デバイス選択画面の見出し・説明文・
+  デモ用チップが円形画面の内側へ収まること、Tileのデバイス名チップに表示名が収まること、
+  タイル右側タップ→解錠確認→`解錠中`／`タップで施錠`への遷移（`SesameTileService`のログで
+  `state=UNLOCKED`を確認）を検証専用ビルド（`applicationId`を`com.sesamiwear.mobile.demotest`へ
+  変更、コミットしない）で確認した。この検証で、表示名「デモ（体験用）」がTileのデバイス名チップの
+  背景をはみ出していることが判明したため「デモ」へ短縮した。
 - `wear.display.SesameDisplayUpdateRequester`: Tile/Complicationの再描画要求
   （`TileService.getUpdater` + `ComplicationDataSourceUpdateRequester`）を共通化したもの。
   `SesameStatusListenerService`とデモモードの双方から呼ぶ。
 - 実機検証（BL-110、2026-09-13、Pixel Watch 2 + Pixel 8 Pro）: 登録済みデバイス0台の状態で、
-  デバイス選択画面が「デモ（体験用）」のみを提示すること（「全デバイス」チップは`devices.size >= 2`の
+  デバイス選択画面がデモ用デバイスのみを提示すること（「全デバイス」チップは`devices.size >= 2`の
   条件により非表示）、Tileが初期状態「施錠中／タップで解錠」を表示すること、タップ→解錠確認→
   「解錠中／タップで施錠」への遷移と再タップでの復帰、デバイス名チップのタップ
   （`SesameStatusRefreshActivity`）後もTileが崩れないこと、Complicationがデモ状態を表示し状態変更に

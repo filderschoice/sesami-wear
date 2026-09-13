@@ -695,3 +695,40 @@ BL-110（デモモードのPixel Watch実機確認、`区分: 人手検証`）�
   `EXECUTE.md` は更新していない。
 - Complicationの枠追加のみ、文字盤の長押し編集が合成入力（`input swipe` / `motionevent`）で
   反応しないためユーザーに操作を依頼した。その他の操作はすべて adb から実施している。
+
+## 2026-09-13（入力正規化・ヘルプのメニュー化・デモ表示の修正、BL-112〜BL-115）
+
+自律ループ実行モードで、ユーザーから指示された3件（mobileの入力欄の全角抑止、mobileヘルプへの
+デモ導線追加、wearのデモモード表示の見切れ修正）を起票・対応しました。コード修正の実施記録は
+`docs/records/managed/EXECUTE.md`、利用者向けの変更点は `docs/RELEASE_NOTES.md`（0.10.0）が正本です。
+
+- `docs/records/managed/BACKLOG.md` へ BL-112（入力欄の全角抑止）・BL-113（ヘルプのメニュー化）・
+  BL-114（デモ説明文の見切れ）を登録し、対応完了に伴い削除した。実機のIMEと画面サイズに依存する
+  確認は BL-115（`区分: 人手検証`）として残している。
+- `docs/records/managed/DESIGN.md` の「資格情報管理」「デモモード」を、
+  `CredentialsInputSanitizer`・`HelpContent`・`DeviceSelectionContent` の追加に合わせて更新した。
+- `docs/USER_GUIDE.md` へ、入力欄が半角のみを受け付けること、ヘルプがメニュー形式になったこと、
+  デモの手順をスマートフォン側のヘルプからも辿れることを追記した（UIの表示文言への追随）。
+- `docs/RELEASE_NOTES.md` の 0.10.0（未リリース）へ「改善」を追加し、ストア掲載用の要約にも
+  2行を追記した。デモモード自体が未リリースのため、BL-114 は修正としては記載していない。
+
+## 2026-09-13（BL-112〜BL-114の実機検証とデモ表示名の短縮、BL-115）
+
+BL-115（`区分: 人手検証`）を、ユーザーの指示により Claude Code が adb 経由で代替実施しました。
+検証は既存のPlay版アプリ・登録済み資格情報へ影響を与えないよう、`applicationId` を
+`com.sesamiwear.mobile.demotest` へ変えた検証専用のデバッグビルドで行い、終了後に両端末から
+アンインストールしています（ビルド設定の一時変更はコミットしていません）。
+
+- 検証結果は `docs/records/managed/EXECUTE.md` と `docs/records/managed/DESIGN.md`「デモモード」へ
+  記録した。`docs/records/managed/BACKLOG.md` から BL-115 を削除した。
+- 検証中に、ユーザー報告の「デモモードの文字の見切れ」がデバイス選択画面ではなく **Tileの
+  デバイス名チップ**（表示名「デモ（体験用）」7文字がチップ背景をはみ出す）であることが判明した。
+  BL-102・BL-104と同じく文言側を短縮する方針で「デモ」へ変更し、上限を
+  `SesameDemoMode.MAX_DISPLAY_NAME_CHARS` としてユニットテストで固定した。
+- 表示名の変更に追随して `docs/USER_GUIDE.md`（節見出しを含む）・`docs/CLOSED_TEST.md`・
+  `docs/SUPPORT.md`・`docs/RELEASE_NOTES.md` の「デモ（体験用）」を「デモ」へ更新した。
+  本ファイルの過去の記録は履歴のため変更していない。
+- 入力欄の全角抑止（BL-112）は、日本語IMEの変換候補から全角を確定しても半角へ正規化されることを
+  実機のGboardで確認した。`adb shell input text` は全角文字を送出できないため、IMEの変換候補を
+  タップする経路で検証している。
+- 先に追記した3件の `EXECUTE.md` の `date` が実際の作業時刻とずれていたため修正した。

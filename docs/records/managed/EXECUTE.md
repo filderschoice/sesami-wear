@@ -5,6 +5,127 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-13 02:10
+  summary: BL-112〜BL-114を実機検証し、デモ用デバイスの表示名を短縮した
+  details:
+    変更内容: >
+      Pixel 8 Pro / Pixel Watch 2 の実機で BL-112 / BL-113 / BL-114 を検証した。検証は既存の
+      Play版アプリと登録済み資格情報へ影響を与えないよう、`applicationId`を
+      `com.sesamiwear.mobile.demotest`へ変えた検証専用のデバッグビルドで実施し、終了後に両端末から
+      アンインストールした（ビルド設定の一時変更はコミットしていない）。
+      BL-112は、日本語IMEの変換候補から全角の「１２３－ＤＥＦ」を確定しても入力欄が半角の
+      「123-DEF」になること、`!@#`が除去されること、secretKey欄が16進数以外を落として32文字で
+      打ち切り「追加」ボタンが有効になることを確認した。BL-113は、ヘルプがメニューとして開き、
+      3項目の本文・「戻る」・「閉じる」・SESAME Biz 開発者ページへの遷移が動作することを確認した。
+      BL-114は、デバイス選択画面の見出しと説明文が円形画面へ収まることを確認した一方、
+      Tileのデバイス名チップでは表示名「デモ（体験用）」7文字がチップの背景をはみ出しており、
+      ユーザー報告の見切れはこちらであることが判明した。BL-102・BL-104と同じく文言側を短縮する
+      方針で「デモ」へ変更し、チップ幅に収まることと、解錠操作後にTileが`解錠中`／`タップで施錠`
+      へ遷移すること（`SesameTileService`のログで`state=UNLOCKED`）を再確認した。
+      表示名の上限は`SesameDemoMode.MAX_DISPLAY_NAME_CHARS`としてユニットテストで固定した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDemoMode.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameDemoModeTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/CLOSED_TEST.md
+      - docs/SUPPORT.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 実機（adb経由のUI操作とスクリーンショット）
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機検証も上記3件すべて
+      確認済み。検証にはダミー値のみを使用し、実資格情報は入力していない。
+    関連ID:
+      - BL-115
+      - BL-112
+      - BL-113
+      - BL-114
+
+- date: 2026-09-13 01:38
+  summary: mobileのヘルプをメニュー形式へ拡張しデモモードへの導線を追加した
+  details:
+    変更内容: >
+      従来のヘルプは値の取得方法だけを説明する単一のAlertDialogで、資格情報が未登録でもwear側で
+      デモ（BL-109）を操作できることに気づく導線がmobile側に無かった。文言をAndroid非依存の
+      `mobile.help.HelpContent`（HelpTopic / HelpLink）へ切り出し、項目一覧（HelpMenuDialog）と
+      本文（HelpTopicDialog、「戻る」で一覧へ復帰）の2段構成へ変更した。項目は「値の取得方法」
+      （SESAME Biz 開発者ページへのリンクを維持し、入力欄が半角のみを受け付ける旨を追記）・
+      「Sesameが無くてもデモで試す」（タイル追加からデモ選択・施錠解錠・コンプリケーション表示までの
+      手順）・「登録後のウォッチでの使い方」の3件。項目数・順序・重複・リンクの有無・デモ項目の
+      必須語をユニットテストで検証する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機でのダイアログ表示と
+      リンク遷移の確認は人手検証（BL-115）として残す。
+    関連ID:
+      - BL-113
+
+- date: 2026-09-13 01:33
+  summary: 資格情報入力欄へ全角文字が入らないよう入力値を正規化した
+  details:
+    変更内容: >
+      uuid / apikey / secretKeyの3欄は有効な値がASCII文字のみで構成されるのに対し、日本語IMEでは
+      全角英数字が入力されやすく、見た目で半角と区別できないまま保存されると署名検証がAPI側で
+      失敗する。`CredentialsInputSanitizer`（Android非依存）を追加し、全角ASCII（U+FF01〜U+FF5E）の
+      半角化とダッシュ類の半角ハイフンへの統一を行ったうえで、uuidは英数字とハイフン、apikeyは
+      空白を除くASCII印字可能文字、secretKeyは16進数32文字までへ絞り込む。3欄は`singleLine`と
+      ASCIIキーボード（secretKeyはPassword）を既定にし、`onValueChange`で毎回正規化してから状態へ
+      反映する。日本語を入力する表示名欄は対象外とした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputSanitizer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/CredentialsInputSanitizerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機のIMEでの入力確認は
+      人手検証としてBACKLOGへ残す。
+    関連ID:
+      - BL-112
+
+- date: 2026-09-13 01:29
+  summary: デモモードの説明文が円形画面の端で見切れる問題を修正した
+  details:
+    変更内容: >
+      wear側のデバイス選択画面は、デモモード（BL-109）時に32文字の1文をそのままTextへ渡し、
+      折り返し位置を画面幅に委ねていたため、円形画面の左右の縁で行頭・行末の文字が見切れていた。
+      文言をAndroid非依存の`wear.ui.DeviceSelectionContent`へ切り出し、見出し「デモモード」と
+      11文字以内の2行（「スマホで登録すると」「実際の鍵を操作できます」）へあらかじめ分割した。
+      表示側は左右12dpのパディングと中央揃えのみを与える。上限11文字は、最小構成の円形端末
+      （幅192dp）からScalingLazyColumnの既定水平パディング（10dp）と本画面の水平パディング
+      （12dp）を引いた148dpへ、caption2（12sp）の全角文字が12.3文字並ぶ計算に基づく。
+      1行あたりの文字数上限はユニットテストで検証し、以後の文言追加でも同じ事故が起きないようにした。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/ui/DeviceSelectionContentTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機での見え方の確認は
+      人手検証としてBACKLOGへ残す。
+    関連ID:
+      - BL-114
+
 - date: 2026-09-10 08:05
   summary: 資格情報が未登録でもTile・Complicationを操作できるデモモードを追加した
   details:
