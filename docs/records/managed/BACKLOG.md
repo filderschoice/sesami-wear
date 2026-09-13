@@ -5,6 +5,22 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-116
+  区分: 人手検証
+  タスク内容: リリースタグ v0.10.0 を作成し、GitHub Releasesを公開する。本文には
+    docs/RELEASE_NOTES.md の 0.10.0 の内容を転記する。v0.9.0（BL-098）と同様、配信した成果物と
+    タグを対応させるため、Play Consoleのクローズドテスト両トラック（スマートフォン用 versionCode 5 /
+    Wear OS用 versionCode 1003）が審査を通過し「公開中」になったことを確認してから実施する。
+    タグは v0.9.0 と同じくRuleset protect-release-tags の保護対象になる
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: v0.10.0タグがpushされ、GitHub Releasesから参照できる
+  根拠: タグのpushはユーザーが実行する（rules/guardrails-unified.v1.md セクション12.2でエージェントの
+    git pushを禁止）。タグ作成とReleases本文の生成はスキル github-release-publish の手順に従い
+    エージェントが実施できるため、区分は人手検証としつつ実作業は分担する
+  依存: []
+
 - id: BL-106
   区分: 人手検証
   タスク内容: Google Playの製品版公開に必要なクローズドテスト（12人以上が14日間連続でオプトイン）を
