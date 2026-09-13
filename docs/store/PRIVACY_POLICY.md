@@ -1,6 +1,6 @@
 # Sesami Wear プライバシーポリシー
 
-最終更新日: 2026-09-06
+最終更新日: 2026-09-13
 
 本ドキュメントは、Android / Wear OSアプリ「Sesami Wear」のプライバシーポリシーです。
 本ファイル自体が公開版であり、次のURLで参照できます（Google Play Consoleのプライバシーポリシー欄には
@@ -10,8 +10,8 @@
 https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY.md
 ```
 
-Play ConsoleのData safety（データ安全性）セクションへの申告は、本ポリシーの記載内容に基づいて行います
-（申告作業自体はBACKLOG BL-033）。
+Play ConsoleのData safety（データ安全性）セクションへの申告は、本ポリシーの記載内容に基づいて
+行っています。
 
 ## 収集する情報
 

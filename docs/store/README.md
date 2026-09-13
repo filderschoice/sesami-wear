@@ -110,4 +110,4 @@ https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY
 - [../SUPPORT.md](../SUPPORT.md): 利用者向けのサポート窓口・アップデート確認先
 - [../../README.md](../../README.md): リリースビルド手順（署名・AAB作成）
 - [../records/managed/BACKLOG.md](../records/managed/BACKLOG.md): Google Play公開に関する人手検証タスク
-  （Google Play公開に伴う人手検証タスクはすべて完了済み。残件はBL-105のタグ保護Rulesetのみ）
+  （未対応分の有無は同ファイルを参照してください）
