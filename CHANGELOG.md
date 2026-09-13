@@ -732,3 +732,22 @@ BL-115（`区分: 人手検証`）を、ユーザーの指示により Claude Co
   実機のGboardで確認した。`adb shell input text` は全角文字を送出できないため、IMEの変換候補を
   タップする経路で検証している。
 - 先に追記した3件の `EXECUTE.md` の `date` が実際の作業時刻とずれていたため修正した。
+
+## 2026-09-13（クローズドテストの参加手順ページのURL確定、BL-111）
+
+Googleグループ（`sesami-wear-testers@googlegroups.com`）とGoogle Play Consoleのクローズドテスト
+トラックをユーザーが作成し、参加URLとオプトインURLが確定したため、`docs/CLOSED_TEST.md` の
+プレースホルダを実際の値へ差し替えました。
+
+- 冒頭の「このページは準備中です」の注記と、STEP 1の「※ URLは確定後に差し替えます」の
+  但し書きを削除した。
+- STEP 2のオプトインURLへ <https://play.google.com/apps/testing/com.sesamiwear.mobile> を記載した。
+  スマートフォン用トラックとWear OS用トラックでURLは同一（オプトインは`applicationId`単位で
+  行われ、トラック単位ではないため）。一度のオプトインで両方へ配信されることを追記した。
+- STEP 1へ、参加ダイアログの設定を変更せずそのまま参加してよいこと、ダイアログの見出しに
+  `Undefined parameter` と表示される場合があること（Google側の表示上の問題）、参加後に
+  グループのページで「権限がありません」と表示されるのは会話を非公開にしているための正常な
+  状態であることを追記した。いずれも実際の参加操作で確認した表示で、テスターが参加失敗と
+  誤解するのを防ぐため。
+- `docs/records/managed/BACKLOG.md` から BL-111 を削除した。コード修正を伴わないため
+  `docs/records/managed/EXECUTE.md` は更新していない。
