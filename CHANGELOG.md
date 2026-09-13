@@ -763,3 +763,34 @@ Googleグループ（`sesami-wear-testers@googlegroups.com`）とGoogle Play Con
   タグ作成とReleases本文の生成はスキル `github-release-publish` の手順に従いエージェントが行う。
 - 実施の前提は、クローズドテストの両トラック（mobile: versionCode 5 / wear: versionCode 1003）が
   審査を通過し「公開中」になること。配信した成果物とタグを対応させるため。
+
+## 2026-09-13（ドキュメントの整合性レビューと最新化、BL-117起票）
+
+スキル `docs-consistency-review` の手順で全Markdown 31ファイルを点検し、実装・運用の実態と
+乖離していた記述を更新しました。コード修正を伴わないため `docs/records/managed/EXECUTE.md` は
+更新していません。
+
+- **配布状況の記述を「内部テスト」から「クローズドテスト」へ更新**し、時点情報（「2026-09-06時点」）を
+  削除した。`docs/SUPPORT.md`「現在の配布状況」を配布状況の正本と明記し、`README.md`・
+  `docs/INSTALL.md` からは同節を参照する形へ変更した（時点情報を複数箇所へ持たせない）。
+- **完了済みタスクを参照していた記述を修正した。** `README.md` のBL-032（Keystore生成）、
+  `docs/INSTALL.md` のBL-034 / BL-038、`docs/store/STORE_LISTING.md` のBL-034、
+  `docs/store/PRIVACY_POLICY.md` のBL-033、`docs/store/README.md` のBL-105は、いずれも
+  `BACKLOG.md` から削除済みの項目であり、参照先に存在しない状態だった。
+- **自動プッシュインストールの「未確認」表記を確認済みへ更新した**（`README.md`・`docs/INSTALL.md`・
+  `docs/records/managed/DESIGN.md`）。2026-09-06にBL-097で実機確認済みで、`CHANGELOG.md` の同日の
+  記録と矛盾していた。
+- **利用者向けドキュメントへデモモードを反映した。** `README.md`「主な機能」と
+  `docs/store/STORE_LISTING.md`「詳細な説明」に、デモ・複数台の切り替え・「全デバイス」の一括操作が
+  未記載だった（`docs/USER_GUIDE.md` と `docs/CLOSED_TEST.md` は反映済み）。掲載情報の原本を更新した
+  ため、Play Consoleへの転記をBL-117として起票した（審査通過後に実施）。
+- `docs/RELEASE_NOTES.md` の 0.9.0 の見出しを「未リリース・内部テスト配信中」から
+  リリース日（2026-09-07、v0.9.0タグとGitHub Releasesの公開日）へ変更した。本文の配布状況の説明は
+  `docs/SUPPORT.md` への参照に置き換えた。
+- `docs/records/managed/DESIGN.md` の「512x512 PNGは生成が困難なため未対応」を、用意済みである
+  実態（`docs/store/images/play_store_icon_512.png`）へ更新した。同一文書内の別の節と矛盾していた。
+- `CONTRIBUTING.md` の「`.github/workflows/` が存在しない、2026-09-05確認」から日付を削除した。
+- `README.md` のプロジェクト構成へ `templates/` を追加した（`rules/` と対になる実ディレクトリ）。
+
+検査は `npx markdownlint-cli2 "**/*.md"`（0 issues）、相対リンクとアンカーの到達性、
+`BACKLOG.md` のマーカー内のYAML読み込みで確認しています。

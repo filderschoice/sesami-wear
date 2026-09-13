@@ -16,15 +16,17 @@ Wear OSアプリです。タイルからワンタップで施錠・解錠でき�
 - 複数台のSesameを登録し、タイル・コンプリケーションごとに対象を切り替え
 - 2台以上を登録している場合、「全デバイス」での一括操作
 - スマートフォン未接続時はタイル上に明示して誤操作を防止
+- Sesameを登録していない状態では、実際の鍵を操作しない「デモ」で操作感を確認可能
 
 secretKeyは機密性が高いためウォッチ単体には保持させず、施錠/解錠の実行は常にスマートフォン側で
 行う設計です。
 
 ## アプリを使う方へ
 
-**現在、Google Playの内部テスト（限定公開）で配信中です（2026-09-06時点）。一般公開はしていません。**
-登録済みのテスターはGoogle Play経由でインストールできます。それ以外の方は、リポジトリからの
-ローカルビルドが必要です。
+**Google Playのクローズドテスト（限定公開）で配信しています。一般公開はまだ行っていません。**
+テストへ参加したGoogleアカウントであれば、Google Play経由でインストールできます（参加手順は
+[docs/CLOSED_TEST.md](docs/CLOSED_TEST.md)）。参加しない場合は、リポジトリからのローカルビルドが
+必要です。最新の配布状況は [docs/SUPPORT.md](docs/SUPPORT.md)「現在の配布状況」が正本です。
 
 | 目的 | 参照先 |
 | --- | --- |
@@ -127,7 +129,7 @@ RELEASE_KEY_PASSWORD=<keyのパスワード>
 ```
 
 Keystore自体は以下のコマンドで生成できます（秘密鍵の生成のため、自律ループ実行モードの対象外・
-人手作業です。詳細は[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) BL-032参照）。
+人手作業です。本リポジトリで使用するKeystoreは作成済みです）。
 
 ```bash
 keytool -genkeypair -v -keystore release-keystore.jks -alias <key aliasの名前> \
@@ -195,6 +197,7 @@ sesami-wear/
 ├── scripts/ # バージョン管理付きリリースビルド（release-build.bat / .ps1）
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
+├── templates/ # ガードレールのプロジェクト別設定・モデルリスク台帳のテンプレート
 ├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針（初回依頼時点のメモ）
 └── docs/
     ├── USER_GUIDE.md     # 利用ガイド（アプリ利用者向け）
@@ -231,8 +234,9 @@ sesami-wear/
 - `wear`の`minSdk`は26（`mobile`と統一。旧30）です。minSdk26のビルドでもPixel Watch実機で
   Tileの表示・施錠/解錠が動作することは確認済みです。
 - Google Playの自動プッシュインストール（スマホへのインストールだけでWatch側にもウォッチ用アプリが
-  導入される）が実際に機能するかは未検証です（BL-038、人手検証）。ローカルビルドを両デバイスへ
-  直接インストールする手順は [docs/INSTALL.md](docs/INSTALL.md) を参照してください。
+  導入される）は、2成果物・2トラック構成でも動作することを実機で確認済みです（2026-09-06）。
+  ローカルビルドを両デバイスへ直接インストールする手順は
+  [docs/INSTALL.md](docs/INSTALL.md) を参照してください。
 - `wear`は当初`mobile`のdynamic featureとして単一AABへ統合していましたが、Googleがこの構成を
   Wear OSアプリの配布方式としてサポートしていないため、独立したapplicationモジュールへ変更しました
   （BL-090）。旧構成では`wear`の`uses-feature android.hardware.type.watch`が`mobile`側の

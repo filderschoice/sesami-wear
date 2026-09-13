@@ -197,8 +197,8 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 
 ## Markdownlintのローカル実行
 
-本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体が
-存在しない、2026-09-05確認）。Markdownlintも後述のGradle品質ゲートもCIでは自動実行されないため、
+本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体を
+置いていません）。Markdownlintも後述のGradle品質ゲートもCIでは自動実行されないため、
 プルリクエスト作成前に以下のコマンドをローカル実行し、指摘を事前に解消してください。
 設定ファイルは `.markdownlint-cli2.yaml` で、`**/*.md` を検査します。
 
