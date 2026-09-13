@@ -751,3 +751,15 @@ Googleグループ（`sesami-wear-testers@googlegroups.com`）とGoogle Play Con
   誤解するのを防ぐため。
 - `docs/records/managed/BACKLOG.md` から BL-111 を削除した。コード修正を伴わないため
   `docs/records/managed/EXECUTE.md` は更新していない。
+
+## 2026-09-13（v0.10.0のリリースタグ・GitHub Releasesを起票、BL-116）
+
+0.10.0（デモモード、入力の半角正規化、ヘルプのメニュー化）をPlay Consoleのクローズドテスト
+両トラックへアップロードし審査へ送信しましたが、リポジトリ側のリリースタグとGitHub Releasesが
+未起票のままだったため、BL-116として登録しました。
+
+- v0.9.0のBL-098と同じ扱いとし、`区分: 人手検証` / `担当: ユーザー` / `優先度: P3` で登録した。
+  タグのpushはエージェントが実行できないため（`rules/guardrails-unified.v1.md` セクション12.2）。
+  タグ作成とReleases本文の生成はスキル `github-release-publish` の手順に従いエージェントが行う。
+- 実施の前提は、クローズドテストの両トラック（mobile: versionCode 5 / wear: versionCode 1003）が
+  審査を通過し「公開中」になること。配信した成果物とタグを対応させるため。
