@@ -471,6 +471,13 @@ Play Consoleは2023年3月以降、Wear OS向けリリースを専用トラッ�
   ないと判断した（同リポジトリのライセンスがMIT Licenseであることも確認済み）。
 - README.md / `docs/store/STORE_LISTING.md`へ「本アプリは個人による非公式アプリであり、CANDY HOUSE
   株式会社とは提携・協力関係にない」旨を明記した。
+- アプリ名「Sesami Wear」の「Sesami」は、公式製品「Sesame」をもじった**意図的な造語**である
+  （当初は綴りの誤りだったが、2026-09-15に造語として据え置くと決定した）。由来は「Sesameの日本語読み
+  『セサミ』のローマ字表記」と「イタリア語でsesamo（ゴマ）の複数形がsesamiであり、複数台対応に
+  かけたもの」の2点。非公式アプリであることを前面に置き、公式製品と取り違えないよう綴りを変えている
+  という位置づけで、README.md冒頭の注記と`docs/store/STORE_LISTING.md`「非公式アプリについて」に
+  記載している。商標「Sesame」をアプリ名へそのまま含めることによるGoogle Playのなりすまし・
+  知的財産ポリシー上のリスクを避ける意味もある。
 - `.github/CODEOWNERS`のプレースホルダー（テンプレート由来の実在しないチーム名）を実際のGitHub
   ユーザー名へ修正した。
 - Public公開に向けた整備（BL-074〜BL-084）。git履歴の秘密情報スキャン（apikey/secretKey形状の
@@ -640,6 +647,10 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
 
 - 実機（Pixel Watch / Sesame 5 + Hub 3）を用いる検証と、実資格情報を用いるAPI疎通確認は
   自律ループ実行モードの自動実行対象外とし、`区分: 人手検証`としてBACKLOGへ計上する。
+- 「Sesami」（アプリ名・`applicationId`の`com.sesamiwear.mobile`・パッケージ名・リポジトリ名・
+  Googleグループ名）を「Sesame」の誤記として修正しない。アプリ名は意図的な造語であり（上記
+  「GitHub公開対応」参照）、`applicationId`はGoogle Playで変更できない。一方、CANDY HOUSE社の製品・
+  APIを指す箇所は「Sesame」と表記する。
 
 ## Copilot実装指示
 

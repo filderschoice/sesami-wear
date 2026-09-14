@@ -810,3 +810,23 @@ Play Consoleのクローズドテスト両トラック（mobile: versionCode 5 /
   v0.9.0と同じくPre-releaseとして公開している。「ストア掲載用の要約」は転記していない。
 - `docs/RELEASE_NOTES.md` の 0.10.0 の見出しを「未リリース」からリリース日（2026-09-14、
   v0.10.0タグとGitHub Releasesの公開日）へ変更した。0.9.0と同じ扱い。
+
+## 2026-09-15（アプリ名「Sesami」を造語として位置づけ）
+
+アプリ名「Sesami Wear」の「Sesami」は、当初は「Sesame」の綴りの誤りでしたが、名称を変更せず
+公式製品「Sesame」をもじった造語として据え置くと決定し、その由来をドキュメントへ明記しました。
+コード修正を伴わないため `docs/records/managed/EXECUTE.md` は更新していません。
+
+- 据え置いた理由は2点。`applicationId`（`com.sesamiwear.mobile`）はGoogle Playで変更できず、
+  変更するとクローズドテスト（BL-106）を含めてやり直しになること。また、商標「Sesame」をアプリ名へ
+  そのまま含めると、公式アプリとの誤認につながりGoogle Playのなりすまし・知的財産ポリシー上の
+  リスクがあること（審査での扱いは未確認）。
+- 由来は「Sesameの日本語読み『セサミ』のローマ字表記」と「イタリア語でsesamo（ゴマ）の複数形が
+  sesamiであり、複数台対応にかけたもの」とし、非公式アプリであることを前面に置いて、公式製品と
+  取り違えないよう綴りを変えているという位置づけにした。
+- `README.md` 冒頭の非公式プロジェクトの注記と、`docs/store/STORE_LISTING.md`「非公式アプリについて」へ
+  由来を追記した。「詳細な説明」の文字数を再計測し 1186→1356 に更新した（上限4000）。
+- `docs/records/managed/DESIGN.md` の「GitHub公開対応」へ命名の経緯を、「運用制約」へ「Sesamiを
+  Sesameの誤記として修正しない（CANDY HOUSE社の製品・APIを指す箇所はSesameと表記する）」を追記した。
+- ストア掲載情報の原本を変更したため、`docs/records/managed/BACKLOG.md` の BL-117（Play Consoleへの
+  転記）の対象へ由来の追記分を加え、文字数を更新した。
