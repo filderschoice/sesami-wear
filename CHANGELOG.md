@@ -794,3 +794,19 @@ Googleグループ（`sesami-wear-testers@googlegroups.com`）とGoogle Play Con
 
 検査は `npx markdownlint-cli2 "**/*.md"`（0 issues）、相対リンクとアンカーの到達性、
 `BACKLOG.md` のマーカー内のYAML読み込みで確認しています。
+
+## 2026-09-14（v0.10.0タグとGitHub Releasesの公開、BL-116）
+
+Play Consoleのクローズドテスト両トラック（mobile: versionCode 5 / wear: versionCode 1003）が審査を
+通過して「公開中」になったため、リリースタグ `v0.10.0` を作成し、GitHub Releasesを公開しました。
+コード修正を伴わないため `docs/records/managed/EXECUTE.md` は更新していません。
+
+- `docs/records/managed/BACKLOG.md` から BL-116 を削除した。タグは mainの先端ではなく、
+  リリースAABのビルド元である `472c8ff`（PR #28 のマージコミット）を指している。以降のコミット
+  （PR #29〜#31）はドキュメントのみの変更で、配信した成果物には含まれないため。
+- Releasesの本文は `docs/RELEASE_NOTES.md` の 0.10.0 の内容（新機能・改善）に、入手方法
+  （クローズドテストで配信中）、secretKeyが端末外へ出ないことの説明、クローズドテスト参加手順を
+  含む利用者向けドキュメントへのリンクを加えたものとした。一般公開前かつ0.x系であるため
+  v0.9.0と同じくPre-releaseとして公開している。「ストア掲載用の要約」は転記していない。
+- `docs/RELEASE_NOTES.md` の 0.10.0 の見出しを「未リリース」からリリース日（2026-09-14、
+  v0.10.0タグとGitHub Releasesの公開日）へ変更した。0.9.0と同じ扱い。
