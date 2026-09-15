@@ -110,6 +110,49 @@
   - **未確認事項**: `biz.candyhouse.co`は動的サイトのためWebFetchでの実ページ内容確認はできて
     おらず、公式ドキュメントの記述とユーザーからの実機確認報告のみを根拠にしている。
 
+### mobileホーム画面ウィジェット
+
+スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認するウィジェット
+（BL-121。タップ操作はBL-122、デモはBL-123で追加する）。Data Layerを経由せず、mobile内の保存値と
+`mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も使える。
+
+- 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
+  `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
+  明示して2.10.5へ引き上げている（2026-09-16にユーザー判断）。2.11系は`kotlin-stdlib`をコンパイラ
+  （2.0.21）より新しい2.1.20へ上げるため採らない（BL-130と同じ基準）。Glanceの導入で既存依存の版が
+  変わるのは`compose-runtime`の1.7.6→1.7.8のみ。
+- `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
+  構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
+  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
+  中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は右側にだけ使う。
+  背景は暗色（0xFF121212）で角丸16dp。「変更」と未設定時の全面タップは選択画面を開く（Intentの
+  dataへappWidgetIdを入れてPendingIntentをインスタンスごとに区別する）。未設定時は「タップして設定」のみを表示。
+  `onDeleted`で割り当てを消す。
+- 表示内容の決定は`mobile.widget.SesameWidgetModelResolver`（Android非依存、ユニットテスト対象）が行い、
+  `SesameWidgetModel.Unconfigured`か`Configured`（uuid・表示名・`TileDisplayState`・全デバイスか）を返す。
+  未割り当て、割り当て済みの実デバイスが削除済み、全デバイスで登録0台、デモで登録1台以上のときは未設定。
+  状態は`LockStateStore`の保存値から、単一は`TileDisplayStateResolver.resolve`（未取得は状態不明）、
+  全デバイスは`resolveAggregate`（1台でも未取得なら状態不明）で決める。mobileは自身がAPIを呼ぶため
+  「スマホ未接続」は存在せず常に接続扱い。デモは保存値が無ければ`SesameDemoMode.INITIAL_IS_LOCKED`。
+- `mobile.widget.SesameWidgetRepository`（Android依存）: 資格情報ストアからuuidと表示名だけを取り出し、
+  割り当てとロック状態を読んでResolverへ渡す。
+- 表示の更新: Glanceはセッション中に`provideGlance`を再実行しないため、`mobile.widget.SesameWidgetUpdater`が
+  各インスタンスの状態（`PreferencesGlanceStateDefinition`）へ更新トークン`refresh_token`を書き込んでから
+  `update`を呼び、描画側は`currentState`のトークン変化を`LaunchedEffect`の契機に保存値を読み直す。
+  資格情報の保存・削除時（`CredentialsSettingsScreen`のデバイス一覧同期のあと）と、選択画面での割り当て直後に呼ぶ。
+  定期更新は行わない（`updatePeriodMillis=0`）。
+- `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
+  （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
+  JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
+- `mobile.widget.WidgetConfigurationActivity`: `appwidget-provider`の`android:configure`で追加時に開き、
+  「変更」「タップして設定」からも開く。選択肢は`SesameDeviceTargets.choices`（Tileと同じ）で、0台時は
+  「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
+  選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
+  `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
+- `res/xml/sesame_widget_info.xml`: サイズはTile相当の1種類（minWidth 250dp / minHeight 110dp、4x2セル、
+  `resizeMode=none`。サイズ別レイアウトはBL-128で検討）、`widgetFeatures=reconfigurable`、
+  `initialLayout`はGlance既定の読み込み中レイアウト。
+
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 
 `mobile`/`wear`間で共有するメッセージパス・DataItemパス・ペイロードキーの定義（Android非依存）。

@@ -5,31 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-121
-  区分: 機能追加
-  タスク内容: >-
-    mobile にホーム画面ウィジェット（AppWidget）を追加し、まず表示と対象デバイスの設定までを
-    実装する。構成は Tile と揃え、左側にデバイス名（BL-122 で状態更新）と「変更」、右側の大きな
-    領域に状態アイコン・状態文言・操作文言を置き、状態色は右側のみに適用する（文言・色は BL-119 で
-    core.display へ移した SesameTileContent を使う。選択肢は SesameDeviceTargets.choices）。対象デバイスはウィジェットインスタンス（appWidgetId）ごとに
-    非暗号化 SharedPreferences へ保存し、appwidget-provider の android:configure で追加時に選択画面を
-    開く（Tile には無い標準機構だが、選べる内容は Tile と同じにする）。選択肢は Tile と同じく、
-    登録済みデバイス、2台以上なら「全デバイス」、0台ならデモ用デバイス。状態は BL-120 の
-    mobile.state.LockStateStore から解決し、未設定・対象デバイスが削除済みの場合は「タップして設定」を表示する。
-    ウィジェットの削除（onDeleted）で保存した割り当てを消す。資格情報の保存・削除時
-    （CredentialsSettingsScreen）にウィジェットの再描画を要求する。実装方式は Jetpack Glance
-    （androidx.glance:glance-appwidget）を既定とし、Compose BOM 2024.12.01 / Kotlin 2.0.21 と
-    両立するバージョンを選ぶ（両立するバージョンは未確認）。サイズは Tile 相当の1種類のみとする。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    ウィジェットを追加すると選択画面が開き、選んだデバイスの表示名と、保存済みの状態に応じた
-    アイコン・文言・色が表示されること（未取得なら状態不明）。選択肢の組み立てと表示内容の決定は
-    Android 非依存のクラスでユニットテストされていること。appWidgetId ごとの割り当ての保存・
-    削除が機能すること。資格情報を保存・削除すると再描画されること。品質ゲートがすべて成功すること。
-  依存: []
-
 - id: BL-122
   区分: 機能追加
   タスク内容: >-
@@ -44,6 +19,8 @@
     （失敗の明示方法の改善は BL-129）。左側のデバイス名タップは状態取得（GET）のみ、「変更」は
     選択画面を開く。ウォッチ経由でコマンドが成功した場合もウィジェットを再描画し、ウィジェット経由で
     成功した場合も DataItem をベストエフォートで同期してウォッチの Tile を追随させる。
+    ウィジェット本体は BL-121 で mobile.widget.SesameWidget（Glance 1.2.0）として実装済みで、
+    再描画は SesameWidgetUpdater、表示内容は SesameWidgetModelResolver（isCommandInProgress で通信中を表示）を使う。
     バックグラウンド実行は Glance の ActionCallback を既定とし、API 応答待ちが BroadcastReceiver の
     実行時間制約に抵触するおそれがある場合は WorkManager へ委譲する（どちらを採ったかと理由を
     DESIGN.md に残す。制約に抵触するかは未確認）。
@@ -56,8 +33,7 @@
     何も送信されないこと。ウィジェットとウォッチからの同一uuidへの2秒以内の重複が1回に抑えられる
     ことがテストで示されていること。品質ゲートがすべて成功すること。実機での施錠・解錠は BL-126 で
     確認する。
-  依存:
-    - BL-121
+  依存: []
 
 - id: BL-123
   区分: 機能追加
@@ -140,7 +116,6 @@
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
-    - BL-121
     - BL-122
     - BL-123
 

@@ -25,11 +25,20 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
 
     companion object {
         private const val LOCK_STATE_PREFS_FILE_NAME = "sesami_wear_lock_state"
+        private const val WIDGET_ASSIGNMENTS_PREFS_FILE_NAME = "sesami_wear_widget_assignments"
 
         /** ロック状態（[LockStateStore]）用のストア。 */
-        fun forLockState(context: Context): SharedPreferencesKeyValueStore =
-            SharedPreferencesKeyValueStore(
-                context.applicationContext.getSharedPreferences(LOCK_STATE_PREFS_FILE_NAME, Context.MODE_PRIVATE),
-            )
+        fun forLockState(context: Context): SharedPreferencesKeyValueStore = create(context, LOCK_STATE_PREFS_FILE_NAME)
+
+        /** ホーム画面ウィジェットの対象デバイス割り当て（BL-121）用のストア。 */
+        fun forWidgetAssignments(context: Context): SharedPreferencesKeyValueStore =
+            create(context, WIDGET_ASSIGNMENTS_PREFS_FILE_NAME)
+
+        private fun create(
+            context: Context,
+            fileName: String,
+        ) = SharedPreferencesKeyValueStore(
+            context.applicationContext.getSharedPreferences(fileName, Context.MODE_PRIVATE),
+        )
     }
 }

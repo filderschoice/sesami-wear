@@ -5,6 +5,52 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 02:30
+  summary: mobileにホーム画面ウィジェット（表示と対象デバイスの設定）を追加した
+  details:
+    変更内容: >-
+      Jetpack Glance 1.2.0 で mobile.widget.SesameWidget / SesameWidgetReceiver を追加した。wear の Tile と
+      同じく左列にデバイス名と「変更」、右側に状態アイコン・状態文言・操作文言を置き、状態色は右側のみに使う。
+      表示内容は Android 非依存の SesameWidgetModelResolver が割り当て・登録済みデバイス・LockStateStore の
+      保存値から決める（未設定・削除済み・デモの失効は「タップして設定」、単一は未取得なら状態不明、
+      全デバイスは wear と同じ集約規則、スマホ未接続は存在しない）。appWidgetId ごとの割り当ては
+      WidgetDeviceAssignmentStore（非暗号化 SharedPreferences）へ保存し、onDeleted で消す。
+      追加時は android:configure の WidgetConfigurationActivity で SesameDeviceTargets.choices から選び、
+      「変更」「タップして設定」からも開ける。Glance のセッション中は provideGlance が再実行されないため、
+      SesameWidgetUpdater が状態へ更新トークンを書き込んで再描画させる方式にし、資格情報の保存・削除時
+      （CredentialsSettingsScreen）と割り当て直後に呼ぶ。Glance が推移的に持ち込む work-runtime 2.7.1
+      （room 2.2.5 等）は古いため、ユーザー確認のうえ明示依存で引き上げた。最新の 2.11.2 は kotlin-stdlib を
+      2.1.20 へ上げるため、stdlib を変えない 2.10.5 を採った（room 2.6.1 / sqlite 2.4.0。既存依存の版の変化は
+      compose-runtime 1.7.6→1.7.8 のみ）。施錠・解錠のタップ操作は BL-122 で実装する。
+    変更ファイル:
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew :mobile:dependencies（releaseRuntimeClasspath の導入前後の差分）/ ./gradlew ktlintFormat /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / ./gradlew :mobile:assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートと mobile のリリースビルド（minify有効）が終了コード0。lint の新規警告は既存コードと
+      同種の UseKtx のみ。実機でのウィジェット追加・表示の確認は BL-126（人手検証）で行う。
+    関連ID:
+      - BL-121
+
 - date: 2026-09-16 01:40
   summary: mobileの施錠・解錠・状態取得をData Layerから切り離した実行口として切り出した
   details:
