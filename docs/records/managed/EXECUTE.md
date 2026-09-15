@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 00:20
+  summary: mobileのWearable Data Layer呼び出しを失敗しても処理を続けるベストエフォート呼び出しにした
+  details:
+    変更内容: >-
+      Wear OS のコンパニオンアプリが入っていない端末では Wearable API のタスクが ApiException で
+      失敗しうるが、SesameDeviceListSyncer.sync と SesameStatusSyncer.syncLocked は例外処理なしで
+      await しており、資格情報の保存・削除時に起動したコルーチンから例外が漏れてアプリが落ちる経路が
+      あった。Android 非依存の mobile.messaging.DataLayerBestEffort を追加し、ApiException だけを
+      捕捉してステータスコードを Log.w へ渡し（資格情報・uuid は出さない）、呼び出し元の処理を
+      継続するようにした。コルーチンのキャンセルは捕捉しない。2つの Syncer と、
+      SesameMessageListenerService の結果返送（MessageClient.sendMessage）をこの呼び出しで包んだ。
+      成功・ApiException の握りつぶし・後続処理の継続・キャンセルの非捕捉をユニットテストで検証した。
+      端末上での再現確認は BL-126（人手検証）で行う。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffort.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameDeviceListSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffortTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証（yaml.safe_load）
+    検証結果: 成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）
+    関連ID:
+      - BL-118
+
 - date: 2026-09-13 02:10
   summary: BL-112〜BL-114を実機検証し、デモ用デバイスの表示名を短縮した
   details:

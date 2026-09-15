@@ -35,32 +35,6 @@
     入れて再検証する手戻りを避けられる。依存の追加であり削除・ダウングレードではない。
   依存: []
 
-- id: BL-118
-  区分: 不具合
-  タスク内容: >-
-    mobile側のWearable Data Layer呼び出しを、ウォッチを持たない端末でも失敗しても処理を続行する
-    ベストエフォート呼び出しへ変更する。現状は mobile.messaging.SesameDeviceListSyncer.sync と
-    SesameStatusSyncer.syncLocked が DataClient.putDataItem(...).await() を例外処理なしで呼んでおり、
-    CredentialsSettingsScreen の syncDeviceList は rememberCoroutineScope().launch 内でこれを呼ぶ。
-    Wear OS のコンパニオンアプリ（Pixel Watch アプリ等）が入っていない端末では Wearable API が
-    ApiException（API_UNAVAILABLE）を投げる可能性があり、その場合は資格情報の保存・削除時に
-    アプリがクラッシュする（端末上での再現は未確認）。mobile側ウィジェット（BL-120〜BL-125）は
-    ウォッチ非所有者を主対象とするため、その前提として先に塞ぐ。ApiException を捕捉して
-    Log.w（資格情報を含めない）へ落とし、呼び出し元の処理（保存・コマンド実行・結果返送）は継続する。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    SesameDeviceListSyncer / SesameStatusSyncer の Data Layer 呼び出しが例外を外へ送出しないこと。
-    Wearable API が使えない場合も資格情報の保存・削除が完了し画面が落ちないことをユニットテスト
-    または呼び出し構造のレビューで示せること。品質ゲートがすべて成功すること。
-    Wear OS コンパニオンアプリ未導入端末での実機確認は BL-126 で行う。
-  根拠: >-
-    ウィジェットを追加するとウォッチを持たない利用者が mobile を単独で使うようになり、潜在的な
-    クラッシュ経路を踏む頻度が上がるため P1 とした。現行のクローズドテスト案内（docs/CLOSED_TEST.md）は
-    ウォッチを必須としているが、案内を読まずにスマホだけへ入れたテスターにも影響しうる。
-  依存: []
-
 - id: BL-119
   区分: 機能追加
   タスク内容: >-
@@ -109,8 +83,7 @@
     通知呼び出し）が成功すること。SesameMessageListenerService から Sesame API 呼び出しの
     ロジックが無くなり、wear 経由の施錠・解錠・状態取得の処理順序が現行と同じであること。
     品質ゲートがすべて成功すること。
-  依存:
-    - BL-118
+  依存: []
 
 - id: BL-121
   区分: 機能追加
@@ -238,7 +211,7 @@
     保たれること、(8) ウィジェットで操作するとウォッチの Tile が追随し、ウォッチで操作すると
     ウィジェットが追随すること、(9) BL-119・BL-120 の移設後もウォッチの Tile・Complication・
     ハプティクスが従来どおり動くこと（リグレッション確認）、(10) Wear OS コンパニオンアプリ未導入の
-    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118）、(11) fragment の引き上げ（BL-130）後も
+    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118で対応済み）、(11) fragment の引き上げ（BL-130）後も
     スマホの資格情報設定画面とウォッチの Tile・Complication・設定画面が従来どおり表示・動作すること。
   優先度: P2
   状態: 未着手
@@ -249,7 +222,6 @@
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
     - BL-130
-    - BL-118
     - BL-119
     - BL-120
     - BL-121

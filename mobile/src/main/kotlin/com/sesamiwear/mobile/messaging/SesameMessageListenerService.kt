@@ -54,10 +54,14 @@ class SesameMessageListenerService : WearableListenerService() {
             syncLockedStateFromPath(messageEvent.path, deviceUuid)
             Log.d(TAG, "handleCommandRequest synced locked state")
         }
-        Wearable.getMessageClient(this@SesameMessageListenerService)
-            .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
-            .await()
-        Log.d(TAG, "handleCommandRequest sent result to wear")
+        // 結果返送もベストエフォートにし、送信失敗の例外でプロセスを落とさない（BL-118）。
+        val sent =
+            DataLayerBestEffort.run(onFailure = { Log.w(TAG, "handleCommandRequest send failed: statusCode=$it") }) {
+                Wearable.getMessageClient(this@SesameMessageListenerService)
+                    .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
+                    .await()
+            }
+        Log.d(TAG, "handleCommandRequest sent result to wear sent=$sent")
     }
 
     private suspend fun handleStatusRequest(messageEvent: MessageEvent) {

@@ -142,6 +142,13 @@
   ロジック。`PATH_STATUS_REQUEST`経由ではSesame APIのGET結果をそのまま同期する（BL-015, BL-061）。
 - `mobile.messaging.SesameDeviceListSyncer`: 登録済みデバイス一覧（uuid/displayNameのみ、
   apikey/secretKeyは含めない）を`DEVICE_LIST_DATA_ITEM_PATH`へ同期する（BL-052）。
+- `mobile.messaging.DataLayerBestEffort`（Android非依存、ユニットテスト対象）: mobile側のWearable
+  Data Layer呼び出し（上記2つのSyncerの`putDataItem`と、`SesameMessageListenerService`の結果返送
+  `sendMessage`）をベストエフォート呼び出しにする（BL-118）。`ApiException`のみを捕捉して
+  ステータスコードを`Log.w`へ渡し（資格情報・uuidは出さない）、呼び出し元の処理（資格情報の保存・
+  削除、コマンド実行）を継続する。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
+  入っていない端末ではWearable APIが`ApiException`で失敗しうるが、以前は例外処理なしで`await()`して
+  いたため、資格情報の保存時に起動したコルーチンから例外が漏れてアプリが落ちる経路があった。
 - **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（Tile/Complication
   表示時にDataItemが30秒以上古い場合、またはデバイス名チップタップ時）に限られ、定期ポーリングは
   行わない。Sesame純正アプリでの操作等、他経路による状態変化はTileが再表示・更新要求されるまで
