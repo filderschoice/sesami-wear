@@ -98,7 +98,11 @@
     (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
     遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの
     ページから取得する。Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
-    (2)「Sesameが無くてもデモで試す」、(3)「登録後のウォッチでの使い方」の3項目を持つ。
+    (2)「Sesameが無くてもデモで試す」（ウォッチのタイルとホーム画面ウィジェットの両方の試し方、
+    両者のデモは連動しないこと、登録後にデモのウィジェットが「タップして設定」へ戻ること）、
+    (3)「登録後のウォッチでの使い方」、(4)「ホーム画面ウィジェットの使い方」（BL-124）の4項目を持つ。
+    ウィジェットの説明はウィジェットの表示文言（「変更」「全デバイス」「通信中...」「タップして設定」）を
+    含むことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
     体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
   - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
@@ -185,6 +189,15 @@
   「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
   選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
   `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
+- 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
+  `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
+  `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
+  対象デバイス）へ反映した。GitHub上ではマージ時点で公開される一方テスターの手元は0.10.0のままのため、
+  **公開ドキュメントには「0.11.0以降」と明記する**（2026-09-16にユーザー判断）。STORE_LISTINGはPlay Consoleへの
+  転記を0.11.0の配信時（BL-127）に行う旨を冒頭に注記している。プライバシーポリシーとデータセーフティ申告は
+  変更しない。ウィジェットが端末内に保存するのはロック状態（uuid・真偽値・時刻）と割り当て（appWidgetIdと
+  uuid）のみで、端末外へ新たに送信する情報は無く（Sesame APIへの送信内容は従来と同じ）、wearが既に
+  端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
 - `res/xml/sesame_widget_info.xml`: サイズはTile相当の1種類（minWidth 250dp / minHeight 110dp、4x2セル、
   `resizeMode=none`。サイズ別レイアウトはBL-128で検討）、`widgetFeatures=reconfigurable`、
   `initialLayout`はGlance既定の読み込み中レイアウト。

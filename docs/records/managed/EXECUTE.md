@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 04:30
+  summary: ホーム画面ウィジェットに合わせてアプリ内ヘルプと利用者向けドキュメントを更新した
+  details:
+    変更内容: >-
+      アプリ内ヘルプ（mobile.help.HelpContent）へ「ホーム画面ウィジェットの使い方」を4項目めとして追加し、
+      「Sesameが無くてもデモで試す」をウォッチのタイルとウィジェットの両方の試し方、両者のデモが連動しないこと、
+      登録後にデモのウィジェットが「タップして設定」へ戻ることを含む内容へ直した。ウィジェットの説明が
+      実際の表示文言（変更・全デバイス・通信中...・タップして設定）を含むことをユニットテストで固定した。
+      docs/USER_GUIDE.md に「ホーム画面ウィジェットで操作する」節とトラブルシュートを、docs/CLOSED_TEST.md に
+      ウォッチ無しでも参加・試用できることを、README.md の主な機能と docs/RELEASE_NOTES.md の 0.11.0
+      （未リリース、ストア掲載用の要約156文字を含む）を、docs/store/STORE_LISTING.md の短い説明（57文字）・
+      詳細な説明（1465文字）・対象デバイスを更新した。テスターの手元は 0.10.0 のままのため、ユーザー確認のうえ
+      公開ドキュメントには「0.11.0以降」と明記し、STORE_LISTING には Play Console への転記を BL-127 で行う旨を
+      注記した。プライバシーポリシーとデータセーフティ申告は、ウィジェットが端末外へ新たな情報を送らず、
+      端末内に保存するのはロック状態と割り当てのみのため変更不要と判断した（根拠は DESIGN.md に記載）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/CLOSED_TEST.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - README.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 / ストア掲載文言の文字数計測（Python）
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。短い説明・詳細な説明・
+      このリリースの新機能はいずれも Google Play の上限内。
+    関連ID:
+      - BL-124
+
 - date: 2026-09-16 03:50
   summary: ホーム画面ウィジェットでもデモモードを操作できるようにした
   details:
