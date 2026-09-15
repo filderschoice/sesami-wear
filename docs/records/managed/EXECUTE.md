@@ -5,6 +5,46 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 03:15
+  summary: ホーム画面ウィジェットのタップで施錠・解錠・状態取得できるようにした
+  details:
+    変更内容: >-
+      wear の Tile と同じ操作ルールでウィジェットを操作できるようにした。右側のタップは Android 非依存の
+      WidgetTapAction（SesameTileActions と SesameCommandConfirmation に従い、施錠中→解錠確認、解錠中→即施錠、
+      一部解錠→即全施錠、通信中・状態不明→なし）で決め、施錠は WidgetCommandReceiver（exported=false、goAsync）で
+      即時実行、解錠は WidgetUnlockConfirmActivity（ダイアログテーマ、左キャンセル・右解錠）を挟む。
+      デバイス名のタップは状態取得のみ。WidgetCommandRunner が対象uuidを SesameDeviceTargets で展開して
+      実行口を並行に呼び、WidgetInProgressTracker（プロセス内メモリ）で通信中を表示してから、終了後に
+      保存済み状態で再描画する（失敗時は操作前の状態に戻る）。解錠確認画面からも同じ経路で実行するため、
+      Glance の ActionCallback ではなく同じ goAsync の仕組みを自前の Receiver で使った（WorkManager へは委譲せず、
+      理由は DESIGN.md に記載）。SesameDeviceCommandExecutorFactory の通知先へウィジェットの再描画を加え、
+      ウォッチ経由の成功でもウィジェットが、ウィジェット経由の成功でもウォッチの Tile が追随する。
+      タップ時の動作・キャンセル時に送信しないこと・通信中の表示と解除・全デバイスへの送信・失敗時の状態維持・
+      ウォッチ経由との重複の抑止をユニットテストで検証した（鍵は RFC 4493 の公開テストベクタ）。
+    変更ファイル:
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTracker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTrackerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:assembleRelease / npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートと mobile のリリースビルドが終了コード0。実機での施錠・解錠と、BroadcastReceiver の
+      実行時間の制約に抵触しないかの確認は BL-126（人手検証）で行う。
+    関連ID:
+      - BL-122
+
 - date: 2026-09-16 02:30
   summary: mobileにホーム画面ウィジェット（表示と対象デバイスの設定）を追加した
   details:

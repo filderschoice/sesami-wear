@@ -112,8 +112,8 @@
 
 ### mobileホーム画面ウィジェット
 
-スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認するウィジェット
-（BL-121。タップ操作はBL-122、デモはBL-123で追加する）。Data Layerを経由せず、mobile内の保存値と
+スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認・操作するウィジェット
+（BL-121で表示と設定、BL-122でタップ操作。デモはBL-123で追加する）。Data Layerを経由せず、mobile内の保存値と
 `mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も使える。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
@@ -125,11 +125,41 @@
   構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
   `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
   中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は右側にだけ使う。
-  背景は暗色（0xFF121212）で角丸16dp。「変更」と未設定時の全面タップは選択画面を開く（Intentの
-  dataへappWidgetIdを入れてPendingIntentをインスタンスごとに区別する）。未設定時は「タップして設定」のみを表示。
-  `onDeleted`で割り当てを消す。
+  背景は暗色（0xFF121212）で角丸16dp。未設定時は「タップして設定」のみを表示し、全面タップで選択画面を開く。
+  `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
+  dataへ操作名とappWidgetIdを入れる。
+- タップ操作（BL-122）: 右側は`mobile.widget.WidgetTapAction.forModel`（Android非依存）で決める。
+  提示コマンドは`core.display.SesameTileActions`、確認の要否は`SesameCommandConfirmation`（Tileと同じ）で、
+  施錠中→解錠確認画面、解錠中→即施錠、一部解錠→即全施錠、通信中・状態不明→操作なし、未設定→選択画面。
+  左側のデバイス名は状態取得（GET）のみ、「変更」は選択画面を開く。
+- `mobile.widget.WidgetCommandReceiver`（`exported="false"`のBroadcastReceiver）: 施錠の即時実行・状態取得・
+  解錠確認画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
+  `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
+  自前のReceiverで使う形にした。WorkManagerへは委譲していない（通常のワークは端末の状態により実行が
+  遅延しうり、即時性を優先したため。期限付き実行はAndroid 11以下でフォアグラウンドサービス通知が要る）。
+  BroadcastReceiverの実行時間の制約に抵触しないかは未確認で、BL-126の実機検証で確認する。
+  Intentのコマンド名は`SesameCommand`（LOCK/UNLOCKのみ）へ一致するものだけを受け付ける。
+- `mobile.widget.WidgetCommandRunner`（Android非依存、ユニットテスト対象）: 対象uuidを
+  `SesameDeviceTargets.targetUuids`で展開し、各uuidへ`SesameDeviceCommandExecutor`を**並行して**呼ぶ
+  （全デバイス時の所要時間を1台分に近づけ、Receiverの実行時間を短く保つ）。実行中は
+  `WidgetInProgressTracker`へ対象uuid（全デバイス時は全デバイスの特別値も）を登録して再描画し
+  （IN_PROGRESS＝通信中）、終了時に解除して再描画する（取り消されても解除後の再描画は行う）。
+  ロック状態は実行口が成功時にだけ保存するため、失敗時の再描画は操作前の状態に戻る（失敗の明示はBL-129）。
+- `mobile.widget.WidgetInProgressTracker`（Android非依存）: 実行中uuidをプロセス内メモリだけで数える
+  （同一uuidの重複実行は回数で管理）。永続化しないのは、プロセス終了時には実行も終わっており通信中の
+  表示が固まるのを避けるため。全デバイスのウィジェットは登録済みのいずれかが実行中なら通信中。
+- `mobile.widget.WidgetUnlockConfirmActivity`: ダイアログテーマ（`Theme.Material.Light.Dialog.NoActionBar`）の
+  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`）。見出し
+  「（表示名）を解錠しますか？」と、左＝「キャンセル」（中立色）・右＝「解錠」/全デバイスは「全解錠」
+  （解錠中の状態色）の2ボタン（wearの確認画面と同じ並び）。解錠でReceiverへ実行を依頼してすぐ閉じ、
+  キャンセル・画面外タップ・戻る操作では何も送らない。
+- 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
+  `SesameWidgetUpdater.updateAll`を呼ぶ。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
+  ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の
+  重複は1回になる。
 - 表示内容の決定は`mobile.widget.SesameWidgetModelResolver`（Android非依存、ユニットテスト対象）が行い、
   `SesameWidgetModel.Unconfigured`か`Configured`（uuid・表示名・`TileDisplayState`・全デバイスか）を返す。
+  通信中は`WidgetInProgressTracker`の結果を`isCommandInProgress`として渡す。
   未割り当て、割り当て済みの実デバイスが削除済み、全デバイスで登録0台、デモで登録1台以上のときは未設定。
   状態は`LockStateStore`の保存値から、単一は`TileDisplayStateResolver.resolve`（未取得は状態不明）、
   全デバイスは`resolveAggregate`（1台でも未取得なら状態不明）で決める。mobileは自身がAPIを呼ぶため

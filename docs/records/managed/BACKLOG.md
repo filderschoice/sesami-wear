@@ -5,36 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-122
-  区分: 機能追加
-  タスク内容: >-
-    ウィジェットのタップ操作を実装し、wear の Tile と同じ操作ルールで施錠・解錠できるようにする。
-    右側のタップは core.display.SesameTileActions（BL-119 で移設済み）が提示するコマンドを実行し、施錠は
-    ワンタップ即実行、解錠は SesameCommandConfirmation に従い確認画面（左＝キャンセル・右＝解錠の
-    2ボタン、wear の SesameActionActivity と同じ並び）を挟む。確認画面はダイアログテーマの軽量
-    Activity（noHistory / excludeFromRecents、wear と同方針）とする。MIXED は全施錠、全デバイス
-    選択時は core.display.SesameDeviceTargets.targetUuids が展開した各uuidへ個別に BL-120 の実行口（mobile.command.SesameDeviceCommandExecutor。
-    ウィジェット再描画は LockStateListener へ合成して注入する）を呼ぶ。送信中は
-    IN_PROGRESS（通信中）を表示し、成功時は保存済み状態で再描画、失敗時は操作前の状態へ戻す
-    （失敗の明示方法の改善は BL-129）。左側のデバイス名タップは状態取得（GET）のみ、「変更」は
-    選択画面を開く。ウォッチ経由でコマンドが成功した場合もウィジェットを再描画し、ウィジェット経由で
-    成功した場合も DataItem をベストエフォートで同期してウォッチの Tile を追随させる。
-    ウィジェット本体は BL-121 で mobile.widget.SesameWidget（Glance 1.2.0）として実装済みで、
-    再描画は SesameWidgetUpdater、表示内容は SesameWidgetModelResolver（isCommandInProgress で通信中を表示）を使う。
-    バックグラウンド実行は Glance の ActionCallback を既定とし、API 応答待ちが BroadcastReceiver の
-    実行時間制約に抵触するおそれがある場合は WorkManager へ委譲する（どちらを採ったかと理由を
-    DESIGN.md に残す。制約に抵触するかは未確認）。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    状態ごとのタップ時の動作（施錠中→解錠確認、解錠中→即施錠、MIXED→即全施錠、通信中・状態不明→
-    操作なし）が Android 非依存のクラスでユニットテストされていること。確認画面でキャンセルすると
-    何も送信されないこと。ウィジェットとウォッチからの同一uuidへの2秒以内の重複が1回に抑えられる
-    ことがテストで示されていること。品質ゲートがすべて成功すること。実機での施錠・解錠は BL-126 で
-    確認する。
-  依存: []
-
 - id: BL-123
   区分: 機能追加
   タスク内容: >-
@@ -53,8 +23,7 @@
   根拠: >-
     クローズドテスト（BL-106）の参加者は Sesame 実機を持たない人が多く、wear でデモモード（BL-109）を
     追加したのと同じ理由で、スマホだけのテスターにも操作を体験してもらう導線が要る。
-  依存:
-    - BL-122
+  依存: []
 
 - id: BL-124
   区分: 機能追加
@@ -116,7 +85,6 @@
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
-    - BL-122
     - BL-123
 
 - id: BL-127
@@ -166,7 +134,7 @@
   区分: UX改善
   タスク内容: >-
     ウィジェット操作の結果フィードバックを改善する。wear はハプティクスで成否を区別しているが、
-    第1段階（BL-122）のウィジェットは失敗時に操作前の表示へ戻すだけで、失敗したことが分かりにくい。
+    第1段階（BL-122、実装済み）のウィジェットは失敗時に操作前の表示へ戻すだけで、失敗したことが分かりにくい。
     失敗を一定時間表示する状態（例「失敗」表示とグレー背景）の追加、スマホのハプティクス
     （wear の SesameHapticPatternResolver と同じ成否パターン）の再生、状態が古い場合の表示の区別
     （wear の STATUS_STALE_THRESHOLD_MILLIS = 30秒相当の鮮度判定と自動状態取得）を検討する。

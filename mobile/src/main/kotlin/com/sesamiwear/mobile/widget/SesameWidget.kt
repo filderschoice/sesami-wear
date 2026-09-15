@@ -20,6 +20,7 @@ import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -68,7 +69,7 @@ class SesameWidget : GlanceAppWidget() {
             LaunchedEffect(refreshToken) {
                 model = withContext(Dispatchers.IO) { SesameWidgetRepository.loadModel(context, appWidgetId) }
             }
-            SesameWidgetContent(model = model, configureAction = configureAction(context, appWidgetId))
+            SesameWidgetContent(model = model, actions = WidgetActions(context, appWidgetId, model))
         }
     }
 
@@ -90,10 +91,46 @@ class SesameWidget : GlanceAppWidget() {
     }
 }
 
+/**
+ * ウィジェット上のタップ操作（BL-122）。右側は[WidgetTapAction]の判定どおり、施錠は[WidgetCommandReceiver]で
+ * 即時実行、解錠は[WidgetUnlockConfirmActivity]を開き、操作できない状態（通信中・状態不明）では何もしない。
+ * 左側のデバイス名は状態取得のみ、「変更」は選択画面を開く。
+ */
+private class WidgetActions(
+    context: Context,
+    appWidgetId: Int,
+    model: SesameWidgetModel,
+) {
+    val configure: Action = SesameWidget.configureAction(context, appWidgetId)
+
+    val status: Action? =
+        when (val tap = WidgetTapAction.forModel(model)) {
+            WidgetTapAction.OpenConfiguration -> configure
+            WidgetTapAction.None -> null
+            is WidgetTapAction.Run ->
+                (model as? SesameWidgetModel.Configured)?.let {
+                    actionSendBroadcast(
+                        WidgetCommandReceiver.runCommandIntent(context, appWidgetId, it.deviceUuid, tap.command),
+                    )
+                }
+            is WidgetTapAction.Confirm ->
+                (model as? SesameWidgetModel.Configured)?.let {
+                    actionStartActivity(
+                        WidgetUnlockConfirmActivity.createIntent(context, appWidgetId, it.deviceUuid, it.displayName),
+                    )
+                }
+        }
+
+    val refresh: Action? =
+        (model as? SesameWidgetModel.Configured)?.let {
+            actionSendBroadcast(WidgetCommandReceiver.refreshStatusIntent(context, appWidgetId, it.deviceUuid))
+        }
+}
+
 @Composable
 private fun SesameWidgetContent(
     model: SesameWidgetModel,
-    configureAction: Action,
+    actions: WidgetActions,
 ) {
     val containerModifier =
         GlanceModifier
@@ -104,32 +141,34 @@ private fun SesameWidgetContent(
     when (model) {
         SesameWidgetModel.Unconfigured ->
             Box(
-                modifier = containerModifier.clickable(configureAction),
+                modifier = containerModifier.clickable(actions.configure),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(text = SesameWidgetModel.Unconfigured.MESSAGE, style = textStyle(NEUTRAL_TEXT_ARGB, BODY_SP))
             }
         is SesameWidgetModel.Configured ->
             Row(modifier = containerModifier) {
-                LeftColumn(displayName = model.displayName, configureAction = configureAction)
+                LeftColumn(displayName = model.displayName, actions = actions)
                 Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
-                StatusBox(model = model)
+                StatusBox(model = model, onClick = actions.status)
             }
     }
 }
 
-/** 左列。上がデバイス名（BL-122で状態取得）、下が「変更」（選択画面を開く）。いずれも中立色。 */
+/** 左列。上がデバイス名（タップで状態取得）、下が「変更」（選択画面を開く）。いずれも中立色。 */
 @Composable
 private fun LeftColumn(
     displayName: String,
-    configureAction: Action,
+    actions: WidgetActions,
 ) {
     Column(modifier = GlanceModifier.width(LEFT_COLUMN_WIDTH_DP.dp).fillMaxHeight()) {
-        NeutralChip(text = displayName, modifier = GlanceModifier.defaultWeight())
+        NeutralChip(text = displayName, modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh))
         Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
-        NeutralChip(text = CHANGE_LABEL, modifier = GlanceModifier.defaultWeight().clickable(configureAction))
+        NeutralChip(text = CHANGE_LABEL, modifier = GlanceModifier.defaultWeight().clickable(actions.configure))
     }
 }
+
+private fun GlanceModifier.clickableOrSelf(action: Action?): GlanceModifier = action?.let { clickable(it) } ?: this
 
 @Composable
 private fun NeutralChip(
@@ -158,11 +197,15 @@ private fun StatusTexts(model: SesameWidgetModel.Configured) {
 
 /** 右側の状態表示。状態色の背景に、アイコン・状態文言・操作文言を中央寄せで並べる。 */
 @Composable
-private fun RowScope.StatusBox(model: SesameWidgetModel.Configured) {
+private fun RowScope.StatusBox(
+    model: SesameWidgetModel.Configured,
+    onClick: Action?,
+) {
     Column(
         modifier =
             GlanceModifier
                 .defaultWeight()
+                .clickableOrSelf(onClick)
                 .fillMaxHeight()
                 .background(ColorProvider(Color(model.backgroundColorArgb)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)

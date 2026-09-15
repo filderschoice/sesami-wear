@@ -42,6 +42,19 @@
             </intent-filter>
         </activity>
 
+        <!-- ウィジェットのタップ操作（BL-122）。自アプリのPendingIntentと解錠確認画面からのみ呼ぶ。 -->
+        <receiver
+            android:name=".widget.WidgetCommandReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name=".widget.WidgetUnlockConfirmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar" />
+
         <service
             android:name=".messaging.SesameMessageListenerService"
             android:exported="true">

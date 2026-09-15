@@ -26,6 +26,7 @@ object SesameWidgetRepository {
             assignedUuid = assignedUuid,
             registeredDevices = registeredDevices,
             lockStateOf = { uuid -> lockStateStore.load(uuid)?.isLocked },
+            isCommandInProgress = WidgetInProgressTracker.shared.isInProgress(assignedUuid, registeredDevices),
         )
     }
 
