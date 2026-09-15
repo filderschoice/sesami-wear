@@ -846,3 +846,32 @@ Play Consoleのクローズドテスト両トラック（mobile: versionCode 5 /
 - BL-106: `状態` を `未着手` から `進行中` へ更新し、0.10.0がクローズドテスト両トラックで公開中と
   なったこと（2026-09-14）と、Qiita記事とXでテスター募集を開始したこと（2026-09-15）を追記した。
   参照先の節名を、`docs/store/PLAY_CONSOLE_STEPS.local.md` の実際の見出しに合わせて修正した。
+
+## 2026-09-16（スマートフォン用ホーム画面ウィジェットのタスク分解、BL-118〜BL-129起票）
+
+ウォッチを持たない利用者向けに、mobile側のホーム画面ウィジェットからSesameを施錠・解錠できるようにする
+機能を段階的に実装するため、タスクを分解して `docs/records/managed/BACKLOG.md` へ起票しました。
+コード修正を伴わないため `docs/records/managed/EXECUTE.md` は更新していません。
+
+- 方針は「主はwear。ウィジェットで実現できる機能はTileと大きく変えず、第1段階はシンプルにする」。
+  文言・色・操作の判定をcoreへ集約し（BL-119）、ウィジェットとTileが同じロジックを参照する構成にした。
+- 前提の不具合候補としてBL-118を起票した。mobile側のData Layer呼び出し（`SesameDeviceListSyncer` /
+  `SesameStatusSyncer`）が例外処理なしで、Wear OSのコンパニオンアプリが無い端末ではクラッシュする
+  可能性がある（再現は未確認）。
+- 第1段階: BL-120（Data Layerを経由しない実行口の切り出し）→ BL-121（表示と設定）→ BL-122（タップ操作）
+  → BL-123（デモモード）→ BL-124（ヘルプ・利用者向けドキュメント）→ BL-125（DESIGN.md統合）→
+  BL-126（実機検証）→ BL-127（クローズドテストへの配信）。
+- 第2段階の候補: BL-128（サイズ別レイアウト）、BL-129（結果フィードバックと状態の鮮度）。
+
+## 2026-09-16（androidx.fragment の古いSDKバージョン警告への対応を起票、BL-130）
+
+Google Play Console の「次のリリースに向けて」で、`androidx.fragment:fragment` 1.1.0 が古く、次の変更を
+公開する前に 1.2.1 以降へ更新するよう案内されたため、BL-130 を起票しました。コード修正を伴わないため
+`docs/records/managed/EXECUTE.md` は更新していません。
+
+- fragment は直接使っておらず推移的依存。経路は mobile が `play-services-basement`（`play-services-wearable`
+  経由）、wear が `androidx.preference` → `androidx.appcompat`（`watchface-complications-data` 経由）。
+  `play-services-basement` は最新の 18.11.0 でも 1.1.0 を指定しているため、明示的な依存追加で引き上げる。
+- 次の配信（BL-127）の前提になり、ウィジェットのコードと独立した小さな変更のため、BL-118〜BL-129 の
+  順序へ割り込ませて先頭（P1）に置いた。BL-126（実機検証）と BL-127（配信）の依存へ BL-130 を追加し、
+  BL-126 へ fragment 引き上げ後のリグレッション確認、BL-127 へ Play Console の警告解消の確認を加えた。
