@@ -1,5 +1,7 @@
 package com.sesamiwear.mobile.widget
 
+import com.sesamiwear.core.SesameDemoMode
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -56,6 +58,19 @@ class WidgetDeviceAssignmentStoreTest {
         assertNull(store.assignedDeviceUuid(1))
         assertEquals("uuid-back", store.assignedDeviceUuid(2))
         assertNull(store.assignedDeviceUuid(3))
+    }
+
+    @Test
+    fun `registering a real device releases widgets assigned to the demo device`() {
+        store.assign(1, SesameDemoMode.DEMO_DEVICE_UUID)
+        store.assign(2, SesameWearProtocol.ALL_DEVICES_TARGET_UUID)
+
+        store.onRegisteredDevicesChanged(registeredDeviceCount = 0)
+        assertEquals(SesameDemoMode.DEMO_DEVICE_UUID, store.assignedDeviceUuid(1))
+
+        store.onRegisteredDevicesChanged(registeredDeviceCount = 1)
+        assertNull(store.assignedDeviceUuid(1))
+        assertEquals(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, store.assignedDeviceUuid(2))
     }
 
     @Test

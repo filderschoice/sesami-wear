@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.widget
 
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameKeyValueStore
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -38,6 +39,16 @@ class WidgetDeviceAssignmentStore(private val keyValueStore: SesameKeyValueStore
         val assignments = loadAll()
         val remaining = assignments.filterValues { it != uuid }
         if (remaining.size != assignments.size) saveAll(remaining)
+    }
+
+    /**
+     * 登録済みデバイスが変わったときに呼ぶ。1台でも登録されていれば、デモ用デバイスを割り当てていた
+     * インスタンスの割り当てを解除し「タップして設定」へ戻す（BL-123。実デバイスとデモを取り違えないため、
+     * wearの選択肢と同じく登録後はデモを提示しない）。
+     */
+    @Synchronized
+    fun onRegisteredDevicesChanged(registeredDeviceCount: Int) {
+        if (registeredDeviceCount > 0) unassignDevice(SesameDemoMode.DEMO_DEVICE_UUID)
     }
 
     private fun loadAll(): Map<String, String> {

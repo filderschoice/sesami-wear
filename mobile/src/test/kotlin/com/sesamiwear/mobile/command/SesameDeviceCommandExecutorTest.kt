@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.command
 
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.messaging.CommandDebouncer
@@ -21,6 +22,7 @@ class SesameDeviceCommandExecutorTest {
     private lateinit var server: MockWebServer
     private lateinit var lockStateStore: LockStateStore
     private val notifications = mutableListOf<Pair<String, Boolean>>()
+    private val watchSyncs = mutableListOf<Pair<String, Boolean>>()
     private var now = 10_000L
     private var credentialsList = listOf(validCredentials)
 
@@ -40,7 +42,11 @@ class SesameDeviceCommandExecutorTest {
         SesameDeviceCommandExecutor(
             loadCredentials = { credentialsList },
             lockStateStore = lockStateStore,
-            listener = { uuid, isLocked -> notifications += uuid to isLocked },
+            notifier =
+                LockStateNotifier(
+                    local = { uuid, isLocked -> notifications += uuid to isLocked },
+                    watch = { uuid, isLocked -> watchSyncs += uuid to isLocked },
+                ),
             debouncer = debouncer,
             apiClientFactory = { credentials ->
                 SesameApiClient(
@@ -65,6 +71,49 @@ class SesameDeviceCommandExecutorTest {
             assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
             assertEquals(now, lockStateStore.load(DEVICE_UUID)?.updatedAtEpochMillis)
             assertEquals(listOf(DEVICE_UUID to true), notifications)
+            assertEquals(listOf(DEVICE_UUID to true), watchSyncs)
+        }
+
+    @Test
+    fun `demo device command changes only the local state without API or watch sync`() =
+        runTest {
+            credentialsList = emptyList()
+
+            val outcome = createExecutor().execute(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.UNLOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
+            assertEquals(0, server.requestCount)
+            assertTrue(watchSyncs.isEmpty())
+            assertEquals(false, lockStateStore.load(SesameDemoMode.DEMO_DEVICE_UUID)?.isLocked)
+            assertEquals(listOf(SesameDemoMode.DEMO_DEVICE_UUID to false), notifications)
+        }
+
+    @Test
+    fun `demo device status refresh returns the local state without API or notifications`() =
+        runTest {
+            val executor = createExecutor()
+
+            assertEquals(SesameDemoMode.INITIAL_IS_LOCKED, executor.refreshStatus(SesameDemoMode.DEMO_DEVICE_UUID))
+            now += CommandDebouncer.DEFAULT_WINDOW_MILLIS
+            executor.execute(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.UNLOCK)
+            notifications.clear()
+
+            assertEquals(false, executor.refreshStatus(SesameDemoMode.DEMO_DEVICE_UUID))
+            assertEquals(0, server.requestCount)
+            assertTrue(watchSyncs.isEmpty())
+            assertTrue(notifications.isEmpty())
+        }
+
+    @Test
+    fun `demo device commands are debounced like real devices`() =
+        runTest {
+            val executor = createExecutor()
+
+            executor.execute(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.UNLOCK)
+            val outcome = executor.execute(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.DEBOUNCED, outcome)
+            assertEquals(false, lockStateStore.load(SesameDemoMode.DEMO_DEVICE_UUID)?.isLocked)
         }
 
     @Test
@@ -89,6 +138,7 @@ class SesameDeviceCommandExecutorTest {
             assertEquals(SesameDeviceCommandExecutor.Outcome.FAILURE, outcome)
             assertNull(lockStateStore.load(DEVICE_UUID))
             assertTrue(notifications.isEmpty())
+            assertTrue(watchSyncs.isEmpty())
         }
 
     @Test

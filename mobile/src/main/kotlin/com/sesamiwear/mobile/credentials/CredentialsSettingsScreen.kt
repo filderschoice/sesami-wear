@@ -37,6 +37,7 @@ import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.help.HelpContent
 import com.sesamiwear.mobile.help.HelpTopic
 import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
+import com.sesamiwear.mobile.widget.SesameWidgetRepository
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,7 +75,9 @@ fun CredentialsSettingsScreen(
     // wear側は資格情報を持たない設計方針のため、Tile Configuration Activityでの
     // デバイス選択肢表示用にuuid/displayNameのみの一覧をDataClient経由で同期する（BL-052）。
     // ホーム画面ウィジェットは表示名・対象デバイスの有無が変わるため、あわせて再描画を要求する（BL-121）。
+    // 1台以上の登録になった場合は、デモを割り当てていたウィジェットを未設定へ戻す（BL-123）。
     fun syncDeviceList(list: List<SesameCredentials>) {
+        SesameWidgetRepository.assignmentStore(context).onRegisteredDevicesChanged(list.size)
         coroutineScope.launch {
             SesameDeviceListSyncer(context).sync(list)
             SesameWidgetUpdater.updateAll(context)

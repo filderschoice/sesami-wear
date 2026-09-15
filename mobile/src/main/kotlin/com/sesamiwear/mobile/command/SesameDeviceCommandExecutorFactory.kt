@@ -23,10 +23,11 @@ object SesameDeviceCommandExecutorFactory {
         return SesameDeviceCommandExecutor(
             loadCredentials = credentialsStore::loadAll,
             lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)),
-            listener = { uuid, isLocked ->
-                SesameStatusSyncer(appContext).syncLocked(uuid, isLocked)
-                SesameWidgetUpdater.updateAll(appContext)
-            },
+            notifier =
+                LockStateNotifier(
+                    local = { _, _ -> SesameWidgetUpdater.updateAll(appContext) },
+                    watch = { uuid, isLocked -> SesameStatusSyncer(appContext).syncLocked(uuid, isLocked) },
+                ),
         )
     }
 }

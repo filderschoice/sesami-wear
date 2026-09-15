@@ -113,7 +113,7 @@
 ### mobileホーム画面ウィジェット
 
 スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認・操作するウィジェット
-（BL-121で表示と設定、BL-122でタップ操作。デモはBL-123で追加する）。Data Layerを経由せず、mobile内の保存値と
+（BL-121で表示と設定、BL-122でタップ操作、BL-123でデモ）。Data Layerを経由せず、mobile内の保存値と
 `mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も使える。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
@@ -154,7 +154,7 @@
   （解錠中の状態色）の2ボタン（wearの確認画面と同じ並び）。解錠でReceiverへ実行を依頼してすぐ閉じ、
   キャンセル・画面外タップ・戻る操作では何も送らない。
 - 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
-  `SesameWidgetUpdater.updateAll`を呼ぶ。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
+  `SesameWidgetUpdater.updateAll`を呼ぶ（デモはDataItem同期を行わず再描画のみ）。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
   ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の
   重複は1回になる。
 - 表示内容の決定は`mobile.widget.SesameWidgetModelResolver`（Android非依存、ユニットテスト対象）が行い、
@@ -174,6 +174,12 @@
 - `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
   （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
   JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
+  `onRegisteredDevicesChanged(件数)`は1台以上ならデモの割り当てを解除する（BL-123）。
+- デモ（BL-123）: 登録済みデバイスが0台のとき選択肢はデモ用デバイスのみになり（Tileと同じ）、デモの状態は
+  `LockStateStore`へデモuuidで保存する（mobile端末内のみ。Sesame APIへもウォッチへも送らない）。確認画面の有無・
+  状態文言は実デバイスと同じ。資格情報を1台でも保存すると、`CredentialsSettingsScreen`がデバイス一覧の同期前に
+  `onRegisteredDevicesChanged`を呼び、デモを割り当てていたウィジェットを「タップして設定」へ戻す
+  （Resolver側も登録1台以上ならデモを未設定として扱うため、呼び出し前に描画されても誤表示しない）。
 - `mobile.widget.WidgetConfigurationActivity`: `appwidget-provider`の`android:configure`で追加時に開き、
   「変更」「タップして設定」からも開く。選択肢は`SesameDeviceTargets.choices`（Tileと同じ）で、0台時は
   「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
@@ -219,13 +225,18 @@
     UNLOCK→解錠、BL-015の簡略化ロジック）。
   - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
     APIエラーはnull（保存・通知しない）。重複判定の対象外。
-  - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateListener`（`fun interface`）、
+  - デモ用デバイス（BL-123）: `execute`はAPIを呼ばず常に成功として端末内の状態だけを書き換え（重複判定は
+    実デバイスと同じ）、`refreshStatus`は保存値（無ければ`INITIAL_IS_LOCKED`）を返すだけで保存・通知しない。
+    ウォッチへのDataItem同期も行わず、ウォッチ側のデモ状態（`wear.demo.DemoLockStateStore`）とは同期しない。
+  - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateNotifier`（`local`＝すべての
+    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ）、
     `CommandDebouncer`、APIクライアント生成、時刻取得を注入する。`CommandDebouncer`は
     companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
     同一uuidへの2秒以内の重複も1回にまとめる。
   - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
     `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
-    通知先は`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）で生成する。
+    通知先は`watch`＝`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）、`local`＝
+    `SesameWidgetUpdater.updateAll`で生成する。
 - `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
   更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
   保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名

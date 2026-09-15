@@ -1,10 +1,12 @@
 package com.sesamiwear.mobile.widget
 
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.messaging.CommandDebouncer
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
@@ -66,7 +68,7 @@ class WidgetCommandRunnerTest {
         SesameDeviceCommandExecutor(
             loadCredentials = { credentials },
             lockStateStore = lockStateStore,
-            listener = { _, _ -> },
+            notifier = LockStateNotifier(local = { _, _ -> }, watch = { _, _ -> }),
             debouncer = debouncer,
             apiClientFactory = {
                 SesameApiClient(it.uuid, it.apiKey, OkHttpClient(), server.url("/").toString().trimEnd('/'))
@@ -144,6 +146,24 @@ class WidgetCommandRunnerTest {
             assertEquals("GET", request.method)
             assertEquals("/uuid-front", request.path)
             assertTrue(redrawInProgress.first())
+        }
+
+    @Test
+    fun `demo widget operates without any network request`() =
+        runTest {
+            val demoRunner =
+                WidgetCommandRunner(
+                    executor = executor(),
+                    loadRegisteredDevices = { emptyList() },
+                    inProgressTracker = tracker,
+                    requestRedraw = {},
+                )
+
+            val outcomes = demoRunner.runCommand(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.UNLOCK)
+
+            assertEquals(listOf(SesameDeviceCommandExecutor.Outcome.SUCCESS), outcomes)
+            assertEquals(false, lockStateStore.load(SesameDemoMode.DEMO_DEVICE_UUID)?.isLocked)
+            assertEquals(0, server.requestCount)
         }
 
     private companion object {

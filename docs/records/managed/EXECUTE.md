@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 03:50
+  summary: ホーム画面ウィジェットでもデモモードを操作できるようにした
+  details:
+    変更内容: >-
+      登録済みデバイスが0台のとき、ウィジェットでデモ用デバイスを選んで施錠・解錠を体験できるようにした。
+      SesameDeviceCommandExecutor はデモuuidのとき Sesame API を呼ばず常に成功として LockStateStore の
+      デモ状態だけを書き換え（重複判定は実デバイスと同じ）、状態取得は保存値（無ければ初期状態の施錠中）を
+      返すだけにした。通知先を LockStateNotifier（local＝ウィジェット再描画、watch＝DataItem 同期）へ分け、
+      デモでは watch を呼ばないことで Data Layer へも送らない（ウォッチのデモ状態とは同期しない）。
+      確認画面の有無・状態文言は実デバイスと同じ経路のまま。資格情報を1台でも保存すると、
+      WidgetDeviceAssignmentStore.onRegisteredDevicesChanged でデモを割り当てていたウィジェットの割り当てを
+      解除し「タップして設定」へ戻す。detekt の LongParameterList・ReturnCount に合わせて通知先の
+      まとめ方と状態取得の分割を調整した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。デモuuidでの操作で API リクエスト0件・DataItem 同期の呼び出し0件、
+      1台登録後のデモ割り当て解除をユニットテストで確認した。途中のメモリ不足による Gradle ワーカーの
+      異常終了はデーモンを停止して再実行した（コード起因ではない）。
+    関連ID:
+      - BL-123
+
 - date: 2026-09-16 03:15
   summary: ホーム画面ウィジェットのタップで施錠・解錠・状態取得できるようにした
   details:
