@@ -94,6 +94,10 @@ dependencies {
     implementation(libs.androidx.wear.tiles.material)
     implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.wear.watchface.complications.datasource)
+    // 本アプリはfragmentを直接使わないが、推移的依存（mobileはplay-services-basement、wearは
+    // watchface-complications-data→preference→appcompat）が古い1.1.0を解決し、Google Play Consoleで
+    // 更新を求められたため、明示して引き上げる（BL-130）。
+    implementation(libs.androidx.fragment)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     // SesameDeviceListReaderでデバイス一覧のJSONをデコードするために使用（BL-052）。

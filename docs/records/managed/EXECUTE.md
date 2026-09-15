@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 00:40
+  summary: 推移的依存で古い版になっていたandroidx.fragmentを1.8.9へ引き上げた
+  details:
+    変更内容: >-
+      Google Play Console で androidx.fragment:fragment 1.1.0 の更新（1.2.1 以降）を求められていた。
+      gradle/libs.versions.toml へ androidx.fragment:fragment 1.8.9 を追加し、mobile と wear の
+      build.gradle.kts で implementation に明示した。releaseRuntimeClasspath の dependencyInsight で
+      両モジュールとも 1.8.9 に解決されることを確認した。最新安定版 1.9.0 でもビルドとリリースビルドは
+      成功したが、推移的に kotlin-stdlib 2.0.21→2.1.20、androidx.tracing 1.2.0→2.0.0、annotation
+      1.8.1→1.10.0、collection 1.4.4→1.6.0、profileinstaller 1.3.1→1.4.0 も引き上げることを
+      dependencies の差分で確認したため、ユーザーに確認のうえ fragment 以外の解決結果が変わらない
+      1.8.9 を採った。他に Play Console から更新を求められている依存は報告されていない
+      （wear の appcompat 1.1.0 は古いが警告対象外のため変更しない）。
+    変更ファイル:
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew :mobile:dependencyInsight / :wear:dependencyInsight（releaseRuntimeClasspath、
+      androidx.fragment:fragment）/ ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test
+      assembleDebug / ./gradlew :mobile:assembleRelease :wear:assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートとリリースビルド（minify有効）が終了コード0。初回実行時にマシンのメモリ不足で
+      Gradleワーカー・デーモンが異常終了したため、--max-workers=2 で分割して再実行した（コード起因ではない）。
+      Play Console の警告解消は BL-127 で確認する。
+    関連ID:
+      - BL-130
+
 - date: 2026-09-16 00:20
   summary: mobileのWearable Data Layer呼び出しを失敗しても処理を続けるベストエフォート呼び出しにした
   details:

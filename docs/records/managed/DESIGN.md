@@ -552,6 +552,15 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.13.0 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
+- `androidx.fragment:fragment`は本アプリのコードから直接使っていないが、`mobile`/`wear`の双方で
+  `implementation`に明示し1.8.9へ固定している（BL-130）。推移的依存（`mobile`は
+  `play-services-basement`、`wear`は`watchface-complications-data`→`preference`→`appcompat`）が
+  1.1.0を解決しており、Google Play Consoleの技術的な品質で1.2.1以降への更新を求められたため。
+  `play-services-basement`は最新版でも1.1.0を指定しており、Google Play開発者サービス側の更新では
+  解消しない。最新安定版1.9.0は推移的に`kotlin-stdlib`をコンパイラ（2.0.21）より新しい2.1.20へ、
+  `androidx.tracing`を2.0.0へ引き上げるため、配布中アプリへの影響を最小にする目的で、fragment以外の
+  解決結果が変わらない1.8.9を採った（2026-09-16にユーザー判断）。推移的依存を明示で引き上げている
+  ため、依存元ライブラリを更新する際は`dependencyInsight`で解決結果を確認し、不要になれば明示を外す。
 
 ### UI/UX方針（現状の実装内容）
 

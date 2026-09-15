@@ -5,36 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-130
-  区分: 品質ゲート
-  タスク内容: >-
-    Google Play Console の「次のリリースに向けて」（技術的な品質、リリース名 5 (0.10.0)）で、
-    androidx.fragment:fragment 1.1.0 が古いと報告され、次の変更を公開する前に 1.2.1 以降への更新を
-    求められている。本アプリは fragment を直接使っておらず、推移的依存として入っている。
-    dependencyInsight（releaseRuntimeClasspath）で確認した経路は、mobile が
-    com.google.android.gms:play-services-basement:18.4.0（play-services-wearable:19.0.0 経由）、
-    wear が androidx.preference:preference:1.1.0 → androidx.appcompat:appcompat:1.1.0
-    （androidx.wear.watchface:watchface-complications-data:1.2.1 経由）。play-services-basement は
-    最新の 18.11.0 でも fragment 1.1.0 を指定しているため、Google Play 開発者サービス側の更新では
-    解消しない。gradle/libs.versions.toml へ androidx.fragment:fragment を追加し、mobile と wear の
-    両方で implementation に明示して新しい版へ引き上げる。候補は 2026-09-16 時点の最新安定版 1.9.0 で、
-    Kotlin 2.0.21 / AGP 8.13.0 / compileSdk 36 との両立は未確認のため、ビルドできない場合は 1.8.9 を使う。
-    同じ理由で古い版が報告されている推移的依存（appcompat 1.1.0 等）が無いかも確認し、報告があれば
-    本タスクへ含める。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    mobile と wear の releaseRuntimeClasspath で androidx.fragment:fragment が 1.2.1 以上に解決される
-    ことを dependencyInsight で確認していること。品質ゲートがすべて成功し、release ビルド
-    （minify 有効）も成功すること。Play Console の警告が消えることは、次の版を配信する BL-127 で確認する。
-  根拠: >-
-    BL-118〜BL-129 の順序へ割り込ませて先頭に置いた。警告は「次の変更を公開する前に」の対応を
-    求めており、次の配信は BL-127（ウィジェットを含む版）になる。ウィジェットのコードとは独立した
-    小さな変更で、先に済ませると BL-126 の実機検証でまとめてリグレッション確認でき、配信直前に
-    入れて再検証する手戻りを避けられる。依存の追加であり削除・ダウングレードではない。
-  依存: []
-
 - id: BL-119
   区分: 機能追加
   タスク内容: >-
@@ -211,7 +181,7 @@
     保たれること、(8) ウィジェットで操作するとウォッチの Tile が追随し、ウォッチで操作すると
     ウィジェットが追随すること、(9) BL-119・BL-120 の移設後もウォッチの Tile・Complication・
     ハプティクスが従来どおり動くこと（リグレッション確認）、(10) Wear OS コンパニオンアプリ未導入の
-    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118で対応済み）、(11) fragment の引き上げ（BL-130）後も
+    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118で対応済み）、(11) fragment の引き上げ（BL-130で 1.8.9 へ対応済み）後も
     スマホの資格情報設定画面とウォッチの Tile・Complication・設定画面が従来どおり表示・動作すること。
   優先度: P2
   状態: 未着手
@@ -221,7 +191,6 @@
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
-    - BL-130
     - BL-119
     - BL-120
     - BL-121
@@ -248,7 +217,6 @@
     （rules/guardrails-unified.v1.md セクション12.2）。クローズドテストの14日間のカウント（BL-106）は
     テスターのオプトイン状態で数えるため、版の更新自体では途切れない。
   依存:
-    - BL-130
     - BL-124
     - BL-126
 
