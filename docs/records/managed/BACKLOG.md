@@ -5,30 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-119
-  区分: 機能追加
-  タスク内容: >-
-    ウィジェット（BL-121以降）と wear の Tile で表示・操作ルールが食い違わないよう、wear モジュールに
-    置かれている Android 非依存の判定ロジックを core へ移す。対象は wear.tile.SesameTileActions
-    （状態→提示コマンド、MIXED は全施錠）、wear.tile.SesameTileContent のうち状態アイコン・状態文言・
-    操作文言・状態色・テキスト色（ProtoLayout 固有の寸法定数は wear に残す）、
-    wear.action.SesameActionTargetResolver（全デバイス時の対象uuid展開）、およびデバイス選択肢の
-    組み立て（SesameDemoMode.selectableDevices と「2台以上なら全デバイスを先頭に出す」判定）。
-    パッケージは core 直下または core.display 等とし、wear 側は import の付け替えのみで挙動を
-    変えない。ユニットテストも core へ移す。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    上記ロジックが core に1つだけ存在し、wear はそれを参照していること（wear 側に同内容の重複が
-    残らないこと）。移したテストが core の test タスクで成功し、wear の表示文言・色・提示コマンドに
-    差分が無いこと（既存テストの期待値を変更していないこと）。品質ゲートがすべて成功すること。
-  根拠: >-
-    「ウィジェットと wear で機能差を大きくつけない」方針を、文言・色・操作の判定を1か所に置く
-    ことで構造的に担保する。mobile は wear に依存できない（別 applicationモジュール）ため、
-    共有先は core しかない。
-  依存: []
-
 - id: BL-120
   区分: 機能追加
   タスク内容: >-
@@ -61,7 +37,7 @@
     mobile にホーム画面ウィジェット（AppWidget）を追加し、まず表示と対象デバイスの設定までを
     実装する。構成は Tile と揃え、左側にデバイス名（BL-122 で状態更新）と「変更」、右側の大きな
     領域に状態アイコン・状態文言・操作文言を置き、状態色は右側のみに適用する（文言・色は BL-119 で
-    core へ移したものを使う）。対象デバイスはウィジェットインスタンス（appWidgetId）ごとに
+    core.display へ移した SesameTileContent を使う。選択肢は SesameDeviceTargets.choices）。対象デバイスはウィジェットインスタンス（appWidgetId）ごとに
     非暗号化 SharedPreferences へ保存し、appwidget-provider の android:configure で追加時に選択画面を
     開く（Tile には無い標準機構だが、選べる内容は Tile と同じにする）。選択肢は Tile と同じく、
     登録済みデバイス、2台以上なら「全デバイス」、0台ならデモ用デバイス。状態は BL-120 の
@@ -79,18 +55,17 @@
     Android 非依存のクラスでユニットテストされていること。appWidgetId ごとの割り当ての保存・
     削除が機能すること。資格情報を保存・削除すると再描画されること。品質ゲートがすべて成功すること。
   依存:
-    - BL-119
     - BL-120
 
 - id: BL-122
   区分: 機能追加
   タスク内容: >-
     ウィジェットのタップ操作を実装し、wear の Tile と同じ操作ルールで施錠・解錠できるようにする。
-    右側のタップは SesameTileActions（BL-119 で core へ移設）が提示するコマンドを実行し、施錠は
+    右側のタップは core.display.SesameTileActions（BL-119 で移設済み）が提示するコマンドを実行し、施錠は
     ワンタップ即実行、解錠は SesameCommandConfirmation に従い確認画面（左＝キャンセル・右＝解錠の
     2ボタン、wear の SesameActionActivity と同じ並び）を挟む。確認画面はダイアログテーマの軽量
     Activity（noHistory / excludeFromRecents、wear と同方針）とする。MIXED は全施錠、全デバイス
-    選択時は SesameActionTargetResolver が展開した各uuidへ個別に BL-120 の実行口を呼ぶ。送信中は
+    選択時は core.display.SesameDeviceTargets.targetUuids が展開した各uuidへ個別に BL-120 の実行口を呼ぶ。送信中は
     IN_PROGRESS（通信中）を表示し、成功時は保存済み状態で再描画、失敗時は操作前の状態へ戻す
     （失敗の明示方法の改善は BL-129）。左側のデバイス名タップは状態取得（GET）のみ、「変更」は
     選択画面を開く。ウォッチ経由でコマンドが成功した場合もウィジェットを再描画し、ウィジェット経由で
@@ -179,7 +154,7 @@
     一括操作と MIXED 表示、(4) デバイス名タップでの状態更新、(5) 資格情報の削除後に
     「タップして設定」へ戻ること、(6) 0台時のデモモード、(7) 端末再起動後も割り当てと表示が
     保たれること、(8) ウィジェットで操作するとウォッチの Tile が追随し、ウォッチで操作すると
-    ウィジェットが追随すること、(9) BL-119・BL-120 の移設後もウォッチの Tile・Complication・
+    ウィジェットが追随すること、(9) BL-119（core.display への移設）・BL-120 の移設後もウォッチの Tile・Complication・
     ハプティクスが従来どおり動くこと（リグレッション確認）、(10) Wear OS コンパニオンアプリ未導入の
     スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118で対応済み）、(11) fragment の引き上げ（BL-130で 1.8.9 へ対応済み）後も
     スマホの資格情報設定画面とウォッチの Tile・Complication・設定画面が従来どおり表示・動作すること。
@@ -191,7 +166,6 @@
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
-    - BL-119
     - BL-120
     - BL-121
     - BL-122

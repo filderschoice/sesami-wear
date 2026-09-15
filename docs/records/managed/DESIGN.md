@@ -209,12 +209,22 @@
   - `TileService.onTileRequest`はGuavaの`SettableFuture`でコルーチン結果をブリッジしている
     （Tiles APIのレスポンスタイムアウト制約を避けるため、既存のDataItemスナップショットで即座に
     応答しつつmobile側へ状態取得リクエストを送信する設計、BL-061）。
-- `wear.tile.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
-  マッピング。`statusLabel`/`actionLabel`は`isAllDevices`パラメータ（デフォルト`false`）を持ち、
-  全デバイス選択時は「全施錠中」等の文言に切り替わる。
-- `wear.tile.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
+- `core.display.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
+  マッピングと、中立チップ色`CHIP_NEUTRAL_COLOR_ARGB`。`statusLabel`/`actionLabel`は`isAllDevices`
+  パラメータ（デフォルト`false`）を持ち、全デバイス選択時は「全施錠中」等の文言に切り替わる。
+- `core.display.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
   「全施錠」を提示する（迷ったら安全側の方針、UNLOCKのみ確認画面を挟む既存UXと組み合わせて安全側は
   確認不要のまま維持、BL-071）。
+- `core.display.SesameDeviceTargets`（Android非依存）: 操作対象の選択肢と解決規則。`choices`は
+  デバイス選択画面の項目を表示順に返す（0台ならデモ用デバイスのみ、2台以上なら先頭に「全デバイス」、
+  表示名が空欄ならuuidをラベルにする）。`displayName`は割り当て済みuuidの表示名（デモ・全デバイスは
+  固定文言、一覧に無ければuuid）、`targetUuids`はコマンド送信先の展開（全デバイスなら登録順の全uuid）。
+  登録済みデバイス一覧の取得（wearはDataItem）は呼び出し側が担う。
+- 上記3つは当初wearモジュール（`wear.tile` / `wear.action.SesameActionTargetResolver` /
+  `wear.ui.DeviceSelectionScreen` / `SesameTileStateResolver`）にあったが、mobileのホーム画面
+  ウィジェット（BL-121以降）とTileで表示・操作ルールを食い違わせないよう、両者が参照できるcoreへ
+  移した（BL-119。mobileはwearへ依存できない）。wear側は参照先を付け替えただけで挙動は変えておらず、
+  固定文言の対象（デモ・全デバイス）ではDataItemを読まない点も移設前と同じ。
 - `wear.tile.SesameTileStateResolver`（Android非依存、Tile/Complication共通）: 対象uuidが
   `ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの状態を`TileDisplayStateResolver
   .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する。いずれもDataItemが古い場合
@@ -282,8 +292,10 @@
   `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。全デバイス選択時は
   ボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。送信はFire-and-forget方式。
 - `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`。
-- `wear.action.SesameActionTargetResolver`（Android非依存）: コマンド送信・状態更新の対象uuid一覧を
-  解決する。全デバイス時は登録済み全uuidのリスト、それ以外は単一uuid。`SesameActionActivity`/
+- `wear.action.SesameActionTargetResolver`（Android依存の薄いアダプタ）: コマンド送信・状態更新の対象
+  uuid一覧を解決する。全デバイス時のみDataItemから登録済み一覧を読み、展開は
+  `core.display.SesameDeviceTargets.targetUuids`へ委ねる（全デバイス時は登録済み全uuidのリスト、
+  それ以外は単一uuid）。`SesameActionActivity`/
   `SesameStatusRefreshActivity`が全デバイス選択時にループで各デバイスへ個別にlock/unlock/
   status-requestメッセージを送信する（mobile側は既存の単一デバイス処理をそのままN回受けるだけで
   対応でき、mobile側の変更は不要だった、BL-071）。

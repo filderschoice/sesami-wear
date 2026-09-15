@@ -5,6 +5,7 @@ import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
+import com.sesamiwear.core.display.SesameDeviceTargets
 import com.sesamiwear.wear.demo.DemoLockStateStore
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
@@ -20,6 +21,7 @@ import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
  * 対象デバイスuuidが[SesameDemoMode.DEMO_DEVICE_UUID]（デモモード、BL-109）の場合は
  * wear単体で保持するダミー状態（[DemoLockStateStore]）から解決し、スマホへの状態取得
  * リクエストは一切送らない。
+ * 表示名の決定規則は[SesameDeviceTargets.displayName]（BL-119でcoreへ移設）が持つ。
  * Android Google Play Services依存の薄いアダプタのためユニットテスト対象外
  * （表示状態の判定ロジック自体は[TileDisplayStateResolver]・[SesameDemoMode]でテスト済み）。
  */
@@ -27,17 +29,12 @@ object SesameTileStateResolver {
     suspend fun resolveDisplayName(
         context: Context,
         deviceUuid: String,
-    ): String =
-        when {
-            SesameDemoMode.isDemoDevice(deviceUuid) -> SesameDemoMode.DEMO_DEVICE_DISPLAY_NAME
-            deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID -> ALL_DEVICES_DISPLAY_NAME
-            else ->
-                SesameDeviceListReader.readLatest(context)
-                    .find { it.uuid == deviceUuid }
-                    ?.displayName
-                    ?.ifBlank { null }
-                    ?: deviceUuid
-        }
+    ): String {
+        // 固定文言（デモ用デバイス・全デバイス）の場合はDataItemを読まない（BL-119の移設前と同じ）。
+        val needsDeviceList = !SesameDemoMode.isDemoDevice(deviceUuid) && !SesameDeviceTargets.isAllDevices(deviceUuid)
+        val registeredDevices = if (needsDeviceList) SesameDeviceListReader.readLatest(context) else emptyList()
+        return SesameDeviceTargets.displayName(deviceUuid, registeredDevices)
+    }
 
     suspend fun resolveState(
         context: Context,
@@ -89,6 +86,5 @@ object SesameTileStateResolver {
         }
     }
 
-    private const val ALL_DEVICES_DISPLAY_NAME = "全デバイス"
     private const val STATUS_STALE_THRESHOLD_MILLIS = 30_000L
 }

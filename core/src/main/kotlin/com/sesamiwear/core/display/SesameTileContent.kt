@@ -1,4 +1,4 @@
-package com.sesamiwear.wear.tile
+package com.sesamiwear.core.display
 
 import com.sesamiwear.core.TileDisplayState
 
@@ -6,6 +6,8 @@ import com.sesamiwear.core.TileDisplayState
  * [TileDisplayState] からTileの表示文言を決定する。Android非依存のためユニットテスト対象。
  * [statusLabel]/[actionLabel]の`isAllDevices`は、対象が単一デバイスか登録済み全デバイス
  * （BL-071、複数デバイス一括操作）かで文言を切り替えるためのフラグ。
+ * wearのTileとmobileのホーム画面ウィジェットで文言・色を食い違わせないよう、両者が参照できる
+ * coreに置いている（BL-119。mobileはwearへ依存できないため）。
  */
 object SesameTileContent {
     /**

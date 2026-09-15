@@ -5,6 +5,44 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 01:05
+  summary: Tileの文言・色・操作判定と対象デバイスの解決規則をwearからcoreへ移した
+  details:
+    変更内容: >-
+      mobile のホーム画面ウィジェット（BL-121以降）と wear の Tile で表示・操作ルールを食い違わせない
+      よう、wear にあった Android 非依存の判定ロジックを core.display パッケージへ移した。
+      wear.tile.SesameTileActions と wear.tile.SesameTileContent は git mv でそのまま移し（パッケージ宣言と
+      コメントのみ変更）、ユニットテストも core へ移した（期待値は変更していない）。
+      wear.action.SesameActionTargetResolver の全デバイス展開、DeviceSelectionScreen の選択肢の組み立て
+      （0台ならデモのみ、2台以上なら先頭に全デバイス、表示名が空欄ならuuid）、SesameTileStateResolver の
+      表示名解決を core.display.SesameDeviceTargets（choices / displayName / targetUuids / isAllDevices）へ
+      集め、wear 側は登録済み一覧を読んで渡すだけにした。固定文言の対象（デモ・全デバイス）では従来どおり
+      DataItem を読まない。CLAUDE.md の処理フロー表・全デバイス説明・単一テスト実行例・テスト対象例の
+      クラス名をユーザー承認のうえ新しい所在へ更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceTargets.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceTargetsTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionTargetResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - CLAUDE.md
+      - CHANGELOG.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+      （--max-workers=2）/ npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 /
+      git diff -M --stat で移設したテストの差分がパッケージ宣言1行のみであることを確認
+    検証結果: 成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）
+    関連ID:
+      - BL-119
+
 - date: 2026-09-16 00:40
   summary: 推移的依存で古い版になっていたandroidx.fragmentを1.8.9へ引き上げた
   details:

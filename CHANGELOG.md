@@ -875,3 +875,15 @@ Google Play Console の「次のリリースに向けて」で、`androidx.fragm
 - 次の配信（BL-127）の前提になり、ウィジェットのコードと独立した小さな変更のため、BL-118〜BL-129 の
   順序へ割り込ませて先頭（P1）に置いた。BL-126（実機検証）と BL-127（配信）の依存へ BL-130 を追加し、
   BL-126 へ fragment 引き上げ後のリグレッション確認、BL-127 へ Play Console の警告解消の確認を加えた。
+
+## 2026-09-16（Tile判定ロジックのcore移設に伴うCLAUDE.mdの追随、BL-119）
+
+BL-119 で `wear.tile.SesameTileActions` / `SesameTileContent` を `core.display` へ移し、対象デバイスの
+解決規則を `core.display.SesameDeviceTargets` へ集めたため、`CLAUDE.md` の記述を実装へ追随させました
+（コード修正そのものは `docs/records/managed/EXECUTE.md` に記録）。
+
+- 「主要な処理フロー」表の施錠/解錠コマンド送信の起点を、`SesameTileService` → `SesameActionActivity`
+  （提示コマンドは `core.display.SesameTileActions`）へ修正。
+- 全デバイス選択時のuuid展開の所在を `core.display.SesameDeviceTargets.targetUuids` へ修正。
+- 単一テスト実行例とテスト対象の例を、移設で wear に存在しなくなった `SesameTileActionsTest` /
+  `SesameTileContent` から `wear.complication.SesameComplicationContent(Test)` へ差し替え。

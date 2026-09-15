@@ -19,6 +19,8 @@ import com.google.common.util.concurrent.SettableFuture
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.core.display.SesameTileActions
+import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
