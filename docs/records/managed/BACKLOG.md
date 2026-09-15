@@ -5,229 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-130
-  区分: 品質ゲート
-  タスク内容: >-
-    Google Play Console の「次のリリースに向けて」（技術的な品質、リリース名 5 (0.10.0)）で、
-    androidx.fragment:fragment 1.1.0 が古いと報告され、次の変更を公開する前に 1.2.1 以降への更新を
-    求められている。本アプリは fragment を直接使っておらず、推移的依存として入っている。
-    dependencyInsight（releaseRuntimeClasspath）で確認した経路は、mobile が
-    com.google.android.gms:play-services-basement:18.4.0（play-services-wearable:19.0.0 経由）、
-    wear が androidx.preference:preference:1.1.0 → androidx.appcompat:appcompat:1.1.0
-    （androidx.wear.watchface:watchface-complications-data:1.2.1 経由）。play-services-basement は
-    最新の 18.11.0 でも fragment 1.1.0 を指定しているため、Google Play 開発者サービス側の更新では
-    解消しない。gradle/libs.versions.toml へ androidx.fragment:fragment を追加し、mobile と wear の
-    両方で implementation に明示して新しい版へ引き上げる。候補は 2026-09-16 時点の最新安定版 1.9.0 で、
-    Kotlin 2.0.21 / AGP 8.13.0 / compileSdk 36 との両立は未確認のため、ビルドできない場合は 1.8.9 を使う。
-    同じ理由で古い版が報告されている推移的依存（appcompat 1.1.0 等）が無いかも確認し、報告があれば
-    本タスクへ含める。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    mobile と wear の releaseRuntimeClasspath で androidx.fragment:fragment が 1.2.1 以上に解決される
-    ことを dependencyInsight で確認していること。品質ゲートがすべて成功し、release ビルド
-    （minify 有効）も成功すること。Play Console の警告が消えることは、次の版を配信する BL-127 で確認する。
-  根拠: >-
-    BL-118〜BL-129 の順序へ割り込ませて先頭に置いた。警告は「次の変更を公開する前に」の対応を
-    求めており、次の配信は BL-127（ウィジェットを含む版）になる。ウィジェットのコードとは独立した
-    小さな変更で、先に済ませると BL-126 の実機検証でまとめてリグレッション確認でき、配信直前に
-    入れて再検証する手戻りを避けられる。依存の追加であり削除・ダウングレードではない。
-  依存: []
-
-- id: BL-118
-  区分: 不具合
-  タスク内容: >-
-    mobile側のWearable Data Layer呼び出しを、ウォッチを持たない端末でも失敗しても処理を続行する
-    ベストエフォート呼び出しへ変更する。現状は mobile.messaging.SesameDeviceListSyncer.sync と
-    SesameStatusSyncer.syncLocked が DataClient.putDataItem(...).await() を例外処理なしで呼んでおり、
-    CredentialsSettingsScreen の syncDeviceList は rememberCoroutineScope().launch 内でこれを呼ぶ。
-    Wear OS のコンパニオンアプリ（Pixel Watch アプリ等）が入っていない端末では Wearable API が
-    ApiException（API_UNAVAILABLE）を投げる可能性があり、その場合は資格情報の保存・削除時に
-    アプリがクラッシュする（端末上での再現は未確認）。mobile側ウィジェット（BL-120〜BL-125）は
-    ウォッチ非所有者を主対象とするため、その前提として先に塞ぐ。ApiException を捕捉して
-    Log.w（資格情報を含めない）へ落とし、呼び出し元の処理（保存・コマンド実行・結果返送）は継続する。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    SesameDeviceListSyncer / SesameStatusSyncer の Data Layer 呼び出しが例外を外へ送出しないこと。
-    Wearable API が使えない場合も資格情報の保存・削除が完了し画面が落ちないことをユニットテスト
-    または呼び出し構造のレビューで示せること。品質ゲートがすべて成功すること。
-    Wear OS コンパニオンアプリ未導入端末での実機確認は BL-126 で行う。
-  根拠: >-
-    ウィジェットを追加するとウォッチを持たない利用者が mobile を単独で使うようになり、潜在的な
-    クラッシュ経路を踏む頻度が上がるため P1 とした。現行のクローズドテスト案内（docs/CLOSED_TEST.md）は
-    ウォッチを必須としているが、案内を読まずにスマホだけへ入れたテスターにも影響しうる。
-  依存: []
-
-- id: BL-119
-  区分: 機能追加
-  タスク内容: >-
-    ウィジェット（BL-121以降）と wear の Tile で表示・操作ルールが食い違わないよう、wear モジュールに
-    置かれている Android 非依存の判定ロジックを core へ移す。対象は wear.tile.SesameTileActions
-    （状態→提示コマンド、MIXED は全施錠）、wear.tile.SesameTileContent のうち状態アイコン・状態文言・
-    操作文言・状態色・テキスト色（ProtoLayout 固有の寸法定数は wear に残す）、
-    wear.action.SesameActionTargetResolver（全デバイス時の対象uuid展開）、およびデバイス選択肢の
-    組み立て（SesameDemoMode.selectableDevices と「2台以上なら全デバイスを先頭に出す」判定）。
-    パッケージは core 直下または core.display 等とし、wear 側は import の付け替えのみで挙動を
-    変えない。ユニットテストも core へ移す。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    上記ロジックが core に1つだけ存在し、wear はそれを参照していること（wear 側に同内容の重複が
-    残らないこと）。移したテストが core の test タスクで成功し、wear の表示文言・色・提示コマンドに
-    差分が無いこと（既存テストの期待値を変更していないこと）。品質ゲートがすべて成功すること。
-  根拠: >-
-    「ウィジェットと wear で機能差を大きくつけない」方針を、文言・色・操作の判定を1か所に置く
-    ことで構造的に担保する。mobile は wear に依存できない（別 applicationモジュール）ため、
-    共有先は core しかない。
-  依存: []
-
-- id: BL-120
-  区分: 機能追加
-  タスク内容: >-
-    mobile 側に、Data Layer を経由しない施錠・解錠・状態取得の実行口を用意する。現状、Sesame API の
-    呼び出しは mobile.messaging.SesameMessageListenerService の private メソッド
-    （findCredentials / createCommandHandler / syncLockedStateFromPath / handleStatusRequest）に
-    閉じており、CommandDebouncer もその companion object が保持している。これを
-    Android 非依存のクラス（例 mobile.command.SesameDeviceCommandExecutor）へ切り出し、
-    資格情報の検索、CommandDebouncer（ウォッチ経由とウィジェット経由で同一インスタンスを共有し、
-    同一uuidへの2秒以内の重複を経路をまたいで無視する）、SesameCommandHandler の実行、
-    成功時のロック状態の保存を担わせる。ロック状態は mobile 端末内にも永続化する
-    （例 mobile.state.LockStateStore。uuid ごとの isLocked と更新時刻のみで機密情報を含まないため
-    非暗号化 SharedPreferences、wear の TileDeviceAssignmentStore と同方針）。ウォッチへの DataItem
-    同期（BL-118 のベストエフォート版）と、ウィジェット再描画の要求は、実行口から呼べる通知
-    インターフェースとして注入する。SesameMessageListenerService はこの実行口を呼ぶだけの
-    アダプタにし、wear から見た挙動（結果返送・DataItem 同期・デバウンス）は変えない。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    実行口のユニットテスト（成功・APIエラー・資格情報なし・不正な鍵・デバウンス・状態保存・
-    通知呼び出し）が成功すること。SesameMessageListenerService から Sesame API 呼び出しの
-    ロジックが無くなり、wear 経由の施錠・解錠・状態取得の処理順序が現行と同じであること。
-    品質ゲートがすべて成功すること。
-  依存:
-    - BL-118
-
-- id: BL-121
-  区分: 機能追加
-  タスク内容: >-
-    mobile にホーム画面ウィジェット（AppWidget）を追加し、まず表示と対象デバイスの設定までを
-    実装する。構成は Tile と揃え、左側にデバイス名（BL-122 で状態更新）と「変更」、右側の大きな
-    領域に状態アイコン・状態文言・操作文言を置き、状態色は右側のみに適用する（文言・色は BL-119 で
-    core へ移したものを使う）。対象デバイスはウィジェットインスタンス（appWidgetId）ごとに
-    非暗号化 SharedPreferences へ保存し、appwidget-provider の android:configure で追加時に選択画面を
-    開く（Tile には無い標準機構だが、選べる内容は Tile と同じにする）。選択肢は Tile と同じく、
-    登録済みデバイス、2台以上なら「全デバイス」、0台ならデモ用デバイス。状態は BL-120 の
-    LockStateStore から解決し、未設定・対象デバイスが削除済みの場合は「タップして設定」を表示する。
-    ウィジェットの削除（onDeleted）で保存した割り当てを消す。資格情報の保存・削除時
-    （CredentialsSettingsScreen）にウィジェットの再描画を要求する。実装方式は Jetpack Glance
-    （androidx.glance:glance-appwidget）を既定とし、Compose BOM 2024.12.01 / Kotlin 2.0.21 と
-    両立するバージョンを選ぶ（両立するバージョンは未確認）。サイズは Tile 相当の1種類のみとする。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    ウィジェットを追加すると選択画面が開き、選んだデバイスの表示名と、保存済みの状態に応じた
-    アイコン・文言・色が表示されること（未取得なら状態不明）。選択肢の組み立てと表示内容の決定は
-    Android 非依存のクラスでユニットテストされていること。appWidgetId ごとの割り当ての保存・
-    削除が機能すること。資格情報を保存・削除すると再描画されること。品質ゲートがすべて成功すること。
-  依存:
-    - BL-119
-    - BL-120
-
-- id: BL-122
-  区分: 機能追加
-  タスク内容: >-
-    ウィジェットのタップ操作を実装し、wear の Tile と同じ操作ルールで施錠・解錠できるようにする。
-    右側のタップは SesameTileActions（BL-119 で core へ移設）が提示するコマンドを実行し、施錠は
-    ワンタップ即実行、解錠は SesameCommandConfirmation に従い確認画面（左＝キャンセル・右＝解錠の
-    2ボタン、wear の SesameActionActivity と同じ並び）を挟む。確認画面はダイアログテーマの軽量
-    Activity（noHistory / excludeFromRecents、wear と同方針）とする。MIXED は全施錠、全デバイス
-    選択時は SesameActionTargetResolver が展開した各uuidへ個別に BL-120 の実行口を呼ぶ。送信中は
-    IN_PROGRESS（通信中）を表示し、成功時は保存済み状態で再描画、失敗時は操作前の状態へ戻す
-    （失敗の明示方法の改善は BL-129）。左側のデバイス名タップは状態取得（GET）のみ、「変更」は
-    選択画面を開く。ウォッチ経由でコマンドが成功した場合もウィジェットを再描画し、ウィジェット経由で
-    成功した場合も DataItem をベストエフォートで同期してウォッチの Tile を追随させる。
-    バックグラウンド実行は Glance の ActionCallback を既定とし、API 応答待ちが BroadcastReceiver の
-    実行時間制約に抵触するおそれがある場合は WorkManager へ委譲する（どちらを採ったかと理由を
-    DESIGN.md に残す。制約に抵触するかは未確認）。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    状態ごとのタップ時の動作（施錠中→解錠確認、解錠中→即施錠、MIXED→即全施錠、通信中・状態不明→
-    操作なし）が Android 非依存のクラスでユニットテストされていること。確認画面でキャンセルすると
-    何も送信されないこと。ウィジェットとウォッチからの同一uuidへの2秒以内の重複が1回に抑えられる
-    ことがテストで示されていること。品質ゲートがすべて成功すること。実機での施錠・解錠は BL-126 で
-    確認する。
-  依存:
-    - BL-121
-
-- id: BL-123
-  区分: 機能追加
-  タスク内容: >-
-    登録済みデバイスが0台のとき、ウィジェットでもデモモードを体験できるようにする。wear の
-    DemoLockStateStore と同じく、デモ用デバイス（SesameDemoMode.DEMO_DEVICE_UUID）の状態は mobile 端末内
-    だけで保持し、Sesame API へもウォッチへも送らない。施錠・解錠の確認画面の有無、状態文言は実デバイスと
-    同じにする。ウォッチ側のデモ状態とは同期しない（それぞれの端末で独立して体験する）。1台でも
-    登録された時点で、デモを割り当てていたウィジェットは「タップして設定」へ戻す。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    0台時の選択肢がデモ用デバイスのみになり、デモ用デバイスの操作で通信が一切発生しないことが
-    ユニットテスト（実行口がデモuuidで Sesame API・Data Layer を呼ばないこと）で示されていること。
-    1台登録後にデモの割り当てが解除されること。品質ゲートがすべて成功すること。
-  根拠: >-
-    クローズドテスト（BL-106）の参加者は Sesame 実機を持たない人が多く、wear でデモモード（BL-109）を
-    追加したのと同じ理由で、スマホだけのテスターにも操作を体験してもらう導線が要る。
-  依存:
-    - BL-122
-
-- id: BL-124
-  区分: 機能追加
-  タスク内容: >-
-    ウィジェット追加に伴い、アプリ内ヘルプと利用者向けドキュメントを更新する。アプリ内ヘルプ
-    （mobile.help.HelpContent）へ「ホーム画面ウィジェットの使い方」を追加し、「Sesameが無くても
-    デモで試す」をウォッチに限らない記述へ直す。docs/USER_GUIDE.md にウィジェットの追加・設定・操作を、
-    docs/RELEASE_NOTES.md に次版の変更点を、docs/CLOSED_TEST.md の「必要なもの」でウォッチを必須から
-    外した参加条件を、docs/store/STORE_LISTING.md の短い説明・詳細な説明・対象デバイスに
-    スマートフォンだけでも使えることを、README.md の機能一覧にウィジェットを反映する。
-    プライバシーポリシーとデータセーフティ申告は、ウィジェットが新たな情報を端末外へ送らない
-    （端末内に保存するのはロック状態と割り当てのみ）ため変更不要の見込みで、その判断を確認して記録する。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    上記ドキュメントとアプリ内ヘルプがウィジェットの実装（BL-121〜BL-123）の表示文言・操作と
-    一致していること。HelpContent のユニットテストが成功すること。markdownlint を含む品質ゲートが
-    すべて成功すること。Play Console への掲載情報の転記は BL-127 で行う。
-  依存:
-    - BL-123
-
-- id: BL-125
-  区分: 品質ゲート
-  タスク内容: >-
-    ウィジェット（BL-121〜BL-124）の実装内容を docs/records/managed/DESIGN.md へ統合する。
-    「実装済み機能要件」に mobile ウィジェットの節を設け、wear の Tile と揃えている点
-    （表示文言・色・操作ルール・確認画面・全デバイス・デモモード）と、意図的に揃えていない点
-    （ウィジェットは android:configure を使える、デモ状態は端末ごとに独立、スマホ未接続状態は存在しない）を
-    明記する。「アーキテクチャ方針」に、ウィジェットは Data Layer を経由せず mobile 内で Sesame API を
-    呼ぶこと、secretKey を wear に持たせない方針は変わらないことを追記する。CLAUDE.md の主要な処理フロー表
-    への経路追加を提案する（CLAUDE.md の編集は確認を挟む）。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    DESIGN.md の記述だけでウィジェットを同一要件で再実装できる内容になっていること。
-    markdownlint が成功すること。
-  依存:
-    - BL-124
-
 - id: BL-126
   区分: 人手検証
   タスク内容: >-
@@ -236,9 +13,9 @@
     一括操作と MIXED 表示、(4) デバイス名タップでの状態更新、(5) 資格情報の削除後に
     「タップして設定」へ戻ること、(6) 0台時のデモモード、(7) 端末再起動後も割り当てと表示が
     保たれること、(8) ウィジェットで操作するとウォッチの Tile が追随し、ウォッチで操作すると
-    ウィジェットが追随すること、(9) BL-119・BL-120 の移設後もウォッチの Tile・Complication・
+    ウィジェットが追随すること、(9) BL-119（core.display への移設）・BL-120 の移設後もウォッチの Tile・Complication・
     ハプティクスが従来どおり動くこと（リグレッション確認）、(10) Wear OS コンパニオンアプリ未導入の
-    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118）、(11) fragment の引き上げ（BL-130）後も
+    スマホで資格情報の保存とウィジェット操作が落ちないこと（BL-118で対応済み）、(11) fragment の引き上げ（BL-130で 1.8.9 へ対応済み）後も
     スマホの資格情報設定画面とウォッチの Tile・Complication・設定画面が従来どおり表示・動作すること。
   優先度: P2
   状態: 未着手
@@ -247,14 +24,7 @@
   根拠: >-
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
-  依存:
-    - BL-130
-    - BL-118
-    - BL-119
-    - BL-120
-    - BL-121
-    - BL-122
-    - BL-123
+  依存: []
 
 - id: BL-127
   区分: 人手検証
@@ -263,8 +33,11 @@
     電話・タブレット系トラックへアップロードする。wear は BL-119 の移設で成果物が変わるため、
     ウォッチ側のリリースも出すか（出す場合は WEAR_VERSION_CODE を上げて Wear OS 専用トラックへ）を
     BL-126 のリグレッション確認結果で判断する（BL-130 で wear の依存も変わるため、ウォッチ側も
-    出すのが既定）。配信後、Play Console の androidx.fragment:fragment の警告が消えたことを確認する。あわせて BL-124 で更新したストア掲載情報を Play Console へ
-    転記し、docs/CLOSED_TEST.md の参加条件変更を募集先（Qiita記事・X）へ反映する。
+    出すのが既定）。配信後、Play Console の androidx.fragment:fragment の警告が消えたことを確認する。あわせて BL-124 で更新したストア掲載情報（docs/store/STORE_LISTING.md の短い説明・詳細な説明・対象デバイスと、
+    docs/RELEASE_NOTES.md の 0.11.0 のストア掲載用の要約）を Play Console へ
+    転記し、docs/CLOSED_TEST.md の参加条件変更を募集先（Qiita記事・X）へ反映する。配信後は
+    RELEASE_NOTES.md の「未リリース」を配信日へ更新し、USER_GUIDE.md 等の「0.11.0以降」の注記を
+    残すか整理するかを判断する。
   優先度: P2
   状態: 未着手
   担当: ユーザー
@@ -276,8 +49,6 @@
     （rules/guardrails-unified.v1.md セクション12.2）。クローズドテストの14日間のカウント（BL-106）は
     テスターのオプトイン状態で数えるため、版の更新自体では途切れない。
   依存:
-    - BL-130
-    - BL-124
     - BL-126
 
 - id: BL-128
@@ -304,7 +75,7 @@
   区分: UX改善
   タスク内容: >-
     ウィジェット操作の結果フィードバックを改善する。wear はハプティクスで成否を区別しているが、
-    第1段階（BL-122）のウィジェットは失敗時に操作前の表示へ戻すだけで、失敗したことが分かりにくい。
+    第1段階（BL-122、実装済み）のウィジェットは失敗時に操作前の表示へ戻すだけで、失敗したことが分かりにくい。
     失敗を一定時間表示する状態（例「失敗」表示とグレー背景）の追加、スマホのハプティクス
     （wear の SesameHapticPatternResolver と同じ成否パターン）の再生、状態が古い場合の表示の区別
     （wear の STATUS_STALE_THRESHOLD_MILLIS = 30秒相当の鮮度判定と自動状態取得）を検討する。

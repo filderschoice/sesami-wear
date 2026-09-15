@@ -7,9 +7,9 @@ import org.junit.Test
 
 class HelpContentTest {
     @Test
-    fun `menu offers the three topics in a fixed order`() {
+    fun `menu offers the four topics in a fixed order`() {
         assertEquals(
-            listOf("credentials", "demo", "after-registration"),
+            listOf("credentials", "demo", "after-registration", "widget"),
             HelpContent.topics.map { it.id },
         )
     }
@@ -43,6 +43,22 @@ class HelpContentTest {
         assertTrue(body.contains("「デモ」"))
         assertTrue(body.contains("タイル"))
         assertTrue(body.contains("コンプリケーション"))
+    }
+
+    @Test
+    fun `demo topic also explains the phone widget demo`() {
+        val body = HelpContent.demo.paragraphs.joinToString(separator = "")
+        assertTrue(body.contains("ウィジェット"))
+        assertTrue(body.contains("タップして設定"))
+    }
+
+    @Test
+    fun `widget topic uses the same wording as the widget itself`() {
+        val body = HelpContent.widget.paragraphs.joinToString(separator = "")
+        // ウィジェットの表示文言（SesameWidget / SesameWidgetModel / SesameTileContent）と一致させる。
+        listOf("変更", "全デバイス", "通信中...", "タップして設定").forEach { word ->
+            assertTrue("ウィジェットの説明に「$word」が無い", body.contains(word))
+        }
     }
 
     @Test

@@ -20,6 +20,8 @@
   してビルドし、Google Playの別トラックへ配信する（BL-090）。CANDY HOUSE Sesame 5 + Hub 3の
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
   登録済みの複数Sesameデバイス（3〜5台程度を想定）を1つのアプリから個別または一括で操作できる。
+  操作手段はウォッチのTile（表示はComplicationも）と、スマートフォンのホーム画面ウィジェット
+  （BL-121〜BL-124）の2つで、ウィジェットはウォッチを持たない利用者も使える。
 - 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 36、build-tools 36.0.0）、Gradle 8.13
   （Gradle Wrapper経由）。詳細は `CLAUDE.md`「本リポジトリの品質ゲート定義」段階Bを参照。
 
@@ -98,7 +100,11 @@
     (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
     遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの
     ページから取得する。Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
-    (2)「Sesameが無くてもデモで試す」、(3)「登録後のウォッチでの使い方」の3項目を持つ。
+    (2)「Sesameが無くてもデモで試す」（ウォッチのタイルとホーム画面ウィジェットの両方の試し方、
+    両者のデモは連動しないこと、登録後にデモのウィジェットが「タップして設定」へ戻ること）、
+    (3)「登録後のウォッチでの使い方」、(4)「ホーム画面ウィジェットの使い方」（BL-124）の4項目を持つ。
+    ウィジェットの説明はウィジェットの表示文言（「変更」「全デバイス」「通信中...」「タップして設定」）を
+    含むことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
     体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
   - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
@@ -109,6 +115,116 @@
     保存ボタンは`Modifier.fillMaxWidth()`で表示（BL-059）。
   - **未確認事項**: `biz.candyhouse.co`は動的サイトのためWebFetchでの実ページ内容確認はできて
     おらず、公式ドキュメントの記述とユーザーからの実機確認報告のみを根拠にしている。
+
+### mobileホーム画面ウィジェット
+
+スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認・操作するウィジェット
+（BL-121で表示と設定、BL-122でタップ操作、BL-123でデモ、BL-124でヘルプ・ドキュメント）。Data Layerを経由せず、
+mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も
+使える。「ウィジェットとwearで機能差を大きくつけない」ことを方針とし、判定ロジックは`core.display`に1つだけ置く
+（BL-119）。
+
+- **wearのTileと揃えている点**:
+  - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右側だけに使う構成
+    （左にデバイス名と「変更」、右に状態）。
+  - 操作ルール（`core.display.SesameTileActions`）: 施錠中→解錠、解錠中→施錠、一部解錠→全施錠、通信中・状態不明→操作なし。
+  - 確認画面: 解錠のみ（`SesameCommandConfirmation`）、左＝キャンセル・右＝解錠／全解錠の並びと配色。
+  - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
+    全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
+  - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
+  - 左側のデバイス名タップは状態取得のみ、同一uuidへの2秒以内の重複は1回（`CommandDebouncer`を経路間で共有）。
+- **意図的に揃えていない点**:
+  - 追加時の設定: ウィジェットは`appwidget-provider`の`android:configure`で追加直後に選択画面を開ける（Tilesには
+    同等の標準機構が無く、Tileは「タップして設定」から誘導する）。選べる内容は同じ。
+  - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
+    また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
+  - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
+  - 結果の通知: wearは成否をハプティクスで区別するが、ウィジェットは失敗時に操作前の表示へ戻すのみ（改善はBL-129）。
+  - 表示の鮮度: wearはDataItemが30秒以上古いと自動で状態取得するが、ウィジェットは自動取得しない
+    （保存値の表示のみ。改善の検討はBL-129）。
+  - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
+
+- 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
+  `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
+  明示して2.10.5へ引き上げている（2026-09-16にユーザー判断）。2.11系は`kotlin-stdlib`をコンパイラ
+  （2.0.21）より新しい2.1.20へ上げるため採らない（BL-130と同じ基準）。Glanceの導入で既存依存の版が
+  変わるのは`compose-runtime`の1.7.6→1.7.8のみ。
+- `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
+  構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
+  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
+  中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は右側にだけ使う。
+  背景は暗色（0xFF121212）で角丸16dp。未設定時は「タップして設定」のみを表示し、全面タップで選択画面を開く。
+  `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
+  dataへ操作名とappWidgetIdを入れる。
+- タップ操作（BL-122）: 右側は`mobile.widget.WidgetTapAction.forModel`（Android非依存）で決める。
+  提示コマンドは`core.display.SesameTileActions`、確認の要否は`SesameCommandConfirmation`（Tileと同じ）で、
+  施錠中→解錠確認画面、解錠中→即施錠、一部解錠→即全施錠、通信中・状態不明→操作なし、未設定→選択画面。
+  左側のデバイス名は状態取得（GET）のみ、「変更」は選択画面を開く。
+- `mobile.widget.WidgetCommandReceiver`（`exported="false"`のBroadcastReceiver）: 施錠の即時実行・状態取得・
+  解錠確認画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
+  `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
+  自前のReceiverで使う形にした。WorkManagerへは委譲していない（通常のワークは端末の状態により実行が
+  遅延しうり、即時性を優先したため。期限付き実行はAndroid 11以下でフォアグラウンドサービス通知が要る）。
+  BroadcastReceiverの実行時間の制約に抵触しないかは未確認で、BL-126の実機検証で確認する。
+  Intentのコマンド名は`SesameCommand`（LOCK/UNLOCKのみ）へ一致するものだけを受け付ける。
+- `mobile.widget.WidgetCommandRunner`（Android非依存、ユニットテスト対象）: 対象uuidを
+  `SesameDeviceTargets.targetUuids`で展開し、各uuidへ`SesameDeviceCommandExecutor`を**並行して**呼ぶ
+  （全デバイス時の所要時間を1台分に近づけ、Receiverの実行時間を短く保つ）。実行中は
+  `WidgetInProgressTracker`へ対象uuid（全デバイス時は全デバイスの特別値も）を登録して再描画し
+  （IN_PROGRESS＝通信中）、終了時に解除して再描画する（取り消されても解除後の再描画は行う）。
+  ロック状態は実行口が成功時にだけ保存するため、失敗時の再描画は操作前の状態に戻る（失敗の明示はBL-129）。
+- `mobile.widget.WidgetInProgressTracker`（Android非依存）: 実行中uuidをプロセス内メモリだけで数える
+  （同一uuidの重複実行は回数で管理）。永続化しないのは、プロセス終了時には実行も終わっており通信中の
+  表示が固まるのを避けるため。全デバイスのウィジェットは登録済みのいずれかが実行中なら通信中。
+- `mobile.widget.WidgetUnlockConfirmActivity`: ダイアログテーマ（`Theme.Material.Light.Dialog.NoActionBar`）の
+  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`）。見出し
+  「（表示名）を解錠しますか？」と、左＝「キャンセル」（中立色）・右＝「解錠」/全デバイスは「全解錠」
+  （解錠中の状態色）の2ボタン（wearの確認画面と同じ並び）。解錠でReceiverへ実行を依頼してすぐ閉じ、
+  キャンセル・画面外タップ・戻る操作では何も送らない。
+- 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
+  `SesameWidgetUpdater.updateAll`を呼ぶ（デモはDataItem同期を行わず再描画のみ）。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
+  ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の
+  重複は1回になる。
+- 表示内容の決定は`mobile.widget.SesameWidgetModelResolver`（Android非依存、ユニットテスト対象）が行い、
+  `SesameWidgetModel.Unconfigured`か`Configured`（uuid・表示名・`TileDisplayState`・全デバイスか）を返す。
+  通信中は`WidgetInProgressTracker`の結果を`isCommandInProgress`として渡す。
+  未割り当て、割り当て済みの実デバイスが削除済み、全デバイスで登録0台、デモで登録1台以上のときは未設定。
+  状態は`LockStateStore`の保存値から、単一は`TileDisplayStateResolver.resolve`（未取得は状態不明）、
+  全デバイスは`resolveAggregate`（1台でも未取得なら状態不明）で決める。mobileは自身がAPIを呼ぶため
+  「スマホ未接続」は存在せず常に接続扱い。デモは保存値が無ければ`SesameDemoMode.INITIAL_IS_LOCKED`。
+- `mobile.widget.SesameWidgetRepository`（Android依存）: 資格情報ストアからuuidと表示名だけを取り出し、
+  割り当てとロック状態を読んでResolverへ渡す。
+- 表示の更新: Glanceはセッション中に`provideGlance`を再実行しないため、`mobile.widget.SesameWidgetUpdater`が
+  各インスタンスの状態（`PreferencesGlanceStateDefinition`）へ更新トークン`refresh_token`を書き込んでから
+  `update`を呼び、描画側は`currentState`のトークン変化を`LaunchedEffect`の契機に保存値を読み直す。
+  資格情報の保存・削除時（`CredentialsSettingsScreen`のデバイス一覧同期のあと）と、選択画面での割り当て直後に呼ぶ。
+  定期更新は行わない（`updatePeriodMillis=0`）。
+- `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
+  （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
+  JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
+  `onRegisteredDevicesChanged(件数)`は1台以上ならデモの割り当てを解除する（BL-123）。
+- デモ（BL-123）: 登録済みデバイスが0台のとき選択肢はデモ用デバイスのみになり（Tileと同じ）、デモの状態は
+  `LockStateStore`へデモuuidで保存する（mobile端末内のみ。Sesame APIへもウォッチへも送らない）。確認画面の有無・
+  状態文言は実デバイスと同じ。資格情報を1台でも保存すると、`CredentialsSettingsScreen`がデバイス一覧の同期前に
+  `onRegisteredDevicesChanged`を呼び、デモを割り当てていたウィジェットを「タップして設定」へ戻す
+  （Resolver側も登録1台以上ならデモを未設定として扱うため、呼び出し前に描画されても誤表示しない）。
+- `mobile.widget.WidgetConfigurationActivity`: `appwidget-provider`の`android:configure`で追加時に開き、
+  「変更」「タップして設定」からも開く。選択肢は`SesameDeviceTargets.choices`（Tileと同じ）で、0台時は
+  「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
+  選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
+  `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
+- 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
+  `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
+  `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
+  対象デバイス）へ反映した。GitHub上ではマージ時点で公開される一方テスターの手元は0.10.0のままのため、
+  **公開ドキュメントには「0.11.0以降」と明記する**（2026-09-16にユーザー判断）。STORE_LISTINGはPlay Consoleへの
+  転記を0.11.0の配信時（BL-127）に行う旨を冒頭に注記している。プライバシーポリシーとデータセーフティ申告は
+  変更しない。ウィジェットが端末内に保存するのはロック状態（uuid・真偽値・時刻）と割り当て（appWidgetIdと
+  uuid）のみで、端末外へ新たに送信する情報は無く（Sesame APIへの送信内容は従来と同じ）、wearが既に
+  端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
+- `res/xml/sesame_widget_info.xml`: サイズはTile相当の1種類（minWidth 250dp / minHeight 110dp、4x2セル、
+  `resizeMode=none`。サイズ別レイアウトはBL-128で検討）、`widgetFeatures=reconfigurable`、
+  `initialLayout`はGlance既定の読み込み中レイアウト。
 
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 
@@ -131,10 +247,40 @@
 ### mobile側コマンド処理
 
 - `mobile.messaging.SesameMessageListenerService`（`WearableListenerService`実装、BL-013）:
-  受信パスからコマンド判定し、対象デバイスuuidに対応する資格情報で`SesameCommandHandler`
-  （Android非依存、`SesameApiClient.sendCommand()`を呼ぶ）を実行する。資格情報未設定時は
-  `FAILURE`を返す。`PATH_STATUS_REQUEST`受信時は`SesameApiClient.getStatus()`を呼び、成功時に
-  `SesameStatusSyncer`でDataItemへ同期する（結果はwear側へ返送しない、BL-061）。
+  受信パスをコマンドへ変換して`mobile.command.SesameDeviceCommandExecutor`（下記）へ渡し、結果を
+  `PATH_COMMAND_RESULT`で返すだけの薄いアダプタ（BL-120）。重複として無視された場合は結果を返さない。
+  未知のパスは実行口を呼ばず`FAILURE`を返す。`PATH_STATUS_REQUEST`受信時は実行口の`refreshStatus`を
+  呼ぶだけで、結果はwear側へ返送しない（BL-061。取得できた状態は実行口の通知でDataItemへ同期される）。
+- `mobile.command.SesameDeviceCommandExecutor`（Android非依存、ユニットテスト対象）: mobile端末内で
+  施錠・解錠・状態取得を行う実行口（BL-120）。Sesame APIの呼び出しはもともとListenerServiceの
+  privateメソッドに閉じていたが、ホーム画面ウィジェットもData Layerを経由せず同じ処理を呼ぶため
+  切り出した。
+  - `execute(uuid, command)`: 重複判定（`CommandDebouncer`）→ 資格情報の検索 → `SesameCommandHandler`
+    （`SesameApiClient.sendCommand()`を呼ぶ）→ 成功時のみロック状態の保存と通知、の順（移設前と同じ）。
+    戻り値は`SUCCESS`/`FAILURE`/`DEBOUNCED`。資格情報が無い・鍵が不正（`secretKeyBytesOrNull`がnull、
+    BL-026）ならAPIを呼ばず`FAILURE`。保存する状態は「送信したコマンドが意図した状態」（LOCK→施錠、
+    UNLOCK→解錠、BL-015の簡略化ロジック）。
+  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
+    APIエラーはnull（保存・通知しない）。重複判定の対象外。
+  - デモ用デバイス（BL-123）: `execute`はAPIを呼ばず常に成功として端末内の状態だけを書き換え（重複判定は
+    実デバイスと同じ）、`refreshStatus`は保存値（無ければ`INITIAL_IS_LOCKED`）を返すだけで保存・通知しない。
+    ウォッチへのDataItem同期も行わず、ウォッチ側のデモ状態（`wear.demo.DemoLockStateStore`）とは同期しない。
+  - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateNotifier`（`local`＝すべての
+    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ）、
+    `CommandDebouncer`、APIクライアント生成、時刻取得を注入する。`CommandDebouncer`は
+    companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
+    同一uuidへの2秒以内の重複も1回にまとめる。
+  - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
+    `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
+    通知先は`watch`＝`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）、`local`＝
+    `SesameWidgetUpdater.updateAll`で生成する。
+- `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
+  更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
+  保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名
+  `sesami_wear_lock_state`）。全デバイス分を1つのJSONオブジェクト（uuid → `isLocked`/`updatedAtEpochMillis`）
+  にして単一キー`lock_states`へ保存し、`remove(uuid)`で個別に消せる。mobileはkotlinx.serializationの
+  コンパイラプラグインを適用していないため`@Serializable`を使わずJsonObjectを直接組み立てる（R8の
+  keepルールも不要）。壊れた値・欠けた項目は未取得扱い。書き込みは`@Synchronized`で同期化する。
 - `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一デバイスuuidへの
   2秒以内の重複コマンドを無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
 - `mobile.messaging.SesameStatusSyncer`: `DataClient.putDataItem`ラッパー。コマンド送信成功時は
@@ -142,6 +288,13 @@
   ロジック。`PATH_STATUS_REQUEST`経由ではSesame APIのGET結果をそのまま同期する（BL-015, BL-061）。
 - `mobile.messaging.SesameDeviceListSyncer`: 登録済みデバイス一覧（uuid/displayNameのみ、
   apikey/secretKeyは含めない）を`DEVICE_LIST_DATA_ITEM_PATH`へ同期する（BL-052）。
+- `mobile.messaging.DataLayerBestEffort`（Android非依存、ユニットテスト対象）: mobile側のWearable
+  Data Layer呼び出し（上記2つのSyncerの`putDataItem`と、`SesameMessageListenerService`の結果返送
+  `sendMessage`）をベストエフォート呼び出しにする（BL-118）。`ApiException`のみを捕捉して
+  ステータスコードを`Log.w`へ渡し（資格情報・uuidは出さない）、呼び出し元の処理（資格情報の保存・
+  削除、コマンド実行）を継続する。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
+  入っていない端末ではWearable APIが`ApiException`で失敗しうるが、以前は例外処理なしで`await()`して
+  いたため、資格情報の保存時に起動したコルーチンから例外が漏れてアプリが落ちる経路があった。
 - **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（Tile/Complication
   表示時にDataItemが30秒以上古い場合、またはデバイス名チップタップ時）に限られ、定期ポーリングは
   行わない。Sesame純正アプリでの操作等、他経路による状態変化はTileが再表示・更新要求されるまで
@@ -202,12 +355,22 @@
   - `TileService.onTileRequest`はGuavaの`SettableFuture`でコルーチン結果をブリッジしている
     （Tiles APIのレスポンスタイムアウト制約を避けるため、既存のDataItemスナップショットで即座に
     応答しつつmobile側へ状態取得リクエストを送信する設計、BL-061）。
-- `wear.tile.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
-  マッピング。`statusLabel`/`actionLabel`は`isAllDevices`パラメータ（デフォルト`false`）を持ち、
-  全デバイス選択時は「全施錠中」等の文言に切り替わる。
-- `wear.tile.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
+- `core.display.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
+  マッピングと、中立チップ色`CHIP_NEUTRAL_COLOR_ARGB`。`statusLabel`/`actionLabel`は`isAllDevices`
+  パラメータ（デフォルト`false`）を持ち、全デバイス選択時は「全施錠中」等の文言に切り替わる。
+- `core.display.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
   「全施錠」を提示する（迷ったら安全側の方針、UNLOCKのみ確認画面を挟む既存UXと組み合わせて安全側は
   確認不要のまま維持、BL-071）。
+- `core.display.SesameDeviceTargets`（Android非依存）: 操作対象の選択肢と解決規則。`choices`は
+  デバイス選択画面の項目を表示順に返す（0台ならデモ用デバイスのみ、2台以上なら先頭に「全デバイス」、
+  表示名が空欄ならuuidをラベルにする）。`displayName`は割り当て済みuuidの表示名（デモ・全デバイスは
+  固定文言、一覧に無ければuuid）、`targetUuids`はコマンド送信先の展開（全デバイスなら登録順の全uuid）。
+  登録済みデバイス一覧の取得（wearはDataItem）は呼び出し側が担う。
+- 上記3つは当初wearモジュール（`wear.tile` / `wear.action.SesameActionTargetResolver` /
+  `wear.ui.DeviceSelectionScreen` / `SesameTileStateResolver`）にあったが、mobileのホーム画面
+  ウィジェット（BL-121以降）とTileで表示・操作ルールを食い違わせないよう、両者が参照できるcoreへ
+  移した（BL-119。mobileはwearへ依存できない）。wear側は参照先を付け替えただけで挙動は変えておらず、
+  固定文言の対象（デモ・全デバイス）ではDataItemを読まない点も移設前と同じ。
 - `wear.tile.SesameTileStateResolver`（Android非依存、Tile/Complication共通）: 対象uuidが
   `ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの状態を`TileDisplayStateResolver
   .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する。いずれもDataItemが古い場合
@@ -275,8 +438,10 @@
   `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。全デバイス選択時は
   ボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。送信はFire-and-forget方式。
 - `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`。
-- `wear.action.SesameActionTargetResolver`（Android非依存）: コマンド送信・状態更新の対象uuid一覧を
-  解決する。全デバイス時は登録済み全uuidのリスト、それ以外は単一uuid。`SesameActionActivity`/
+- `wear.action.SesameActionTargetResolver`（Android依存の薄いアダプタ）: コマンド送信・状態更新の対象
+  uuid一覧を解決する。全デバイス時のみDataItemから登録済み一覧を読み、展開は
+  `core.display.SesameDeviceTargets.targetUuids`へ委ねる（全デバイス時は登録済み全uuidのリスト、
+  それ以外は単一uuid）。`SesameActionActivity`/
   `SesameStatusRefreshActivity`が全デバイス選択時にループで各デバイスへ個別にlock/unlock/
   status-requestメッセージを送信する（mobile側は既存の単一デバイス処理をそのままN回受けるだけで
   対応でき、mobile側の変更は不要だった、BL-071）。
@@ -531,7 +696,13 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
     `mobile`へ送信する。`mobile`が実行し、結果（成功/失敗）を`wear`へ返す。
   - `core`: `mobile`/`wear`双方から参照する非機密のプロトコル定義（`SesameWearProtocol`等）・
     暗号・APIクライアント・状態解決ロジックを配置する。secretKey等の機密値やAndroid依存コードは
-    置かない。
+    置かない。Tileとホーム画面ウィジェットで共有する表示・操作の判定（`core.display`）もここに置く
+    （`mobile`は`wear`へ依存できないため、共有先は`core`しかない。BL-119）。
+- スマートフォンのホーム画面ウィジェット（BL-121以降）は、Data Layerを経由せず`mobile`内で
+  `SesameDeviceCommandExecutor`からSesame APIを呼ぶ。ウォッチ経由のコマンドも同じ実行口を通るため、
+  資格情報の検索・署名・重複抑止・状態保存は1か所に集約されている。secretKeyを`wear`へ持たせない方針は
+  変わらない（ウィジェットはsecretKeyを保持する`mobile`自身の中で完結する）。ウィジェットから成功した操作は
+  DataItemでウォッチへベストエフォートで同期し、ウォッチ経由の成功はウィジェットの再描画を要求する。
 
 ### モジュール構成・パッケージ方針
 
@@ -545,6 +716,15 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.13.0 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
+- `androidx.fragment:fragment`は本アプリのコードから直接使っていないが、`mobile`/`wear`の双方で
+  `implementation`に明示し1.8.9へ固定している（BL-130）。推移的依存（`mobile`は
+  `play-services-basement`、`wear`は`watchface-complications-data`→`preference`→`appcompat`）が
+  1.1.0を解決しており、Google Play Consoleの技術的な品質で1.2.1以降への更新を求められたため。
+  `play-services-basement`は最新版でも1.1.0を指定しており、Google Play開発者サービス側の更新では
+  解消しない。最新安定版1.9.0は推移的に`kotlin-stdlib`をコンパイラ（2.0.21）より新しい2.1.20へ、
+  `androidx.tracing`を2.0.0へ引き上げるため、配布中アプリへの影響を最小にする目的で、fragment以外の
+  解決結果が変わらない1.8.9を採った（2026-09-16にユーザー判断）。推移的依存を明示で引き上げている
+  ため、依存元ライブラリを更新する際は`dependencyInsight`で解決結果を確認し、不要になれば明示を外す。
 
 ### UI/UX方針（現状の実装内容）
 
@@ -560,6 +740,8 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   （BL-071）。
 - 登録済みデバイスが0台の場合は、デモ用デバイスのみを選択肢として提示し、Sesame実機を持たない
   利用者でもTile・Complicationの操作感を確認できるようにする（BL-109、上記「デモモード」）。
+- スマートフォンのホーム画面ウィジェットは、Tileと同じ表示・操作ルールを使い、ウォッチを持たない利用者にも
+  同じ操作体験を提供する（BL-121〜BL-123、上記「mobileホーム画面ウィジェット」）。
 
 ### 複数Sesameデバイス対応方針
 

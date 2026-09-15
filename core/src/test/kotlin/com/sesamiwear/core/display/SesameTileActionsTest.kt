@@ -1,4 +1,4 @@
-package com.sesamiwear.wear.tile
+package com.sesamiwear.core.display
 
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand

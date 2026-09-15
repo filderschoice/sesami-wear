@@ -1,4 +1,4 @@
-package com.sesamiwear.wear.tile
+package com.sesamiwear.core.display
 
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
@@ -9,6 +9,7 @@ import com.sesamiwear.core.api.SesameCommand
  * BL-071）の場合は「迷ったら安全側（施錠）」の方針で施錠を提示する（解錠のみ確認画面を挟む
  * 既存UX、[com.sesamiwear.core.api.SesameCommandConfirmation]と組み合わせて安全側は
  * 確認不要のまま維持する）。状態不明・通信中・スマホ未接続時はタップ不可（null）。
+ * wearのTileとmobileのホーム画面ウィジェットで同じ操作ルールを使うためcoreに置いている（BL-119）。
  */
 object SesameTileActions {
     fun commandForState(state: TileDisplayState): SesameCommand? =

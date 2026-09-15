@@ -5,6 +5,296 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 04:30
+  summary: ホーム画面ウィジェットに合わせてアプリ内ヘルプと利用者向けドキュメントを更新した
+  details:
+    変更内容: >-
+      アプリ内ヘルプ（mobile.help.HelpContent）へ「ホーム画面ウィジェットの使い方」を4項目めとして追加し、
+      「Sesameが無くてもデモで試す」をウォッチのタイルとウィジェットの両方の試し方、両者のデモが連動しないこと、
+      登録後にデモのウィジェットが「タップして設定」へ戻ることを含む内容へ直した。ウィジェットの説明が
+      実際の表示文言（変更・全デバイス・通信中...・タップして設定）を含むことをユニットテストで固定した。
+      docs/USER_GUIDE.md に「ホーム画面ウィジェットで操作する」節とトラブルシュートを、docs/CLOSED_TEST.md に
+      ウォッチ無しでも参加・試用できることを、README.md の主な機能と docs/RELEASE_NOTES.md の 0.11.0
+      （未リリース、ストア掲載用の要約156文字を含む）を、docs/store/STORE_LISTING.md の短い説明（57文字）・
+      詳細な説明（1465文字）・対象デバイスを更新した。テスターの手元は 0.10.0 のままのため、ユーザー確認のうえ
+      公開ドキュメントには「0.11.0以降」と明記し、STORE_LISTING には Play Console への転記を BL-127 で行う旨を
+      注記した。プライバシーポリシーとデータセーフティ申告は、ウィジェットが端末外へ新たな情報を送らず、
+      端末内に保存するのはロック状態と割り当てのみのため変更不要と判断した（根拠は DESIGN.md に記載）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/CLOSED_TEST.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - README.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 / ストア掲載文言の文字数計測（Python）
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。短い説明・詳細な説明・
+      このリリースの新機能はいずれも Google Play の上限内。
+    関連ID:
+      - BL-124
+
+- date: 2026-09-16 03:50
+  summary: ホーム画面ウィジェットでもデモモードを操作できるようにした
+  details:
+    変更内容: >-
+      登録済みデバイスが0台のとき、ウィジェットでデモ用デバイスを選んで施錠・解錠を体験できるようにした。
+      SesameDeviceCommandExecutor はデモuuidのとき Sesame API を呼ばず常に成功として LockStateStore の
+      デモ状態だけを書き換え（重複判定は実デバイスと同じ）、状態取得は保存値（無ければ初期状態の施錠中）を
+      返すだけにした。通知先を LockStateNotifier（local＝ウィジェット再描画、watch＝DataItem 同期）へ分け、
+      デモでは watch を呼ばないことで Data Layer へも送らない（ウォッチのデモ状態とは同期しない）。
+      確認画面の有無・状態文言は実デバイスと同じ経路のまま。資格情報を1台でも保存すると、
+      WidgetDeviceAssignmentStore.onRegisteredDevicesChanged でデモを割り当てていたウィジェットの割り当てを
+      解除し「タップして設定」へ戻す。detekt の LongParameterList・ReturnCount に合わせて通知先の
+      まとめ方と状態取得の分割を調整した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。デモuuidでの操作で API リクエスト0件・DataItem 同期の呼び出し0件、
+      1台登録後のデモ割り当て解除をユニットテストで確認した。途中のメモリ不足による Gradle ワーカーの
+      異常終了はデーモンを停止して再実行した（コード起因ではない）。
+    関連ID:
+      - BL-123
+
+- date: 2026-09-16 03:15
+  summary: ホーム画面ウィジェットのタップで施錠・解錠・状態取得できるようにした
+  details:
+    変更内容: >-
+      wear の Tile と同じ操作ルールでウィジェットを操作できるようにした。右側のタップは Android 非依存の
+      WidgetTapAction（SesameTileActions と SesameCommandConfirmation に従い、施錠中→解錠確認、解錠中→即施錠、
+      一部解錠→即全施錠、通信中・状態不明→なし）で決め、施錠は WidgetCommandReceiver（exported=false、goAsync）で
+      即時実行、解錠は WidgetUnlockConfirmActivity（ダイアログテーマ、左キャンセル・右解錠）を挟む。
+      デバイス名のタップは状態取得のみ。WidgetCommandRunner が対象uuidを SesameDeviceTargets で展開して
+      実行口を並行に呼び、WidgetInProgressTracker（プロセス内メモリ）で通信中を表示してから、終了後に
+      保存済み状態で再描画する（失敗時は操作前の状態に戻る）。解錠確認画面からも同じ経路で実行するため、
+      Glance の ActionCallback ではなく同じ goAsync の仕組みを自前の Receiver で使った（WorkManager へは委譲せず、
+      理由は DESIGN.md に記載）。SesameDeviceCommandExecutorFactory の通知先へウィジェットの再描画を加え、
+      ウォッチ経由の成功でもウィジェットが、ウィジェット経由の成功でもウォッチの Tile が追随する。
+      タップ時の動作・キャンセル時に送信しないこと・通信中の表示と解除・全デバイスへの送信・失敗時の状態維持・
+      ウォッチ経由との重複の抑止をユニットテストで検証した（鍵は RFC 4493 の公開テストベクタ）。
+    変更ファイル:
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTracker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTrackerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:assembleRelease / npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートと mobile のリリースビルドが終了コード0。実機での施錠・解錠と、BroadcastReceiver の
+      実行時間の制約に抵触しないかの確認は BL-126（人手検証）で行う。
+    関連ID:
+      - BL-122
+
+- date: 2026-09-16 02:30
+  summary: mobileにホーム画面ウィジェット（表示と対象デバイスの設定）を追加した
+  details:
+    変更内容: >-
+      Jetpack Glance 1.2.0 で mobile.widget.SesameWidget / SesameWidgetReceiver を追加した。wear の Tile と
+      同じく左列にデバイス名と「変更」、右側に状態アイコン・状態文言・操作文言を置き、状態色は右側のみに使う。
+      表示内容は Android 非依存の SesameWidgetModelResolver が割り当て・登録済みデバイス・LockStateStore の
+      保存値から決める（未設定・削除済み・デモの失効は「タップして設定」、単一は未取得なら状態不明、
+      全デバイスは wear と同じ集約規則、スマホ未接続は存在しない）。appWidgetId ごとの割り当ては
+      WidgetDeviceAssignmentStore（非暗号化 SharedPreferences）へ保存し、onDeleted で消す。
+      追加時は android:configure の WidgetConfigurationActivity で SesameDeviceTargets.choices から選び、
+      「変更」「タップして設定」からも開ける。Glance のセッション中は provideGlance が再実行されないため、
+      SesameWidgetUpdater が状態へ更新トークンを書き込んで再描画させる方式にし、資格情報の保存・削除時
+      （CredentialsSettingsScreen）と割り当て直後に呼ぶ。Glance が推移的に持ち込む work-runtime 2.7.1
+      （room 2.2.5 等）は古いため、ユーザー確認のうえ明示依存で引き上げた。最新の 2.11.2 は kotlin-stdlib を
+      2.1.20 へ上げるため、stdlib を変えない 2.10.5 を採った（room 2.6.1 / sqlite 2.4.0。既存依存の版の変化は
+      compose-runtime 1.7.6→1.7.8 のみ）。施錠・解錠のタップ操作は BL-122 で実装する。
+    変更ファイル:
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceAssignmentStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew :mobile:dependencies（releaseRuntimeClasspath の導入前後の差分）/ ./gradlew ktlintFormat /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / ./gradlew :mobile:assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートと mobile のリリースビルド（minify有効）が終了コード0。lint の新規警告は既存コードと
+      同種の UseKtx のみ。実機でのウィジェット追加・表示の確認は BL-126（人手検証）で行う。
+    関連ID:
+      - BL-121
+
+- date: 2026-09-16 01:40
+  summary: mobileの施錠・解錠・状態取得をData Layerから切り離した実行口として切り出した
+  details:
+    変更内容: >-
+      Sesame API の呼び出しが SesameMessageListenerService の private メソッドに閉じていたため、
+      ホーム画面ウィジェット（BL-122）からも呼べるよう Android 非依存の
+      mobile.command.SesameDeviceCommandExecutor を追加した。execute は重複判定 → 資格情報の検索 →
+      SesameCommandHandler → 成功時の状態保存と通知の順（移設前と同じ）で SUCCESS / FAILURE / DEBOUNCED を返し、
+      refreshStatus は GET 結果を保存・通知する。CommandDebouncer は companion object の sharedDebouncer を
+      共有し、ウォッチ経由とウィジェット経由の重複をまとめる。ロック状態を mobile 端末内に保存する
+      mobile.state.LockStateStore（非暗号化 SharedPreferences、JsonObject を直接組み立てて単一キーへ保存）と、
+      Android 側の配線 SesameDeviceCommandExecutorFactory・SharedPreferencesKeyValueStore を追加した。
+      SesameCommandHandler にはコマンドを直接受ける execute を追加した（handle(path) は委譲）。
+      SesameMessageListenerService はパスをコマンドへ変換して実行口を呼び、結果を返すだけにした。
+      wear から見た挙動（結果返送・DataItem 同期・デバウンス）は変えていないが、未知のパスは実行口を呼ばない
+      ため重複判定の対象から外れた（マニフェストの pathPrefix により実運用では届かない）。
+      実行口（成功・APIエラー・資格情報なし・不正な鍵・経路をまたぐデバウンス・状態保存・通知・状態取得）と
+      LockStateStore（保存・上書き・削除・壊れた値）のユニットテストを追加した。テストの鍵は RFC 4493 の
+      公開テストベクタで、実資格情報は使っていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+      （--max-workers=1〜2）/ npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。途中で detekt の ReturnCount と ktlint の行長違反を修正した。
+      メモリ不足による Gradle ワーカーの異常終了はワーカー数を絞って再実行した（コード起因ではない）。
+    関連ID:
+      - BL-120
+
+- date: 2026-09-16 01:05
+  summary: Tileの文言・色・操作判定と対象デバイスの解決規則をwearからcoreへ移した
+  details:
+    変更内容: >-
+      mobile のホーム画面ウィジェット（BL-121以降）と wear の Tile で表示・操作ルールを食い違わせない
+      よう、wear にあった Android 非依存の判定ロジックを core.display パッケージへ移した。
+      wear.tile.SesameTileActions と wear.tile.SesameTileContent は git mv でそのまま移し（パッケージ宣言と
+      コメントのみ変更）、ユニットテストも core へ移した（期待値は変更していない）。
+      wear.action.SesameActionTargetResolver の全デバイス展開、DeviceSelectionScreen の選択肢の組み立て
+      （0台ならデモのみ、2台以上なら先頭に全デバイス、表示名が空欄ならuuid）、SesameTileStateResolver の
+      表示名解決を core.display.SesameDeviceTargets（choices / displayName / targetUuids / isAllDevices）へ
+      集め、wear 側は登録済み一覧を読んで渡すだけにした。固定文言の対象（デモ・全デバイス）では従来どおり
+      DataItem を読まない。CLAUDE.md の処理フロー表・全デバイス説明・単一テスト実行例・テスト対象例の
+      クラス名をユーザー承認のうえ新しい所在へ更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceTargets.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceTargetsTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionTargetResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/ui/DeviceSelectionScreen.kt
+      - CLAUDE.md
+      - CHANGELOG.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+      （--max-workers=2）/ npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 /
+      git diff -M --stat で移設したテストの差分がパッケージ宣言1行のみであることを確認
+    検証結果: 成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）
+    関連ID:
+      - BL-119
+
+- date: 2026-09-16 00:40
+  summary: 推移的依存で古い版になっていたandroidx.fragmentを1.8.9へ引き上げた
+  details:
+    変更内容: >-
+      Google Play Console で androidx.fragment:fragment 1.1.0 の更新（1.2.1 以降）を求められていた。
+      gradle/libs.versions.toml へ androidx.fragment:fragment 1.8.9 を追加し、mobile と wear の
+      build.gradle.kts で implementation に明示した。releaseRuntimeClasspath の dependencyInsight で
+      両モジュールとも 1.8.9 に解決されることを確認した。最新安定版 1.9.0 でもビルドとリリースビルドは
+      成功したが、推移的に kotlin-stdlib 2.0.21→2.1.20、androidx.tracing 1.2.0→2.0.0、annotation
+      1.8.1→1.10.0、collection 1.4.4→1.6.0、profileinstaller 1.3.1→1.4.0 も引き上げることを
+      dependencies の差分で確認したため、ユーザーに確認のうえ fragment 以外の解決結果が変わらない
+      1.8.9 を採った。他に Play Console から更新を求められている依存は報告されていない
+      （wear の appcompat 1.1.0 は古いが警告対象外のため変更しない）。
+    変更ファイル:
+      - gradle/libs.versions.toml
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew :mobile:dependencyInsight / :wear:dependencyInsight（releaseRuntimeClasspath、
+      androidx.fragment:fragment）/ ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test
+      assembleDebug / ./gradlew :mobile:assembleRelease :wear:assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートとリリースビルド（minify有効）が終了コード0。初回実行時にマシンのメモリ不足で
+      Gradleワーカー・デーモンが異常終了したため、--max-workers=2 で分割して再実行した（コード起因ではない）。
+      Play Console の警告解消は BL-127 で確認する。
+    関連ID:
+      - BL-130
+
+- date: 2026-09-16 00:20
+  summary: mobileのWearable Data Layer呼び出しを失敗しても処理を続けるベストエフォート呼び出しにした
+  details:
+    変更内容: >-
+      Wear OS のコンパニオンアプリが入っていない端末では Wearable API のタスクが ApiException で
+      失敗しうるが、SesameDeviceListSyncer.sync と SesameStatusSyncer.syncLocked は例外処理なしで
+      await しており、資格情報の保存・削除時に起動したコルーチンから例外が漏れてアプリが落ちる経路が
+      あった。Android 非依存の mobile.messaging.DataLayerBestEffort を追加し、ApiException だけを
+      捕捉してステータスコードを Log.w へ渡し（資格情報・uuid は出さない）、呼び出し元の処理を
+      継続するようにした。コルーチンのキャンセルは捕捉しない。2つの Syncer と、
+      SesameMessageListenerService の結果返送（MessageClient.sendMessage）をこの呼び出しで包んだ。
+      成功・ApiException の握りつぶし・後続処理の継続・キャンセルの非捕捉をユニットテストで検証した。
+      端末上での再現確認は BL-126（人手検証）で行う。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffort.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameDeviceListSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffortTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証（yaml.safe_load）
+    検証結果: 成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）
+    関連ID:
+      - BL-118
+
 - date: 2026-09-13 02:10
   summary: BL-112〜BL-114を実機検証し、デモ用デバイスの表示名を短縮した
   details:

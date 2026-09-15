@@ -1,123 +1,88 @@
 package com.sesamiwear.mobile.messaging
 
-import android.content.Context
 import android.util.Log
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
 import com.sesamiwear.core.SesameCommandResult
-import com.sesamiwear.core.SesameCredentials
-import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.core.api.SesameApiClient
-import com.sesamiwear.core.api.SesameApiException
-import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
+import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * Wear側からのlock/unlock/状態取得リクエストを受信する。lock/unlockは[SesameCommandHandler]で
- * 実行して結果を返す。状態取得リクエスト（[SesameWearProtocol.PATH_STATUS_REQUEST]、BL-061）は
- * Sesame APIのGETを呼び、成功時に[SesameStatusSyncer]でDataItemへ同期するのみで
- * 結果をWear側へ返送しない（Tile/Complicationの初回「状態不明」表示を解消するための非同期更新）。
- * 資格情報（BL-005で実装した[SesameCredentialsStore]）が未設定の場合はlock/unlockでは
- * [SesameCommandResult.FAILURE]を返し、状態取得リクエストでは何もしない。
- * lock/unlockは[CommandDebouncer]で同一デバイスへの短時間内の重複を無視する（BL-062、
- * Tile連打による二重送信・ハプティクス連続再生の防止）。
- * MessageClient呼び出し以外のロジックを持たない薄いアダプタのためユニットテスト対象外
- * （ハンドラ本体は[SesameCommandHandler]でテスト済み、実際の送受信動作はBL-011で人手検証）。
+ * Wear側からのlock/unlock/状態取得リクエストを受信し、[SesameDeviceCommandExecutor]（BL-120）へ渡す。
+ * lock/unlockは実行結果をWear側へ返す。重複として無視された場合（[CommandDebouncer]、BL-062）は
+ * 結果を返さない。状態取得リクエスト（[SesameWearProtocol.PATH_STATUS_REQUEST]、BL-061）は
+ * 結果をWear側へ返送せず、取得できた状態は実行口の通知でDataItemへ同期される
+ * （Tile/Complicationの初回「状態不明」表示を解消するための非同期更新）。
+ * 資格情報が未設定の場合、lock/unlockでは[SesameCommandResult.FAILURE]を返し、状態取得では何もしない。
+ * Sesame APIの呼び出し・状態保存・DataItem同期のロジックは実行口側にあり、本クラスはメッセージの
+ * 変換と結果返送のみを持つ薄いアダプタのためユニットテスト対象外（実際の送受信動作はBL-011で人手検証）。
  */
 class SesameMessageListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         CoroutineScope(Dispatchers.IO).launch {
+            val executor = SesameDeviceCommandExecutorFactory.create(applicationContext)
             if (messageEvent.path == SesameWearProtocol.PATH_STATUS_REQUEST) {
-                handleStatusRequest(messageEvent)
+                handleStatusRequest(executor, messageEvent)
             } else {
-                handleCommandRequest(messageEvent)
+                handleCommandRequest(executor, messageEvent)
             }
         }
     }
 
-    private suspend fun handleCommandRequest(messageEvent: MessageEvent) {
+    private suspend fun handleCommandRequest(
+        executor: SesameDeviceCommandExecutor,
+        messageEvent: MessageEvent,
+    ) {
         val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
         Log.d(TAG, "handleCommandRequest path=${messageEvent.path} deviceUuidBlank=${deviceUuid.isBlank()}")
-        if (!commandDebouncer.shouldProcess(deviceUuid)) {
-            Log.d(TAG, "handleCommandRequest debounced, skipping")
-            return
-        }
-        val handler = createCommandHandler(applicationContext, deviceUuid)
-        val result = handler?.handle(messageEvent.path) ?: SesameCommandResult.FAILURE
+        val result =
+            when (val command = commandForPath(messageEvent.path)) {
+                null -> SesameCommandResult.FAILURE
+                else ->
+                    when (executor.execute(deviceUuid, command)) {
+                        SesameDeviceCommandExecutor.Outcome.SUCCESS -> SesameCommandResult.SUCCESS
+                        SesameDeviceCommandExecutor.Outcome.FAILURE -> SesameCommandResult.FAILURE
+                        SesameDeviceCommandExecutor.Outcome.DEBOUNCED -> {
+                            Log.d(TAG, "handleCommandRequest debounced, skipping")
+                            return
+                        }
+                    }
+            }
         Log.d(TAG, "handleCommandRequest result=$result")
-        if (result == SesameCommandResult.SUCCESS) {
-            syncLockedStateFromPath(messageEvent.path, deviceUuid)
-            Log.d(TAG, "handleCommandRequest synced locked state")
-        }
-        Wearable.getMessageClient(this@SesameMessageListenerService)
-            .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
-            .await()
-        Log.d(TAG, "handleCommandRequest sent result to wear")
-    }
-
-    private suspend fun handleStatusRequest(messageEvent: MessageEvent) {
-        val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
-        val credentials = findCredentials(applicationContext, deviceUuid) ?: return
-        val apiClient = SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
-        val status =
-            try {
-                apiClient.getStatus()
-            } catch (
-                @Suppress("SwallowedException") e: SesameApiException,
-            ) {
-                Log.d(TAG, "handleStatusRequest getStatus failed: ${e.message}")
-                return
+        // 結果返送もベストエフォートにし、送信失敗の例外でプロセスを落とさない（BL-118）。
+        val sent =
+            DataLayerBestEffort.run(onFailure = { Log.w(TAG, "handleCommandRequest send failed: statusCode=$it") }) {
+                Wearable.getMessageClient(this@SesameMessageListenerService)
+                    .sendMessage(messageEvent.sourceNodeId, SesameWearProtocol.PATH_COMMAND_RESULT, result.toPayload())
+                    .await()
             }
-        Log.d(TAG, "handleStatusRequest isInLockRange=${status.isInLockRange}")
-        SesameStatusSyncer(applicationContext).syncLocked(deviceUuid, status.isInLockRange)
+        Log.d(TAG, "handleCommandRequest sent result to wear sent=$sent")
     }
 
-    private fun findCredentials(
-        context: Context,
-        deviceUuid: String,
-    ): SesameCredentials? {
-        val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(context))
-        return credentialsStore.loadAll().find { it.uuid == deviceUuid }
-    }
-
-    private fun createCommandHandler(
-        context: Context,
-        deviceUuid: String,
-    ): SesameCommandHandler? {
-        val credentials = findCredentials(context, deviceUuid)
-        // secretKeyBytesOrNullを使い、不正な16進数/鍵長の資格情報が保存されていても例外で
-        // クラッシュせずFAILUREへフォールバックする（BL-026、コードレビューで発見）。
-        val secretKeyBytes = credentials?.secretKeyBytesOrNull
-        return if (credentials != null && secretKeyBytes != null) {
-            val apiClient = SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
-            SesameCommandHandler(apiClient, secretKeyBytes)
-        } else {
-            null
-        }
-    }
-
-    private suspend fun syncLockedStateFromPath(
-        path: String,
-        deviceUuid: String,
+    private suspend fun handleStatusRequest(
+        executor: SesameDeviceCommandExecutor,
+        messageEvent: MessageEvent,
     ) {
-        val isLocked =
-            when (path) {
-                SesameWearProtocol.PATH_LOCK_REQUEST -> true
-                SesameWearProtocol.PATH_UNLOCK_REQUEST -> false
-                else -> return
-            }
-        SesameStatusSyncer(applicationContext).syncLocked(deviceUuid, isLocked)
+        val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
+        val isLocked = executor.refreshStatus(deviceUuid)
+        Log.d(TAG, "handleStatusRequest isInLockRange=$isLocked")
     }
+
+    private fun commandForPath(path: String): SesameCommand? =
+        when (path) {
+            SesameWearProtocol.PATH_LOCK_REQUEST -> SesameCommand.LOCK
+            SesameWearProtocol.PATH_UNLOCK_REQUEST -> SesameCommand.UNLOCK
+            else -> null
+        }
 
     private companion object {
-        // Serviceインスタンスをまたいで連打を検知できるよう、companion objectで保持する
-        // （BL-062、Tile連打による二重送信・ハプティクス連続再生の防止）。
-        val commandDebouncer = CommandDebouncer()
         const val TAG = "SesameMessageListener"
     }
 }

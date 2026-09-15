@@ -84,6 +84,15 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.play.services.wearable)
+    // 本アプリはfragmentを直接使わないが、推移的依存（mobileはplay-services-basement、wearは
+    // watchface-complications-data→preference→appcompat）が古い1.1.0を解決し、Google Play Consoleで
+    // 更新を求められたため、明示して引き上げる（BL-130）。
+    implementation(libs.androidx.fragment)
+    // ホーム画面ウィジェット（BL-121）。Glanceが推移的に持ち込む work-runtime 2.7.1（room 2.2.5 等を伴う）は
+    // 古いため明示して引き上げる。2.11系は kotlin-stdlib をコンパイラ（2.0.21）より新しい2.1.20へ上げるため、
+    // stdlib を変えない2.10系の最新を使う（BL-130 と同じ判断基準）。
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)

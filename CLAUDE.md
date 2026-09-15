@@ -67,8 +67,9 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 
 | 経路 | 起点 → 終点 | DESIGN.md の該当節 |
 | --- | --- | --- |
-| 施錠/解錠コマンド送信（wear → mobile） | `wear.tile.SesameTileActions` → `wear.messaging.SesameCommandSender` → `PATH_LOCK_REQUEST` / `PATH_UNLOCK_REQUEST` | wear側コマンド送信・結果受信 |
-| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| 施錠/解錠コマンド送信（wear → mobile） | `wear.tile.SesameTileService` → `wear.action.SesameActionActivity`（提示コマンドは `core.display.SesameTileActions`）→ `wear.messaging.SesameCommandSender` → `PATH_LOCK_REQUEST` / `PATH_UNLOCK_REQUEST` | wear側コマンド送信・結果受信 |
+| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `mobile.command.SesameDeviceCommandExecutor` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| ホーム画面ウィジェット操作（mobile内、Data Layerを経由しない） | `mobile.widget.SesameWidget` → `WidgetCommandReceiver` → `WidgetCommandRunner` → `mobile.command.SesameDeviceCommandExecutor`（状態変化は `SesameWidgetUpdater` の再描画と DataItem 同期へ通知） | mobileホーム画面ウィジェット |
 | 状態同期（mobile → wear） | `mobile.messaging.SesameStatusSyncer` → `STATUS_DATA_ITEM_PATH` の DataItem | Data Layer APIプロトコル定義 |
 | 結果返送（mobile → wear） | `PATH_COMMAND_RESULT` → `wear.messaging.SesameResultListenerService` → `SesameResultHandler` → `wear.haptics.SesameHapticPlayer` | wear側コマンド送信・結果受信 |
 | 状態表示（Tile/Complication） | `wear.messaging.SesameStatusSnapshotReader` → `core.SesameStatusSnapshotFactory` → Tile/Complication | Tile / Complication |
@@ -77,8 +78,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 
 - 本アプリは複数のSesameデバイスを扱うため、各メッセージは対象デバイスの`uuid`をペイロードへ載せる
   （`core.SesameWearProtocol.encodeDeviceUuid` / `decodeDeviceUuid`）。`ALL_DEVICES_TARGET_UUID`
-  （`"__all_devices__"`）は「登録済み全デバイス」を表す特別値で、`wear.action.SesameActionTargetResolver`
-  が解決した全uuidへwear側が個別に送る（mobile側は単一デバイス処理をN回受けるだけ）。
+  （`"__all_devices__"`）は「登録済み全デバイス」を表す特別値で、`core.display.SesameDeviceTargets.targetUuids`
+  が展開した全uuidへwear側が個別に送る（mobile側は単一デバイス処理をN回受けるだけ）。
 - 状態取得（`PATH_STATUS_REQUEST`）はFire-and-forget送信で結果が返らない。`STATUS_DATA_ITEM_PATH`の
   DataItem変更として非同期に届く（`wear.messaging.SesameStatusListenerService`が受けて再描画を要求する）。
 - 他経路（Sesame純正アプリでの操作等）による状態変化は検知されない
@@ -131,11 +132,11 @@ Gradle Wrapper経由ですべてリポジトリルートから実行します（
 ```bash
 ./gradlew :core:test --tests "com.sesamiwear.core.crypto.AesCmacTest"
 ./gradlew :mobile:testDebugUnitTest --tests "com.sesamiwear.mobile.credentials.CredentialsInputValidatorTest"
-./gradlew :wear:testDebugUnitTest --tests "com.sesamiwear.wear.tile.SesameTileActionsTest"
+./gradlew :wear:testDebugUnitTest --tests "com.sesamiwear.wear.complication.SesameComplicationContentTest"
 ```
 
 単体テストはAndroid非依存のクラス（`core`全般、`mobile.messaging.SesameCommandHandler`、
-`wear.tile.SesameTileContent`等）に集中しており、Android依存クラス（`*Service` / `*Activity` /
+`wear.complication.SesameComplicationContent`等）に集中しており、Android依存クラス（`*Service` / `*Activity` /
 Compose画面）はテスト対象外です。ロジックを追加する際は、Android依存部から切り離した純Kotlinの
 クラス・objectへ置くと検証可能になります（detektの`LongMethod`/`TooManyFunctions`回避にもなります。
 DESIGN.md「実装制約 > 技術制約」参照）。
@@ -144,7 +145,8 @@ DESIGN.md「実装制約 > 技術制約」参照）。
 **インストール先のデバイス種別に応じて実行するタスクが異なり、1台のデバイスに両方は入りません**
 （後から入れた方が前のものを置き換えます）。同時接続時は `ANDROID_SERIAL` でインストール先を1台へ
 固定します。リリースAABも同じ理由で2つ生成が必要です（`versionCode` は `mobile` が1始まり、
-`wear` が1001始まりの独立系列。`scriptselease-build.bat` は1回の実行で両方をビルドします）。
+`wear` が1001始まりの独立系列。`scripts
+elease-build.bat` は1回の実行で両方をビルドします）。
 
 ```bash
 ANDROID_SERIAL=<スマホのデバイスID>    ./gradlew :mobile:installDebug
