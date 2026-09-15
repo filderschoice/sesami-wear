@@ -20,6 +20,8 @@
   してビルドし、Google Playの別トラックへ配信する（BL-090）。CANDY HOUSE Sesame 5 + Hub 3の
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
   登録済みの複数Sesameデバイス（3〜5台程度を想定）を1つのアプリから個別または一括で操作できる。
+  操作手段はウォッチのTile（表示はComplicationも）と、スマートフォンのホーム画面ウィジェット
+  （BL-121〜BL-124）の2つで、ウィジェットはウォッチを持たない利用者も使える。
 - 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 36、build-tools 36.0.0）、Gradle 8.13
   （Gradle Wrapper経由）。詳細は `CLAUDE.md`「本リポジトリの品質ゲート定義」段階Bを参照。
 
@@ -117,8 +119,30 @@
 ### mobileホーム画面ウィジェット
 
 スマートフォンのホーム画面から、wearのTileと同じ表示・操作ルールでSesameの状態を確認・操作するウィジェット
-（BL-121で表示と設定、BL-122でタップ操作、BL-123でデモ）。Data Layerを経由せず、mobile内の保存値と
-`mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も使える。
+（BL-121で表示と設定、BL-122でタップ操作、BL-123でデモ、BL-124でヘルプ・ドキュメント）。Data Layerを経由せず、
+mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）を使うため、ウォッチを持たない利用者も
+使える。「ウィジェットとwearで機能差を大きくつけない」ことを方針とし、判定ロジックは`core.display`に1つだけ置く
+（BL-119）。
+
+- **wearのTileと揃えている点**:
+  - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右側だけに使う構成
+    （左にデバイス名と「変更」、右に状態）。
+  - 操作ルール（`core.display.SesameTileActions`）: 施錠中→解錠、解錠中→施錠、一部解錠→全施錠、通信中・状態不明→操作なし。
+  - 確認画面: 解錠のみ（`SesameCommandConfirmation`）、左＝キャンセル・右＝解錠／全解錠の並びと配色。
+  - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
+    全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
+  - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
+  - 左側のデバイス名タップは状態取得のみ、同一uuidへの2秒以内の重複は1回（`CommandDebouncer`を経路間で共有）。
+- **意図的に揃えていない点**:
+  - 追加時の設定: ウィジェットは`appwidget-provider`の`android:configure`で追加直後に選択画面を開ける（Tilesには
+    同等の標準機構が無く、Tileは「タップして設定」から誘導する）。選べる内容は同じ。
+  - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
+    また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
+  - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
+  - 結果の通知: wearは成否をハプティクスで区別するが、ウィジェットは失敗時に操作前の表示へ戻すのみ（改善はBL-129）。
+  - 表示の鮮度: wearはDataItemが30秒以上古いと自動で状態取得するが、ウィジェットは自動取得しない
+    （保存値の表示のみ。改善の検討はBL-129）。
+  - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
   `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
@@ -672,7 +696,13 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
     `mobile`へ送信する。`mobile`が実行し、結果（成功/失敗）を`wear`へ返す。
   - `core`: `mobile`/`wear`双方から参照する非機密のプロトコル定義（`SesameWearProtocol`等）・
     暗号・APIクライアント・状態解決ロジックを配置する。secretKey等の機密値やAndroid依存コードは
-    置かない。
+    置かない。Tileとホーム画面ウィジェットで共有する表示・操作の判定（`core.display`）もここに置く
+    （`mobile`は`wear`へ依存できないため、共有先は`core`しかない。BL-119）。
+- スマートフォンのホーム画面ウィジェット（BL-121以降）は、Data Layerを経由せず`mobile`内で
+  `SesameDeviceCommandExecutor`からSesame APIを呼ぶ。ウォッチ経由のコマンドも同じ実行口を通るため、
+  資格情報の検索・署名・重複抑止・状態保存は1か所に集約されている。secretKeyを`wear`へ持たせない方針は
+  変わらない（ウィジェットはsecretKeyを保持する`mobile`自身の中で完結する）。ウィジェットから成功した操作は
+  DataItemでウォッチへベストエフォートで同期し、ウォッチ経由の成功はウィジェットの再描画を要求する。
 
 ### モジュール構成・パッケージ方針
 
@@ -710,6 +740,8 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   （BL-071）。
 - 登録済みデバイスが0台の場合は、デモ用デバイスのみを選択肢として提示し、Sesame実機を持たない
   利用者でもTile・Complicationの操作感を確認できるようにする（BL-109、上記「デモモード」）。
+- スマートフォンのホーム画面ウィジェットは、Tileと同じ表示・操作ルールを使い、ウォッチを持たない利用者にも
+  同じ操作体験を提供する（BL-121〜BL-123、上記「mobileホーム画面ウィジェット」）。
 
 ### 複数Sesameデバイス対応方針
 

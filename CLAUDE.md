@@ -68,7 +68,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 | 経路 | 起点 → 終点 | DESIGN.md の該当節 |
 | --- | --- | --- |
 | 施錠/解錠コマンド送信（wear → mobile） | `wear.tile.SesameTileService` → `wear.action.SesameActionActivity`（提示コマンドは `core.display.SesameTileActions`）→ `wear.messaging.SesameCommandSender` → `PATH_LOCK_REQUEST` / `PATH_UNLOCK_REQUEST` | wear側コマンド送信・結果受信 |
-| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| コマンド実行（mobile） | `mobile.messaging.SesameMessageListenerService` → `mobile.command.SesameDeviceCommandExecutor` → `SesameCommandHandler` → `core.api.SesameApiClient`（AES-CMAC署名付きPOST） | mobile側コマンド処理 |
+| ホーム画面ウィジェット操作（mobile内、Data Layerを経由しない） | `mobile.widget.SesameWidget` → `WidgetCommandReceiver` → `WidgetCommandRunner` → `mobile.command.SesameDeviceCommandExecutor`（状態変化は `SesameWidgetUpdater` の再描画と DataItem 同期へ通知） | mobileホーム画面ウィジェット |
 | 状態同期（mobile → wear） | `mobile.messaging.SesameStatusSyncer` → `STATUS_DATA_ITEM_PATH` の DataItem | Data Layer APIプロトコル定義 |
 | 結果返送（mobile → wear） | `PATH_COMMAND_RESULT` → `wear.messaging.SesameResultListenerService` → `SesameResultHandler` → `wear.haptics.SesameHapticPlayer` | wear側コマンド送信・結果受信 |
 | 状態表示（Tile/Complication） | `wear.messaging.SesameStatusSnapshotReader` → `core.SesameStatusSnapshotFactory` → Tile/Complication | Tile / Complication |

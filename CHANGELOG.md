@@ -887,3 +887,13 @@ BL-119 で `wear.tile.SesameTileActions` / `SesameTileContent` を `core.display
 - 全デバイス選択時のuuid展開の所在を `core.display.SesameDeviceTargets.targetUuids` へ修正。
 - 単一テスト実行例とテスト対象の例を、移設で wear に存在しなくなった `SesameTileActionsTest` /
   `SesameTileContent` から `wear.complication.SesameComplicationContent(Test)` へ差し替え。
+
+## 2026-09-16（ホーム画面ウィジェットの処理フローをCLAUDE.mdへ反映、BL-125）
+
+BL-120〜BL-124 でスマートフォンのホーム画面ウィジェットと、Data Layer から切り離した mobile のコマンド実行口を
+追加したため、ユーザー承認のうえ `CLAUDE.md`「主要な処理フロー」表を実装へ追随させました
+（実装の詳細は `docs/records/managed/DESIGN.md`「mobileホーム画面ウィジェット」「mobile側コマンド処理」が正本）。
+
+- 「コマンド実行（mobile）」行へ、`SesameMessageListenerService` と `SesameCommandHandler` の間に入った
+  `mobile.command.SesameDeviceCommandExecutor` を追加。
+- 「ホーム画面ウィジェット操作（mobile内、Data Layerを経由しない）」行を追加。
