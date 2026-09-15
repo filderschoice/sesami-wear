@@ -131,10 +131,35 @@
 ### mobile側コマンド処理
 
 - `mobile.messaging.SesameMessageListenerService`（`WearableListenerService`実装、BL-013）:
-  受信パスからコマンド判定し、対象デバイスuuidに対応する資格情報で`SesameCommandHandler`
-  （Android非依存、`SesameApiClient.sendCommand()`を呼ぶ）を実行する。資格情報未設定時は
-  `FAILURE`を返す。`PATH_STATUS_REQUEST`受信時は`SesameApiClient.getStatus()`を呼び、成功時に
-  `SesameStatusSyncer`でDataItemへ同期する（結果はwear側へ返送しない、BL-061）。
+  受信パスをコマンドへ変換して`mobile.command.SesameDeviceCommandExecutor`（下記）へ渡し、結果を
+  `PATH_COMMAND_RESULT`で返すだけの薄いアダプタ（BL-120）。重複として無視された場合は結果を返さない。
+  未知のパスは実行口を呼ばず`FAILURE`を返す。`PATH_STATUS_REQUEST`受信時は実行口の`refreshStatus`を
+  呼ぶだけで、結果はwear側へ返送しない（BL-061。取得できた状態は実行口の通知でDataItemへ同期される）。
+- `mobile.command.SesameDeviceCommandExecutor`（Android非依存、ユニットテスト対象）: mobile端末内で
+  施錠・解錠・状態取得を行う実行口（BL-120）。Sesame APIの呼び出しはもともとListenerServiceの
+  privateメソッドに閉じていたが、ホーム画面ウィジェットもData Layerを経由せず同じ処理を呼ぶため
+  切り出した。
+  - `execute(uuid, command)`: 重複判定（`CommandDebouncer`）→ 資格情報の検索 → `SesameCommandHandler`
+    （`SesameApiClient.sendCommand()`を呼ぶ）→ 成功時のみロック状態の保存と通知、の順（移設前と同じ）。
+    戻り値は`SUCCESS`/`FAILURE`/`DEBOUNCED`。資格情報が無い・鍵が不正（`secretKeyBytesOrNull`がnull、
+    BL-026）ならAPIを呼ばず`FAILURE`。保存する状態は「送信したコマンドが意図した状態」（LOCK→施錠、
+    UNLOCK→解錠、BL-015の簡略化ロジック）。
+  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
+    APIエラーはnull（保存・通知しない）。重複判定の対象外。
+  - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateListener`（`fun interface`）、
+    `CommandDebouncer`、APIクライアント生成、時刻取得を注入する。`CommandDebouncer`は
+    companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
+    同一uuidへの2秒以内の重複も1回にまとめる。
+  - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
+    `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
+    通知先は`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）で生成する。
+- `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
+  更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
+  保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名
+  `sesami_wear_lock_state`）。全デバイス分を1つのJSONオブジェクト（uuid → `isLocked`/`updatedAtEpochMillis`）
+  にして単一キー`lock_states`へ保存し、`remove(uuid)`で個別に消せる。mobileはkotlinx.serializationの
+  コンパイラプラグインを適用していないため`@Serializable`を使わずJsonObjectを直接組み立てる（R8の
+  keepルールも不要）。壊れた値・欠けた項目は未取得扱い。書き込みは`@Synchronized`で同期化する。
 - `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一デバイスuuidへの
   2秒以内の重複コマンドを無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
 - `mobile.messaging.SesameStatusSyncer`: `DataClient.putDataItem`ラッパー。コマンド送信成功時は

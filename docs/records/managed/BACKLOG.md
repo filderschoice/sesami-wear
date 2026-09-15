@@ -5,32 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-120
-  区分: 機能追加
-  タスク内容: >-
-    mobile 側に、Data Layer を経由しない施錠・解錠・状態取得の実行口を用意する。現状、Sesame API の
-    呼び出しは mobile.messaging.SesameMessageListenerService の private メソッド
-    （findCredentials / createCommandHandler / syncLockedStateFromPath / handleStatusRequest）に
-    閉じており、CommandDebouncer もその companion object が保持している。これを
-    Android 非依存のクラス（例 mobile.command.SesameDeviceCommandExecutor）へ切り出し、
-    資格情報の検索、CommandDebouncer（ウォッチ経由とウィジェット経由で同一インスタンスを共有し、
-    同一uuidへの2秒以内の重複を経路をまたいで無視する）、SesameCommandHandler の実行、
-    成功時のロック状態の保存を担わせる。ロック状態は mobile 端末内にも永続化する
-    （例 mobile.state.LockStateStore。uuid ごとの isLocked と更新時刻のみで機密情報を含まないため
-    非暗号化 SharedPreferences、wear の TileDeviceAssignmentStore と同方針）。ウォッチへの DataItem
-    同期（BL-118 のベストエフォート版）と、ウィジェット再描画の要求は、実行口から呼べる通知
-    インターフェースとして注入する。SesameMessageListenerService はこの実行口を呼ぶだけの
-    アダプタにし、wear から見た挙動（結果返送・DataItem 同期・デバウンス）は変えない。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    実行口のユニットテスト（成功・APIエラー・資格情報なし・不正な鍵・デバウンス・状態保存・
-    通知呼び出し）が成功すること。SesameMessageListenerService から Sesame API 呼び出しの
-    ロジックが無くなり、wear 経由の施錠・解錠・状態取得の処理順序が現行と同じであること。
-    品質ゲートがすべて成功すること。
-  依存: []
-
 - id: BL-121
   区分: 機能追加
   タスク内容: >-
@@ -41,7 +15,7 @@
     非暗号化 SharedPreferences へ保存し、appwidget-provider の android:configure で追加時に選択画面を
     開く（Tile には無い標準機構だが、選べる内容は Tile と同じにする）。選択肢は Tile と同じく、
     登録済みデバイス、2台以上なら「全デバイス」、0台ならデモ用デバイス。状態は BL-120 の
-    LockStateStore から解決し、未設定・対象デバイスが削除済みの場合は「タップして設定」を表示する。
+    mobile.state.LockStateStore から解決し、未設定・対象デバイスが削除済みの場合は「タップして設定」を表示する。
     ウィジェットの削除（onDeleted）で保存した割り当てを消す。資格情報の保存・削除時
     （CredentialsSettingsScreen）にウィジェットの再描画を要求する。実装方式は Jetpack Glance
     （androidx.glance:glance-appwidget）を既定とし、Compose BOM 2024.12.01 / Kotlin 2.0.21 と
@@ -54,8 +28,7 @@
     アイコン・文言・色が表示されること（未取得なら状態不明）。選択肢の組み立てと表示内容の決定は
     Android 非依存のクラスでユニットテストされていること。appWidgetId ごとの割り当ての保存・
     削除が機能すること。資格情報を保存・削除すると再描画されること。品質ゲートがすべて成功すること。
-  依存:
-    - BL-120
+  依存: []
 
 - id: BL-122
   区分: 機能追加
@@ -65,7 +38,8 @@
     ワンタップ即実行、解錠は SesameCommandConfirmation に従い確認画面（左＝キャンセル・右＝解錠の
     2ボタン、wear の SesameActionActivity と同じ並び）を挟む。確認画面はダイアログテーマの軽量
     Activity（noHistory / excludeFromRecents、wear と同方針）とする。MIXED は全施錠、全デバイス
-    選択時は core.display.SesameDeviceTargets.targetUuids が展開した各uuidへ個別に BL-120 の実行口を呼ぶ。送信中は
+    選択時は core.display.SesameDeviceTargets.targetUuids が展開した各uuidへ個別に BL-120 の実行口（mobile.command.SesameDeviceCommandExecutor。
+    ウィジェット再描画は LockStateListener へ合成して注入する）を呼ぶ。送信中は
     IN_PROGRESS（通信中）を表示し、成功時は保存済み状態で再描画、失敗時は操作前の状態へ戻す
     （失敗の明示方法の改善は BL-129）。左側のデバイス名タップは状態取得（GET）のみ、「変更」は
     選択画面を開く。ウォッチ経由でコマンドが成功した場合もウィジェットを再描画し、ウィジェット経由で
@@ -166,7 +140,6 @@
     Sesame 実機・実資格情報・ウォッチ実機を要するため自動実行の対象外
     （rules/guardrails-unified.v1.md セクション12.5）。
   依存:
-    - BL-120
     - BL-121
     - BL-122
     - BL-123

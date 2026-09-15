@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 01:40
+  summary: mobileの施錠・解錠・状態取得をData Layerから切り離した実行口として切り出した
+  details:
+    変更内容: >-
+      Sesame API の呼び出しが SesameMessageListenerService の private メソッドに閉じていたため、
+      ホーム画面ウィジェット（BL-122）からも呼べるよう Android 非依存の
+      mobile.command.SesameDeviceCommandExecutor を追加した。execute は重複判定 → 資格情報の検索 →
+      SesameCommandHandler → 成功時の状態保存と通知の順（移設前と同じ）で SUCCESS / FAILURE / DEBOUNCED を返し、
+      refreshStatus は GET 結果を保存・通知する。CommandDebouncer は companion object の sharedDebouncer を
+      共有し、ウォッチ経由とウィジェット経由の重複をまとめる。ロック状態を mobile 端末内に保存する
+      mobile.state.LockStateStore（非暗号化 SharedPreferences、JsonObject を直接組み立てて単一キーへ保存）と、
+      Android 側の配線 SesameDeviceCommandExecutorFactory・SharedPreferencesKeyValueStore を追加した。
+      SesameCommandHandler にはコマンドを直接受ける execute を追加した（handle(path) は委譲）。
+      SesameMessageListenerService はパスをコマンドへ変換して実行口を呼び、結果を返すだけにした。
+      wear から見た挙動（結果返送・DataItem 同期・デバウンス）は変えていないが、未知のパスは実行口を呼ばない
+      ため重複判定の対象から外れた（マニフェストの pathPrefix により実運用では届かない）。
+      実行口（成功・APIエラー・資格情報なし・不正な鍵・経路をまたぐデバウンス・状態保存・通知・状態取得）と
+      LockStateStore（保存・上書き・削除・壊れた値）のユニットテストを追加した。テストの鍵は RFC 4493 の
+      公開テストベクタで、実資格情報は使っていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintFormat / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+      （--max-workers=1〜2）/ npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。途中で detekt の ReturnCount と ktlint の行長違反を修正した。
+      メモリ不足による Gradle ワーカーの異常終了はワーカー数を絞って再実行した（コード起因ではない）。
+    関連ID:
+      - BL-120
+
 - date: 2026-09-16 01:05
   summary: Tileの文言・色・操作判定と対象デバイスの解決規則をwearからcoreへ移した
   details:

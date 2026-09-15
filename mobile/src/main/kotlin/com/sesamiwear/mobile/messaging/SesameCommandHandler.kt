@@ -16,7 +16,12 @@ class SesameCommandHandler(
 ) {
     suspend fun handle(path: String): SesameCommandResult {
         val command = commandForPath(path) ?: return SesameCommandResult.FAILURE
-        return try {
+        return execute(command)
+    }
+
+    /** [command]をSesame APIへ送信する。Data Layerを経由しない実行口（BL-120）からも使う。 */
+    suspend fun execute(command: SesameCommand): SesameCommandResult =
+        try {
             apiClient.sendCommand(command, secretKey)
             SesameCommandResult.SUCCESS
         } catch (
@@ -25,7 +30,6 @@ class SesameCommandHandler(
             // Data Layer APIへは成功/失敗の1バイトのみを返す仕様のため、例外の詳細は伝搬しない。
             SesameCommandResult.FAILURE
         }
-    }
 
     private fun commandForPath(path: String): SesameCommand? =
         when (path) {
