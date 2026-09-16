@@ -51,7 +51,16 @@
   - POST（`SesameCommand`: LOCK=82 / UNLOCK=83 / TOGGLE=88 / CLICK=89）: エンドポイントは
     `POST {OFFICIALAPI_URL}/{uuid}/cmd`。リクエストボディ（JSON）は`cmd`・`history`（任意の文字列
     タグをBase64エンコード、履歴に残る）・`sign`（`SesameCommandSigner`参照）。
-  - HTTP非成功時は共通して`core.api.SesameApiException`を送出する。
+  - 失敗は種類を問わず`core.api.SesameApiException`へ正規化して送出する（BL-133）。HTTP非成功に加えて、
+    通信そのものの失敗（`IOException`。圏外・タイムアウト・名前解決失敗）、想定外の応答本文
+    （`SerializationException`）、接続先URLが不正な場合（`IllegalArgumentException`）を`asApiCall`が包む。
+    呼び出し側（`SesameCommandHandler.execute`・`SesameDeviceCommandExecutor.fetchIsLocked`）は
+    `SesameApiException`だけを捕捉するため、正規化前は通信エラーが素通りしてコルーチンから漏れ、
+    プロセスが落ちる経路になっていた。例外メッセージには原因例外の型名だけを載せる（uuidを含むURLや
+    応答内容をログへ流さないため）。原因例外は`cause`として保持する。
+  - 既定の`OkHttpClient`は接続10秒・読み書き10秒・呼び出し全体20秒のタイムアウトを持ち、プロセス内で
+    共有する1インスタンス（BL-133）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行するため、
+    受信の実行時間制約内で必ず終わる必要がある。
   - MockWebServerを用いた単体テストで、レスポンスパース（施錠中/解錠中/未知フィールドの無視）・
     リクエストボディ・HTTPメソッド・パス・ヘッダー・異常系の例外送出を検証済み。
   - 上記フィールド構成・署名仕様は参考実装pysesame3
@@ -175,9 +184,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `WidgetInProgressTracker`へ対象uuid（全デバイス時は全デバイスの特別値も）を登録して再描画し
   （IN_PROGRESS＝通信中）、終了時に解除して再描画する（取り消されても解除後の再描画は行う）。
   ロック状態は実行口が成功時にだけ保存するため、失敗時の再描画は操作前の状態に戻る（失敗の明示はBL-129）。
-- `mobile.widget.WidgetInProgressTracker`（Android非依存）: 実行中uuidをプロセス内メモリだけで数える
-  （同一uuidの重複実行は回数で管理）。永続化しないのは、プロセス終了時には実行も終わっており通信中の
-  表示が固まるのを避けるため。全デバイスのウィジェットは登録済みのいずれかが実行中なら通信中。
+- `mobile.widget.WidgetInProgressTracker`（Android非依存、ユニットテスト対象）: 実行中uuidを開始時刻つきで
+  プロセス内メモリだけに持つ（同一uuidの重複実行は開始した回数だけ並べる）。永続化しないのは、
+  プロセス終了時には実行も終わっており通信中の表示が固まるのを避けるため。全デバイスのウィジェットは
+  登録済みのいずれかが実行中なら通信中。
+  開始から`IN_PROGRESS_TIMEOUT_MILLIS`（30秒）を過ぎた登録は、解除されていなくても実行中とみなさない
+  （BL-135）。実行が途中で打ち切られて解除の再描画が行われないと、ウィジェットは定期更新を持たないため、
+  右側のタップも効かない「通信中...」がホーム画面に残り続ける。上限はSesame APIの呼び出し全体の
+  タイムアウト（20秒、BL-133）より長くとり、正常に終わる操作を誤って打ち切らない値にしている。
 - `mobile.widget.WidgetUnlockConfirmActivity`: ダイアログテーマ（`Theme.Material.Light.Dialog.NoActionBar`）の
   軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`）。見出し
   「（表示名）を解錠しますか？」と、左＝「キャンセル」（中立色）・右＝「解錠」/全デバイスは「全解錠」
@@ -199,8 +213,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - 表示の更新: Glanceはセッション中に`provideGlance`を再実行しないため、`mobile.widget.SesameWidgetUpdater`が
   各インスタンスの状態（`PreferencesGlanceStateDefinition`）へ更新トークン`refresh_token`を書き込んでから
   `update`を呼び、描画側は`currentState`のトークン変化を`LaunchedEffect`の契機に保存値を読み直す。
-  資格情報の保存・削除時（`CredentialsSettingsScreen`のデバイス一覧同期のあと）と、選択画面での割り当て直後に呼ぶ。
-  定期更新は行わない（`updatePeriodMillis=0`）。
+  資格情報の保存・削除時（`CredentialsSettingsScreen`。ウォッチへのデバイス一覧同期とは独立したコルーチンで
+  呼び、同期の失敗で再描画が飛ばないようにする、BL-134）、選択画面での割り当て直後、および
+  `MainActivity.onStart`（BL-135）に呼ぶ。定期更新は行わない（`updatePeriodMillis=0`）。
+  `MainActivity`から呼ぶのは、解除の再描画が行われず表示が固まった場合に、利用者が最初にとる行動
+  （アプリを開く）で確実に復帰させるため。
 - `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
   （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
   JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
@@ -314,11 +331,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   ロジック。`PATH_STATUS_REQUEST`経由ではSesame APIのGET結果をそのまま同期する（BL-015, BL-061）。
 - `mobile.messaging.SesameDeviceListSyncer`: 登録済みデバイス一覧（uuid/displayNameのみ、
   apikey/secretKeyは含めない）を`DEVICE_LIST_DATA_ITEM_PATH`へ同期する（BL-052）。
+- `mobile.EntryPointGuard`（Android非依存、ユニットテスト対象）: システムからの入口
+  （`WidgetCommandReceiver`のタップ処理、`SesameMessageListenerService`の受信、
+  `WidgetConfigurationActivity`と`MainActivity`のライフサイクル）で起動したコルーチンから例外が漏れ、
+  プロセスごとアプリが落ちるのを防ぐ（BL-134）。これらの入口は結果を受け取る呼び出し元がいないため、
+  漏れた例外は既定のハンドラへ届いてプロセスを終了させ、ホーム画面のウィジェットは最後に描いた表示
+  （多くは操作直後の「通信中...」）のまま取り残される。捕捉した例外は型名だけを`Log.w`へ渡す
+  （接続先URLなどuuidを含む文字列をログへ流さないため）。コルーチンのキャンセルは再送出する。
 - `mobile.messaging.DataLayerBestEffort`（Android非依存、ユニットテスト対象）: mobile側のWearable
   Data Layer呼び出し（上記2つのSyncerの`putDataItem`と、`SesameMessageListenerService`の結果返送
   `sendMessage`）をベストエフォート呼び出しにする（BL-118）。`ApiException`のみを捕捉して
   ステータスコードを`Log.w`へ渡し（資格情報・uuidは出さない）、呼び出し元の処理（資格情報の保存・
-  削除、コマンド実行）を継続する。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
+  削除、コマンド実行）を継続する。`ApiException`以外の失敗も同じく握りつぶし、`UNKNOWN_STATUS_CODE`
+  （-1）として通知する（BL-134）。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
   入っていない端末ではWearable APIが`ApiException`で失敗しうるが、以前は例外処理なしで`await()`して
   いたため、資格情報の保存時に起動したコルーチンから例外が漏れてアプリが落ちる経路があった。
 - **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（Tile/Complication

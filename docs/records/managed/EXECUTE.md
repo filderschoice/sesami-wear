@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-17 00:12
+  summary: ウィジェットの通信中表示が解除されずに固まらないようにした
+  details:
+    変更内容: >-
+      BL-135: `widget.WidgetInProgressTracker` の登録を開始時刻つきにし、
+      `IN_PROGRESS_TIMEOUT_MILLIS`（30秒）を過ぎた登録は `finish` が呼ばれていなくても実行中と
+      みなさないようにした。従来は参照カウントだけで、実行が途中で打ち切られて解除の再描画が
+      行われないと、ウィジェットは定期更新を持たない（`updatePeriodMillis=0`）ため、右側のタップも
+      効かない「通信中...」がホーム画面に残り続けた。上限はSesame APIの呼び出し全体のタイムアウト
+      （20秒、BL-133）より長くとり、正常に終わる操作を誤って打ち切らない値にしている。
+      あわせて `MainActivity.onStart` でウィジェットの再描画を要求するようにし、表示が固まった場合でも
+      利用者が最初にとる行動（アプリを開く）で復帰できるようにした。DESIGN.md の
+      「Sesame APIクライアント」「mobileホーム画面ウィジェット」「mobile側コマンド処理」の各節を
+      BL-133〜BL-135 の実装に合わせて更新し、RELEASE_NOTES.md の 0.11.0 へ利用者向けの修正内容を追記した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTracker.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTrackerTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    関連ID:
+      - BL-135
+      - BL-133
+      - BL-134
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した単体テストで、
+      上限の直前までは通信中のままであること、上限に達すると単一デバイスでも全デバイスでも
+      通信中と判定されないこと、古い登録の期限切れが同一デバイスの新しい登録を消さないことを確認した。
+      既存の参照カウントの挙動（重ねて実行したときは両方の解除まで通信中）は変えていない。
+
 - date: 2026-09-16 23:52
   summary: ウィジェットとData Layerの受信口で例外がプロセスを落とさないようにした
   details:
