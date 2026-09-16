@@ -1,0 +1,7 @@
+<resources>
+    <!--
+        Play版と併存インストールするデバッグ版を、ウォッチのアプリ一覧・Tile選択・
+        Complication選択画面で見分けるための名称上書き（BL-131）。
+    -->
+    <string name="app_name">Sesami Wear (debug)</string>
+</resources>

@@ -46,7 +46,29 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Play版（リリース署名）と同一端末へ併存インストールするため、デバッグ版はapplicationIdを
+            // 分ける（BL-131）。署名が異なるPlay版へは上書き更新できず、入れ替えると保存済みの
+            // 資格情報が消えるため。mobile/wearの双方へ同じサフィックスを付けることで、Data Layer APIが
+            // 要求する「同一applicationId・同一署名」の条件をデバッグ版同士で満たす。
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+
+            // 検証用にSesame APIの接続先をモックサーバーへ差し替えるための注入口（BL-132）。
+            // -PsesameApiBaseUrl=http://<PCのIP>:8080/api/sesame2 のように渡したときだけ有効で、
+            // 未指定なら空文字＝本番URLのまま。実資格情報・実デバイスを使わずに、施錠/解錠の成功を
+            // 起点とする状態同期（ウィジェット⇔ウォッチのTile）を検証するために用いる
+            // （rules/guardrails-unified.v1.md 12.5が許容するモック限定の疎通確認）。
+            buildConfigField(
+                "String",
+                "SESAME_API_BASE_URL",
+                "\"" + (findProperty("sesameApiBaseUrl") as String? ?: "") + "\"",
+            )
+        }
+
         release {
+            // 本番は常に既定URL（BL-132）。debugと同名のフィールドが無いとmain配下から参照できない。
+            buildConfigField("String", "SESAME_API_BASE_URL", "\"\"")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -69,6 +91,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        検証用モックサーバー（http://<PCのIP>:8080）へ接続するため、デバッグビルドでのみ
+        平文HTTPを許可する（BL-132）。リリースビルドには含まれないため、本番の通信は
+        HTTPSのままである。
+    -->
+    <application android:usesCleartextTraffic="true" />
+
+</manifest>
