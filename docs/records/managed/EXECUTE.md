@@ -5,6 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 11:36
+  summary: デバッグ版をPlay版と併存インストールできるようにし、BL-126の人手検証をadb経由で実施した
+  details:
+    変更内容: >-
+      BL-131（新規）: mobile / wear の debug ビルドへ applicationIdSuffix ".debug" と
+      versionNameSuffix "-debug" を付け、Play ストア版（リリース署名）が入った実機へ
+      デバッグ版を併存インストールできるようにした。署名が異なる Play 版へは上書き更新できず、
+      入れ替えるには保存済みの資格情報を消すアンインストールが必要になるため。
+      mobile / wear の双方へ同じサフィックスを付けることで、Data Layer API が要求する
+      「同一 applicationId・同一署名」の条件をデバッグ版同士で満たす（実機で往復を確認済み）。
+      あわせて debug ソースセットへ app_name / widget_label の上書き（"Sesami Wear (debug)"）を追加し、
+      ランチャー・ウィジェット選択画面・ウォッチのアプリ一覧で Play 版と見分けられるようにした。
+      BL-126: 上記の併存ビルドを Pixel 8 Pro / Pixel Watch 2 へ入れ、adb 経由のUI操作で人手検証を実施した
+      （結果は DESIGN.md「実機検証（BL-126）」へ記載）。
+    変更ファイル:
+      - mobile/build.gradle.kts
+      - wear/build.gradle.kts
+      - mobile/src/debug/res/values/strings.xml
+      - wear/src/debug/res/values/strings.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 /
+      ./gradlew :mobile:installDebug および :wear:installDebug（ANDROID_SERIAL で端末を指定） /
+      adb shell dumpsys package・appwidget・logcat と exec-out screencap による実機確認
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。
+      実機では com.sesamiwear.mobile（Play版 0.10.0）と com.sesamiwear.mobile.debug が
+      両端末で共存し、デバッグ版の lastUpdateTime が今回のインストール時刻であることを確認した。
+      BL-126 の (3) MIXED 表示・(8) 相互追随・(10) コンパニオン未導入スマホは未確認のまま
+      BACKLOG へ残した。
+    関連ID:
+      - BL-131
+      - BL-126
+
 - date: 2026-09-16 04:30
   summary: ホーム画面ウィジェットに合わせてアプリ内ヘルプと利用者向けドキュメントを更新した
   details:

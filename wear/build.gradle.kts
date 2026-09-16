@@ -52,6 +52,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Play版（リリース署名）と同一端末へ併存インストールするため、デバッグ版はapplicationIdを
+            // 分ける（BL-131）。署名が異なるPlay版へは上書き更新できず、入れ替えると保存済みの
+            // 資格情報が消えるため。mobile/wearの双方へ同じサフィックスを付けることで、Data Layer APIが
+            // 要求する「同一applicationId・同一署名」の条件をデバッグ版同士で満たす。
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
             isMinifyEnabled = true
             proguardFiles(

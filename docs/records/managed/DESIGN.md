@@ -165,7 +165,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
   自前のReceiverで使う形にした。WorkManagerへは委譲していない（通常のワークは端末の状態により実行が
   遅延しうり、即時性を優先したため。期限付き実行はAndroid 11以下でフォアグラウンドサービス通知が要る）。
-  BroadcastReceiverの実行時間の制約に抵触しないかは未確認で、BL-126の実機検証で確認する。
+  BroadcastReceiverの実行時間の制約に抵触しないかは、2026-09-16の実機検証（下記「実機検証（BL-126）」）の
+  デモモードでの施錠・解錠でANRも打ち切りも起きないことまで確認済み。実デバイス（HTTP通信を伴う）での
+  確認はBL-126に残る。
   Intentのコマンド名は`SesameCommand`（LOCK/UNLOCKのみ）へ一致するものだけを受け付ける。
 - `mobile.widget.WidgetCommandRunner`（Android非依存、ユニットテスト対象）: 対象uuidを
   `SesameDeviceTargets.targetUuids`で展開し、各uuidへ`SesameDeviceCommandExecutor`を**並行して**呼ぶ
@@ -211,6 +213,23 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `mobile.widget.WidgetConfigurationActivity`: `appwidget-provider`の`android:configure`で追加時に開き、
   「変更」「タップして設定」からも開く。選択肢は`SesameDeviceTargets.choices`（Tileと同じ）で、0台時は
   「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
+- 実機検証（BL-126、2026-09-16、Pixel 8 Pro + Pixel Watch 2）: Claude Codeがadb経由のUI操作
+  （`input tap`/`input draganddrop`と`exec-out screencap`、`logcat`）で実施した。実資格情報を使わない
+  ため、BL-131の併存インストールでデバッグ版を入れ、デモモードとダミー資格情報で確認している。
+  確認できたのは次のとおり。(1) ウィジェット選択画面に`Sesami Wear (debug)`が4x2と説明文つきで並び、
+  ホーム画面へのドロップで`WidgetConfigurationActivity`が開くこと。(2) 解錠は確認画面
+  （`WidgetUnlockConfirmActivity`）を挟み、施錠は確認なしで1秒以内に「施錠中／タップで解錠」へ戻ること。
+  (3) ダミー資格情報2台で選択画面に「全デバイス」と2台が並び、全デバイス選択時は「状態不明」を表示すること。
+  (4) デバイス名タップ（状態取得）で表示が崩れないこと。(5) 資格情報を全削除すると「タップして設定」へ
+  戻ること。(6) 登録0台でデモモードの見出しとデモ用チップが出ること。(9)(11) ウォッチ側はTileを
+  デバッグ面（`am broadcast -a com.google.android.wearable.app.DEBUG_SURFACE --es operation add-tile`）で
+  追加し、タイル右側タップ→解錠確認→`解錠中`／`タップで施錠`（`SesameTileService`のログで
+  `buildConfiguredTile ... state=UNLOCKED`）とハプティクスの再生（`Vibrator`のログ）、ウォッチの
+  設定画面（`wear.MainActivity`）の表示を確認した。ウォッチのTile設定画面がスマホの登録0台を検知して
+  デモモードを提示することから、デバイス一覧のData Layer同期が機能していることも確認できた。
+  未確認のまま残るのは、(3)のMIXED表示と(8)のウィジェットとTileの相互追随（いずれも実デバイスの
+  状態が必要。デモの状態はウィジェットとTileで意図的に独立しており、実機でも追随しないことを
+  確認済み）、(10)のWear OSコンパニオン未導入スマホでの動作で、BL-126へ残している。
   選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
   `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
@@ -714,6 +733,15 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   `AndroidManifest.xml`に`uses-feature android:name="android.hardware.type.watch"`
   （`required`属性を付けず既定値`true`）と
   `com.google.android.wearable.standalone=false`（スマホ連携必須アプリのため）を設定済み。
+- debugビルドは`applicationIdSuffix=".debug"`・`versionNameSuffix="-debug"`を付け、Playストア版と
+  同一端末へ併存インストールできるようにしている（BL-131）。Play版はPlayアプリ署名鍵で署名されて
+  おり、ローカルのデバッグ署名では上書き更新できない（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`）。
+  入れ替えるにはPlay版のアンインストールが必要で、`mobile`の保存済み資格情報が消えるため、
+  検証のたびに再設定を強いる構成を避けた。`mobile`/`wear`の双方へ同じサフィックスを付ける必要が
+  ある（Data Layer APIはノード間で`applicationId`と署名の一致を要求するため）。あわせて
+  `src/debug/res/values/strings.xml`で`app_name`（`mobile`は`widget_label`も）を
+  `Sesami Wear (debug)`へ上書きし、ランチャー・ウィジェット選択画面・ウォッチのアプリ一覧で
+  Play版と見分けられるようにしている。リリースビルドには影響しない。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.13.0 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 - `androidx.fragment:fragment`は本アプリのコードから直接使っていないが、`mobile`/`wear`の双方で
