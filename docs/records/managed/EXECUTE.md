@@ -5,6 +5,46 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-17 00:10
+  summary: ウィジェットのタップ処理を受信の実行時間制限内へ収め実機で固着とANRの解消を確認した
+  details:
+    変更内容: >-
+      BL-137（BL-136 の実機検証で判明）: 実機の logcat で、ウィジェットのデバイス名タップが
+      `ANR in com.sesamiwear.mobile.debug / Reason: Broadcast of Intent (act=...REFRESH_STATUS,
+      flg=0x10000010)` となり `Killing ...: bg anr` でプロセスが強制終了されることを観測した。
+      `flg` の `0x10000000` は `FLAG_RECEIVER_FOREGROUND` で、Glance の `actionSendBroadcast` が
+      付けるため実行時間の制限は約10秒（バックグラウンド受信の60秒ではない）。BL-133 で設定した
+      接続10秒・全体20秒では間に合わないため、`SesameApiClient` のタイムアウトを接続3秒・
+      読み書き3秒・全体6秒へ短縮し、`WidgetCommandReceiver` の処理全体を `withTimeoutOrNull`
+      （`WORK_TIMEOUT_MILLIS` = 8秒）で囲んで制限より手前から自分で打ち切るようにした。
+      打ち切りは取り消しとして伝わり、`WidgetCommandRunner` の `NonCancellable` な再描画が状態を戻す。
+      BL-136: 修正前後の挙動を実機で比較し、DESIGN.md へ結果を記録した。あわせて
+      `.claude/skills/realmachine-verification/SKILL.md` へ、接続先を到達不能な宛先へ固定して
+      通信失敗だけを再現する手順と、実資格情報が入った端末での安全確保の手順を追記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - .claude/skills/realmachine-verification/SKILL.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    関連ID:
+      - BL-137
+      - BL-136
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 /
+      ANDROID_SERIAL=<Pixel 8 Pro> ./gradlew :mobile:installDebug
+      -PsesameApiBaseUrl=http://192.168.137.1:8080/api/sesame2（および http://127.0.0.1:1/api/sesame2）/
+      adb の input tap・exec-out screencap・logcat による実機確認
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機では、修正前ビルドが
+      タップから10秒でANR・強制終了となり「通信中...」が固着したのに対し、修正後は同じ操作で
+      ANRもFATALも発生せずプロセスが生存し、約3.9秒で「状態不明」へ戻った（接続が即座に拒否される
+      宛先では約0.4秒）。`am force-stop` で途中終了させたウィジェットも、アプリを開くだけで
+      再描画された。logcatのSesame系タグの行にuuid形状・32桁16進数の文字列は0件だった。
+      検証は接続先を到達不能な宛先へ固定したデバッグ版のみで行い、実Sesame APIへは送信していない。
+
 - date: 2026-09-17 00:12
   summary: ウィジェットの通信中表示が解除されずに固まらないようにした
   details:

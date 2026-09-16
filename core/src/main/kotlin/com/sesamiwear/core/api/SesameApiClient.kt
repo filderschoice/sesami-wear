@@ -124,12 +124,16 @@ class SesameApiClient(
         private const val HEADER_API_KEY = "x-api-key"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
-        // 1回の呼び出しに与える上限（BL-133）。ウィジェットのタップはBroadcastReceiverのgoAsyncで
-        // 実行するため、受信の実行時間制約に収まる必要がある。接続・読み書き個別の上限に加えて
-        // 全体の上限（callTimeout）も設定し、再試行が重なっても待ち続けないようにする。
-        private const val CONNECT_TIMEOUT_SECONDS = 10L
-        private const val IO_TIMEOUT_SECONDS = 10L
-        private const val CALL_TIMEOUT_SECONDS = 20L
+        // 1回の呼び出しに与える上限（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの
+        // goAsyncで実行し、Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、
+        // 実行時間の制限は約10秒（バックグラウンド受信の60秒ではない）。これを超えるとプロセスごと
+        // ANRで強制終了され、「通信中...」の表示が解除されないまま固着する（実機で確認、BL-137）。
+        // OkHttpの既定（接続・読み書きとも10秒）では間に合わないため、制限内へ収まる値にしている。
+        // 接続・読み書き個別の上限に加えて全体の上限（callTimeout）も設定し、再試行が重なっても
+        // 待ち続けないようにする。
+        private const val CONNECT_TIMEOUT_SECONDS = 3L
+        private const val IO_TIMEOUT_SECONDS = 3L
+        private const val CALL_TIMEOUT_SECONDS = 6L
 
         /**
          * 既定のHTTPクライアント。[OkHttpClient]はスレッドプールとコネクションプールを持つため、
