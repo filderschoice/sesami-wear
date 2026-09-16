@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 23:35
+  summary: Sesame API呼び出しの失敗をSesameApiExceptionへ正規化しタイムアウトを設定した
+  details:
+    変更内容: >-
+      BL-133: `core.api.SesameApiClient` が、通信の失敗（`IOException`。圏外・タイムアウト・
+      名前解決失敗）、想定外の応答本文（`SerializationException`）、接続先URLが不正な場合
+      （`IllegalArgumentException`）を `SesameApiException` へ正規化して送出するようにした
+      （`asApiCall`）。従来これらは素通りし、呼び出し側（`SesameCommandHandler.execute` /
+      `SesameDeviceCommandExecutor.fetchIsLocked`）が `SesameApiException` しか捕捉していない
+      ため、ウィジェットのタップ（`WidgetCommandReceiver`）やウォッチからのメッセージ
+      （`SesameMessageListenerService`）が起動したコルーチンから漏れ、プロセスが落ちる経路に
+      なっていた。`SesameApiException` へ `cause` を追加し、例外メッセージには原因例外の型名だけを
+      載せる（uuidを含むURLや応答内容を混ぜない）。あわせて既定の `OkHttpClient` へ接続10秒・
+      読み書き10秒・呼び出し全体20秒のタイムアウトを設定し、プロセス内で共有する1インスタンスに
+      した（BroadcastReceiverの実行時間制約内で必ず終わるようにするため）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiException.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - docs/records/managed/BACKLOG.md
+    関連ID:
+      - BL-133
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した3件の単体テストで、
+      接続断・解析不能な応答本文・コマンド送信時の接続断のいずれでも `SesameApiException` だけが
+      送出され、原因例外が保持されることを確認した。kotlinx.coroutinesが `withContext` をまたぐ例外を
+      複製するため、テストは `cause` を1段見るのではなく最も内側の原因例外を検査している。
+
 - date: 2026-09-16 12:12
   summary: 検証用にSesame APIの接続先を差し替えられるようにし、BL-126の残項目を実機で検証した
   details:

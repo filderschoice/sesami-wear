@@ -1,6 +1,7 @@
 package com.sesamiwear.core.api
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
@@ -8,11 +9,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 class SesameApiClientTest {
     private lateinit var server: MockWebServer
@@ -149,6 +153,64 @@ class SesameApiClientTest {
             }
             assertNotNull(thrown)
         }
+
+    @Test
+    fun `throws SesameApiException when the connection fails`() =
+        runTest {
+            // 圏外・名前解決失敗と同じく、OkHttpがIOExceptionを投げる状況（BL-133）。
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+
+            var thrown: SesameApiException? = null
+            try {
+                client.getStatus()
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertNotNull(thrown)
+            assertTrue(rootCauseOf(thrown) is IOException)
+        }
+
+    @Test
+    fun `throws SesameApiException when the response body is not valid json`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("<html>maintenance</html>").setResponseCode(HTTP_OK))
+
+            var thrown: SesameApiException? = null
+            try {
+                client.getStatus()
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertNotNull(thrown)
+            assertTrue(rootCauseOf(thrown) is SerializationException)
+        }
+
+    @Test
+    fun `throws SesameApiException when sending a command cannot reach the server`() =
+        runTest {
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+            val dummySecretKey = ByteArray(16)
+
+            var thrown: SesameApiException? = null
+            try {
+                client.sendCommand(SesameCommand.LOCK, dummySecretKey)
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertNotNull(thrown)
+            assertTrue(rootCauseOf(thrown) is IOException)
+        }
+
+    /**
+     * 原因例外をたどって最も内側の例外を返す。kotlinx.coroutinesは`withContext`をまたぐ例外を
+     * スタックトレース復元のために複製し、複製の`cause`へ元の例外を入れるため、`cause`を1段
+     * 見るだけでは正規化前の例外にたどり着けない。
+     */
+    private fun rootCauseOf(throwable: Throwable?): Throwable? {
+        var current = throwable?.cause ?: return null
+        while (current.cause != null) current = requireNotNull(current.cause)
+        return current
+    }
 
     private companion object {
         const val HTTP_OK = 200

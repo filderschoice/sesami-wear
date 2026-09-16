@@ -5,24 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-133
-  区分: 不具合
-  タスク内容: >-
-    Sesame API 呼び出しで通信エラー・応答解析エラーが起きたとき、例外がそのまま送出されて
-    アプリが落ちる経路を塞ぐ。core.api.SesameApiClient は OkHttp の IOException
-    （圏外・タイムアウト・名前解決失敗）と kotlinx.serialization の SerializationException を
-    そのまま投げるが、呼び出し側（mobile.messaging.SesameCommandHandler.execute /
-    mobile.command.SesameDeviceCommandExecutor.fetchIsLocked）は SesameApiException しか
-    捕捉していない。これらを SesameApiException へ正規化し、あわせて OkHttpClient へ明示的な
-    タイムアウトを設定して BroadcastReceiver の実行時間内に必ず終わるようにする。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    通信失敗・不正な応答本文のいずれでも SesameApiException だけが送出されることを
-    MockWebServer を用いた単体テストで示し、既存の HTTP エラー時の挙動が変わらないこと
-  依存: []
-
 - id: BL-134
   区分: 不具合
   タスク内容: >-
