@@ -227,9 +227,16 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `buildConfiguredTile ... state=UNLOCKED`）とハプティクスの再生（`Vibrator`のログ）、ウォッチの
   設定画面（`wear.MainActivity`）の表示を確認した。ウォッチのTile設定画面がスマホの登録0台を検知して
   デモモードを提示することから、デバイス一覧のData Layer同期が機能していることも確認できた。
-  未確認のまま残るのは、(3)のMIXED表示と(8)のウィジェットとTileの相互追随（いずれも実デバイスの
-  状態が必要。デモの状態はウィジェットとTileで意図的に独立しており、実機でも追随しないことを
-  確認済み）、(10)のWear OSコンパニオン未導入スマホでの動作で、BL-126へ残している。
+  (3)のMIXED表示と(8)の相互追随はデモでは作れない（デモの状態はウィジェットとTileで意図的に独立して
+  おり、実機でも追随しないことを確認済み）ため、BL-132のモックAPIで実デバイス相当の状態変化を作って
+  検証した。結果は次のとおり。(8) ウィジェットから解錠するとウォッチのTileが`解錠中`へ追随し
+  （wearのログで`state=UNLOCKED`）、ウォッチのTileから施錠するとウィジェットが`施錠中`へ追随した。
+  (3) 2台のうち1台だけを解錠した状態で全デバイスを選ぶと「一部解錠／タップで全施錠」（紫）を表示し、
+  タップで両uuidへ施錠が飛んで「全施錠中」になった。(7) 端末再起動後もウィジェットの割り当てと表示が
+  保たれた。未確認のまま残るのは、(9)のうちComplicationの表示・追随（文字盤のコンプリケーション設定を
+  差し替える必要があり、利用者の文字盤構成を変えるため未実施）と、(10)のWear OSコンパニオン未導入
+  スマホでの動作で、BL-126へ残している。実Sesameデバイス・実資格情報での疎通確認も、モックでは
+  代替できない範囲として残る。
   選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
   `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
@@ -742,6 +749,15 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   `src/debug/res/values/strings.xml`で`app_name`（`mobile`は`widget_label`も）を
   `Sesami Wear (debug)`へ上書きし、ランチャー・ウィジェット選択画面・ウォッチのアプリ一覧で
   Play版と見分けられるようにしている。リリースビルドには影響しない。
+- `mobile`のdebugビルドは、Gradleプロパティ`-PsesameApiBaseUrl`でSesame APIの接続先を差し替えられる
+  （BL-132）。`buildConfigField`の`SESAME_API_BASE_URL`を`SesameDeviceCommandExecutor.defaultApiClient`が
+  `BuildConfig.DEBUG`かつ非空のときだけ`SesameApiClient`の`baseUrl`へ渡す。未指定時・リリースビルドでは
+  空文字となり本番URLのままで、`buildConfig = true`を有効にしている。接続先の実体は
+  `scripts/mock-sesame-api.py`（標準ライブラリのみ、状態はプロセス内メモリ、署名は検証しない）で、
+  実Sesameデバイス・実資格情報が無いと作れない「施錠/解錠の成功」を再現し、そこを起点とする
+  状態同期（ウィジェット⇔ウォッチのTile）の検証に使う。デバッグビルドのみ
+  `src/debug/AndroidManifest.xml`で`usesCleartextTraffic="true"`を設定しており、リリースの通信は
+  HTTPSのままである。
 - 依存バージョンは`gradle/libs.versions.toml`（Version Catalog）で一元管理する
   （AGP 8.13.0 / Kotlin 2.0.21 / Compose BOM 2024.12.01 / Wear Compose 1.4.1 等）。
 - `androidx.fragment:fragment`は本アプリのコードから直接使っていないが、`mobile`/`wear`の双方で

@@ -6,6 +6,7 @@ import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.BuildConfig
 import com.sesamiwear.mobile.messaging.CommandDebouncer
 import com.sesamiwear.mobile.messaging.SesameCommandHandler
 import com.sesamiwear.mobile.state.LockStateStore
@@ -113,8 +114,22 @@ class SesameDeviceCommandExecutor(
          */
         val sharedDebouncer = CommandDebouncer()
 
+        /**
+         * 既定のAPIクライアント。デバッグビルドで`-PsesameApiBaseUrl`が指定されたときだけ接続先を
+         * 差し替える（BL-132）。実資格情報・実デバイスを使わずに、施錠/解錠の成功を起点とする
+         * 状態同期（ウィジェット⇔ウォッチのTile）を検証するためのモック接続用で、
+         * リリースビルドでは値が空のため常に本番URLになる。
+         */
         private fun defaultApiClient(credentials: SesameCredentials): SesameApiClient =
-            SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
+            if (BuildConfig.DEBUG && BuildConfig.SESAME_API_BASE_URL.isNotEmpty()) {
+                SesameApiClient(
+                    uuid = credentials.uuid,
+                    apiKey = credentials.apiKey,
+                    baseUrl = BuildConfig.SESAME_API_BASE_URL,
+                )
+            } else {
+                SesameApiClient(uuid = credentials.uuid, apiKey = credentials.apiKey)
+            }
     }
 }
 
