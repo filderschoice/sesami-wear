@@ -11,6 +11,7 @@ import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.messaging.CommandDebouncer
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
 import com.sesamiwear.mobile.state.LockStateStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.Dispatcher
@@ -163,6 +164,36 @@ class WidgetCommandRunnerTest {
 
             assertEquals(listOf(SesameDeviceCommandExecutor.Outcome.SUCCESS), outcomes)
             assertEquals(false, lockStateStore.load(SesameDemoMode.DEMO_DEVICE_UUID)?.isLocked)
+            assertEquals(0, server.requestCount)
+        }
+
+    @Test
+    fun `cancelling the run clears the in progress flag and redraws`() =
+        runTest {
+            // 受信の実行時間制限（BL-137）で打ち切られた場合を模す。取り消されても「通信中」を
+            // 残さないよう、解除と再描画が行われることを示す。
+            val cancellingExecutor =
+                SesameDeviceCommandExecutor(
+                    loadCredentials = { credentials },
+                    lockStateStore = lockStateStore,
+                    notifier = LockStateNotifier(local = { _, _ -> }, watch = { _, _ -> }),
+                    debouncer = debouncer,
+                    apiClientFactory = { throw CancellationException("timed out") },
+                    nowMillis = { 10_000L },
+                )
+
+            var cancelled = false
+            try {
+                runner(cancellingExecutor).refreshStatus("uuid-front")
+            } catch (
+                @Suppress("SwallowedException") e: CancellationException,
+            ) {
+                cancelled = true
+            }
+
+            assertTrue(cancelled)
+            assertFalse(tracker.isInProgress("uuid-front", registered))
+            assertEquals(listOf(true, false), redrawInProgress)
             assertEquals(0, server.requestCount)
         }
 

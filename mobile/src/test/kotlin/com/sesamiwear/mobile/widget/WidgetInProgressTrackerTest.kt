@@ -10,7 +10,8 @@ class WidgetInProgressTrackerTest {
     private val front = SesameDeviceSummary(uuid = "uuid-front", displayName = "玄関")
     private val back = SesameDeviceSummary(uuid = "uuid-back", displayName = "勝手口")
     private val registered = listOf(front, back)
-    private val tracker = WidgetInProgressTracker()
+    private var now = 1_000L
+    private val tracker = WidgetInProgressTracker { now }
 
     @Test
     fun `nothing is in progress initially`() {
@@ -45,6 +46,38 @@ class WidgetInProgressTrackerTest {
         assertTrue(tracker.isInProgress("uuid-front", registered))
 
         tracker.finish(listOf("uuid-front"))
+        assertFalse(tracker.isInProgress("uuid-front", registered))
+    }
+
+    @Test
+    fun `stays in progress until the timeout elapses`() {
+        tracker.start(listOf("uuid-front"))
+
+        now += WidgetInProgressTracker.IN_PROGRESS_TIMEOUT_MILLIS - 1
+        assertTrue(tracker.isInProgress("uuid-front", registered))
+    }
+
+    @Test
+    fun `is no longer in progress once the timeout elapses without finishing`() {
+        // プロセスが落ちるなどで解除されなかった登録で、ウィジェットが「通信中...」のまま
+        // 固まらないようにするための安全弁（BL-135）。
+        tracker.start(listOf("uuid-front"))
+
+        now += WidgetInProgressTracker.IN_PROGRESS_TIMEOUT_MILLIS
+        assertFalse(tracker.isInProgress("uuid-front", registered))
+        assertFalse(tracker.isInProgress(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, registered))
+    }
+
+    @Test
+    fun `expiring an old run does not clear a newer run on the same device`() {
+        tracker.start(listOf("uuid-front"))
+        now += WidgetInProgressTracker.IN_PROGRESS_TIMEOUT_MILLIS - 1
+        tracker.start(listOf("uuid-front"))
+
+        now += 1
+        assertTrue(tracker.isInProgress("uuid-front", registered))
+
+        now += WidgetInProgressTracker.IN_PROGRESS_TIMEOUT_MILLIS
         assertFalse(tracker.isInProgress("uuid-front", registered))
     }
 }

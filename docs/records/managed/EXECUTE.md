@@ -5,6 +5,148 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-17 00:10
+  summary: ウィジェットのタップ処理を受信の実行時間制限内へ収め実機で固着とANRの解消を確認した
+  details:
+    変更内容: >-
+      BL-137（BL-136 の実機検証で判明）: 実機の logcat で、ウィジェットのデバイス名タップが
+      `ANR in com.sesamiwear.mobile.debug / Reason: Broadcast of Intent (act=...REFRESH_STATUS,
+      flg=0x10000010)` となり `Killing ...: bg anr` でプロセスが強制終了されることを観測した。
+      `flg` の `0x10000000` は `FLAG_RECEIVER_FOREGROUND` で、Glance の `actionSendBroadcast` が
+      付けるため実行時間の制限は約10秒（バックグラウンド受信の60秒ではない）。BL-133 で設定した
+      接続10秒・全体20秒では間に合わないため、`SesameApiClient` のタイムアウトを接続3秒・
+      読み書き3秒・全体6秒へ短縮し、`WidgetCommandReceiver` の処理全体を `withTimeoutOrNull`
+      （`WORK_TIMEOUT_MILLIS` = 8秒）で囲んで制限より手前から自分で打ち切るようにした。
+      打ち切りは取り消しとして伝わり、`WidgetCommandRunner` の `NonCancellable` な再描画が状態を戻す。
+      BL-136: 修正前後の挙動を実機で比較し、DESIGN.md へ結果を記録した。あわせて
+      `.claude/skills/realmachine-verification/SKILL.md` へ、接続先を到達不能な宛先へ固定して
+      通信失敗だけを再現する手順と、実資格情報が入った端末での安全確保の手順を追記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - .claude/skills/realmachine-verification/SKILL.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    関連ID:
+      - BL-137
+      - BL-136
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証 /
+      ANDROID_SERIAL=<Pixel 8 Pro> ./gradlew :mobile:installDebug
+      -PsesameApiBaseUrl=http://192.168.137.1:8080/api/sesame2（および http://127.0.0.1:1/api/sesame2）/
+      adb の input tap・exec-out screencap・logcat による実機確認
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。実機では、修正前ビルドが
+      タップから10秒でANR・強制終了となり「通信中...」が固着したのに対し、修正後は同じ操作で
+      ANRもFATALも発生せずプロセスが生存し、約3.9秒で「状態不明」へ戻った（接続が即座に拒否される
+      宛先では約0.4秒）。`am force-stop` で途中終了させたウィジェットも、アプリを開くだけで
+      再描画された。logcatのSesame系タグの行にuuid形状・32桁16進数の文字列は0件だった。
+      検証は接続先を到達不能な宛先へ固定したデバッグ版のみで行い、実Sesame APIへは送信していない。
+
+- date: 2026-09-17 00:12
+  summary: ウィジェットの通信中表示が解除されずに固まらないようにした
+  details:
+    変更内容: >-
+      BL-135: `widget.WidgetInProgressTracker` の登録を開始時刻つきにし、
+      `IN_PROGRESS_TIMEOUT_MILLIS`（30秒）を過ぎた登録は `finish` が呼ばれていなくても実行中と
+      みなさないようにした。従来は参照カウントだけで、実行が途中で打ち切られて解除の再描画が
+      行われないと、ウィジェットは定期更新を持たない（`updatePeriodMillis=0`）ため、右側のタップも
+      効かない「通信中...」がホーム画面に残り続けた。上限はSesame APIの呼び出し全体のタイムアウト
+      （20秒、BL-133）より長くとり、正常に終わる操作を誤って打ち切らない値にしている。
+      あわせて `MainActivity.onStart` でウィジェットの再描画を要求するようにし、表示が固まった場合でも
+      利用者が最初にとる行動（アプリを開く）で復帰できるようにした。DESIGN.md の
+      「Sesame APIクライアント」「mobileホーム画面ウィジェット」「mobile側コマンド処理」の各節を
+      BL-133〜BL-135 の実装に合わせて更新し、RELEASE_NOTES.md の 0.11.0 へ利用者向けの修正内容を追記した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTracker.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetInProgressTrackerTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    関連ID:
+      - BL-135
+      - BL-133
+      - BL-134
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した単体テストで、
+      上限の直前までは通信中のままであること、上限に達すると単一デバイスでも全デバイスでも
+      通信中と判定されないこと、古い登録の期限切れが同一デバイスの新しい登録を消さないことを確認した。
+      既存の参照カウントの挙動（重ねて実行したときは両方の解除まで通信中）は変えていない。
+
+- date: 2026-09-16 23:52
+  summary: ウィジェットとData Layerの受信口で例外がプロセスを落とさないようにした
+  details:
+    変更内容: >-
+      BL-134: システムからの入口で起動したコルーチンから例外が漏れるのを止める
+      `com.sesamiwear.mobile.EntryPointGuard`（Android非依存）を追加し、
+      `widget.WidgetCommandReceiver`（ウィジェットのタップ）、
+      `messaging.SesameMessageListenerService`（ウォッチからのメッセージ）、
+      `widget.WidgetConfigurationActivity`（割り当て後の再描画）の3か所へ適用した。
+      これらは結果を受け取る呼び出し元がいないため、漏れた例外がそのままプロセスを終了させ、
+      ホーム画面のウィジェットが最後に描いた「通信中...」のまま取り残される原因になっていた。
+      通知するのは例外の型名だけで、接続先URL（uuidを含む）が入りうるメッセージは渡さない。
+      `messaging.DataLayerBestEffort` も `ApiException` 以外の失敗を握りつぶすよう広げ
+      （`UNKNOWN_STATUS_CODE`）、資格情報設定画面の `syncDeviceList` は、ウォッチ同期の失敗で
+      ウィジェット再描画が飛ばないよう2つの独立したコルーチンへ分けた。
+      いずれもコルーチンのキャンセルは従来どおり再送出する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/EntryPointGuard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffort.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/EntryPointGuardTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffortTest.kt
+      - docs/records/managed/BACKLOG.md
+    関連ID:
+      - BL-134
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した単体テストで、
+      任意の例外を握りつぶして呼び出し元が継続すること、通知されるのが型名だけであること、
+      キャンセルは再送出されることを確認した。detektの InstanceOfCheckForException は、
+      キャンセルのみを再送出する判定のため関数単位で抑止し、理由をKDocへ残した。
+
+- date: 2026-09-16 23:35
+  summary: Sesame API呼び出しの失敗をSesameApiExceptionへ正規化しタイムアウトを設定した
+  details:
+    変更内容: >-
+      BL-133: `core.api.SesameApiClient` が、通信の失敗（`IOException`。圏外・タイムアウト・
+      名前解決失敗）、想定外の応答本文（`SerializationException`）、接続先URLが不正な場合
+      （`IllegalArgumentException`）を `SesameApiException` へ正規化して送出するようにした
+      （`asApiCall`）。従来これらは素通りし、呼び出し側（`SesameCommandHandler.execute` /
+      `SesameDeviceCommandExecutor.fetchIsLocked`）が `SesameApiException` しか捕捉していない
+      ため、ウィジェットのタップ（`WidgetCommandReceiver`）やウォッチからのメッセージ
+      （`SesameMessageListenerService`）が起動したコルーチンから漏れ、プロセスが落ちる経路に
+      なっていた。`SesameApiException` へ `cause` を追加し、例外メッセージには原因例外の型名だけを
+      載せる（uuidを含むURLや応答内容を混ぜない）。あわせて既定の `OkHttpClient` へ接続10秒・
+      読み書き10秒・呼び出し全体20秒のタイムアウトを設定し、プロセス内で共有する1インスタンスに
+      した（BroadcastReceiverの実行時間制約内で必ず終わるようにするため）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiException.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - docs/records/managed/BACKLOG.md
+    関連ID:
+      - BL-133
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した3件の単体テストで、
+      接続断・解析不能な応答本文・コマンド送信時の接続断のいずれでも `SesameApiException` だけが
+      送出され、原因例外が保持されることを確認した。kotlinx.coroutinesが `withContext` をまたぐ例外を
+      複製するため、テストは `cause` を1段見るのではなく最も内側の原因例外を検査している。
+
 - date: 2026-09-16 12:12
   summary: 検証用にSesame APIの接続先を差し替えられるようにし、BL-126の残項目を実機で検証した
   details:

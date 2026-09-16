@@ -53,6 +53,20 @@ class DataLayerBestEffortTest {
             assertEquals(listOf("saved", "sync-failed", "continued"), steps)
         }
 
+    @Test
+    fun `swallows non-ApiException failures as an unknown status code`() =
+        runTest {
+            val failures = mutableListOf<Int>()
+
+            val result =
+                DataLayerBestEffort.run(onFailure = { failures += it }) {
+                    throw IllegalStateException("Play services unavailable")
+                }
+
+            assertFalse(result)
+            assertEquals(listOf(DataLayerBestEffort.UNKNOWN_STATUS_CODE), failures)
+        }
+
     @Test(expected = CancellationException::class)
     fun `does not swallow coroutine cancellation`() =
         runTest {
