@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.EntryPointGuard
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,9 @@ import kotlinx.coroutines.launch
  * ウィジェットのタップ（施錠の即時実行・デバイス名の状態取得）と、解錠確認画面での確定を受けて
  * [WidgetCommandRunner]を実行する（BL-122）。`exported="false"`で、自アプリのPendingIntentと
  * [WidgetUnlockConfirmActivity]からのみ呼ばれる。
+ *
+ * 実行中に例外が漏れるとプロセスごと落ち、ウィジェットが「通信中...」のまま取り残されるため、
+ * [EntryPointGuard]で捕捉してログのみに留める（BL-134）。
  *
  * バックグラウンド実行は`goAsync`で行う（GlanceのActionCallbackと同じ仕組み）。解錠確認画面からも同じ経路で
  * 実行するため、Glanceの`actionRunCallback`ではなく自前のBroadcastReceiverにしている。BroadcastReceiverには
@@ -38,11 +42,14 @@ class WidgetCommandReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val runner = createRunner(appContext)
-                when (action) {
-                    ACTION_RUN_COMMAND -> command?.let { runner.runCommand(deviceUuid, it) }
-                    ACTION_REFRESH_STATUS -> runner.refreshStatus(deviceUuid)
-                    else -> Log.w(TAG, "unknown action")
+                // 例外をここで止める（BL-134）。落ちるとウィジェットが「通信中...」のまま取り残される。
+                EntryPointGuard.run(onFailure = { Log.w(TAG, "command failed: $it") }) {
+                    val runner = createRunner(appContext)
+                    when (action) {
+                        ACTION_RUN_COMMAND -> command?.let { runner.runCommand(deviceUuid, it) }
+                        ACTION_REFRESH_STATUS -> runner.refreshStatus(deviceUuid)
+                        else -> Log.w(TAG, "unknown action")
+                    }
                 }
             } finally {
                 pendingResult.finish()

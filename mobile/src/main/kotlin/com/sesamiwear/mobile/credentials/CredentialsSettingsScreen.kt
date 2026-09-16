@@ -78,10 +78,9 @@ fun CredentialsSettingsScreen(
     // 1台以上の登録になった場合は、デモを割り当てていたウィジェットを未設定へ戻す（BL-123）。
     fun syncDeviceList(list: List<SesameCredentials>) {
         SesameWidgetRepository.assignmentStore(context).onRegisteredDevicesChanged(list.size)
-        coroutineScope.launch {
-            SesameDeviceListSyncer(context).sync(list)
-            SesameWidgetUpdater.updateAll(context)
-        }
+        // ウォッチ同期が失敗してもウィジェットの再描画が飛ばないよう、2つを独立したコルーチンで実行する（BL-134）。
+        coroutineScope.launch { SesameWidgetUpdater.updateAll(context) }
+        coroutineScope.launch { SesameDeviceListSyncer(context).sync(list) }
     }
 
     if (showHelp) {

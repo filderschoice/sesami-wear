@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-16 23:52
+  summary: ウィジェットとData Layerの受信口で例外がプロセスを落とさないようにした
+  details:
+    変更内容: >-
+      BL-134: システムからの入口で起動したコルーチンから例外が漏れるのを止める
+      `com.sesamiwear.mobile.EntryPointGuard`（Android非依存）を追加し、
+      `widget.WidgetCommandReceiver`（ウィジェットのタップ）、
+      `messaging.SesameMessageListenerService`（ウォッチからのメッセージ）、
+      `widget.WidgetConfigurationActivity`（割り当て後の再描画）の3か所へ適用した。
+      これらは結果を受け取る呼び出し元がいないため、漏れた例外がそのままプロセスを終了させ、
+      ホーム画面のウィジェットが最後に描いた「通信中...」のまま取り残される原因になっていた。
+      通知するのは例外の型名だけで、接続先URL（uuidを含む）が入りうるメッセージは渡さない。
+      `messaging.DataLayerBestEffort` も `ApiException` 以外の失敗を握りつぶすよう広げ
+      （`UNKNOWN_STATUS_CODE`）、資格情報設定画面の `syncDeviceList` は、ウォッチ同期の失敗で
+      ウィジェット再描画が飛ばないよう2つの独立したコルーチンへ分けた。
+      いずれもコルーチンのキャンセルは従来どおり再送出する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/EntryPointGuard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffort.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/EntryPointGuardTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/DataLayerBestEffortTest.kt
+      - docs/records/managed/BACKLOG.md
+    関連ID:
+      - BL-134
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / 記録ファイルのYAML検証
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0（markdownlintはSummary 0 issues）。追加した単体テストで、
+      任意の例外を握りつぶして呼び出し元が継続すること、通知されるのが型名だけであること、
+      キャンセルは再送出されることを確認した。detektの InstanceOfCheckForException は、
+      キャンセルのみを再送出する判定のため関数単位で抑止し、理由をKDocへ残した。
+
 - date: 2026-09-16 23:35
   summary: Sesame API呼び出しの失敗をSesameApiExceptionへ正規化しタイムアウトを設定した
   details:

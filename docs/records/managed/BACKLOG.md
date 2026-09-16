@@ -5,24 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-134
-  区分: 不具合
-  タスク内容: >-
-    ウィジェット・Data Layer の受信口で、想定外の例外がアプリのクラッシュにならないようにする。
-    mobile.widget.WidgetCommandReceiver と mobile.messaging.SesameMessageListenerService は
-    例外処理のないコルーチンで処理を起動しており、そこから漏れた例外がそのままプロセスを落とす
-    （ホーム画面の「ウィジェットが繰り返し停止しています」の直接原因になりうる）。受信口で捕捉して
-    ログのみに留め、mobile.messaging.DataLayerBestEffort も ApiException 以外の失敗を握りつぶすよう
-    広げる（コルーチンのキャンセルは従来どおり再送出する）。資格情報設定画面の syncDeviceList は、
-    ウォッチ同期の失敗でウィジェット再描画が行われなくなるため、2つを独立したコルーチンへ分ける。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    ApiException 以外の例外でも DataLayerBestEffort が false を返して呼び出し元が継続すること、
-    キャンセルは再送出されることを単体テストで示し、受信口の変更が品質ゲートを通ること
-  依存: []
-
 - id: BL-135
   区分: 不具合
   タスク内容: >-

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.mobile.EntryPointGuard
 import kotlinx.coroutines.launch
 
 /**
@@ -71,13 +73,20 @@ class WidgetConfigurationActivity : ComponentActivity() {
     ) {
         SesameWidgetRepository.assignmentStore(this).assign(appWidgetId, uuid)
         lifecycleScope.launch {
-            SesameWidgetUpdater.update(applicationContext, appWidgetId)
+            // 再描画の失敗で割り当ての確定（RESULT_OK）まで落とさない（BL-134）。
+            EntryPointGuard.run(onFailure = { Log.w(TAG, "widget redraw failed: $it") }) {
+                SesameWidgetUpdater.update(applicationContext, appWidgetId)
+            }
             setResult(Activity.RESULT_OK, resultIntent(appWidgetId))
             finish()
         }
     }
 
     private fun resultIntent(appWidgetId: Int) = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+
+    private companion object {
+        const val TAG = "SesameWidgetConfig"
+    }
 }
 
 @Composable

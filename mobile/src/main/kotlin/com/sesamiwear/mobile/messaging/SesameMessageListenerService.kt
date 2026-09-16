@@ -7,6 +7,7 @@ import com.google.android.gms.wearable.WearableListenerService
 import com.sesamiwear.core.SesameCommandResult
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.EntryPointGuard
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
 import kotlinx.coroutines.CoroutineScope
@@ -27,11 +28,14 @@ import kotlinx.coroutines.tasks.await
 class SesameMessageListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         CoroutineScope(Dispatchers.IO).launch {
-            val executor = SesameDeviceCommandExecutorFactory.create(applicationContext)
-            if (messageEvent.path == SesameWearProtocol.PATH_STATUS_REQUEST) {
-                handleStatusRequest(executor, messageEvent)
-            } else {
-                handleCommandRequest(executor, messageEvent)
+            // 例外をここで止める（BL-134）。落とすとウォッチからの操作でスマホ側アプリが終了する。
+            EntryPointGuard.run(onFailure = { Log.w(TAG, "onMessageReceived failed: $it") }) {
+                val executor = SesameDeviceCommandExecutorFactory.create(applicationContext)
+                if (messageEvent.path == SesameWearProtocol.PATH_STATUS_REQUEST) {
+                    handleStatusRequest(executor, messageEvent)
+                } else {
+                    handleCommandRequest(executor, messageEvent)
+                }
             }
         }
     }
