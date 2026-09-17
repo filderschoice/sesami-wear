@@ -162,6 +162,79 @@ bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォ
 各手順の詳細（デバイスの割り当て、コンプリケーションの設定、操作方法、トラブル時の確認事項）は
 [USER_GUIDE.md](USER_GUIDE.md) にまとめています。
 
+### 1.7 Wear OSコンパニオンアプリ未導入の環境で検証する（開発者向け）
+
+`mobile`は、Wear OSコンパニオンアプリ（Pixel Watchアプリ、`com.google.android.apps.wear.companion`）が
+入っていないスマホでも、資格情報の保存とホーム画面ウィジェットの操作が動作する必要があります。
+コンパニオンが無い端末ではWearable Data Layer APIの呼び出しが`ApiException`（`API_UNAVAILABLE`＝17）で
+失敗しうるため、`mobile.messaging.DataLayerBestEffort`が失敗を握りつぶす設計になっています
+（BL-118 / BL-134）。この経路を実際に確認するための環境の作り方をまとめます。
+
+#### 環境の作り方
+
+| 方法 | 忠実さ | 手間 | 備考 |
+| --- | --- | --- | --- |
+| A. Androidエミュレータ | 高 | 中 | コンパニオンが最初から入っていない。実機の設定を変えない |
+| B. 実機のコンパニオンを一時無効化 | 中 | 小 | 「無効化」は「未導入」と同一ではない。ウォッチとの接続が切れる |
+| C. コンパニオン未導入の別スマホ | 最高 | 大 | 該当端末が必要 |
+
+##### 方法A: Androidエミュレータ（推奨）
+
+素のAndroidエミュレータにはWear OSコンパニオンアプリが含まれないため、「未導入スマホ」をそのまま
+再現できます。実機の設定を変更しないので、検証後の復旧作業も不要です。
+
+本リポジトリの開発環境ではエミュレータ本体が未導入のため（`%ANDROID_HOME%\emulator`が無い、
+2026-09-17時点）、先に追加します。
+
+```bash
+sdkmanager "emulator" "system-images;android-35;google_apis;x86_64"
+avdmanager create avd -n nocompanion -k "system-images;android-35;google_apis;x86_64"
+emulator -avd nocompanion
+```
+
+起動したら、コンパニオンが入っていないことを確認してからインストールします。
+
+```bash
+# 何も出力されなければコンパニオン未導入
+adb -s emulator-5554 shell pm list packages | grep wear.companion
+
+ANDROID_SERIAL=emulator-5554 ./gradlew :mobile:installDebug
+```
+
+##### 方法B: 実機のコンパニオンを一時的に無効化
+
+すぐ試せますが、パッケージ自体は端末に残るため「未導入」と完全に同じ状態にはなりません
+（Google Play services側の判定が一致するかは未確認）。**実行するとウォッチとの接続が切れます。**
+検証が終わったら必ず元へ戻してください。
+
+```bash
+# 無効化
+adb shell pm disable-user --user 0 com.google.android.apps.wear.companion
+# 復旧（必ず実施する）
+adb shell pm enable com.google.android.apps.wear.companion
+```
+
+#### 動作確認ポイント
+
+実資格情報は使いません。ダミーの資格情報と、`-PsesameApiBaseUrl`で差し替えたモックAPI
+（`scripts/mock-sesame-api.py`）で確認します（`rules/guardrails-unified.v1.md` 12.5）。
+エミュレータからホストPCのモックサーバーへは`10.0.2.2`でアクセスできます。
+
+| # | 確認内容 | 期待結果 |
+| --- | --- | --- |
+| 1 | アプリを起動する | クラッシュしない |
+| 2 | ダミー資格情報を保存する | 落ちずに保存され、一覧へ反映される |
+| 3 | 保存した資格情報を削除する | 落ちずに削除される |
+| 4 | ウィジェットを追加し対象デバイスを選ぶ | 選択画面が開き、割り当てが保存される |
+| 5 | ウィジェットのデバイス名をタップする（状態取得） | 落ちず、通信中を経て表示が確定する |
+| 6 | ウィジェットから施錠・解錠する（モックAPI） | 成功し、ウォッチ同期の失敗に巻き込まれない |
+
+あわせてlogcatで次の2点を確認します。
+
+- `ApiException`のステータスコード（`17`＝`API_UNAVAILABLE`）は出てよいが、`FATAL EXCEPTION`が
+  出ていないこと（`DataLayerBestEffort`が握りつぶしている証拠）
+- uuid形状の文字列・32桁の16進数が1件も出力されていないこと（秘密情報の非出力確認）
+
 ## 2. テスター向け：Google Play経由のインストール
 
 限定公開（クローズドテスト）のため、**テストへ参加したGoogleアカウントでのみ**インストール
