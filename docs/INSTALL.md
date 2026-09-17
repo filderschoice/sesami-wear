@@ -183,14 +183,20 @@ bundletool install-apks --apks=mobile-debug.apks --device-id=<スマートウォ
 素のAndroidエミュレータにはWear OSコンパニオンアプリが含まれないため、「未導入スマホ」をそのまま
 再現できます。実機の設定を変更しないので、検証後の復旧作業も不要です。
 
-本リポジトリの開発環境ではエミュレータ本体が未導入のため（`%ANDROID_HOME%\emulator`が無い、
-2026-09-17時点）、先に追加します。
+本リポジトリの開発環境には、2026-09-17にエミュレータ本体とシステムイメージを追加済みです
+（`%ANDROID_HOME%\emulator`、`system-images;android-35;google_apis;x86_64`。合計約4GB、
+ダウンロードに10分程度かかります）。AVD `nocompanion` も作成済みで、無ければ以下で作り直せます。
 
 ```bash
 sdkmanager "emulator" "system-images;android-35;google_apis;x86_64"
-avdmanager create avd -n nocompanion -k "system-images;android-35;google_apis;x86_64"
-emulator -avd nocompanion
+avdmanager create avd -n nocompanion -k "system-images;android-35;google_apis;x86_64" -d pixel_6
+emulator -avd nocompanion -no-snapshot -no-boot-anim -gpu swiftshader_indirect
 ```
+
+- `-d pixel_6` を付けると画面が1080x2400になり、実機（Pixel 8 Pro）に近い比率で確認できます。
+- `avdmanager`が出す`Could not load devices from ...\devices.xml`は無害で、AVDは作成されます。
+- 初回起動（コールドブート）は数分かかります。`adb -s emulator-5554 shell getprop sys.boot_completed`
+  が`1`を返すまで待ってから操作してください。
 
 起動したら、コンパニオンが入っていないことを確認してからインストールします。
 
@@ -200,6 +206,10 @@ adb -s emulator-5554 shell pm list packages | grep wear.companion
 
 ANDROID_SERIAL=emulator-5554 ./gradlew :mobile:installDebug
 ```
+
+Google Play services自体は素のエミュレータにも入っており、コンパニオンだけが無い状態になります。
+logcatに`Wear_Controller: Wearable module requires a companion app to be installed.`と
+`WearableService: Wear is not available on this device.`が出ることで確認できます。
 
 ##### 方法B: 実機のコンパニオンを一時的に無効化
 
@@ -229,11 +239,20 @@ adb shell pm enable com.google.android.apps.wear.companion
 | 5 | ウィジェットのデバイス名をタップする（状態取得） | 落ちず、通信中を経て表示が確定する |
 | 6 | ウィジェットから施錠・解錠する（モックAPI） | 成功し、ウォッチ同期の失敗に巻き込まれない |
 
+`-PsesameApiBaseUrl`を付けたビルドの後で品質ゲートの`./gradlew assembleDebug`を実行すると、
+**接続先を差し替えたAPKが本番URLのもので上書きされます**。品質ゲートを回したら、インストール前に
+必ず`-PsesameApiBaseUrl`付きで組み直してください（上書きされたAPKを入れるとモックへ1件も届かず、
+原因が分かりにくくなります）。
+
 あわせてlogcatで次の2点を確認します。
 
 - `ApiException`のステータスコード（`17`＝`API_UNAVAILABLE`）は出てよいが、`FATAL EXCEPTION`が
   出ていないこと（`DataLayerBestEffort`が握りつぶしている証拠）
 - uuid形状の文字列・32桁の16進数が1件も出力されていないこと（秘密情報の非出力確認）
+
+2026-09-17に方法Aで全6項目を確認済みです。結果は
+[DESIGN.md](records/managed/DESIGN.md)「実機検証（BL-126、2026-09-17、Androidエミュレータ）」を
+参照してください。
 
 ## 2. テスター向け：Google Play経由のインストール
 

@@ -7,6 +7,27 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-17（BL-126の残項目をエミュレータで検証して完了）
+
+Wear OSコンパニオンアプリ未導入環境での動作（BL-126の最後の残項目）を、Androidエミュレータで
+検証して完了しました。コード修正は伴いません。
+
+- `docs/records/managed/DESIGN.md`
+  - 「実機検証（BL-126、2026-09-17、Androidエミュレータ Pixel 6 / Android 15）」を追加。
+    ダミー資格情報2台とモックAPIで、起動・保存・削除・ウィジェットの追加/対象選択/状態取得/
+    施錠・解錠・全デバイス一括操作の6項目がクラッシュせず完了したこと、Data Layer APIの失敗が
+    `statusCode=17`として9件記録され`DataLayerBestEffort`が握りつぶしていること、`FATAL EXCEPTION`が
+    0件であること、logcatに秘密情報が出ていないことを記録。
+  - 品質ゲートの`assembleDebug`が`-PsesameApiBaseUrl`付きでビルドしたAPKを上書きする注意点を追記。
+- `docs/records/managed/BACKLOG.md`
+  - 完了したBL-126を削除。
+- `docs/INSTALL.md`
+  - 「1.7」のエミュレータ手順を実測に合わせて更新（エミュレータとAVDが導入済みであること、
+    `-d pixel_6`と起動オプション、`devices.xml`のエラーが無害であること、ブート完了の待ち方、
+    コンパニオン未導入をlogcatで確認する方法、APK上書きの注意、検証結果の参照先）。
+- `.claude/skills/realmachine-verification/SKILL.md`
+  - コンパニオン未導入環境の検証にエミュレータを使う節を追加。
+
 ## 2026-09-17（BL-126の実機検証結果を反映、コンパニオン未導入環境の検証手順を追加）
 
 デバッグ版（BL-131の併存インストール）での実機検証が完了したため、結果を記録へ反映し、
