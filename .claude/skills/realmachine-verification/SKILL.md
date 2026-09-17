@@ -86,6 +86,22 @@ ANDROID_SERIAL=<スマホのシリアル> \
   ウィジェットが設置されていないこと（＝画面上の Sesame ウィジェットがデバッグ版だけであること）を
   確認してからタップする。
 
+## 3.5 コンパニオン未導入環境はエミュレータで作る
+
+Wear OS コンパニオン（`com.google.android.apps.wear.companion`）が無い端末での動作確認だけは、
+Pixel 8 Pro では作れない（無効化は「未導入」と同一ではない）。素の Android エミュレータには
+コンパニオンが含まれず、Google Play services は入っているため、そのまま「未導入スマホ」になる。
+手順とチェック項目は `docs/INSTALL.md`「1.7」が正本。要点だけ挙げる。
+
+- AVD `nocompanion`（`system-images;android-35;google_apis;x86_64`、`-d pixel_6`）は作成済み。
+  画面は 1080x2400 で、`input tap` の座標は実機と別に取り直す。
+- モックAPIへはホストPCの IP ではなく `10.0.2.2` で届く。
+- **品質ゲートの `./gradlew assembleDebug` は `-PsesameApiBaseUrl` を伴わないため、注入済みAPKを
+  本番URLのもので上書きする。** 品質ゲートを回したら組み直してから入れ直す。上書きされたAPKは
+  「モックに1件も届かない」という形でしか気づけない。
+- 握りつぶしの証跡は `SesameStatusSyncer: syncLocked skipped: statusCode=17` と
+  `SesameDeviceListSyncer: sync skipped: statusCode=17`（17＝`API_UNAVAILABLE`）。
+
 ## 4. ウォッチ側の準備
 
 ### Tile をカルーセルへ追加する

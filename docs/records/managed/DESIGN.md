@@ -300,6 +300,28 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     logcatの`for bound-service {<パッケージ>/...SesameComplicationDataSourceService}`でパッケージ名を
     確認する。再インストール直後は、デバッグ版を入れてもPlay版のデータソースが割り当てられたままに
     なりうるため、デバッグ版で検証するには文字盤側でデータソースを差し替える必要がある。
+- 実機検証（BL-126、2026-09-17、Androidエミュレータ Pixel 6 / Android 15）: Wear OSコンパニオンアプリ
+  未導入環境での動作を、Claude Codeがadb経由のUI操作で確認した。検証環境は`avdmanager`で作成したAVD
+  （`nocompanion`、`system-images;android-35;google_apis;x86_64`、`-d pixel_6`）で、`pm list packages`に
+  `wear`を含むパッケージが1件も無く（Google Play services自体は導入済み）、logcatにも
+  `Wear_Controller: Wearable module requires a companion app to be installed.`と
+  `WearableService: Wear is not available on this device.`が出る、コンパニオン未導入の状態である。
+  実資格情報は使わず、ダミーの資格情報2台（MockLockA / MockLockB）と、接続先をBL-132のモックAPIへ
+  差し替えたデバッグ版（`-PsesameApiBaseUrl=http://10.0.2.2:8080/api/sesame2`。エミュレータからは
+  `10.0.2.2`がホストPCを指す）で確認している。確認できたのは次のとおり。(1) アプリの起動。
+  (2) ダミー資格情報2台の保存（一覧へ反映）。(3) 2台の削除（0台へ戻り、設置済みウィジェットが
+  「タップして設定」へ復帰）。(4) ウィジェットの追加と対象デバイスの選択（「全デバイス」と2台が並ぶ）。
+  (5) デバイス名タップによる状態取得（モックへGETが届き「施錠中／タップで解錠」へ確定）。
+  (6) ウィジェットからの解錠（確認画面あり）・施錠（確認画面なし）と、「全デバイス」での一括解錠
+  （2台へcmd=83が飛び「全解錠中」へ）。いずれもクラッシュせず、logcatの`FATAL EXCEPTION`は0件だった。
+  Data Layer APIの失敗は`SesameStatusSyncer: syncLocked skipped: statusCode=17`と
+  `SesameDeviceListSyncer: sync skipped: statusCode=17`として計9件記録され（17＝`API_UNAVAILABLE`）、
+  **`DataLayerBestEffort`が握りつぶして本体の処理を継続していること（BL-118 / BL-134）が実地で確認できた**。
+  秘密情報の非出力も確認した（logcat全体1761行に、uuid形状の文字列・32桁16進数・実際に入力した
+  ダミー値は1件も出力されていない）。
+  検証手順で踏んだ注意点を1点記録する。品質ゲートの`./gradlew assembleDebug`は`-PsesameApiBaseUrl`を
+  伴わないため、**注入済みのAPKを本番URLのものへ上書きする**。接続先を差し替えたAPKは品質ゲートの
+  実行後に組み直して入れ直す（上書きされたAPKを入れるとモックへ1件も届かず、原因が分かりにくい）。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
