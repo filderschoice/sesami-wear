@@ -70,6 +70,35 @@
     `cloud.py`/`const.py`）を読んで判明した内容であり、CANDY HOUSE公式ドキュメントそのものは
     未参照だが、実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
     SesameStatusのデコードエラーが発生しないことを確認済み（BL-010、人手検証）。
+  - 実機調査（BL-139 / BL-141、2026-09-18、Pixel 8 Pro + Play版0.11.0）: ウィジェットの状態取得が
+    常に「状態不明」になる事象を調査し、原因が**Sesame API側のapikey無効化（HTTP 403）**であることを
+    確認した。応答本文は`{"Message":"User is not authorized to access this resource with an explicit
+    deny in an identity-based policy"}`で、出鱈目なapikeyでの応答と完全に一致する（ヘッダー無しは401）。
+    リクエストは実際に送信されており（無操作時は送受信0バイト、タップ時は送信約3KB・受信約8〜12KB）、
+    応答は約240msで返るためタイムアウトではない。uuidは36文字・大文字で形式は正常。
+    `mapping.txt`上で`SesameStatus` / `$$serializer` / `$Companion`はいずれも非難読化のまま残存して
+    おり、R8によるkotlinx.serializationの破壊でもない。**アプリの実装は正常**で、修正は不要。
+  - ただしこの調査で、リリースビルドでは失敗理由がどこにも残らないことが判明した。
+    `SesameDeviceCommandExecutor.fetchIsLocked`は`SesameApiException`を捕捉してnullを返すだけで、
+    ログ出力を行わない。`Log.d`はproguard-rules.proの`-assumenosideeffects`で除去される（BL-083）。
+    Play App Signingのため配布済みのリリース版へ後から診断ログを足すこともできない
+    （インストール済みAPKの署名は`CN=Android, O=Google Inc.`で、アップロード鍵では上書き更新不可。
+    アンインストールすると保存済みの資格情報が消える）。原因特定にはデバッグ版（BL-131の併存
+    インストール）へ実資格情報を入力して一時的な診断ログを仕込む必要があった。HTTPステータスコードの
+    ログ出力はBL-139、認証エラーと未取得の表示上の区別はBL-140として起票済み。
+  - 403の直接の原因は、当月のAPIリクエスト数が上限（1000回）に達してアカウントのAPIキーが
+    拒否されたことである可能性が高い（biz.candyhouse.coのサイト上からのリクエストも同時に
+    通らなくなっていた）。上限到達時の応答がHTTP 429ではなく403である点はCANDY HOUSE側の実装に
+    よるものと推測しており未確認。
+  - **本アプリには状態取得のリクエスト数を抑える仕組みが無い。**
+    `wear.tile.SesameTileStateResolver.requestStatusIfStale`は、保存済みスナップショットが
+    `STATUS_STALE_THRESHOLD_MILLIS`（30秒）より古ければ`PATH_STATUS_REQUEST`を送り、これはTileの
+    描画のたびに評価される。`wear.complication.SesameComplicationDataSourceService`も同じ
+    `resolveState`を呼ぶためComplicationの更新でも発生する。対象が「全デバイス」の場合は1回の描画で
+    登録台数ぶん飛ぶ。mobile側の`CommandDebouncer`は状態取得を対象外としており（施錠/解錠のみ）、
+    `SesameDeviceCommandExecutor.refreshStatus`にも最小間隔が無い。
+    リクエスト数の削減はBL-142、エラー後のバックオフはBL-143として起票済み。
+    実際の1日あたり消費回数は未計測。
 
 ### 資格情報管理（複数デバイス対応）
 
