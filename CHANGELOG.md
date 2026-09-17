@@ -7,6 +7,33 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-18（ストア掲載アセットを0.11.0の内容へ更新、BL-127）
+
+機能グラフィックとスマートフォン用スクリーンショットが0.10.0時点の内容だったため更新しました。
+撮影はAndroidエミュレータ（AVD `nocompanion`）で行い、ダミー資格情報とモックAPIで状態を作って
+います（実Sesameデバイス・実資格情報は使用していません）。コード修正は伴いません。
+
+- `docs/store/images/play_feature_graphic_1024x500.png`
+  - 文言を「Pixel Watch とホーム画面ウィジェットから施錠・解錠」「タイル・コンプリケーション・
+    ウィジェットに対応」へ差し替え。背景グラデーションと鍵アイコンは元画像のまま使用。
+- `docs/store/images/screenshots/`
+  - スマートフォン用を6枚へ刷新（ウィジェットの施錠中・解錠確認・解錠中・対象選択、資格情報設定、
+    ヘルプメニュー）。旧 `phone_1_credentials.png` / `phone_2_help.png` は削除。
+  - Wear OS用6枚は据え置き。BL-119は文言・色のcoreへの移設で表示は不変、BL-114のデモ説明文の
+    修正は登録0台のときだけ出る画面のため、この6点には影響しないことを差分で確認。
+- `docs/store/README.md` / `docs/store/STORE_LISTING.md`
+  - スクリーンショットの内訳・サイズ（1350x2400）・撮影方法（モザイク不要のダミー名）を更新。
+- `docs/records/managed/BACKLOG.md`
+  - BL-127へ掲載アセットの差し替えもPlay Consoleの作業へ含める旨を追記。
+- `.claude/skills/store-screenshot-capture/SKILL.md`
+  - 掲載用スクリーンショットをエミュレータで撮る手順をスキル化（今後の既定）。撮り直しの要否を
+    差分で判定する方法、SystemUIデモモードでのステータスバー整形、`input text` が文字を落とす原因
+    （スタイラス手書きのチュートリアル割り込み）と無効化、9:16レターボックス加工、後始末を含む。
+- `.claude/skills/realmachine-verification/SKILL.md`
+  - 掲載用スクリーンショットの撮影は対象外であることと、上記スキルへの参照を追記。
+- `docs/store/README.md`
+  - 「更新手順」へスクリーンショット撮り直し時の参照先（エミュレータで撮る旨）を追加。
+
 ## 2026-09-18（0.11.0をクローズドテストの両トラックで公開、BL-127）
 
 0.11.0（`versionCode 6 / 1004`）がクローズドテストの電話・タブレット系トラックと

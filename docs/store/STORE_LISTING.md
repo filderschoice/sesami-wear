@@ -106,6 +106,6 @@ Markdownを解釈しないため、転記時は見出し・箇条書きの記法
 
 ## スクリーンショット
 
-実機（Pixel 8 Pro / Pixel Watch 2）で撮影したものを
-[images/screenshots/](images/screenshots/) に用意済みです。内訳と加工内容は
+スマートフォン用6枚（Androidエミュレータ、2026-09-18撮影）とWear OS用6枚（Pixel Watch 2実機、
+2026-09-06撮影）を [images/screenshots/](images/screenshots/) に用意済みです。内訳と加工内容は
 [README.md](README.md)「ファイル一覧」を参照してください。
