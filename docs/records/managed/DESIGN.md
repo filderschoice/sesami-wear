@@ -279,6 +279,27 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   接続が即座に拒否される経路で成立する独立した危険として残るため、両方を修正している。
   選ばずに戻ると`RESULT_CANCELED`のままで、追加時ならウィジェットは配置されない。
   `exported="true"`（ホームアプリが起動するため）・`excludeFromRecents`・空の`taskAffinity`。
+- 実機検証（BL-126、2026-09-17、Pixel 8 Pro + Pixel Watch 2）: デバッグ版（BL-131の併存インストール）で
+  残項目を確認した。(1) Tileからの施錠/解錠操作、(2) ウィジェットとウォッチの相互追随、
+  (3) Complicationの表示・追随、(4) 実Sesameデバイス・実資格情報でのSesame API疎通が、いずれも現行コードの
+  デバッグ版で動作することをユーザーが確認した（実資格情報を用いる操作はユーザーが実施し、Claude Codeは
+  資格情報を取得・入力していない。`rules/guardrails-unified.v1.md` 12.5）。残るのはWear OSコンパニオン
+  アプリ未導入スマホでの動作のみで、検証環境の作り方と確認ポイントは`docs/INSTALL.md`
+  「1.7 Wear OSコンパニオンアプリ未導入の環境で検証する」へ分離した。
+  検証中に判明した、Play版とデバッグ版を併存させたときの注意点を3点記録する。
+  - **Wear OSのタイル一覧（`AddTileActivity`）は、すでにカルーセルへ追加済みのタイルを表示しない。**
+    デバッグ面のブロードキャスト（`DEBUG_SURFACE`の`add-tile`）でデバッグ版のタイルを追加すると
+    一覧から消えるため、「デバッグ版が一覧に出ない＝インストールされていない」と誤読しやすい。
+    実際にはシステムから両方が見えており、`cmd package query-services -a
+    androidx.wear.tiles.action.BIND_TILE_PROVIDER`と、`WearServices`の`DefaultMetadataPreviewProvider`が
+    出す列挙ログの双方で確認できる。`remove-tile`で外すと一覧へ再び現れることで機序を確定した。
+  - `SesameTileService`は`androidx.wear.tiles.PREVIEW`のmeta-dataを持たないため、列挙時に
+    `has no metadata`が記録され、一覧のプレビューはアプリアイコンで代替される。Play版も同じ状態で
+    一覧に表示されるため、これは一覧非表示の原因ではない。
+  - 文字盤のComplicationやTileが、Play版とデバッグ版のどちらから提供されているかは見た目で区別できない。
+    logcatの`for bound-service {<パッケージ>/...SesameComplicationDataSourceService}`でパッケージ名を
+    確認する。再インストール直後は、デバッグ版を入れてもPlay版のデータソースが割り当てられたままに
+    なりうるため、デバッグ版で検証するには文字盤側でデータソースを差し替える必要がある。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
