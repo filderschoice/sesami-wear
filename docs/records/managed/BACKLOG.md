@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-161
+  区分: 品質ゲート
+  タスク内容: >-
+    BL-150（保持中のsecretKeyでSesame 5へBLE接続できるかの実機確認）をユーザーが迷わず実施できるよう、
+    PCから`meronepy/gomalock`（Python、MIT）で確認する手順書を`docs/BLE_KEY_VERIFICATION.md`として
+    作成する。必要な準備（Python 3.12以上、BLE搭載PC、`pip install gomalock`）、対象デバイスの
+    BLEアドレスの調べ方（`gomalock.SesameScanner.discover`が返す`device_uuid`が、アプリへ登録済みの
+    uuidと一致するものを選ぶ）、状態（角度・電池残量）を取得する最小スクリプト、クラウドへ
+    接続していないことの確認方法（PCのネットワークを切断した状態で成功することを見る）、
+    失敗時の切り分け、BL-150の完了条件に対して何を記録して戻ればよいかを含める。
+    secretKeyは手順書へ直接書かず環境変数で渡す形にし、スクリプトはリポジトリ外の作業用
+    ディレクトリで実行することを明記する。施錠/解錠は実際に鍵が動くため手順には含めず、
+    状態取得までに留める。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    `docs/BLE_KEY_VERIFICATION.md`が存在し、README.mdの関連ドキュメントとBL-150のタスク内容から
+    参照されていること。手順書に実資格情報（apikey / secretKey / uuid）が含まれないこと。
+    `npx markdownlint-cli2 "**/*.md"`が0 issuesであること
+  根拠: >-
+    BL-150自体は実資格情報と実Sesameデバイスを要するため自律ループ実行モードでは実行できない
+    （rules/guardrails-unified.v1.md 12.5）が、手順書の作成は実資格情報を伴わないため実行できる。
+    AIエージェント担当のBL-151〜BL-153がすべてBL-150に依存しており、BL-150の実施がループ再開の
+    律速であるため、2026-09-18にユーザーの選択（ループ方針の確認）を受けて起票した。
+  依存: []
+
 - id: BL-155
   区分: 人手検証
   タスク内容: >-
