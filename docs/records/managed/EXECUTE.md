@@ -5,6 +5,59 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 16:20
+  summary: ホーム画面ウィジェットの施錠/解錠の成否をスマートフォンの振動でも伝えるようにした
+  details:
+    変更内容: >-
+      BL-129: ウォッチはハプティクスで成否を区別していたが、ウィジェットは失敗時に操作前の表示へ
+      戻すだけで分かりにくかった問題に対応した。起票時の3点のうち「失敗を一定時間表示する状態」は
+      BL-140で（一定時間ではなく次の成功まで持続する形で）、「状態が古い場合の表示の区別」は
+      BL-142で対応済みのため、残っていた「スマートフォンのハプティクス」を実装して本項目を閉じる
+      （2026-09-18、ユーザー確認済み）。
+      wearのTile経由とmobileのウィジェット経由で手触りを揃えるため、`wear.haptics.HapticPattern`と
+      `SesameHapticPatternResolver`を`core.haptics`へ移し、波形（`timingsMillis`）も
+      `HapticPattern`が持つようにした。`SesameHapticPlayer`はAndroid依存でcoreへ置けず、
+      mobileはwearへ依存できないため、同じ実装をmobile側にも持たせている（共通化できるのは
+      波形の定義まで）。
+      鳴らすかどうかの判定は`mobile.widget.WidgetHapticResolver`（Android非依存）が持つ。
+      「全デバイス」対象では登録台数ぶんの結果が返るため、1台でも失敗していればFAILURE、
+      すべてDEBOUNCED（連打として無視）なら鳴らさない、それ以外はSUCCESSとする。
+      状態取得（デバイス名のタップ）では鳴らさない（wear側の状態取得もFire-and-forgetで結果を
+      返さず振動しないため、BL-061）。
+      mobileのAndroidManifestへ`VIBRATE`権限を追加した（wearは宣言済み）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/haptics/HapticPattern.kt
+      - core/src/main/kotlin/com/sesamiwear/core/haptics/SesameHapticPatternResolver.kt
+      - core/src/test/kotlin/com/sesamiwear/core/haptics/SesameHapticPatternResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/HapticPattern.kt（削除）
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolver.kt（削除）
+      - wear/src/test/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolverTest.kt（削除）
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPlayer.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultHandler.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameResultHandlerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/haptics/SesameHapticPlayer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetHapticResolver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetHapticResolverTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、単一の成功・失敗、複数台の一部失敗、
+      連打のみ、成功と連打の混在、対象0台の各ケースを確認した。移設した
+      `SesameHapticPatternResolver`のテストも、波形が空でなく負の値を含まないことと、
+      成功と失敗の波形が異なることを追加で検証している。
+      実機での振動の体感確認はBL-149へ含めた。
+    関連ID:
+      - BL-129
+
 - date: 2026-09-18 15:40
   summary: ホーム画面ウィジェットをリサイズ可能にし1マス相当のコンパクト表示を追加した
   details:

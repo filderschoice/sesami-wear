@@ -265,8 +265,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
     また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
-  - 結果の通知: wearは成否をハプティクスで区別する。ウィジェットは失敗の理由を状態文言の下へ
-    表示する（BL-140）が、失敗した瞬間を伝える手段（振動など）は持たない（改善はBL-129）。
+  - 結果の通知: wear・ウィジェットとも成否をハプティクスで区別する（BL-129で揃えた）。
+    ウィジェットはさらに、失敗の理由を状態文言の下へ表示する（BL-140）。
   - 表示の鮮度: wear・ウィジェットとも自動取得は行わず（BL-142）、保存値を表示したうえで
     最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
     ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
@@ -773,9 +773,29 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 
 ### ハプティクス
 
-- `wear.haptics.HapticPattern`（SUCCESS/FAILURE）/ `SesameHapticPatternResolver`（Android非依存、
-  `SesameCommandResult`→`HapticPattern`）/ `SesameHapticPlayer`（`Vibrator`/`VibratorManager`
-  ベースの振動再生）: 施錠/解錠の成否をハプティクスパターンで区別して通知する（BL-008, BL-016）。
+施錠/解錠の成否を、画面を見なくても区別できるよう振動で通知する（BL-008 / BL-016、
+ホーム画面ウィジェットはBL-129）。
+
+- `core.haptics.HapticPattern`（Android非依存、ユニットテスト対象）: SUCCESS（短い振動2回）と
+  FAILURE（長い振動1回）の2種類。波形（`timingsMillis`、`VibrationEffect.createWaveform`へ渡す
+  時間の並び）もここで持つ。wearのTile経由とmobileのウィジェット経由で手触りを揃えるため、
+  両者が参照できるcoreに置く（`SesameTileContent`と同方針、BL-119。mobileはwearへ依存できない）。
+- `core.haptics.SesameHapticPatternResolver`（Android非依存、ユニットテスト対象）:
+  `SesameCommandResult`→`HapticPattern`。wearがData Layer経由で受け取った結果に使う。
+- `wear.haptics.SesameHapticPlayer` / `mobile.haptics.SesameHapticPlayer`
+  （`Vibrator`/`VibratorManager`ベースの振動再生、Android依存のためユニットテスト対象外）:
+  同じ実装を両モジュールが持つ。mobileはwearへ依存できず、Android依存コードはcoreへ置けないため、
+  共通化できるのは波形の定義（`HapticPattern`）までになる。
+- `mobile.widget.WidgetHapticResolver`（Android非依存、ユニットテスト対象、BL-129）:
+  ウィジェットの施錠/解錠の実行結果（`List<Outcome>`）から鳴らすパターンを決める。
+  1台でも`FAILURE`があれば`FAILURE`（一部だけ成功した状態を「成功」と伝えないため）、
+  すべて`DEBOUNCED`なら鳴らさない（APIを呼んでおらず伝えるべき結果が無く、連打のたびに振動させると
+  抑止の意味が薄れる。wear側も重複として無視した場合は結果を返さず振動しない、BL-062）、
+  それ以外は`SUCCESS`。
+- **状態取得（デバイス名のタップ）では振動しない。** wear側の状態取得もFire-and-forgetで結果を
+  返さず振動しない（BL-061）ため、挙動を揃える。
+- mobile側は`VIBRATE`権限を宣言する（wearは既に宣言済み）。端末が振動に対応していない、
+  または設定で切られている場合は何も起きない（例外にはならない）。
 
 ### mobile/wearエントリポイント
 
