@@ -7,6 +7,60 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-18（ウィジェットの状態取得が「状態不明」のままになる事象の調査、BL-139〜BL-146）
+
+Play版0.11.0を入れたPixel 8 Proで、ホーム画面ウィジェットの状態取得が常に「状態不明」のままに
+なる事象をadb経由で調査しました。**原因はSesame API側でアカウントのAPIキーが拒否されていたこと（HTTP 403）**で、
+状態取得の実装そのものに不具合はありません。コード修正は伴いません。
+
+調査で確認した事実（Play版0.11.0 / versionCode 6 / 登録2台）:
+
+- 状態取得タップで実際にHTTPSリクエストが飛んでいる（無操作10秒は送受信0バイト、タップ時は
+  送信約3KB・受信約8〜12KB）。応答は約240msで返っており、タイムアウト（接続3秒・全体6秒）ではない。
+- 応答はHTTP 403で、本文は `{"Message":"User is not authorized to access this resource with an
+  explicit deny in an identity-based policy"}`。これは出鱈目なapikeyで同エンドポイントを叩いたときの
+  応答と完全に一致する（ヘッダー無しの場合は401）。
+- uuidは36文字・大文字で形式は正常。玄関上・玄関下の両方が同じ結果で、「全デバイス」の集約規則の
+  問題でもない。
+- `mobile/build/outputs/mapping/release/mapping.txt` で `SesameStatus` / `$$serializer` /
+  `$Companion` がいずれも非難読化のまま残存しており、R8によるkotlinx.serializationの破壊ではない。
+  そもそも403で弾かれてデコードまで到達していない。
+- v0.10.0からの `SesameApiClient` の差分は例外の正規化（BL-133）とOkHttpの共有化・タイムアウト
+  （BL-137）のみで、リクエストの組み立ては変わっていない。
+
+調査の過程で、リリースビルドでは失敗理由がどこにも残らず、原因特定にデバッグ版（`.debug`、
+BL-131の併存インストール）へ実資格情報を入力した一時的な診断ログが必要だったことが分かりました。
+Play App Signingのため配布済みのリリース版へ後から診断ログを足すことはできません
+（インストール済みAPKの署名は `CN=Android, O=Google Inc.`）。この観測性の欠如をBL-139、
+失敗の種類が表示で区別されない点をBL-140、apikey再発行後の回復確認をBL-141として起票しました。
+調査に使ったデバッグ版と入力された資格情報は、調査完了時にアンインストールで削除済みです。
+
+その後、当月のAPI利用数が上限の1000回に達しており、biz.candyhouse.coのサイト上からのリクエストも
+通らなくなっていることをユーザーが確認しました。**403はapikeyの失効ではなく、月間リクエスト上限の
+到達による拒否**である可能性が高くなったため、アプリ側の調査を追加しました。その結果、リクエスト数を
+抑える仕組みが経路のどこにも無いことが分かりました。
+
+- `wear.tile.SesameTileStateResolver.requestStatusIfStale` は、保存済みスナップショットが30秒より
+  古ければ状態取得を送る。これはTileの描画のたびに評価される。
+- `wear.complication.SesameComplicationDataSourceService` も同じ `resolveState` を呼ぶため、
+  Complicationの更新でも同じ経路で発生する。
+- 対象が「全デバイス」の場合、1回の描画で登録台数ぶん（現状2台）飛ぶ。
+- mobile側の `CommandDebouncer` は状態取得を対象外としており（施錠/解錠のみ）、
+  `SesameDeviceCommandExecutor.refreshStatus` にも最小間隔が無い。
+
+- `docs/records/managed/BACKLOG.md`
+  - BL-139（APIエラーの失敗理由がリリースビルドに残らない）、BL-140（認証エラー・上限超過と
+    未取得が表示で区別されない）、BL-141（月間上限到達の解消と回復確認）、
+    BL-142（自動状態取得が月間上限を使い切る）、BL-143（エラー後にバックオフせず叩き続ける）、
+    BL-144（月間リクエスト上限をヘルプと利用者向けドキュメントへ明示する）、
+    BL-145（BLEでの直接操作をWeb APIの併用経路にできるかの検討）、
+    BL-146（BL-145で参照する外部実装の調査結果）を追加。BL-145は公開リポジトリの調査結果に基づき、
+    鍵の同一性の実証を最重要論点として書き直した。非公式実装（gomalock / libsesame3bt-core /
+    ha-sesame-ble など）はいずれもクラウドへ接続せず、16進数32文字のsecret keyだけでSesame 5を
+    BLE操作しており、本アプリが保持するsecretKey（BL-058）と同一である可能性が高い。
+- `docs/records/managed/DESIGN.md`
+  - Sesame APIクライアントの節へ、2026-09-18の実機調査結果とリクエスト数の抑制が無い点を追記。
+
 ## 2026-09-18（ストア掲載アセットを0.11.0の内容へ更新、BL-127）
 
 機能グラフィックとスマートフォン用スクリーンショットが0.10.0時点の内容だったため更新しました。
