@@ -38,12 +38,10 @@ class SesameApiClient(
                         .build()
 
                 httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw httpErrorOf(response.code)
                     val body =
                         response.body?.string()
                             ?: throw SesameApiException("Empty response body (HTTP ${response.code})")
-                    if (!response.isSuccessful) {
-                        throw SesameApiException("Sesame API error: HTTP ${response.code} - $body")
-                    }
                     json.decodeFromString(SesameStatus.serializer(), body)
                 }
             }
@@ -79,13 +77,18 @@ class SesameApiClient(
                         .build()
 
                 httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        val body = response.body?.string().orEmpty()
-                        throw SesameApiException("Sesame API error: HTTP ${response.code} - $body")
-                    }
+                    if (!response.isSuccessful) throw httpErrorOf(response.code)
                 }
             }
         }
+
+    /**
+     * HTTPのエラー応答を[SesameApiException]へ変換する。メッセージへは応答本文を含めない（BL-133 / BL-139）。
+     * 本文には認証エラーの詳細など運用上の情報が入りうるため、ログへ流れる可能性のある[Exception.message]
+     * からは除き、呼び出し側が失敗の種類を判断するための[SesameApiException.httpStatusCode]だけを残す。
+     */
+    private fun httpErrorOf(statusCode: Int): SesameApiException =
+        SesameApiException("Sesame API error: HTTP $statusCode", httpStatusCode = statusCode)
 
     /**
      * [block]の失敗を[SesameApiException]へ正規化する（BL-133）。対象は通信の失敗（[IOException]）、

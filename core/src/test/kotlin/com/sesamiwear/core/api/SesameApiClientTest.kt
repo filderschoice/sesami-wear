@@ -12,7 +12,9 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -119,6 +121,42 @@ class SesameApiClientTest {
                 thrown = e
             }
             assertNotNull(thrown)
+            // 失敗の種類を呼び出し側が区別できるようステータスコードを保持する（BL-139）。
+            assertEquals(HTTP_UNAUTHORIZED, thrown?.httpStatusCode)
+            // 応答本文はメッセージへ載せない（ログへ流れうるため、BL-133 / BL-139）。
+            assertFalse(thrown?.message.orEmpty().contains("unauthorized"))
+        }
+
+    @Test
+    fun `http error on send command keeps the status code without the response body`() =
+        runTest {
+            server.enqueue(
+                MockResponse().setBody("""{"Message":"explicit deny"}""").setResponseCode(HTTP_FORBIDDEN),
+            )
+            val dummySecretKey = ByteArray(16)
+
+            var thrown: SesameApiException? = null
+            try {
+                client.sendCommand(SesameCommand.LOCK, dummySecretKey)
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertEquals(HTTP_FORBIDDEN, thrown?.httpStatusCode)
+            assertFalse(thrown?.message.orEmpty().contains("explicit deny"))
+        }
+
+    @Test
+    fun `connection failure has no http status code`() =
+        runTest {
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+
+            var thrown: SesameApiException? = null
+            try {
+                client.getStatus()
+            } catch (e: SesameApiException) {
+                thrown = e
+            }
+            assertNull(thrown?.httpStatusCode)
         }
 
     @Test

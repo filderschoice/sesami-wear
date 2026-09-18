@@ -5,6 +5,8 @@ import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
+import com.sesamiwear.core.api.SesameApiFailureLog
+import com.sesamiwear.core.api.SesameApiOperation
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.BuildConfig
 import com.sesamiwear.mobile.messaging.CommandDebouncer
@@ -24,13 +26,15 @@ import com.sesamiwear.mobile.state.LockStateStore
  *
  * デモ用デバイス（`SesameDemoMode.DEMO_DEVICE_UUID`、BL-123）はmobile端末内だけで状態を持ち、
  * Sesame APIへもウォッチへも一切送らない（ウォッチ側のデモ状態とは同期せず、端末ごとに独立して体験する）。
+ *
+ * Sesame APIの呼び出し口と失敗ログの出力先は[SesameApiAccess]としてまとめて受け取る（BL-139）。
  */
 class SesameDeviceCommandExecutor(
     private val loadCredentials: () -> List<SesameCredentials>,
     private val lockStateStore: LockStateStore,
     private val notifier: LockStateNotifier,
+    private val apiAccess: SesameApiAccess = SesameApiAccess(),
     private val debouncer: CommandDebouncer = sharedDebouncer,
-    private val apiClientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     /** 施錠/解錠の実行結果。[DEBOUNCED]は重複として無視した（APIを呼んでいない）ことを表す。 */
@@ -65,7 +69,14 @@ class SesameDeviceCommandExecutor(
     ): Boolean {
         val credentials = findCredentials(uuid)
         val secretKey = credentials?.secretKeyBytesOrNull ?: return false
-        val handler = SesameCommandHandler(apiClientFactory(credentials), secretKey)
+        val handler =
+            SesameCommandHandler(
+                apiClient = apiAccess.clientFactory(credentials),
+                secretKey = secretKey,
+                onFailure = { e ->
+                    apiAccess.logFailure(SesameApiFailureLog.describe(operationOf(command), e))
+                },
+            )
         return handler.execute(command) == SesameCommandResult.SUCCESS
     }
 
@@ -87,14 +98,20 @@ class SesameDeviceCommandExecutor(
     private suspend fun fetchIsLocked(uuid: String): Boolean? {
         val credentials = findCredentials(uuid) ?: return null
         return try {
-            apiClientFactory(credentials).getStatus().isInLockRange
-        } catch (
-            @Suppress("SwallowedException") e: SesameApiException,
-        ) {
+            apiAccess.clientFactory(credentials).getStatus().isInLockRange
+        } catch (e: SesameApiException) {
             // 呼び出し元（ウォッチ・ウィジェット）へは「取得できなかった」ことだけを伝える。
+            // 切り分けに必要な情報はlogcatへ残す（BL-139）。
+            apiAccess.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
             null
         }
     }
+
+    private fun operationOf(command: SesameCommand): SesameApiOperation =
+        when (command) {
+            SesameCommand.LOCK -> SesameApiOperation.LOCK
+            SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK
+        }
 
     private fun findCredentials(uuid: String): SesameCredentials? = loadCredentials().find { it.uuid == uuid }
 
@@ -113,7 +130,21 @@ class SesameDeviceCommandExecutor(
          * ウォッチ経由とウィジェット経由の重複も1つにまとめる（BL-062 / BL-120）。
          */
         val sharedDebouncer = CommandDebouncer()
+    }
+}
 
+/**
+ * Sesame APIの呼び出し口（[clientFactory]）と、その失敗を1行残す出力先（[logFailure]）をまとめたもの。
+ *
+ * [SesameDeviceCommandExecutor]はAndroid非依存のユニットテスト対象のため`android.util.Log`を
+ * 直接呼べない。[logFailure]には[SesameApiFailureLog]が組み立てた、資格情報も応答本文も含まない
+ * 文字列だけを渡す（BL-139）。既定では何もしないため、ログが不要な呼び出し元は省略できる。
+ */
+class SesameApiAccess(
+    val clientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
+    val logFailure: (String) -> Unit = {},
+) {
+    companion object {
         /**
          * 既定のAPIクライアント。デバッグビルドで`-PsesameApiBaseUrl`が指定されたときだけ接続先を
          * 差し替える（BL-132）。実資格情報・実デバイスを使わずに、施錠/解錠の成功を起点とする

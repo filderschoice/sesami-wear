@@ -13,6 +13,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -25,6 +26,7 @@ class SesameDeviceCommandExecutorTest {
     private val watchSyncs = mutableListOf<Pair<String, Boolean>>()
     private var now = 10_000L
     private var credentialsList = listOf(validCredentials)
+    private val failureLogs = mutableListOf<String>()
 
     @Before
     fun setUp() {
@@ -47,15 +49,19 @@ class SesameDeviceCommandExecutorTest {
                     local = { uuid, isLocked -> notifications += uuid to isLocked },
                     watch = { uuid, isLocked -> watchSyncs += uuid to isLocked },
                 ),
+            apiAccess =
+                SesameApiAccess(
+                    clientFactory = { credentials ->
+                        SesameApiClient(
+                            uuid = credentials.uuid,
+                            apiKey = credentials.apiKey,
+                            httpClient = OkHttpClient(),
+                            baseUrl = server.url("/").toString().trimEnd('/'),
+                        )
+                    },
+                    logFailure = { message -> failureLogs += message },
+                ),
             debouncer = debouncer,
-            apiClientFactory = { credentials ->
-                SesameApiClient(
-                    uuid = credentials.uuid,
-                    apiKey = credentials.apiKey,
-                    httpClient = OkHttpClient(),
-                    baseUrl = server.url("/").toString().trimEnd('/'),
-                )
-            },
             nowMillis = { now },
         )
 
@@ -239,6 +245,71 @@ class SesameDeviceCommandExecutorTest {
             assertNull(isLocked)
             assertNull(lockStateStore.load(DEVICE_UUID))
             assertTrue(notifications.isEmpty())
+        }
+
+    @Test
+    fun `refresh status failure logs the http status code`() =
+        runTest {
+            server.enqueue(
+                MockResponse()
+                    .setBody("""{"Message":"User is not authorized"}""")
+                    .setResponseCode(HTTP_FORBIDDEN),
+            )
+
+            createExecutor().refreshStatus(DEVICE_UUID)
+
+            assertEquals(listOf("status failed: HTTP 403"), failureLogs)
+        }
+
+    @Test
+    fun `command failure logs the http status code`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))
+
+            createExecutor().execute(DEVICE_UUID, SesameCommand.UNLOCK)
+
+            assertEquals(listOf("unlock failed: HTTP 403"), failureLogs)
+        }
+
+    @Test
+    fun `failure logs never contain credentials or the response body`() =
+        runTest {
+            server.enqueue(
+                MockResponse()
+                    .setBody("""{"Message":"User is not authorized"}""")
+                    .setResponseCode(HTTP_FORBIDDEN),
+            )
+            server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            executor.execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(2, failureLogs.size)
+            val secrets =
+                listOf(
+                    DEVICE_UUID,
+                    validCredentials.apiKey,
+                    validCredentials.secretKeyHex,
+                    "User is not authorized",
+                    server.url("/").toString(),
+                )
+            failureLogs.forEach { log ->
+                secrets.forEach { secret -> assertFalse(log, log.contains(secret)) }
+            }
+        }
+
+    @Test
+    fun `successful calls do not log anything`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            executor.execute(DEVICE_UUID, SesameCommand.LOCK)
+            executor.refreshStatus(DEVICE_UUID)
+
+            assertTrue(failureLogs.isEmpty())
         }
 
     @Test

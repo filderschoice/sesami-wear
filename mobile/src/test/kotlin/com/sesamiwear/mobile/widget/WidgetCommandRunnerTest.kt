@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.command.LockStateNotifier
+import com.sesamiwear.mobile.command.SesameApiAccess
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.messaging.CommandDebouncer
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
@@ -70,10 +71,13 @@ class WidgetCommandRunnerTest {
             loadCredentials = { credentials },
             lockStateStore = lockStateStore,
             notifier = LockStateNotifier(local = { _, _ -> }, watch = { _, _ -> }),
+            apiAccess =
+                SesameApiAccess(
+                    clientFactory = {
+                        SesameApiClient(it.uuid, it.apiKey, OkHttpClient(), server.url("/").toString().trimEnd('/'))
+                    },
+                ),
             debouncer = debouncer,
-            apiClientFactory = {
-                SesameApiClient(it.uuid, it.apiKey, OkHttpClient(), server.url("/").toString().trimEnd('/'))
-            },
             nowMillis = { 10_000L },
         )
 
@@ -177,8 +181,8 @@ class WidgetCommandRunnerTest {
                     loadCredentials = { credentials },
                     lockStateStore = lockStateStore,
                     notifier = LockStateNotifier(local = { _, _ -> }, watch = { _, _ -> }),
+                    apiAccess = SesameApiAccess(clientFactory = { throw CancellationException("timed out") }),
                     debouncer = debouncer,
-                    apiClientFactory = { throw CancellationException("timed out") },
                     nowMillis = { 10_000L },
                 )
 

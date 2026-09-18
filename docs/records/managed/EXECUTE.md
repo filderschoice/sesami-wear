@@ -5,6 +5,52 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 09:45
+  summary: Sesame APIの失敗理由をリリースビルドのlogcatへ残せるようにした
+  details:
+    変更内容: >-
+      BL-139: リリースビルドでSesame APIの失敗理由がどこにも残らず、状態取得が「状態不明」に
+      なる原因（HTTPエラーなのか通信失敗なのか）を切り分けられなかった問題に対応した。
+      `core.api.SesameApiException` へ `httpStatusCode` を追加し、HTTPのエラー応答では
+      ステータスコードを保持する。あわせて例外メッセージから応答本文を除いた（従来は
+      `Sesame API error: HTTP 403 - {本文}` の形で本文を載せており、メッセージがログへ流れると
+      応答内容が露出しうるため。`rules/guardrails-unified.v1.md` 3.3）。
+      失敗の説明文を組み立てる `core.api.SesameApiFailureLog` と操作種別の
+      `core.api.SesameApiOperation` を新設し、`status failed: HTTP 403` のように
+      「どの操作が」「どの種類の失敗で」落ちたかだけを1行で表す。apikey・secretKey・uuid・URL・
+      応答本文は一切含めない。
+      `mobile.command.SesameDeviceCommandExecutor` はAndroid非依存のユニットテスト対象で
+      `android.util.Log` を直接呼べないため、出力先を注入可能にした。引数が
+      detektの `LongParameterList` 閾値（7）に達したため、API呼び出し口と失敗ログの出力先を
+      `SesameApiAccess` へまとめ、既定のAPIクライアント生成（`-PsesameApiBaseUrl` の差し替え、
+      BL-132）も同クラスへ移した。`SesameDeviceCommandExecutorFactory` が
+      `Log.w(SesameApiFailureLog.TAG, ...)` へ配線する（`Log.w` は
+      `mobile/proguard-rules.pro` の `-assumenosideeffects` の対象外でリリースビルドにも残る、BL-083）。
+      施錠/解錠側は `mobile.messaging.SesameCommandHandler` に `onFailure` を足し、
+      実行口が同じ経路でログを出す。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiException.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiFailureLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiFailureLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、ログ文字列が
+      HTTPステータスコードまたは原因例外の型名だけになり、uuid・apikey・secretKey・
+      応答本文・URLを含まないことを確認した
+    関連ID:
+      - BL-139
+
 - date: 2026-09-17 00:10
   summary: ウィジェットのタップ処理を受信の実行時間制限内へ収め実機で固着とANRの解消を確認した
   details:

@@ -58,6 +58,18 @@
     `SesameApiException`だけを捕捉するため、正規化前は通信エラーが素通りしてコルーチンから漏れ、
     プロセスが落ちる経路になっていた。例外メッセージには原因例外の型名だけを載せる（uuidを含むURLや
     応答内容をログへ流さないため）。原因例外は`cause`として保持する。
+  - `SesameApiException`はHTTPのエラー応答に由来する場合だけ`httpStatusCode`を持つ（BL-139）。
+    通信失敗・解析失敗ではnullで、呼び出し側が「認証エラー・上限超過（401 / 403 / 429）」と
+    「圏外などの通信失敗」を区別するための唯一の手がかりになる。メッセージへは応答本文を載せない
+    （従来は`Sesame API error: HTTP 403 - {本文}`の形で本文を含んでおり、メッセージがログへ流れると
+    応答内容が露出しうるため。`rules/guardrails-unified.v1.md` 3.3）。
+  - 失敗のログ文言は`core.api.SesameApiFailureLog.describe`が組み立てる（BL-139）。出力は
+    `status failed: HTTP 403` / `lock failed: IOException` のように「どの操作
+    （`core.api.SesameApiOperation`: STATUS / LOCK / UNLOCK）が」「どの種類の失敗で」落ちたかの1行だけで、
+    apikey・secretKey・uuid・URL・応答本文は含めない。理由は`httpStatusCode`があればステータスコード、
+    無ければ原因例外の型名を使う（`withContext`をまたぐ例外はkotlinx.coroutinesが複製するため、
+    `cause`を最内までたどってから型名を取る）。含めてはならない値を埋め込んだ例外を渡すテストで、
+    それらが出力へ現れないことを検証している。
   - 既定の`OkHttpClient`は接続3秒・読み書き3秒・呼び出し全体6秒のタイムアウトを持ち、プロセス内で
     共有する1インスタンス（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行し、
     Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は
@@ -78,14 +90,15 @@
     応答は約240msで返るためタイムアウトではない。uuidは36文字・大文字で形式は正常。
     `mapping.txt`上で`SesameStatus` / `$$serializer` / `$Companion`はいずれも非難読化のまま残存して
     おり、R8によるkotlinx.serializationの破壊でもない。**アプリの実装は正常**で、修正は不要。
-  - ただしこの調査で、リリースビルドでは失敗理由がどこにも残らないことが判明した。
+  - ただしこの調査で、リリースビルドでは失敗理由がどこにも残らないことが判明した。当時の
     `SesameDeviceCommandExecutor.fetchIsLocked`は`SesameApiException`を捕捉してnullを返すだけで、
-    ログ出力を行わない。`Log.d`はproguard-rules.proの`-assumenosideeffects`で除去される（BL-083）。
+    ログ出力を行わなかった。`Log.d`はproguard-rules.proの`-assumenosideeffects`で除去される（BL-083）。
     Play App Signingのため配布済みのリリース版へ後から診断ログを足すこともできない
     （インストール済みAPKの署名は`CN=Android, O=Google Inc.`で、アップロード鍵では上書き更新不可。
     アンインストールすると保存済みの資格情報が消える）。原因特定にはデバッグ版（BL-131の併存
-    インストール）へ実資格情報を入力して一時的な診断ログを仕込む必要があった。HTTPステータスコードの
-    ログ出力はBL-139、認証エラーと未取得の表示上の区別はBL-140として起票済み。
+    インストール）へ実資格情報を入力して一時的な診断ログを仕込む必要があった。
+    この反省からBL-139で最低限の失敗ログをリリースビルドへ最初から含めるようにした（対応済み）。
+    認証エラーと未取得の表示上の区別はBL-140として起票済み。
   - 403の直接の原因は、当月のAPIリクエスト数が上限（1000回）に達してアカウントのAPIキーが
     拒否されたことである可能性が高い（biz.candyhouse.coのサイト上からのリクエストも同時に
     通らなくなっていた）。上限到達時の応答がHTTP 429ではなく403である点はCANDY HOUSE側の実装に
@@ -400,18 +413,26 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     UNLOCK→解錠、BL-015の簡略化ロジック）。
   - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
     APIエラーはnull（保存・通知しない）。重複判定の対象外。
+  - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
+    本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
+    注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
   - デモ用デバイス（BL-123）: `execute`はAPIを呼ばず常に成功として端末内の状態だけを書き換え（重複判定は
     実デバイスと同じ）、`refreshStatus`は保存値（無ければ`INITIAL_IS_LOCKED`）を返すだけで保存・通知しない。
     ウォッチへのDataItem同期も行わず、ウォッチ側のデモ状態（`wear.demo.DemoLockStateStore`）とは同期しない。
   - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateNotifier`（`local`＝すべての
     変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ）、
-    `CommandDebouncer`、APIクライアント生成、時刻取得を注入する。`CommandDebouncer`は
+    `SesameApiAccess`、`CommandDebouncer`、時刻取得を注入する。`CommandDebouncer`は
     companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
     同一uuidへの2秒以内の重複も1回にまとめる。
+  - `mobile.command.SesameApiAccess`（同一ファイル、Android非依存）: APIクライアントの生成
+    （`clientFactory`。既定はデバッグビルドで`-PsesameApiBaseUrl`があれば接続先を差し替える、BL-132）と
+    失敗ログの出力先（`logFailure`。既定は何もしない）をまとめた型。実行口の引数がdetektの
+    `LongParameterList`閾値（7）に達したため、Sesame APIとのつなぎ方を1つにまとめた（BL-139）。
   - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
     `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
     通知先は`watch`＝`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）、`local`＝
-    `SesameWidgetUpdater.updateAll`で生成する。
+    `SesameWidgetUpdater.updateAll`、失敗ログは`Log.w(SesameApiFailureLog.TAG, ...)`で生成する。
+    `Log.w`はproguard-rules.proの`-assumenosideeffects`の対象外のため、リリースビルドにも残る（BL-083）。
 - `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
   更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
   保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名
