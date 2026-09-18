@@ -453,6 +453,34 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   検証手順で踏んだ注意点を1点記録する。品質ゲートの`./gradlew assembleDebug`は`-PsesameApiBaseUrl`を
   伴わないため、**注入済みのAPKを本番URLのものへ上書きする**。接続先を差し替えたAPKは品質ゲートの
   実行後に組み直して入れ直す（上書きされたAPKを入れるとモックへ1件も届かず、原因が分かりにくい）。
+- 実機検証（BL-149、2026-09-18、Pixel 8 Pro + Pixel Watch 2）: BL-142の最終取得時刻、BL-140の失敗文言、
+  BL-128のサイズ別レイアウト、BL-147の呼び出し回数、BL-148の連打抑止を、Claude Codeがadb経由のUI操作で
+  確認した。実資格情報は使わず、ダミー資格情報2台（Genkan / Ura）とモックAPI（BL-132）で状態を作っている。
+  確認できたのは次のとおり。(1) Tileは全施錠中・全解錠中・一部解錠の3状態で、アイコン・状態文言・
+  最終取得時刻（「たった今」「1分前」「6分前」）・操作文言の4要素が円形画面のセーフエリアへ収まり、
+  省略・見切れは無い。(2) Tileの失敗文言「認証エラー」「通信エラー」も同じ位置へ収まる。
+  (3) ウィジェット（4x2）は「未取得」「たった今」「3分前」と、12文字の「認証エラー（設定を確認）」
+  「通信エラー（電波状況を確認）」のいずれも1行で省略無く表示する。(4) ウィジェットは追加直後が4x2
+  （選択画面の表示も4x2）で、1x1まで縮められ、縮小時はアイコンと状態文言だけになり文字は欠けない。
+  縮小時もタップで施錠/解錠でき、長押しメニューの「ウィジェットの設定」から対象デバイスを変更できる。
+  (5) 状態取得はデバイス名のタップでのみ飛び、Tileの再描画（`onTileRequest`）が複数回起きてもモックへ
+  GETは1件も届かない（自動取得の廃止、BL-142）。(6) 同一デバイスへ1秒あけて2回タップしても、モックへの
+  GETは1巡分しか届かない（BL-148）。(7) 「今月のAPI呼び出し」は実際の呼び出し回数（GET 4回＋POST 5回＝
+  9回）と一致した（BL-147）。(8) 資格情報を全削除するとウィジェットは「タップして設定」へ戻り、
+  タップするとデモ用デバイスだけが選択肢に出る（BL-123）。デモの施錠/解錠では最終取得時刻の行が
+  出ず、呼び出し回数も増えない（18回のまま、BL-147）。(9) Complicationは`SHORT_TEXT`枠で
+  「混在」を省略なく表示した（`onComplicationRequest type=SHORT_TEXT` / `state=MIXED`をデバッグ版の
+  プロセスのログで確認）。失敗の再現には、常に403を返すモックと、接続が即座に拒否される宛先
+  （`http://127.0.0.1:1/api/sesame2`）を`-PsesameApiBaseUrl`で注入している。
+  この検証で不具合を検出し、BL-156（ウィジェット操作の振動が鳴らない。`SesameHapticPlayer`が
+  `VibrationAttributes`を渡さないため、バックグラウンド実行のウィジェット操作では
+  `VibratorManagerService`が振動を破棄する。ウォッチ側は前面のActivityから鳴らすため正常）、
+  BL-157（Tileの「全デバイス」操作で`LockStateStore`の更新が後勝ちで失われ、解錠済みのデバイスを
+  「施錠中」と表示し続ける）、BL-158（幅4マス×高さ1マスでFULLレイアウトの操作文言が縦に見切れる）、
+  BL-159（呼び出し回数の表示が画面の再開では更新されない）、BL-160（資格情報を削除してもロック状態が
+  残る。`LockStateStore.remove`が本体のコードから呼ばれていない）として起票した。未確認のまま残るのは、
+  Complicationの`LONG_TEXT`枠の表示（該当枠を持つ文字盤へ割り当てられなかった）と、Android 11以下での
+  既定の配置サイズ（該当端末が無い）で、BL-149へ残している。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
@@ -462,9 +490,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   変更しない。ウィジェットが端末内に保存するのはロック状態（uuid・真偽値・時刻）と割り当て（appWidgetIdと
   uuid）のみで、端末外へ新たに送信する情報は無く（Sesame APIへの送信内容は従来と同じ）、wearが既に
   端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
-- `res/xml/sesame_widget_info.xml`: サイズはTile相当の1種類（minWidth 250dp / minHeight 110dp、4x2セル、
-  `resizeMode=none`。サイズ別レイアウトはBL-128で検討）、`widgetFeatures=reconfigurable`、
-  `initialLayout`はGlance既定の読み込み中レイアウト。
+- `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
+  `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
+  minResizeWidth / minResizeHeight 50dpにより1マス（1x1）まで縮められる（BL-128）。
+  `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 

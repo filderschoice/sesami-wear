@@ -5,6 +5,124 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-160
+  区分: 不具合
+  タスク内容: >-
+    資格情報を削除しても、そのデバイスのロック状態（`sesami_wear_lock_state.xml`の`lock_states`）が
+    残り続ける。`LockStateStore.remove`は「資格情報を削除したデバイスの状態を消す」ために用意されて
+    いるが、本体のコードから呼ばれていない（呼び出しは`LockStateStoreTest`のみ）。削除は
+    `CredentialsSettingsScreen`の`onDelete`で`credentialsStore.remove(uuid)`だけを行っている。
+    2026-09-18の実機検証では、ダミー2台を削除したあとも両uuidの`isLocked`・`updatedAtEpochMillis`・
+    `lastFailure`が保存されたままだった。同じuuidを再登録すると、一度も取得していないのに
+    削除前の状態と失敗文言がそのまま表示される。`onDelete`から`LockStateStore.remove(uuid)`を
+    呼ぶ（あわせて`WidgetDeviceAssignmentStore.unassignDevice(uuid)`の要否も判断する）。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    資格情報を削除したあと`shared_prefs/sesami_wear_lock_state.xml`から当該uuidの項目が消えており、
+    同じuuidを再登録した直後の表示が「状態不明・未取得」になること
+  根拠: >-
+    保存されるのはuuidと真偽値と時刻のみで機密情報を含まず、実害は再登録時の一時的な誤表示に
+    とどまるためP3とした。BL-149の実機検証で判明した。
+  依存: []
+
+- id: BL-159
+  区分: UX改善
+  タスク内容: >-
+    資格情報設定画面の「今月のAPI呼び出し」（BL-147）が、画面を開いたままホームへ戻って開き直した
+    ときに更新されない。`CredentialsSettingsScreen`が`remember { ApiUsageCounter(...).countOf(...) }`
+    でコンポジション生成時に1回だけ読むため、Activityが破棄されずに再表示された場合は古い値が
+    残る。2026-09-18のPixel 8 Proでの検証では、9回呼び出した後にホーム経由で開き直しても
+    「0 回」のままで、`am force-stop`後の起動で初めて「9 回」になった。`remember`のキーへ
+    画面の再開を反映する（`LifecycleEventEffect`のON_RESUMEで読み直す等）。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    施錠/解錠または状態取得を行った後、アプリをホームへ退避してから開き直すと、増えた回数が
+    表示されること
+  根拠: >-
+    表示が古いだけで消費そのものは正しく記録されており（SharedPreferencesの値は9で一致）、
+    アプリを開き直せば最新値が出るため優先度はP3とする。BL-149の実機検証で判明した。
+  依存: []
+
+- id: BL-158
+  区分: 不具合
+  タスク内容: >-
+    ホーム画面ウィジェットを幅4マス×高さ1マスへリサイズすると、FULLレイアウトのまま描画され
+    操作文言（「タップで全解錠」等）が縦方向に見切れる。`SesameWidget`の`SizeMode.Responsive`は
+    候補（COMPACT 50x50dp / FULL 200x100dp）のうち表示領域へ収まる最大のものを選ぶため、
+    高さが100dpをわずかに超える1マス（Pixel 8 Pro + Nova Launcherでは約128dp）でもFULLが選ばれる。
+    FULLの4要素（アイコン・状態文言・最終取得時刻または失敗文言・操作文言）は128dpでは収まらない。
+    `SesameWidgetLayout.FULL_MIN_HEIGHT_DP`（現在100）を実測に基づいて引き上げるか、
+    高さのみ不足する場合の中間レイアウトを設ける。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    幅4マス×高さ1マスでも、表示される文言がすべて欠けずに読めること（COMPACTへ切り替わるか、
+    4要素が収まる高さでのみFULLを選ぶこと）
+  根拠: >-
+    既定の配置（4x2）と1x1では正しく表示されるため、利用者が意図的に横長へ縮めた場合に限られる。
+    BL-149の実機検証で判明した。
+  依存: []
+
+- id: BL-157
+  区分: 不具合
+  タスク内容: >-
+    ウォッチのTileから「全デバイス」を操作すると、一部のデバイスのロック状態が保存されず、
+    実態と異なる状態を表示し続ける。`SesameMessageListenerService.onMessageReceived`が
+    メッセージごとに`CoroutineScope(Dispatchers.IO).launch`で
+    `SesameDeviceCommandExecutorFactory.create`を呼ぶため、デバイス数ぶんの
+    `LockStateStore`インスタンスが並行して同じ単一キー（`lock_states`）へ
+    read-modify-writeを行う。`LockStateStore`の`@Synchronized`はインスタンス単位のため
+    排他にならず、後勝ちで一方の更新が失われる。2026-09-18のPixel 8 Pro + Pixel Watch 2 +
+    モックAPIでの検証では、Tileの「全解錠」で2台ともAPIは成功（モックのログで確認）したのに、
+    保存値は1台だけが`isLocked=false`へ更新され、もう1台は20分前の`isLocked=true`と
+    そのときの`lastFailure`が残った。結果としてウィジェットとTileが「一部解錠」「全施錠中」を
+    出し続け、**実際には解錠されているのに施錠中と表示される**状態になった。
+    対策候補は、`LockStateStore`をプロセス内シングルトンにする、`@Synchronized`をクラス単位の
+    ロック（companion objectのロック）にする、または全デバイス分の更新を1コルーチンへ直列化する。
+  優先度: P1
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    複数デバイスを登録した状態でTileから「全デバイス」を操作したあと、
+    `shared_prefs/sesami_wear_lock_state.xml`の全デバイスの`isLocked`と`updatedAtEpochMillis`が
+    今回の操作の値へ更新されており、ウィジェットとTileが実際の状態と一致する表示になること
+  根拠: >-
+    施錠されていないのに「施錠中」と表示しうる（利用者が施錠済みと誤認する）ため、表示の不具合の
+    中では影響が大きいと判断しP1とした。BL-149の実機検証で判明した。単体テストは
+    `SesameDeviceCommandExecutor`を単一インスタンスで検証しており、この競合は検出できていない。
+  依存: []
+
+- id: BL-156
+  区分: 不具合
+  タスク内容: >-
+    ホーム画面ウィジェットの操作で振動が鳴らない（BL-129が実機で機能していない）。
+    `mobile.haptics.SesameHapticPlayer.play`が`Vibrator.vibrate(VibrationEffect)`を
+    `VibrationAttributes`なしで呼ぶため用途がUNKNOWNとなり、ウィジェット操作はアプリが
+    バックグラウンドのまま実行されることから、システムが振動を破棄する。
+    2026-09-18のPixel 8 Pro（Android 16）での検証で、施錠・解錠のたびに
+    `VibratorManagerService: Ignoring incoming vibration as process with uid= ... is background,
+    attrs= VibrationAttributes{mUsage=UNKNOWN ...}`が記録されることを確認した。
+    ウォッチ側は`SesameActionActivity`（前面）から鳴らすため同じ実装でも成功しており
+    （同日の検証でアクチュエータ動作を2回＝成功パターンとして確認）、影響はmobileのみ。
+    対策候補は、`vibrate(VibrationEffect, VibrationAttributes)`でUSAGE_HARDWARE_FEEDBACK等の
+    バックグラウンド許可対象の用途を指定する方法。指定後も実機で鳴ることの確認が必要。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    ホーム画面ウィジェットの施錠/解錠の成功で短い振動2回、失敗で長い振動1回が実機で鳴り、
+    logcatに`Ignoring incoming vibration`が出ないこと
+  根拠: >-
+    表示は正しく更新されるため操作自体は成立しており、手触りの機能が欠けている状態。
+    BL-149の実機検証で判明した。ユニットテストは鳴らす判定（`WidgetHapticResolver`）だけを
+    対象にしており、実際に鳴るかは対象外のため検出できていない。
+  依存: []
+
 - id: BL-155
   区分: 人手検証
   タスク内容: >-
@@ -199,13 +317,22 @@
     リクエストが飛ばないこと（表示が更新されないこと）と、デバイス名タップでのみ更新されることを
     確認する。実資格情報を使わずに済む範囲は、デモモードとモックAPI（`-PsesameApiBaseUrl`）で
     代替できる（手順は Skill `realmachine-verification`）。
+    2026-09-18にClaude Codeがadb経由で大半を検証済み（Pixel 8 Pro + Pixel Watch 2、デバッグ版と
+    ダミー資格情報2台とモックAPI）。TileとウィジェットのBL-142・BL-140・BL-128・BL-147・BL-148の
+    表示と挙動は確認できた（内訳はDESIGN.md「実機検証（BL-149、2026-09-18）」）。
+    Complicationは`SHORT_TEXT`枠の表示まで確認した。検出した不具合はBL-156〜BL-160として
+    起票済み。残りはComplicationの`LONG_TEXT`枠の表示確認（該当枠を持つ文字盤へ割り当てられて
+    いない）と、Android 11以下の端末での既定の配置サイズの確認（該当端末が手元に無い）。
   優先度: P2
-  状態: 未着手
+  状態: 進行中
   担当: ユーザー
   完了条件: >-
     Pixel Watch 2 のTileとComplication、Pixel 8 Pro のホーム画面ウィジェットで、
     最終取得時刻の表示が省略・見切れなく表示されること。Tileを開いただけでは状態が更新されず、
-    デバイス名のタップで更新されることを確認していること
+    デバイス名のタップで更新されることを確認していること。
+    Tileとウィジェットと`SHORT_TEXT`枠のComplicationは2026-09-18に確認済みで、
+    Complicationの`LONG_TEXT`枠の表示確認とAndroid 11以下での既定の配置サイズの確認が
+    未実施のまま残る（未確認）
   根拠: >-
     表示の崩れはユニットテストでは検出できず、実機またはエミュレータの描画が必要なため
     人手検証とする。文言の決定ロジック自体は`core.display.SesameStatusFreshness`の
