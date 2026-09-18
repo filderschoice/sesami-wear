@@ -21,8 +21,21 @@
     自動状態取得の廃止は利用者の体験を変えるため、ストア掲載情報（詳細な説明）に
     「状態の更新はタップで行う」旨の追記が要るかもあわせて判断する。
     BL-149（実機での表示確認）を先に済ませてから配信する。
+    2026-09-19 に配信準備を実施済み。品質ゲート（ktlintCheck / detekt / lintDebug /
+    testDebugUnitTest / test / assembleDebug）が全て成功し、`scripts/release-build.bat` で
+    署名付き AAB を2件ビルドした（versionName 0.12.0 / mobile の versionCode 7 /
+    wear の versionCode 1005。`scripts/version.properties` も同値へ更新済み）。成果物は
+    `mobile/build/outputs/bundle/release/mobile-release.aab` と
+    `wear/build/outputs/bundle/release/wear-release.aab` で、いずれも署名済みであることを
+    確認している。ストア掲載情報（詳細な説明）も更新済みで、コンプリケーションの「常時表示」の
+    表現を改め、更新はタップで行うこと・最後に取得した時刻を表示すること・ウィジェットの
+    サイズ変更と振動を追記した（Play Console へは未転記）。
+    残りは Play Console への AAB 2件のアップロードと両トラックの公開、
+    「このリリースの新機能」欄への転記（`docs/RELEASE_NOTES.md` の 0.12.0 の
+    「ストア掲載用の要約」、429文字で上限500文字以内）、公開後のリリース公開日の反映、
+    ストア掲載情報の別送信での転記。
   優先度: P2
-  状態: 未着手
+  状態: 進行中
   担当: ユーザー
   完了条件: >-
     0.12.0 がクローズドテストの両トラックで公開中になり、`docs/RELEASE_NOTES.md` の配信日が
@@ -30,7 +43,10 @@
   根拠: >-
     Play Console の操作を伴うため自律ループ実行モードでは実行できない
     （rules/guardrails-unified.v1.md セクション12.2）。`scripts/version.properties` は
-    リリースビルド時に更新する運用のため（BL-127の実績）、本ブランチでは 0.11.0 のままにしている。
+    リリースビルド時に更新する運用のため（BL-127の実績）、本ブランチでリリースビルドを実行した
+    時点で 0.12.0 へ更新した。BL-149 の残り（Complication の `LONG_TEXT` 枠の表示確認と
+    Android 11 以下での既定の配置サイズの確認）は未実施のままだが、前者は追試不要と
+    ユーザーが判断し、後者は該当端末が無いため、どちらも未確認のまま配信する。
   依存:
     - BL-149
 
@@ -210,6 +226,8 @@
     「実機検証（BL-156 / BL-157 / BL-158 / BL-159 / BL-160、2026-09-18）」）。
     残りはComplicationの`LONG_TEXT`枠の表示確認（該当枠を持つ文字盤へ割り当てられて
     いない）と、Android 11以下の端末での既定の配置サイズの確認（該当端末が手元に無い）。
+    2026-09-19 に、`LONG_TEXT` 枠の追試は不要とユーザーが判断した。どちらも未確認のまま
+    0.12.0 を配信する（BL-155）。
   優先度: P2
   状態: 進行中
   担当: ユーザー

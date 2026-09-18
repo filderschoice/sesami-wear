@@ -7,6 +7,26 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-19（0.12.0のリリース準備、BL-155）
+
+0.12.0（Sesame Web API の月間リクエスト上限への対応）の配信準備を実施しました。Play Console への
+アップロードと公開はユーザーが行うため、BL-155 は「進行中」のまま残しています。
+
+- 品質ゲート（`ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest` / `test` /
+  `assembleDebug`）が全て成功することを確認しました。
+- `scripts/release-build.bat -VersionName 0.12.0` で署名付き AAB を2件ビルドしました
+  （versionName 0.12.0 / mobile の versionCode 7 / wear の versionCode 1005）。
+  `scripts/version.properties` も同値へ更新されています（ビルド成功時のみ更新される運用）。
+- [docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md) の「詳細な説明」を 0.12.0 の内容へ
+  更新しました。自動状態取得を廃止したため、コンプリケーションの「常時表示」という表現は実態と
+  合わなくなっています。表現を改めたうえで、更新はタップで行うこと・最後に状態を取得した時刻を
+  表示すること・ウィジェットのサイズ変更と振動を追記しました。文字数の実測値も再計測しています
+  （詳細な説明 1546 / 4000、このリリースの新機能 429 / 500）。Play Console へはリリースの公開後に
+  別送信で転記するため、「未転記の変更があります」の注記を再度置いています。
+- BL-149 の残り2件（Complication の `LONG_TEXT` 枠の表示確認、Android 11 以下での既定の配置サイズ）は
+  未確認のまま配信する判断です。前者は追試不要とユーザーが判断し、後者は該当端末が手元にありません。
+  この判断を BL-149 と BL-155 の双方へ記録しています。
+
 ## 2026-09-19（0.11.0のストア掲載情報の転記完了とv0.11.0の公開、BL-127 / BL-138）
 
 0.11.0（ホーム画面ウィジェット）の配信に関する残作業を完了しました。
