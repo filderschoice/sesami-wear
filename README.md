@@ -212,6 +212,7 @@ sesami-wear/
     ├── SUPPORT.md        # アップデート確認先・問い合わせ窓口
     ├── RELEASE_NOTES.md  # バージョンごとの変更点（アプリ利用者向け）
     ├── INSTALL.md        # 実機へのインストール手順
+    ├── BLE_KEY_VERIFICATION.md # BLE鍵の同一性確認手順（開発者向け、BL-150）
     ├── store/            # Google Play提出用のストア掲載情報・プライバシーポリシー
     ├── guidelines/       # ガードレール一式を他リポジトリへ導入するための汎用ガイド
     └── records/
@@ -277,6 +278,8 @@ sesami-wear/
 - [PLAN.md](PLAN.md): 要件・API仕様メモ・アーキテクチャ方針
 - [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md): 実装済み内容の統合設計書
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
+- [docs/BLE_KEY_VERIFICATION.md](docs/BLE_KEY_VERIFICATION.md): 保持中のsecretKeyでSesame 5へ
+  BLE接続できるかをPCから確認する手順（BL-150）
 - [CONTRIBUTING.md](CONTRIBUTING.md): 報告の受け付け方針（Issueは受付、外部Pull Requestは非受付）・
   開発プロセス・品質ゲート
 - [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
