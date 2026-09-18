@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 19:35
+  summary: ホーム画面ウィジェットの操作で振動が鳴るよう用途を指定した
+  details:
+    変更内容: >-
+      BL-156: `mobile.haptics.SesameHapticPlayer.play`が用途を指定せずに
+      `Vibrator.vibrate(VibrationEffect)`を呼んでいたため、用途がUNKNOWNとなり、
+      アプリがバックグラウンドのまま実行されるウィジェット操作ではシステムが振動を破棄していた
+      （`VibratorManagerService: Ignoring incoming vibration ... is background`）。
+      Android 13（API 33）以上では`VibrationAttributes.USAGE_HARDWARE_FEEDBACK`を指定する
+      オーバーロードへ、未満では[AudioAttributes]版（`USAGE_NOTIFICATION`へ写像される）へ
+      切り替えた。いずれもバックグラウンドからの振動が許可される用途で、
+      `USAGE_HARDWARE_FEEDBACK`は利用者のタップに対する手応えという意味に最も近く、
+      サイレントモードや通知の設定に左右されないため既定に選んだ。
+      `USAGE_HARDWARE_FEEDBACK`へ写像できる[AudioAttributes]の用途が存在しないため、
+      API 33未満だけ用途が`USAGE_NOTIFICATION`になる点はコメントへ残した。
+      wear側の同名クラスは前面のActivityから鳴らしており実機で成功しているため変更していない。
+      あわせて、0.11.0で配信済みの不具合であるBL-157の修正を`docs/RELEASE_NOTES.md`の
+      0.12.0へ「修正」として追記した（BL-156の振動は0.12.0の新機能で未配信のため追記不要）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/haptics/SesameHapticPlayer.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。実際に鳴るかはAndroid依存のためユニットテストの対象外で、
+      実機での確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-156
+      - BL-157
+
 - date: 2026-09-18 19:10
   summary: 全デバイス操作でロック状態の一部が失われる競合を修正した
   details:

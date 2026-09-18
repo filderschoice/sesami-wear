@@ -115,7 +115,7 @@
     対策候補は、`vibrate(VibrationEffect, VibrationAttributes)`でUSAGE_HARDWARE_FEEDBACK等の
     バックグラウンド許可対象の用途を指定する方法。指定後も実機で鳴ることの確認が必要。
   優先度: P2
-  状態: 未着手
+  状態: 進行中
   担当: AIエージェント
   完了条件: >-
     ホーム画面ウィジェットの施錠/解錠の成功で短い振動2回、失敗で長い振動1回が実機で鳴り、
@@ -124,6 +124,9 @@
     表示は正しく更新されるため操作自体は成立しており、手触りの機能が欠けている状態。
     BL-149の実機検証で判明した。ユニットテストは鳴らす判定（`WidgetHapticResolver`）だけを
     対象にしており、実際に鳴るかは対象外のため検出できていない。
+    2026-09-18に`mobile.haptics.SesameHapticPlayer`へ用途の指定を追加した
+    （Android 13以上は`VibrationAttributes.USAGE_HARDWARE_FEEDBACK`、未満は
+    `AudioAttributes.USAGE_NOTIFICATION`）。残りは実機で実際に鳴ることの確認のみ。
   依存: []
 
 - id: BL-155
