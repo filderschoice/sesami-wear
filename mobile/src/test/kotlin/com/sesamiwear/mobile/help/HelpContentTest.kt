@@ -1,15 +1,14 @@
 package com.sesamiwear.mobile.help
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HelpContentTest {
     @Test
-    fun `menu offers the four topics in a fixed order`() {
+    fun `menu offers the topics in a fixed order`() {
         assertEquals(
-            listOf("credentials", "demo", "after-registration", "widget"),
+            listOf("credentials", "api-limit", "demo", "after-registration", "widget"),
             HelpContent.topics.map { it.id },
         )
     }
@@ -30,11 +29,45 @@ class HelpContentTest {
     }
 
     @Test
-    fun `credentials topic keeps the sesame biz link`() {
-        val link = HelpContent.credentials.link
-        assertNotNull(link)
-        assertEquals(HelpContent.SESAME_BIZ_DEVELOPER_URL, link?.url)
-        assertTrue(HelpContent.SESAME_BIZ_DEVELOPER_URL.startsWith("https://"))
+    fun `credentials topic keeps the sesame biz link and adds the official api key guide`() {
+        assertEquals(
+            listOf(HelpContent.SESAME_BIZ_DEVELOPER_URL, HelpContent.SESAME_API_KEY_GUIDE_URL),
+            HelpContent.credentials.links.map { it.url },
+        )
+    }
+
+    @Test
+    fun `every link is https and has a label`() {
+        val links = HelpContent.topics.flatMap { it.links }
+        assertTrue(links.isNotEmpty())
+        links.forEach { link ->
+            assertTrue(link.url, link.url.startsWith("https://"))
+            assertTrue(link.label.isNotBlank())
+        }
+    }
+
+    @Test
+    fun `links never contain raw non ascii characters`() {
+        // Uri.parseは受け取った文字列をそのまま扱うため、日本語パスはエンコード済みで保持する（BL-144）。
+        HelpContent.topics.flatMap { it.links }.forEach { link ->
+            assertTrue(link.url, link.url.all { it.code in 0x20..0x7E })
+        }
+    }
+
+    @Test
+    fun `api limit topic explains the monthly limit, how it looks and where to check it`() {
+        val body = HelpContent.apiLimit.paragraphs.joinToString(separator = "")
+        assertTrue(body.contains("1か月あたり"))
+        assertTrue(body.contains("上限"))
+        // 失敗時の表示文言（core.SesameStatusFailure）と同じ言葉で書き、利用者が結び付けられるようにする。
+        assertTrue(body.contains("認証エラー"))
+        assertTrue(body.contains("biz.candyhouse.co"))
+        // 実測値（1000回）は利用者の環境での値であり公式の記載を確認できていないため、断定しない。
+        assertTrue("上限の具体的な回数を断定している", !body.contains("1000"))
+        assertEquals(
+            listOf(HelpContent.SESAME_BIZ_DEVELOPER_URL),
+            HelpContent.apiLimit.links.map { it.url },
+        )
     }
 
     @Test
@@ -62,7 +95,10 @@ class HelpContentTest {
     }
 
     @Test
-    fun `only the credentials topic opens an external page`() {
-        assertEquals(1, HelpContent.topics.count { it.link != null })
+    fun `only the credentials and api limit topics open external pages`() {
+        assertEquals(
+            listOf("credentials", "api-limit"),
+            HelpContent.topics.filter { it.links.isNotEmpty() }.map { it.id },
+        )
     }
 }

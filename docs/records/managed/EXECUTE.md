@@ -5,6 +5,54 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 14:30
+  summary: Sesame Web APIの月間リクエスト上限をアプリのヘルプと利用者向けドキュメントへ明示した
+  details:
+    変更内容: >-
+      BL-144: 2026-09-18に月間リクエスト上限へ到達して状態取得・施錠/解錠がすべてHTTP 403で
+      失敗した（BL-141）際、アプリ・ドキュメントのどこにも上限の存在に触れた記述が無く、
+      利用者が原因へ到達できなかった問題に対応した。
+      `mobile.help.HelpContent` へヘルプ項目「APIのリクエスト回数の上限」を追加し、
+      「値の取得方法」の直後へ置いた。上限の存在、上限到達時の表示が「認証エラー」になること
+      （BL-140で追加した文言と同じ言葉を使い、利用者が結び付けられるようにする）、確認先
+      （SESAME Biz）、対処（翌月のリセット待ちか引き上げの問い合わせ）、本アプリが0.12.0から
+      自動取得を行わないことを説明する。上限の具体的な回数（1000回）は利用者の環境での実測値で
+      公式ドキュメント上の記載を確認できていないため断定せず、書かないことをユニットテストで固定した。
+      1項目から複数の公式ページへ誘導する必要が出たため、`HelpTopic.link: HelpLink?` を
+      `links: List<HelpLink>` へ変更し、`CredentialsSettingsScreen.HelpTopicDialog` を追従させた。
+      併記する公式リンクは、既存のSESAME Biz 開発者ページと、APIキーの取得手順を説明した
+      CANDY HOUSE公式記事（`jp.candyhouse.co/blogs/how-to/...`）の2本。いずれも実際にアクセスして
+      認証なしで開けることを確認した。Web APIのリファレンス（`doc.candyhouse.co/ja/SesameAPI/`）は
+      GitHub Pagesの認証（`github.com/pages/auth`）へ302でリダイレクトされ認証なしでは開けなかった
+      ため、リンクとして採用していない。公式記事のURLは日本語のパスを持つため、`Uri.parse`が
+      そのまま扱えるようパーセントエンコード済みで保持し、非ASCII文字を含まないことをテストで固定した。
+      あわせて `docs/USER_GUIDE.md`（「APIのリクエスト回数の上限」節と「困ったときは」の2行）、
+      `docs/SUPPORT.md`（問い合わせ前の自己診断項目）、`README.md`（既知の未確認事項・制約）へ
+      上限到達時の症状と確認先を記載した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - docs/SUPPORT.md
+      - README.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / WebFetchによるリンク到達性の確認
+    検証結果: >-
+      成功 - 全ゲート終了コード0。リンクの到達性は実際にアクセスして確認し、
+      biz.candyhouse.co と jp.candyhouse.co の記事は認証なしで到達、
+      doc.candyhouse.co はGitHub Pagesの認証へリダイレクトされるため不採用とした。
+      ユニットテストで、項目の並び順、上限の説明が「1か月あたり」「上限」「認証エラー」
+      「biz.candyhouse.co」を含み「1000」を含まないこと、全リンクがhttpsかつ非ASCIIを
+      含まないことを検証した
+    関連ID:
+      - BL-144
+
 - date: 2026-09-18 13:15
   summary: 状態取得・施錠/解錠の失敗理由を表示し「まだ取得していない」と区別できるようにした
   details:

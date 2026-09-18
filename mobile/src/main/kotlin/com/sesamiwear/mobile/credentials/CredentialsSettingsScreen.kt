@@ -178,7 +178,7 @@ private fun HelpMenuDialog(
 
 /**
  * ヘルプ1項目の本文（BL-113）。本文が画面の高さを超える項目があるためスクロール可能にし、
- * 外部ページへのリンクを持つ項目（値の取得方法）ではブラウザを開くボタンを添える。
+ * 外部ページへのリンクを持つ項目ではブラウザを開くボタンを添える（1項目に複数可、BL-144）。
  */
 @Composable
 private fun HelpTopicDialog(
@@ -196,7 +196,7 @@ private fun HelpTopicDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 topic.paragraphs.forEach { paragraph -> Text(paragraph) }
-                topic.link?.let { link ->
+                topic.links.forEach { link ->
                     TextButton(onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
                     }) {
