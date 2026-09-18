@@ -73,6 +73,7 @@ class SesameDeviceCommandExecutor(
         val secretKey = credentials?.secretKeyBytesOrNull ?: return false
         // 失敗の分類はコールバックで受け取る（コールバックはsuspendでないためその場では保存できない）。
         var failure: SesameStatusFailure? = null
+        apiAccess.recordApiCall()
         val handler =
             SesameCommandHandler(
                 apiClient = apiAccess.clientFactory(credentials),
@@ -104,6 +105,7 @@ class SesameDeviceCommandExecutor(
 
     private suspend fun fetchIsLocked(uuid: String): Boolean? {
         val credentials = findCredentials(uuid) ?: return null
+        apiAccess.recordApiCall()
         return try {
             apiAccess.clientFactory(credentials).getStatus().isInLockRange
         } catch (e: SesameApiException) {
@@ -165,10 +167,16 @@ class SesameDeviceCommandExecutor(
  * [SesameDeviceCommandExecutor]はAndroid非依存のユニットテスト対象のため`android.util.Log`を
  * 直接呼べない。[logFailure]には[SesameApiFailureLog]が組み立てた、資格情報も応答本文も含まない
  * 文字列だけを渡す（BL-139）。既定では何もしないため、ログが不要な呼び出し元は省略できる。
+ *
+ * [recordApiCall]は実際にSesame APIを1回呼ぶ直前に呼ばれる（BL-147）。月間リクエスト上限
+ * （BL-141）に対する消費量を利用者へ示すためのカウンタで、成否によらず数える（上限は成功・失敗を
+ * 問わず消費されるため）。デモ用デバイス・重複として無視した操作・資格情報が無い場合はAPIを
+ * 呼ばないため数えない。既定では何もしない。
  */
 class SesameApiAccess(
     val clientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
     val logFailure: (String) -> Unit = {},
+    val recordApiCall: () -> Unit = {},
 ) {
     companion object {
         /**

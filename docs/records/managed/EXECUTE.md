@@ -5,6 +5,50 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 17:10
+  summary: 今月のSesame Web API呼び出し回数を数えて資格情報設定画面へ表示するようにした
+  details:
+    変更内容: >-
+      BL-147: Web APIの月間リクエスト上限（BL-141）に達するとアプリ全体が機能停止するが、利用者が
+      「今月どれだけ使ったか」を知る手段がアプリ内に無く、SESAME Bizのサイトを見に行くしかなかった
+      問題に対応した。
+      `mobile.state.ApiUsageCounter`（Android非依存、ユニットテスト対象）を追加し、暦月ごとに
+      呼び出し回数を数える。`SesameApiAccess`へ`recordApiCall`を足し、実際にAPIを呼ぶ直前に
+      成否によらず数える（上限は成功・失敗を問わず消費されるため）。デモ用デバイス・重複として
+      無視した操作・資格情報が無い場合はAPIを呼ばないため数えない。
+      保存値は「対象の年月」と「回数」の2つだけで機密情報を含まないため、保存先は非暗号化
+      SharedPreferences（`sesami_wear_api_usage`）。月の境界を判定するタイムゾーンは注入可能で、
+      既定は端末のタイムゾーンとした（CANDY HOUSE側のカウンタがどのタイムゾーンで月を区切るかは
+      未確認のため、利用者の体感に合う側を既定とする。目安である旨の明示と合わせて許容する）。
+      表示は資格情報設定画面の見出し直下。数えるのはこのアプリからの呼び出しだけで他経路の消費を
+      含まず、上限値そのものも契約内容によって変わりアプリからは取得できないため、「上限までの残り」
+      ではなく消費の目安として出す。文言へ「このアプリからの分のみ・目安」を含めることを
+      ユニットテストで固定した。
+      画面の関数がdetektの`LongMethod`閾値（60）に達したため、見出しと呼び出し回数の表示を
+      `ScreenHeader`へ切り出した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/ApiUsageCounter.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/ApiUsageCounterTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、同月内の加算、月が変わったときの
+      数え直し、過去月の参照が0になり保存値を壊さないこと、月の境界がタイムゾーンに従うこと
+      （JSTでは月をまたぐがUTCではまたがない時刻で確認）、壊れた保存値を0として扱うこと、
+      表示文言が目安である旨を含むことを確認した。実機での表示確認はBL-149へ含めた。
+    関連ID:
+      - BL-147
+
 - date: 2026-09-18 16:20
   summary: ホーム画面ウィジェットの施錠/解錠の成否をスマートフォンの振動でも伝えるようにした
   details:

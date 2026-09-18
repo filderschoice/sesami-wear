@@ -522,9 +522,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
     同一uuidへの2秒以内の重複も1回にまとめる。
   - `mobile.command.SesameApiAccess`（同一ファイル、Android非依存）: APIクライアントの生成
-    （`clientFactory`。既定はデバッグビルドで`-PsesameApiBaseUrl`があれば接続先を差し替える、BL-132）と
-    失敗ログの出力先（`logFailure`。既定は何もしない）をまとめた型。実行口の引数がdetektの
-    `LongParameterList`閾値（7）に達したため、Sesame APIとのつなぎ方を1つにまとめた（BL-139）。
+    （`clientFactory`。既定はデバッグビルドで`-PsesameApiBaseUrl`があれば接続先を差し替える、BL-132）、
+    失敗ログの出力先（`logFailure`。既定は何もしない、BL-139）、呼び出し回数の記録口
+    （`recordApiCall`。既定は何もしない、BL-147）をまとめた型。実行口の引数がdetektの
+    `LongParameterList`閾値（7）に達したため、Sesame APIとのつなぎ方を1つにまとめた。
   - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
     `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
     通知先は`watch`＝`SesameStatusSyncer.sync`（スナップショットをそのままDataItemへ、BL-118の
@@ -539,6 +540,21 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   にして単一キー`lock_states`へ保存し、`remove(uuid)`で個別に消せる。mobileはkotlinx.serializationの
   コンパイラプラグインを適用していないため`@Serializable`を使わずJsonObjectを直接組み立てる（R8の
   keepルールも不要）。壊れた値・欠けた項目は未取得扱い。書き込みは`@Synchronized`で同期化する。
+- `mobile.state.ApiUsageCounter`（Android非依存、ユニットテスト対象、BL-147）: このアプリが
+  Sesame Web APIを呼び出した回数を暦月ごとに数える。`SesameApiAccess.recordApiCall`が実際にAPIを
+  呼ぶ直前に呼ばれ、**成否によらず**数える（上限は成功・失敗を問わず消費されるため）。
+  デモ用デバイス・重複として無視した操作・資格情報が無い場合はAPIを呼ばないため数えない。
+  保存値は「対象の年月」と「回数」の2つだけで機密情報を含まないため、保存先は非暗号化
+  SharedPreferences（ファイル名`sesami_wear_api_usage`）。月が変わったら数え直す。
+  月の境界を判定するタイムゾーンは注入可能で、既定は端末のタイムゾーン（CANDY HOUSE側のカウンタが
+  どのタイムゾーンで月を区切るかは未確認のため、利用者の体感に合う側を既定とする）。
+  - **数えるのはこのアプリからの呼び出しだけで、Sesame純正アプリなど他経路の消費は含まない。**
+    上限値そのものも契約内容によって変わりアプリからは取得できないため、表示は「上限までの残り」
+    ではなく消費の目安として出す。文言（`ApiUsageCounter.label`）に「このアプリからの分のみ・目安」
+    を含めることをユニットテストで固定する。
+  - 表示場所は資格情報設定画面の見出しの直下（`ScreenHeader`）。画面を開いた時点の値を出し、
+    開いている間の更新は行わない（設定画面は操作の場ではないため）。上限の存在そのものの説明は
+    ヘルプの「APIのリクエスト回数の上限」（BL-144）が持つ。
 - `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一デバイスuuidへの
   2秒以内の重複コマンドを無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
 - `mobile.messaging.SesameStatusSyncer`: `DataClient.putDataItem`ラッパー。コマンド送信成功時は

@@ -26,6 +26,7 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
     companion object {
         private const val LOCK_STATE_PREFS_FILE_NAME = "sesami_wear_lock_state"
         private const val WIDGET_ASSIGNMENTS_PREFS_FILE_NAME = "sesami_wear_widget_assignments"
+        private const val API_USAGE_PREFS_FILE_NAME = "sesami_wear_api_usage"
 
         /** ロック状態（[LockStateStore]）用のストア。 */
         fun forLockState(context: Context): SharedPreferencesKeyValueStore = create(context, LOCK_STATE_PREFS_FILE_NAME)
@@ -33,6 +34,9 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
         /** ホーム画面ウィジェットの対象デバイス割り当て（BL-121）用のストア。 */
         fun forWidgetAssignments(context: Context): SharedPreferencesKeyValueStore =
             create(context, WIDGET_ASSIGNMENTS_PREFS_FILE_NAME)
+
+        /** Sesame Web APIの月間呼び出し回数（[ApiUsageCounter]、BL-147）用のストア。 */
+        fun forApiUsage(context: Context): SharedPreferencesKeyValueStore = create(context, API_USAGE_PREFS_FILE_NAME)
 
         private fun create(
             context: Context,
