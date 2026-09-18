@@ -5,6 +5,199 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 18:40
+  summary: BL-156〜BL-160の修正をPixel 8 Pro + Pixel Watch 2で実機検証した
+  details:
+    変更内容: >-
+      本ブランチで修正したBL-156 / BL-157 / BL-158 / BL-159 / BL-160の5件を、adb経由で実機検証した。
+      実資格情報は使わず、ダミー資格情報2台（DevA=`MOCKA1` / DevB=`MOKB2`）とモックAPI
+      （`scripts/mock-sesame-api.py`と`-PsesameApiBaseUrl`、BL-132）で状態を作っている。
+      ウォッチのタイルカルーセルは`input swipe`で移動できないため、Tileのタップは
+      `SesameActionActivity`（exported）を`am start`で直接起動して再現した。
+      結果はDESIGN.md「実機検証（BL-156 / BL-157 / BL-158 / BL-159 / BL-160、2026-09-18）」へ
+      記載し、5件をBACKLOGから削除した。コードの変更は無い（記録ファイルのみ）。
+      後始末として、ダミー資格情報の削除、検証用ウィジェットの撤去、BL-149の検証で残っていた
+      孤立ロック状態の削除、モックサーバーの停止、ウォッチの`screen_off_timeout`の復元（30000）、
+      本番URLでのデバッグ版の入れ直しを行った。
+    変更ファイル:
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      adb -s <スマホ> shell run-as com.sesamiwear.mobile.debug cat shared_prefs/... /
+      adb -s <スマホ> logcat -d | grep -i vibrat / adb exec-out screencap /
+      adb -s <ウォッチ> shell am start -n ...SesameActionActivity
+    検証結果: >-
+      成功 - BL-157は「全デバイス」操作で2台が同一ミリ秒で更新（修正前は片方が失われていた）。
+      BL-156はウィジェット操作でアクチュエータが動作し`Ignoring incoming vibration`は0件。
+      BL-158は4マス×1マスでCOMPACTへ切り替わり見切れ無し。BL-159は画面の再開で23回から25回へ更新。
+      BL-160は削除したuuidだけがロック状態とウィジェット割り当てから消えた。
+      ウォッチのDataItem削除はベストエフォートの失敗ログが出ないことのみで確認しており、
+      DataItemの中身は未確認。
+    関連ID:
+      - BL-156
+      - BL-157
+      - BL-158
+      - BL-159
+      - BL-160
+
+- date: 2026-09-18 18:00
+  summary: 資格情報を削除したデバイスの残存状態を消すようにした
+  details:
+    変更内容: >-
+      BL-160: 削除は`credentialsStore.remove(uuid)`だけを行っており、`LockStateStore.remove`は
+      本体のコードから呼ばれていなかった。同じuuidを登録し直すと、一度も取得していないのに
+      削除前の施錠状態と失敗文言がそのまま表示されていた。
+      `mobile.state.RemovedDeviceCleaner`を追加し、`CredentialsSettingsScreen`の削除操作から
+      呼ぶようにした。消す対象は(1)`LockStateStore`のロック状態、(2)ホーム画面ウィジェットの
+      対象デバイス割り当て、(3)ウォッチへ同期済みのDataItem
+      （`SesameWearProtocol.statusDataItemPath`、`wear://`のURIで`deleteDataItems`）の3つ。
+      (2)は表示自体が未登録uuidなら「タップして設定」へ倒れるため必須ではないが、同じuuidを
+      登録し直したときに利用者が設定し直していないウィジェットが黙って結び付くため消す判断とした。
+      (3)はBACKLOGに挙がっていなかったが、残すとウォッチ側で同じ症状が出るため同時に消す。
+      DataItemの削除はsuspendかつ失敗しても削除操作を止めてはならないため、
+      `DataLayerBestEffort`で包み、画面のコルーチンスコープで実行する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/RemovedDeviceCleaner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。保存先をつなぐだけのAndroid依存アダプタのためユニットテストは
+      追加していない（各ストアの削除そのものは既存のテストで検証済み）。実機での確認は
+      本ブランチの最後に行う。
+    関連ID:
+      - BL-160
+
+- date: 2026-09-18 17:55
+  summary: 今月のAPI呼び出し回数を画面の再開ごとに読み直すようにした
+  details:
+    変更内容: >-
+      BL-159: `CredentialsSettingsScreen`が`remember`でコンポジション生成時に1回だけ
+      呼び出し回数を読んでいたため、Activityが破棄されずに再表示された場合（ホームへ退避してから
+      戻った場合など）に古い値が残っていた。`rememberApiUsageCount`へ切り出し、
+      `LifecycleEventEffect(Lifecycle.Event.ON_RESUME)`で読み直すようにした。
+      `LifecycleRegistry`は追加した監視者へ現在の状態までのイベントを送るため、初回表示でも
+      同じ経路で読まれる（初期値も同じ値で組み立てるため表示のちらつきは無い）。
+      切り出しは`CredentialsSettingsScreen`がdetektの`LongMethod`（60行）へ達したための対応も
+      兼ねる。
+      直接使う`androidx.lifecycle:lifecycle-runtime-compose`を`libs.versions.toml`と
+      `mobile/build.gradle.kts`へ明示した。compose-uiが推移的に持ち込む版と同一（2.8.7、
+      `lifecycle-runtime-ktx`と同じバージョン参照）のため、依存グラフのバージョンは変わらない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/build.gradle.kts
+      - gradle/libs.versions.toml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。Compose画面のためユニットテストの対象外で、表示の更新は
+      実機での確認を本ブランチの最後に行う。
+    関連ID:
+      - BL-159
+
+- date: 2026-09-18 17:45
+  summary: 横長へ縮めたウィジェットで文言が見切れないようレイアウトのしきい値を上げた
+  details:
+    変更内容: >-
+      BL-158: `SesameWidgetLayout.FULL_MIN_HEIGHT_DP`が100dpだったため、高さ1マス
+      （Pixel 8 Pro + Nova Launcherで約128dp）でも`FULL`が選ばれ、4要素
+      （アイコン・状態文言・最終取得時刻または失敗文言・操作文言）が入りきらず操作文言が
+      縦に見切れていた。`SesameWidget`の文字サイズとパディングから必要な高さを見積もると
+      約136dpのため、余裕を見て140dpへ引き上げた。`SizeMode.Responsive`へ渡す候補サイズは
+      同じ定数を参照しているため、候補・判定ともに140dpで揃う。
+      対策候補のうち中間レイアウトは採らなかった。4要素のうち何を落とすかの判断が必要で、
+      0.12.0で追加した最終取得時刻・失敗文言（BL-140 / BL-142）を隠すことになるため、
+      横長では`COMPACT`（アイコンと状態文言のみ）へ落とす方を選んだ。
+      既定の配置（4x2）は2マス分の高さがあり140dpを上回るため`FULL`のままになる。
+      `sesame_widget_info.xml`の`minHeight`は、API 30以下で既定の配置が3マスへ広がるのを
+      避けるため110dpのまま変更していない（2マス＝約140dpとなり`FULL`が選ばれる）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。4x1相当（250x128dp）で`COMPACT`が選ばれること、
+      既定の4x2相当では`FULL`のままであることをユニットテストで確認した。
+      実機での見え方の確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-158
+
+- date: 2026-09-18 17:40
+  summary: ホーム画面ウィジェットの操作で振動が鳴るよう用途を指定した
+  details:
+    変更内容: >-
+      BL-156: `mobile.haptics.SesameHapticPlayer.play`が用途を指定せずに
+      `Vibrator.vibrate(VibrationEffect)`を呼んでいたため、用途がUNKNOWNとなり、
+      アプリがバックグラウンドのまま実行されるウィジェット操作ではシステムが振動を破棄していた
+      （`VibratorManagerService: Ignoring incoming vibration ... is background`）。
+      Android 13（API 33）以上では`VibrationAttributes.USAGE_HARDWARE_FEEDBACK`を指定する
+      オーバーロードへ、未満では[AudioAttributes]版（`USAGE_NOTIFICATION`へ写像される）へ
+      切り替えた。いずれもバックグラウンドからの振動が許可される用途で、
+      `USAGE_HARDWARE_FEEDBACK`は利用者のタップに対する手応えという意味に最も近く、
+      サイレントモードや通知の設定に左右されないため既定に選んだ。
+      `USAGE_HARDWARE_FEEDBACK`へ写像できる[AudioAttributes]の用途が存在しないため、
+      API 33未満だけ用途が`USAGE_NOTIFICATION`になる点はコメントへ残した。
+      wear側の同名クラスは前面のActivityから鳴らしており実機で成功しているため変更していない。
+      あわせて、0.11.0で配信済みの不具合であるBL-157の修正を`docs/RELEASE_NOTES.md`の
+      0.12.0へ「修正」として追記した（BL-156の振動は0.12.0の新機能で未配信のため追記不要）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/haptics/SesameHapticPlayer.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。実際に鳴るかはAndroid依存のためユニットテストの対象外で、
+      実機での確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-156
+      - BL-157
+
+- date: 2026-09-18 17:35
+  summary: 全デバイス操作でロック状態の一部が失われる競合を修正した
+  details:
+    変更内容: >-
+      BL-157: `SesameMessageListenerService`がメッセージごとに別コルーチンで
+      `SesameDeviceCommandExecutorFactory.create`を呼ぶため、「全デバイス」操作では
+      デバイス数ぶんの`LockStateStore`インスタンスが並行して単一キー（`lock_states`）へ
+      read-modify-writeを行っていた。`@Synchronized`はインスタンス単位のロックのため
+      排他にならず、後勝ちで一方の更新が失われ、実際には解錠されているのに「施錠中」と
+      表示され続けていた。
+      `LockStateStore`の`load` / `save` / `saveFailure` / `remove`を、ファイルスコープの
+      共有ロック`LOCK`による`synchronized(LOCK)`へ置き換えた。対策候補のうちクラス単位の
+      ロックを選んだのは、保存先が同一プロセス内のSharedPreferences1ファイルのみで
+      プロセス内の排他で足り、呼び出し側（Service・ウィジェット・設定画面）の生成方法を
+      変えずに済むため。シングルトン化はContextの保持先を増やし、1コルーチンへの直列化は
+      `SesameMessageListenerService`の構造変更を伴うため採らなかった。
+      検出できる回帰テストとして、読み出しに20ms要する保存先へ8スレッドが別インスタンスから
+      同時に`save`するユニットテストを追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したテストが修正前は失敗し（一部uuidの保存が消える）、
+      修正後は8デバイスぶんすべて残ることを確認した。実機での確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-157
+
 - date: 2026-09-18 17:50
   summary: 状態取得の連打を抑止してSesame APIの無駄な消費を防いだ
   details:

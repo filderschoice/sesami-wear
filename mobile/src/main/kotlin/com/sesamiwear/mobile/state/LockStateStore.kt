@@ -26,18 +26,20 @@ import kotlinx.serialization.json.put
  * kotlinx.serializationのコンパイラプラグインを適用していないため、`@Serializable`ではなく
  * JsonObjectを直接組み立てる（R8のkeepルールも不要になる）。
  * ウォッチ経由とウィジェット経由の書き込みが並行しうるため、読み書きは同期化する。
+ * 排他はインスタンス単位ではなくクラス単位（[LOCK]）で行う。「全デバイス」の操作では
+ * `SesameMessageListenerService`がデバイスごとに別コルーチンで本クラスを生成するため、
+ * インスタンス単位の`@Synchronized`では単一キー（`lock_states`）へのread-modify-writeが
+ * 後勝ちとなり、一部デバイスの更新が失われていた（BL-157）。
  */
 class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
     /** [uuid]の保存済み状態。一度も取得・操作していなければnull。 */
-    @Synchronized
-    fun load(uuid: String): SesameStatusSnapshot? = loadAll()[uuid]
+    fun load(uuid: String): SesameStatusSnapshot? = synchronized(LOCK) { loadAll()[uuid] }
 
-    @Synchronized
     fun save(
         uuid: String,
         isLocked: Boolean,
         updatedAtEpochMillis: Long,
-    ) {
+    ) = synchronized(LOCK) {
         // 成功したので直近の失敗は消す（BL-140）。
         saveAll(loadAll() + (uuid to SesameStatusSnapshot(isLocked, updatedAtEpochMillis)))
     }
@@ -47,11 +49,10 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
      * 最後に分かった施錠状態と、その取得時刻はそのまま残す（BL-142の「最後に分かった状態を
      * 出し続ける」設計に合わせる）。一度も取得できていないデバイスでは失敗だけを保存する。
      */
-    @Synchronized
     fun saveFailure(
         uuid: String,
         failure: SesameStatusFailure,
-    ) {
+    ) = synchronized(LOCK) {
         val states = loadAll()
         val previous = states[uuid]
         saveAll(
@@ -68,11 +69,11 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
     }
 
     /** 資格情報を削除したデバイスの状態を消す。 */
-    @Synchronized
-    fun remove(uuid: String) {
-        val states = loadAll()
-        if (uuid in states) saveAll(states - uuid)
-    }
+    fun remove(uuid: String) =
+        synchronized(LOCK) {
+            val states = loadAll()
+            if (uuid in states) saveAll(states - uuid)
+        }
 
     private fun loadAll(): Map<String, SesameStatusSnapshot> {
         val json = keyValueStore.getString(KEY_LOCK_STATES) ?: return emptyMap()
@@ -119,6 +120,12 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
         keyValueStore.putString(KEY_LOCK_STATES, json.toString())
     }
 }
+
+/**
+ * プロセス内の全[LockStateStore]インスタンスで共有する排他ロック（BL-157）。
+ * 保存先が同一プロセス内のSharedPreferences1ファイルのみのため、プロセス内の排他で足りる。
+ */
+private val LOCK = Any()
 
 private const val KEY_LOCK_STATES = "lock_states"
 private const val FIELD_IS_LOCKED = "isLocked"

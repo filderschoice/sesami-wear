@@ -274,9 +274,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
     決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
-    しきい値は幅200dp・高さ100dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
+    しきい値は幅200dp・高さ140dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
     状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
-    4行が入る下限から決めた。
+    4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
+    高さは当初100dpとしていたが、4x1（約128dp）でも`FULL`が選ばれて操作文言が縦に見切れたため、
+    余裕を見て140dpへ引き上げた（BL-158）。既定の4x2はどの端末でも140dp以上になるため`FULL`のまま。
     `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
     出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
     対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。
@@ -355,6 +357,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `MainActivity.onStart`（BL-135）に呼ぶ。定期更新は行わない（`updatePeriodMillis=0`）。
   `MainActivity`から呼ぶのは、解除の再描画が行われず表示が固まった場合に、利用者が最初にとる行動
   （アプリを開く）で確実に復帰させるため。
+- `mobile.state.RemovedDeviceCleaner`（Android依存、ユニットテスト対象外）: 資格情報を削除したデバイスの
+  残存状態を消す（BL-160）。`CredentialsSettingsScreen`の削除操作から呼び、(1)`LockStateStore`のロック状態、
+  (2)ホーム画面ウィジェットの対象デバイス割り当て、(3)ウォッチへ同期済みのDataItem
+  （`SesameWearProtocol.statusDataItemPath`、`wear://`のURIで`deleteDataItems`）を消す。
+  端末内の保存値は同期的に、DataItemの削除だけは呼び出し元のコルーチンスコープでベストエフォートに行う。
+  消さないと、同じuuidを登録し直したときに一度も取得していない状態で削除前の施錠状態・失敗文言が表示される。
+  ウィジェットの割り当ては、未登録uuidなら表示自体は「タップして設定」へ倒れるが、再登録で黙って
+  結び付き直すのを避けるため消す。
 - `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
   （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
   JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
@@ -481,6 +491,28 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   残る。`LockStateStore.remove`が本体のコードから呼ばれていない）として起票した。未確認のまま残るのは、
   Complicationの`LONG_TEXT`枠の表示（該当枠を持つ文字盤へ割り当てられなかった）と、Android 11以下での
   既定の配置サイズ（該当端末が無い）で、BL-149へ残している。
+- 実機検証（BL-156 / BL-157 / BL-158 / BL-159 / BL-160、2026-09-18、Pixel 8 Pro + Pixel Watch 2）:
+  BL-149で起票した5件の修正を、Claude Codeがadb経由で確認した。実資格情報は使わず、ダミー資格情報2台
+  （DevA=`MOCKA1` / DevB=`MOKB2`。uuidは`input text`が1文字落とした実際の値）とモックAPI（BL-132）で
+  状態を作っている。ウォッチのタイルカルーセルは`input swipe`で移動できないため、Tileのタップは
+  `SesameActionActivity`（exported）を`am start`で直接起動して再現した。確認できたのは次のとおり。
+  (1) BL-157: 「全デバイス」の施錠でモックへPOSTが2件届き、`lock_states`の2台が同一ミリ秒
+  （施錠時1789722340853 / ...854、解錠時は両方1789722371145）で更新された。修正前は片方だけが
+  更新され、もう一方は古い状態と`lastFailure`が残っていた。
+  (2) BL-156: ウィジェットのタップ（アプリはバックグラウンド）でモックへPOSTが届き、
+  `Vibrator: Took 0 ms to wait for the actuator activation.`と`waitForComplete`が2回記録された。
+  `Ignoring incoming vibration`は0件（修正前は施錠・解錠のたびに記録されていた）。
+  (3) BL-158: ウィジェットを幅4マス×高さ1マスへ縮めるとCOMPACT（アイコンと状態文言のみ）で描画され、
+  操作文言の見切れは無い。未設定時の文言も「設定」になる。
+  (4) BL-159: 設定画面を開いたまま（`force-stop`せず）ホームへ退避し、ウォッチから「全デバイス」を
+  操作してから開き直すと、表示が「23 回」から「25 回」へ更新された（SharedPreferencesの値と一致）。
+  (5) BL-160: DevAを削除すると`lock_states`から`MOCKA1`だけが消え（`MOKB2`は残る）、
+  ウィジェットの割り当てが`{"66":"MOCKA1"}`から`{}`になり、ウィジェットの表示が未設定へ戻った。
+  DevBの削除で`MOKB2`も消えた。ウォッチのDataItem削除は成功時に出力が無いため、
+  `DataLayerBestEffort`の失敗ログが1件も出ないことをもって確認としている（DataItemの中身は未確認）。
+  後始末として、ダミー資格情報の削除、検証用ウィジェットの撤去、BL-149の検証で残っていた
+  孤立ロック状態（`MCKUD` / `MOCKUUID1` / デモ）の削除、モックサーバーの停止、ウォッチの
+  `screen_off_timeout`の復元（30000）、本番URLでのデバッグ版の入れ直しを行った。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
