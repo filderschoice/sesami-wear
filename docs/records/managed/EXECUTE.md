@@ -5,6 +5,36 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 20:20
+  summary: 今月のAPI呼び出し回数を画面の再開ごとに読み直すようにした
+  details:
+    変更内容: >-
+      BL-159: `CredentialsSettingsScreen`が`remember`でコンポジション生成時に1回だけ
+      呼び出し回数を読んでいたため、Activityが破棄されずに再表示された場合（ホームへ退避してから
+      戻った場合など）に古い値が残っていた。`rememberApiUsageCount`へ切り出し、
+      `LifecycleEventEffect(Lifecycle.Event.ON_RESUME)`で読み直すようにした。
+      `LifecycleRegistry`は追加した監視者へ現在の状態までのイベントを送るため、初回表示でも
+      同じ経路で読まれる（初期値も同じ値で組み立てるため表示のちらつきは無い）。
+      切り出しは`CredentialsSettingsScreen`がdetektの`LongMethod`（60行）へ達したための対応も
+      兼ねる。
+      直接使う`androidx.lifecycle:lifecycle-runtime-compose`を`libs.versions.toml`と
+      `mobile/build.gradle.kts`へ明示した。compose-uiが推移的に持ち込む版と同一（2.8.7、
+      `lifecycle-runtime-ktx`と同じバージョン参照）のため、依存グラフのバージョンは変わらない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/build.gradle.kts
+      - gradle/libs.versions.toml
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。Compose画面のためユニットテストの対象外で、表示の更新は
+      実機での確認を本ブランチの最後に行う。
+    関連ID:
+      - BL-159
+
 - date: 2026-09-18 19:55
   summary: 横長へ縮めたウィジェットで文言が見切れないようレイアウトのしきい値を上げた
   details:

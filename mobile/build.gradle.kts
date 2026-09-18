@@ -100,6 +100,10 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // 画面の再開（ON_RESUME）を契機に表示を読み直すための`LifecycleEventEffect`（BL-159）。
+    // compose-uiが推移的に持ち込む版（lifecycle-runtime-ktxと同じ2.8.7）と同一のため、
+    // 依存グラフのバージョンは変わらない。直接使うものは明示する方針で宣言する。
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

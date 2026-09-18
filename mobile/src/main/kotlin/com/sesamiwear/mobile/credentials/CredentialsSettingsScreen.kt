@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.help.HelpContent
@@ -45,6 +47,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * 今月のSesame Web API呼び出し回数（BL-147）。画面が再開するたび（`ON_RESUME`）に読み直す（BL-159）。
+ * コンポジション生成時に1回だけ読むと、Activityが破棄されずに再表示された場合
+ * （ホームへ退避してから戻った場合など）に、ウィジェット・ウォッチからの操作で増えた分が反映されない。
+ */
+@Composable
+private fun rememberApiUsageCount(): Int {
+    val context = LocalContext.current
+    val counter = remember { ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(context)) }
+    var count by remember { mutableStateOf(counter.countOf(System.currentTimeMillis())) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { count = counter.countOf(System.currentTimeMillis()) }
+    return count
+}
+
+/**
  * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
  * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
  * 保存時のリスト更新は[CredentialsListEditor]が担う。編集は一覧内の同じ位置を保ったまま置き換え、
@@ -56,6 +72,8 @@ import kotlinx.coroutines.launch
  * 文言は[com.sesamiwear.mobile.help.HelpContent]が持つ（BL-113 / BL-144）。
  * 見出しの下には今月のAPI呼び出し回数を出す（BL-147、[ApiUsageCounter]）。月間リクエスト上限
  * （BL-141）に対する消費の目安で、他経路の消費は含まない旨を文言に含める。
+ * 回数は画面が再開するたび（`ON_RESUME`）に読み直す（BL-159）。ウィジェットやウォッチからの操作で
+ * 増えるため、この画面を開いたまま他の操作を行って戻ってきた場合に古い値が残らないようにする。
  */
 @Composable
 fun CredentialsSettingsScreen(
@@ -68,10 +86,7 @@ fun CredentialsSettingsScreen(
     val formState = rememberCredentialsFormState()
     var showSavedMessage by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
-    val apiUsageCount =
-        remember {
-            ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(context)).countOf(System.currentTimeMillis())
-        }
+    val apiUsageCount = rememberApiUsageCount()
 
     if (showSavedMessage) {
         LaunchedEffect(Unit) {
