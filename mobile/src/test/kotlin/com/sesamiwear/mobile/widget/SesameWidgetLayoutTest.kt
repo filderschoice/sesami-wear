@@ -6,8 +6,8 @@ import org.junit.Test
 class SesameWidgetLayoutTest {
     @Test
     fun `tile sized widget uses the full layout`() {
-        // 既定サイズ（4x2相当、250x110dp）は従来どおりの表示（BL-121）。
-        assertEquals(SesameWidgetLayout.FULL, SesameWidgetLayout.of(widthDp = 250, heightDp = 110))
+        // 既定サイズ（4x2相当。高さは1マス分の約2倍で、しきい値の140dpを上回る）は従来どおりの表示（BL-121）。
+        assertEquals(SesameWidgetLayout.FULL, SesameWidgetLayout.of(widthDp = 250, heightDp = 256))
     }
 
     @Test
@@ -20,6 +20,12 @@ class SesameWidgetLayoutTest {
     fun `a wide but short widget falls back to compact`() {
         // 4x1相当。左右の分割は成立するが、4行を縦に並べる高さが無い。
         assertEquals(SesameWidgetLayout.COMPACT, SesameWidgetLayout.of(widthDp = 250, heightDp = 50))
+    }
+
+    @Test
+    fun `a wide widget one cell tall falls back to compact`() {
+        // 4x1の実測（Pixel 8 Pro + Nova Launcherで約128dp）。4要素が収まらないため[COMPACT]（BL-158）。
+        assertEquals(SesameWidgetLayout.COMPACT, SesameWidgetLayout.of(widthDp = 250, heightDp = 128))
     }
 
     @Test

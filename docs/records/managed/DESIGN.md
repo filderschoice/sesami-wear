@@ -274,9 +274,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
     決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
-    しきい値は幅200dp・高さ100dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
+    しきい値は幅200dp・高さ140dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
     状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
-    4行が入る下限から決めた。
+    4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
+    高さは当初100dpとしていたが、4x1（約128dp）でも`FULL`が選ばれて操作文言が縦に見切れたため、
+    余裕を見て140dpへ引き上げた（BL-158）。既定の4x2はどの端末でも140dp以上になるため`FULL`のまま。
     `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
     出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
     対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。

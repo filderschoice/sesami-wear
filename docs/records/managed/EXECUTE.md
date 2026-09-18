@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 19:55
+  summary: 横長へ縮めたウィジェットで文言が見切れないようレイアウトのしきい値を上げた
+  details:
+    変更内容: >-
+      BL-158: `SesameWidgetLayout.FULL_MIN_HEIGHT_DP`が100dpだったため、高さ1マス
+      （Pixel 8 Pro + Nova Launcherで約128dp）でも`FULL`が選ばれ、4要素
+      （アイコン・状態文言・最終取得時刻または失敗文言・操作文言）が入りきらず操作文言が
+      縦に見切れていた。`SesameWidget`の文字サイズとパディングから必要な高さを見積もると
+      約136dpのため、余裕を見て140dpへ引き上げた。`SizeMode.Responsive`へ渡す候補サイズは
+      同じ定数を参照しているため、候補・判定ともに140dpで揃う。
+      対策候補のうち中間レイアウトは採らなかった。4要素のうち何を落とすかの判断が必要で、
+      0.12.0で追加した最終取得時刻・失敗文言（BL-140 / BL-142）を隠すことになるため、
+      横長では`COMPACT`（アイコンと状態文言のみ）へ落とす方を選んだ。
+      既定の配置（4x2）は2マス分の高さがあり140dpを上回るため`FULL`のままになる。
+      `sesame_widget_info.xml`の`minHeight`は、API 30以下で既定の配置が3マスへ広がるのを
+      避けるため110dpのまま変更していない（2マス＝約140dpとなり`FULL`が選ばれる）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。4x1相当（250x128dp）で`COMPACT`が選ばれること、
+      既定の4x2相当では`FULL`のままであることをユニットテストで確認した。
+      実機での見え方の確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-158
+
 - date: 2026-09-18 19:35
   summary: ホーム画面ウィジェットの操作で振動が鳴るよう用途を指定した
   details:
