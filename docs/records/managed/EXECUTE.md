@@ -5,7 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- date: 2026-09-18 20:50
+- date: 2026-09-18 18:40
+  summary: BL-156〜BL-160の修正をPixel 8 Pro + Pixel Watch 2で実機検証した
+  details:
+    変更内容: >-
+      本ブランチで修正したBL-156 / BL-157 / BL-158 / BL-159 / BL-160の5件を、adb経由で実機検証した。
+      実資格情報は使わず、ダミー資格情報2台（DevA=`MOCKA1` / DevB=`MOKB2`）とモックAPI
+      （`scripts/mock-sesame-api.py`と`-PsesameApiBaseUrl`、BL-132）で状態を作っている。
+      ウォッチのタイルカルーセルは`input swipe`で移動できないため、Tileのタップは
+      `SesameActionActivity`（exported）を`am start`で直接起動して再現した。
+      結果はDESIGN.md「実機検証（BL-156 / BL-157 / BL-158 / BL-159 / BL-160、2026-09-18）」へ
+      記載し、5件をBACKLOGから削除した。コードの変更は無い（記録ファイルのみ）。
+      後始末として、ダミー資格情報の削除、検証用ウィジェットの撤去、BL-149の検証で残っていた
+      孤立ロック状態の削除、モックサーバーの停止、ウォッチの`screen_off_timeout`の復元（30000）、
+      本番URLでのデバッグ版の入れ直しを行った。
+    変更ファイル:
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      adb -s <スマホ> shell run-as com.sesamiwear.mobile.debug cat shared_prefs/... /
+      adb -s <スマホ> logcat -d | grep -i vibrat / adb exec-out screencap /
+      adb -s <ウォッチ> shell am start -n ...SesameActionActivity
+    検証結果: >-
+      成功 - BL-157は「全デバイス」操作で2台が同一ミリ秒で更新（修正前は片方が失われていた）。
+      BL-156はウィジェット操作でアクチュエータが動作し`Ignoring incoming vibration`は0件。
+      BL-158は4マス×1マスでCOMPACTへ切り替わり見切れ無し。BL-159は画面の再開で23回から25回へ更新。
+      BL-160は削除したuuidだけがロック状態とウィジェット割り当てから消えた。
+      ウォッチのDataItem削除はベストエフォートの失敗ログが出ないことのみで確認しており、
+      DataItemの中身は未確認。
+    関連ID:
+      - BL-156
+      - BL-157
+      - BL-158
+      - BL-159
+      - BL-160
+
+- date: 2026-09-18 18:00
   summary: 資格情報を削除したデバイスの残存状態を消すようにした
   details:
     変更内容: >-
@@ -37,7 +72,7 @@
     関連ID:
       - BL-160
 
-- date: 2026-09-18 20:20
+- date: 2026-09-18 17:55
   summary: 今月のAPI呼び出し回数を画面の再開ごとに読み直すようにした
   details:
     変更内容: >-
@@ -67,7 +102,7 @@
     関連ID:
       - BL-159
 
-- date: 2026-09-18 19:55
+- date: 2026-09-18 17:45
   summary: 横長へ縮めたウィジェットで文言が見切れないようレイアウトのしきい値を上げた
   details:
     変更内容: >-
@@ -99,7 +134,7 @@
     関連ID:
       - BL-158
 
-- date: 2026-09-18 19:35
+- date: 2026-09-18 17:40
   summary: ホーム画面ウィジェットの操作で振動が鳴るよう用途を指定した
   details:
     変更内容: >-
@@ -132,7 +167,7 @@
       - BL-156
       - BL-157
 
-- date: 2026-09-18 19:10
+- date: 2026-09-18 17:35
   summary: 全デバイス操作でロック状態の一部が失われる競合を修正した
   details:
     変更内容: >-
