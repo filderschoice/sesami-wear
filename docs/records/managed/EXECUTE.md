@@ -5,6 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 17:50
+  summary: 状態取得の連打を抑止してSesame APIの無駄な消費を防いだ
+  details:
+    変更内容: >-
+      BL-148: 施錠/解錠は`CommandDebouncer`が同一uuidへの2秒以内の重複を無視するが、状態取得は
+      対象外で、Tileのデバイス名チップやウィジェットのデバイス名を連打するとその回数ぶんGETが
+      飛んでいた。BL-142で自動状態取得を廃止し、Sesame Web APIの消費が利用者のタップ回数と
+      等しくなったため、誤タップ・二度押しがそのまま月間リクエスト上限（BL-141）へ効くように
+      なっていた。
+      `SesameDeviceCommandExecutor.refreshStatus`を`CommandDebouncer`の対象へ加えた。抑止した
+      場合はAPIを呼ばず保存済みの状態を返し、失敗ではないため失敗の記録（BL-140）も残さない。
+      施錠/解錠と状態取得は`cmd:{uuid}` / `status:{uuid}`と別のキーで数えるため、施錠した直後に
+      状態を取り直すことはできる（BL-061の巻き戻り防止と衝突させない）。「全デバイス」対象の
+      タップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なる）。
+      間隔は施錠/解錠と同じ2秒とした。「連打」の定義を経路で揃えるためで、二度押し・誤タップは
+      確実に弾き、「取れなかったのでもう一度」という意図的な再試行（通常は2秒以上あく）は通す。
+      利用者が明示的に意図した取得は抑制しないという方針（BL-142）を崩さない範囲で最大の効果を
+      取る値として選んだ。
+      detektの`TooManyFunctions`（11）に達したため、キーの組み立ては関数を足さず
+      companion objectの接頭辞定数と文字列連結で行い、`refreshStatus`は`ReturnCount`（2）に
+      収まるよう式へ書き直した。
+      既存テスト`a later success clears the recorded failure`は連続2回の取得を行っていたため、
+      2回目が抑止されないよう時間を進めるよう修正した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、窓内の2回目がAPIを呼ばず保存済みの
+      状態を返すこと、窓を超えれば再び呼ばれること、別デバイスは抑止されないこと、抑止された
+      呼び出しが失敗の記録を上書きも消去もしないことを確認した。実機での確認はBL-149へ含めた。
+    関連ID:
+      - BL-148
+
 - date: 2026-09-18 17:10
   summary: 今月のSesame Web API呼び出し回数を数えて資格情報設定画面へ表示するようにした
   details:

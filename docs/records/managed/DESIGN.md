@@ -505,7 +505,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     UNLOCK→解錠、BL-015の簡略化ロジック）。
   - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。
     資格情報が無い場合はAPIを呼ばずnull（保存・通知もしない）。APIエラーの場合はnullを返すが、
-    失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。重複判定の対象外。
+    失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。
+    同一uuidへの連打は`CommandDebouncer`で抑止し、抑止した場合はAPIを呼ばず保存済みの状態を返す
+    （BL-148。失敗ではないため失敗の記録も残さない）。
   - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
     本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
     注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
@@ -555,8 +557,21 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - 表示場所は資格情報設定画面の見出しの直下（`ScreenHeader`）。画面を開いた時点の値を出し、
     開いている間の更新は行わない（設定画面は操作の場ではないため）。上限の存在そのものの説明は
     ヘルプの「APIのリクエスト回数の上限」（BL-144）が持つ。
-- `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一デバイスuuidへの
-  2秒以内の重複コマンドを無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
+- `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一キーへの
+  2秒以内の重複を無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
+  - キーは施錠/解錠が`cmd:{uuid}`、状態取得が`status:{uuid}`で、**別々に数える**（BL-148）。
+    分けないと、施錠した直後に状態を取り直せなくなる（BL-061の巻き戻り防止と衝突する）。
+  - 状態取得を抑止の対象へ加えたのはBL-148。BL-142で自動状態取得を廃止し、Sesame Web APIの消費が
+    利用者のタップ回数と等しくなったため、誤タップ・二度押しがそのまま月間リクエスト上限
+    （BL-141）へ効くようになった。
+  - 間隔は施錠/解錠と同じ2秒（`DEFAULT_WINDOW_MILLIS`）。**「連打」の定義を経路で揃えるため**で、
+    二度押し・誤タップは確実に弾き、「取れなかったのでもう一度」という意図的な再試行（通常は
+    2秒以上あく）は通す。利用者が明示的に意図した取得は抑制しないという方針（BL-142）を崩さない
+    範囲で最大の効果を取る値として選んだ。
+  - 「全デバイス」対象のタップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なるため
+    同一キーの重複に当たらない）。
+  - `sharedDebouncer`をプロセス内で共有するため、ウォッチ経由とウィジェット経由の重複も
+    まとめて1回に抑える。
 - `mobile.messaging.SesameStatusSyncer`: `DataClient.putDataItem`ラッパー。コマンド送信成功時は
   「送信したコマンドが意図した状態」（LOCK成功→施錠、UNLOCK成功→解錠）をそのまま同期する簡略化
   ロジック。`PATH_STATUS_REQUEST`経由ではSesame APIのGET結果をそのまま同期する（BL-015, BL-061）。

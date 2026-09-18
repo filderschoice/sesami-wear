@@ -280,6 +280,8 @@ class SesameDeviceCommandExecutorTest {
             val executor = createExecutor()
 
             executor.refreshStatus(DEVICE_UUID)
+            // 連打の抑止（BL-148）に掛からないよう時間を進めてから取り直す。
+            now += CommandDebouncer.DEFAULT_WINDOW_MILLIS
             executor.refreshStatus(DEVICE_UUID)
 
             val snapshot = lockStateStore.load(DEVICE_UUID)
@@ -350,6 +352,70 @@ class SesameDeviceCommandExecutorTest {
             executor.refreshStatus(DEVICE_UUID)
 
             assertTrue(failureLogs.isEmpty())
+        }
+
+    @Test
+    fun `repeated status refresh within the debounce window calls the API once`() =
+        runTest {
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            assertEquals(true, executor.refreshStatus(DEVICE_UUID))
+            now += 1_000L
+            // 2回目は連打として無視し、APIを呼ばずに保存済みの状態を返す（BL-148）。
+            assertEquals(true, executor.refreshStatus(DEVICE_UUID))
+
+            assertEquals(1, server.requestCount)
+            assertEquals(1, notifications.size)
+        }
+
+    @Test
+    fun `status refresh after the debounce window calls the API again`() =
+        runTest {
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            server.enqueue(MockResponse().setBody(statusJson("unlocked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            now += CommandDebouncer.DEFAULT_WINDOW_MILLIS
+            val isLocked = executor.refreshStatus(DEVICE_UUID)
+
+            assertEquals(false, isLocked)
+            assertEquals(2, server.requestCount)
+        }
+
+    @Test
+    fun `status refresh of another device is not debounced`() =
+        runTest {
+            // 「全デバイス」対象のタップは登録台数ぶん飛ぶのが意図した動作（BL-148）。
+            val otherUuid = "other-uuid"
+            credentialsList = listOf(validCredentials, validCredentials.copy(uuid = otherUuid))
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            executor.refreshStatus(otherUuid)
+
+            assertEquals(2, server.requestCount)
+        }
+
+    @Test
+    fun `a debounced status refresh does not record a failure`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("{}").setResponseCode(HTTP_FORBIDDEN))
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            val recordedFailure = lockStateStore.load(DEVICE_UUID)?.lastFailure
+            now += 1_000L
+            executor.refreshStatus(DEVICE_UUID)
+
+            // 2回目は抑止されたので、1回目の失敗の記録がそのまま残る（上書きも消去もしない）。
+            assertEquals(SesameStatusFailure.AUTH_OR_QUOTA, recordedFailure)
+            assertEquals(recordedFailure, lockStateStore.load(DEVICE_UUID)?.lastFailure)
+            assertEquals(1, server.requestCount)
         }
 
     @Test
