@@ -5,6 +5,36 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 23:40
+  summary: 記録ファイルのYAML検証をスクリプト化し品質ゲートの定義の乖離を解消した
+  details:
+    変更内容: >-
+      品質ゲートの定義が`CLAUDE.md`と`CONTRIBUTING.md`・`.github/PULL_REQUEST_TEMPLATE.md`の間で
+      乖離しており、「記録ファイルのYAML検証」が参照側に無かった（BL-163）。検証手順は
+      `FORMAT.md`の文章でのみ定義されていたため、実行のたびにエージェントが使い捨てのスクリプトを
+      書いており再現性が無かった。`scripts/validate-records.py`を追加してコマンド1つで実行できる
+      ようにし、`CLAUDE.md`の品質ゲート表・`CONTRIBUTING.md`「品質ゲート」・PRテンプレートの
+      チェックリスト・`README.md`「ビルド・実行・テスト」の4箇所から同じコマンドを参照させた。
+      スクリプトはマーカー内のYAML読み込みに加えて、`BACKLOG.md`の必須キーと`優先度`・`状態`の
+      許容値、改行コードがLFであることを検査する（いずれも`FORMAT.md`が定める体裁）。
+      `CONTRIBUTING.md`と`.github/`配下はルールファイルのため、変更前にユーザーの承認を得ている。
+    変更ファイル:
+      - scripts/validate-records.py
+      - CLAUDE.md
+      - CONTRIBUTING.md
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - README.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      python scripts/validate-records.py / npx markdownlint-cli2 "**/*.md" /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: >-
+      成功 - 正常な記録ファイルで終了コード0。意図的に壊した記録ファイル（「半角コロン＋半角空白」を
+      含むプレーンスカラー、必須キー欠落、許容値外の`優先度`・`状態`）を一時ディレクトリへ置いて
+      実行し、終了コード1と該当箇所の指摘が出ることを確認した。markdownlintは0 issues。
+    関連ID:
+      - BL-163
+
 - date: 2026-09-18 18:40
   summary: BL-156〜BL-160の修正をPixel 8 Pro + Pixel Watch 2で実機検証した
   details:

@@ -16,14 +16,19 @@ Wear OSアプリです。タイルからワンタップで施錠・解錠でき�
 ## 主な機能
 
 - タイルから施錠・解錠をワンタップで実行（解錠は誤操作防止の確認画面付き）
-- 成功／失敗を振動パターンで区別して通知
+- 成功／失敗を振動パターンで区別して通知（ホーム画面ウィジェットからの操作は0.12.0以降）
 - ウォッチフェイスのコンプリケーションへ施錠状態を表示
 - 複数台のSesameを登録し、タイル・コンプリケーションごとに対象を切り替え
 - 2台以上を登録している場合、「全デバイス」での一括操作
 - スマートフォン未接続時はタイル上に明示して誤操作を防止
 - Sesameを登録していない状態では、実際の鍵を操作しない「デモ」で操作感を確認可能
 - スマートフォンのホーム画面ウィジェットから、タイルと同じ表示・操作で施錠・解錠（0.11.0以降。
-  ウォッチが無くても利用可能）
+  ウォッチが無くても利用可能）。ホーム画面の1マスまで縮小可能（0.12.0以降）
+- 状態を最後に取得した時刻を「3分前」「9/17」「未取得」のように表示（0.12.0以降）。状態の自動取得は
+  行わず、施錠/解錠の成功時と、デバイス名をタップしたときだけ更新する
+- 取得・操作に失敗した理由を「認証エラー」「通信エラー」として表示（0.12.0以降）。失敗しても
+  それまでに分かっていた施錠状態は残す
+- スマートフォンアプリの資格情報設定画面に、今月のAPI呼び出し回数の目安を表示（0.12.0以降）
 
 secretKeyは機密性が高いためウォッチ単体には保持させず、施錠/解錠の実行は常にスマートフォン側で
 行う設計です。
@@ -115,13 +120,17 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ```
 
 上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
-次のMarkdownチェックを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
+次の2つを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
 [CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
 [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
+python scripts/validate-records.py
 ```
+
+`validate-records.py` は `docs/records/managed/` 配下の記録ファイルがYAMLとして読み込めることを
+確認します（PyYAMLが必要）。
 
 ## リリースビルド・Google Play公開
 
@@ -201,7 +210,7 @@ sesami-wear/
 ├── mobile/  # スマートフォン用アプリ（資格情報保存、Sesame API通信、Data Layer受信）
 ├── wear/    # Wear OS用アプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
 │            # mobileと同一のapplicationIdを持つ独立したapplicationモジュール
-├── scripts/ # バージョン管理付きリリースビルド（release-build.bat / .ps1）
+├── scripts/ # リリースビルド（release-build.bat / .ps1）、記録ファイル検証、検証用モックAPI
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
 ├── templates/ # ガードレールのプロジェクト別設定・モデルリスク台帳のテンプレート
@@ -212,6 +221,7 @@ sesami-wear/
     ├── SUPPORT.md        # アップデート確認先・問い合わせ窓口
     ├── RELEASE_NOTES.md  # バージョンごとの変更点（アプリ利用者向け）
     ├── INSTALL.md        # 実機へのインストール手順
+    ├── BLE_KEY_VERIFICATION.md # BLE鍵の同一性確認手順（開発者向け、BL-150）
     ├── store/            # Google Play提出用のストア掲載情報・プライバシーポリシー
     ├── guidelines/       # ガードレール一式を他リポジトリへ導入するための汎用ガイド
     └── records/
@@ -277,6 +287,8 @@ sesami-wear/
 - [PLAN.md](PLAN.md): 要件・API仕様メモ・アーキテクチャ方針
 - [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md): 実装済み内容の統合設計書
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
+- [docs/BLE_KEY_VERIFICATION.md](docs/BLE_KEY_VERIFICATION.md): 保持中のsecretKeyでSesame 5へ
+  BLE接続できるかをPCから確認する手順（BL-150）
 - [CONTRIBUTING.md](CONTRIBUTING.md): 報告の受け付け方針（Issueは受付、外部Pull Requestは非受付）・
   開発プロセス・品質ゲート
 - [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
