@@ -28,6 +28,7 @@ object SesameStatusSnapshotReader {
                 hasIsLockedKey = dataMap.containsKey(SesameWearProtocol.KEY_IS_LOCKED),
                 isLocked = dataMap.getBoolean(SesameWearProtocol.KEY_IS_LOCKED),
                 updatedAtEpochMillis = dataMap.getLong(SesameWearProtocol.KEY_UPDATED_AT_EPOCH_MILLIS),
+                lastFailureName = dataMap.getString(SesameWearProtocol.KEY_LAST_FAILURE),
             )
         } finally {
             dataItems.release()

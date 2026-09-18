@@ -36,9 +36,9 @@ import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.api.SesameCommandConfirmation
 import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.core.haptics.HapticPattern
 import com.sesamiwear.wear.demo.DemoLockStateStore
 import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
-import com.sesamiwear.wear.haptics.HapticPattern
 import com.sesamiwear.wear.haptics.SesameHapticPlayer
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider

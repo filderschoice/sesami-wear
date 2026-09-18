@@ -2,7 +2,7 @@ package com.sesamiwear.wear.messaging
 
 import com.sesamiwear.core.SesameCommandResult
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.wear.haptics.HapticPattern
+import com.sesamiwear.core.haptics.HapticPattern
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

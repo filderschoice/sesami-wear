@@ -5,6 +5,401 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 17:50
+  summary: 状態取得の連打を抑止してSesame APIの無駄な消費を防いだ
+  details:
+    変更内容: >-
+      BL-148: 施錠/解錠は`CommandDebouncer`が同一uuidへの2秒以内の重複を無視するが、状態取得は
+      対象外で、Tileのデバイス名チップやウィジェットのデバイス名を連打するとその回数ぶんGETが
+      飛んでいた。BL-142で自動状態取得を廃止し、Sesame Web APIの消費が利用者のタップ回数と
+      等しくなったため、誤タップ・二度押しがそのまま月間リクエスト上限（BL-141）へ効くように
+      なっていた。
+      `SesameDeviceCommandExecutor.refreshStatus`を`CommandDebouncer`の対象へ加えた。抑止した
+      場合はAPIを呼ばず保存済みの状態を返し、失敗ではないため失敗の記録（BL-140）も残さない。
+      施錠/解錠と状態取得は`cmd:{uuid}` / `status:{uuid}`と別のキーで数えるため、施錠した直後に
+      状態を取り直すことはできる（BL-061の巻き戻り防止と衝突させない）。「全デバイス」対象の
+      タップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なる）。
+      間隔は施錠/解錠と同じ2秒とした。「連打」の定義を経路で揃えるためで、二度押し・誤タップは
+      確実に弾き、「取れなかったのでもう一度」という意図的な再試行（通常は2秒以上あく）は通す。
+      利用者が明示的に意図した取得は抑制しないという方針（BL-142）を崩さない範囲で最大の効果を
+      取る値として選んだ。
+      detektの`TooManyFunctions`（11）に達したため、キーの組み立ては関数を足さず
+      companion objectの接頭辞定数と文字列連結で行い、`refreshStatus`は`ReturnCount`（2）に
+      収まるよう式へ書き直した。
+      既存テスト`a later success clears the recorded failure`は連続2回の取得を行っていたため、
+      2回目が抑止されないよう時間を進めるよう修正した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、窓内の2回目がAPIを呼ばず保存済みの
+      状態を返すこと、窓を超えれば再び呼ばれること、別デバイスは抑止されないこと、抑止された
+      呼び出しが失敗の記録を上書きも消去もしないことを確認した。実機での確認はBL-149へ含めた。
+    関連ID:
+      - BL-148
+
+- date: 2026-09-18 17:10
+  summary: 今月のSesame Web API呼び出し回数を数えて資格情報設定画面へ表示するようにした
+  details:
+    変更内容: >-
+      BL-147: Web APIの月間リクエスト上限（BL-141）に達するとアプリ全体が機能停止するが、利用者が
+      「今月どれだけ使ったか」を知る手段がアプリ内に無く、SESAME Bizのサイトを見に行くしかなかった
+      問題に対応した。
+      `mobile.state.ApiUsageCounter`（Android非依存、ユニットテスト対象）を追加し、暦月ごとに
+      呼び出し回数を数える。`SesameApiAccess`へ`recordApiCall`を足し、実際にAPIを呼ぶ直前に
+      成否によらず数える（上限は成功・失敗を問わず消費されるため）。デモ用デバイス・重複として
+      無視した操作・資格情報が無い場合はAPIを呼ばないため数えない。
+      保存値は「対象の年月」と「回数」の2つだけで機密情報を含まないため、保存先は非暗号化
+      SharedPreferences（`sesami_wear_api_usage`）。月の境界を判定するタイムゾーンは注入可能で、
+      既定は端末のタイムゾーンとした（CANDY HOUSE側のカウンタがどのタイムゾーンで月を区切るかは
+      未確認のため、利用者の体感に合う側を既定とする。目安である旨の明示と合わせて許容する）。
+      表示は資格情報設定画面の見出し直下。数えるのはこのアプリからの呼び出しだけで他経路の消費を
+      含まず、上限値そのものも契約内容によって変わりアプリからは取得できないため、「上限までの残り」
+      ではなく消費の目安として出す。文言へ「このアプリからの分のみ・目安」を含めることを
+      ユニットテストで固定した。
+      画面の関数がdetektの`LongMethod`閾値（60）に達したため、見出しと呼び出し回数の表示を
+      `ScreenHeader`へ切り出した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/ApiUsageCounter.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/ApiUsageCounterTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、同月内の加算、月が変わったときの
+      数え直し、過去月の参照が0になり保存値を壊さないこと、月の境界がタイムゾーンに従うこと
+      （JSTでは月をまたぐがUTCではまたがない時刻で確認）、壊れた保存値を0として扱うこと、
+      表示文言が目安である旨を含むことを確認した。実機での表示確認はBL-149へ含めた。
+    関連ID:
+      - BL-147
+
+- date: 2026-09-18 16:20
+  summary: ホーム画面ウィジェットの施錠/解錠の成否をスマートフォンの振動でも伝えるようにした
+  details:
+    変更内容: >-
+      BL-129: ウォッチはハプティクスで成否を区別していたが、ウィジェットは失敗時に操作前の表示へ
+      戻すだけで分かりにくかった問題に対応した。起票時の3点のうち「失敗を一定時間表示する状態」は
+      BL-140で（一定時間ではなく次の成功まで持続する形で）、「状態が古い場合の表示の区別」は
+      BL-142で対応済みのため、残っていた「スマートフォンのハプティクス」を実装して本項目を閉じる
+      （2026-09-18、ユーザー確認済み）。
+      wearのTile経由とmobileのウィジェット経由で手触りを揃えるため、`wear.haptics.HapticPattern`と
+      `SesameHapticPatternResolver`を`core.haptics`へ移し、波形（`timingsMillis`）も
+      `HapticPattern`が持つようにした。`SesameHapticPlayer`はAndroid依存でcoreへ置けず、
+      mobileはwearへ依存できないため、同じ実装をmobile側にも持たせている（共通化できるのは
+      波形の定義まで）。
+      鳴らすかどうかの判定は`mobile.widget.WidgetHapticResolver`（Android非依存）が持つ。
+      「全デバイス」対象では登録台数ぶんの結果が返るため、1台でも失敗していればFAILURE、
+      すべてDEBOUNCED（連打として無視）なら鳴らさない、それ以外はSUCCESSとする。
+      状態取得（デバイス名のタップ）では鳴らさない（wear側の状態取得もFire-and-forgetで結果を
+      返さず振動しないため、BL-061）。
+      mobileのAndroidManifestへ`VIBRATE`権限を追加した（wearは宣言済み）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/haptics/HapticPattern.kt
+      - core/src/main/kotlin/com/sesamiwear/core/haptics/SesameHapticPatternResolver.kt
+      - core/src/test/kotlin/com/sesamiwear/core/haptics/SesameHapticPatternResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/HapticPattern.kt（削除）
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolver.kt（削除）
+      - wear/src/test/kotlin/com/sesamiwear/wear/haptics/SesameHapticPatternResolverTest.kt（削除）
+      - wear/src/main/kotlin/com/sesamiwear/wear/haptics/SesameHapticPlayer.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultHandler.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/messaging/SesameResultHandlerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/haptics/SesameHapticPlayer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetHapticResolver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetHapticResolverTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、単一の成功・失敗、複数台の一部失敗、
+      連打のみ、成功と連打の混在、対象0台の各ケースを確認した。移設した
+      `SesameHapticPatternResolver`のテストも、波形が空でなく負の値を含まないことと、
+      成功と失敗の波形が異なることを追加で検証している。
+      実機での振動の体感確認はBL-149へ含めた。
+    関連ID:
+      - BL-129
+
+- date: 2026-09-18 15:40
+  summary: ホーム画面ウィジェットをリサイズ可能にし1マス相当のコンパクト表示を追加した
+  details:
+    変更内容: >-
+      BL-128: ウィジェットがTile相当の1サイズ固定で、ホーム画面の1マスへ置きたい場合に大きすぎた
+      問題に対応した。`SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
+      `FULL`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して
+      `LocalSize`を受け取る。しきい値は幅200dp・高さ100dpで、幅は「左列（96dp）＋間隔（6dp）＋
+      状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
+      4行が入る下限から決めた。
+      `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
+      出さない。タップの挙動は`FULL`と同じで、対象デバイスの変更は長押しメニュー
+      （`widgetFeatures="reconfigurable"`）から行う。未設定時の文言は1マスに収まらないため
+      「タップして設定」から「設定」へ短縮する。
+      `sesame_widget_info.xml`は`resizeMode`を`none`から`horizontal|vertical`へ変え、
+      `minResizeWidth`/`minResizeHeight`を50dpで追加した。`minWidth`/`minHeight`はAPI 30以下で
+      既定の配置サイズを決めるため250x110dpのまま据え置いた（下げると旧端末で既定が1マスへ
+      縮むため）。
+      複数台を横に並べる表示（4x1等）は採らない（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+      なり、以降の表示変更で両方を追従させる必要が出るため。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、4x2相当・1x1相当・幅はあるが低い場合・
+      高さはあるが狭い場合の判定と、しきい値の境界（以上でFULL、1dp下回るとCOMPACT）を確認した。
+      実機での表示崩れとリサイズ操作の確認はBL-149へ含めた。
+    関連ID:
+      - BL-128
+
+- date: 2026-09-18 14:30
+  summary: Sesame Web APIの月間リクエスト上限をアプリのヘルプと利用者向けドキュメントへ明示した
+  details:
+    変更内容: >-
+      BL-144: 2026-09-18に月間リクエスト上限へ到達して状態取得・施錠/解錠がすべてHTTP 403で
+      失敗した（BL-141）際、アプリ・ドキュメントのどこにも上限の存在に触れた記述が無く、
+      利用者が原因へ到達できなかった問題に対応した。
+      `mobile.help.HelpContent` へヘルプ項目「APIのリクエスト回数の上限」を追加し、
+      「値の取得方法」の直後へ置いた。上限の存在、上限到達時の表示が「認証エラー」になること
+      （BL-140で追加した文言と同じ言葉を使い、利用者が結び付けられるようにする）、確認先
+      （SESAME Biz）、対処（翌月のリセット待ちか引き上げの問い合わせ）、本アプリが0.12.0から
+      自動取得を行わないことを説明する。上限の具体的な回数（1000回）は利用者の環境での実測値で
+      公式ドキュメント上の記載を確認できていないため断定せず、書かないことをユニットテストで固定した。
+      1項目から複数の公式ページへ誘導する必要が出たため、`HelpTopic.link: HelpLink?` を
+      `links: List<HelpLink>` へ変更し、`CredentialsSettingsScreen.HelpTopicDialog` を追従させた。
+      併記する公式リンクは、既存のSESAME Biz 開発者ページと、APIキーの取得手順を説明した
+      CANDY HOUSE公式記事（`jp.candyhouse.co/blogs/how-to/...`）の2本。いずれも実際にアクセスして
+      認証なしで開けることを確認した。Web APIのリファレンス（`doc.candyhouse.co/ja/SesameAPI/`）は
+      GitHub Pagesの認証（`github.com/pages/auth`）へ302でリダイレクトされ認証なしでは開けなかった
+      ため、リンクとして採用していない。公式記事のURLは日本語のパスを持つため、`Uri.parse`が
+      そのまま扱えるようパーセントエンコード済みで保持し、非ASCII文字を含まないことをテストで固定した。
+      あわせて `docs/USER_GUIDE.md`（「APIのリクエスト回数の上限」節と「困ったときは」の2行）、
+      `docs/SUPPORT.md`（問い合わせ前の自己診断項目）、`README.md`（既知の未確認事項・制約）へ
+      上限到達時の症状と確認先を記載した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - docs/SUPPORT.md
+      - README.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / WebFetchによるリンク到達性の確認
+    検証結果: >-
+      成功 - 全ゲート終了コード0。リンクの到達性は実際にアクセスして確認し、
+      biz.candyhouse.co と jp.candyhouse.co の記事は認証なしで到達、
+      doc.candyhouse.co はGitHub Pagesの認証へリダイレクトされるため不採用とした。
+      ユニットテストで、項目の並び順、上限の説明が「1か月あたり」「上限」「認証エラー」
+      「biz.candyhouse.co」を含み「1000」を含まないこと、全リンクがhttpsかつ非ASCIIを
+      含まないことを検証した
+    関連ID:
+      - BL-144
+
+- date: 2026-09-18 13:15
+  summary: 状態取得・施錠/解錠の失敗理由を表示し「まだ取得していない」と区別できるようにした
+  details:
+    変更内容: >-
+      BL-140: 「状態不明」が「まだ一度も取得していない」と「取得を試みたが失敗した」を区別せず、
+      apikeyが拒否されていても利用者が設定を見直す契機を得られなかった問題に対応した。
+      `core.SesameStatusFailure` を新設し、HTTPステータスコード（BL-139で保持させた
+      `SesameApiException.httpStatusCode`）から `AUTH_OR_QUOTA`（401 / 403 / 429）と
+      `COMMUNICATION`（それ以外・通信失敗）へ分類する。403は「apikey無効」と「月間上限到達」の
+      両方で返り本文も同一のため区別できず（BL-141）、文言も両方を含む案内にしている。
+      表示文言は `core.display.SesameStatusDetail` が決め、直近が失敗ならその理由、成功なら
+      BL-142で追加した最終取得時刻を返す。失敗を優先するのは、より新しい情報であり利用者が次に
+      取るべき行動へ直結するため。Tile・Complicationは5文字の `shortLabel`（「認証エラー」
+      「通信エラー」）、表示領域に余裕があるホーム画面ウィジェットは `detailedLabel`
+      （「認証エラー（設定を確認）」「通信エラー（電波状況を確認）」）を使う（ユーザー確認済み）。
+      失敗しても表示中の施錠状態は「状態不明」へ戻さず、最後に分かった状態を残す（ユーザー確認済み。
+      BL-142の「最後に分かった状態を出し続ける」設計と揃え、Tileからの施錠/解錠も引き続き行える）。
+      保持と同期のため、`SesameStatusSnapshot` へ `lastFailure` を追加し `updatedAtEpochMillis` を
+      null許容にした（一度も取得できないまま失敗した場合を表せるようにするため）。
+      `LockStateStore.saveFailure` は状態を残したまま失敗だけを上書きし、成功時の `save` が消す。
+      `SesameWearProtocol.KEY_LAST_FAILURE` を追加し、`SesameStatusSyncer.sync` が
+      スナップショットを丸ごとDataItemへ載せる（値の無い項目はキーごと載せず、wear側は
+      `SesameStatusSnapshotFactory` がキーの有無から復元する）。これに伴い
+      `LockStateListener.onLockStateChanged(uuid, isLocked)` を
+      `onStatusChanged(uuid, snapshot)` へ変更した。
+      「全デバイス」対象では `SesameStatusFailure.worstOf` が集約し、利用者が対処できる
+      `AUTH_OR_QUOTA` を優先する。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactory.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactoryTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加・更新したユニットテストで、401 / 403 / 429 と
+      それ以外・ステータスコード無しの分類、失敗が鮮度表示より優先されること、失敗しても
+      施錠状態と取得時刻が残ること、次の成功で失敗の記録が消えること、「全デバイス」で
+      認証エラーが優先されること、未知の保存値を失敗なしとして扱うことを確認した。
+      実機での表示崩れの確認はBL-149へ含めた。
+    関連ID:
+      - BL-140
+
+- date: 2026-09-18 11:30
+  summary: 自動状態取得を廃止しSesame APIの月間リクエスト上限の超過を止めて最終取得時刻を表示するようにした
+  details:
+    変更内容: >-
+      BL-142: 自動状態取得がSesame Web APIの月間リクエスト上限（1000回）を使い切る問題に対応した。
+      消費ペースは実機計測ではなく設計値から算出した（ユーザー確認済み）。Complicationのマニフェスト
+      `UPDATE_PERIOD_SECONDS`は600秒のため定期更新は144回/日/枠で、鮮度閾値30秒はこの間隔より常に
+      短いため更新のたびに必ず状態取得が飛ぶ。登録2台で「全デバイス」を対象にすると288回/日
+      （約8,600回/月）となり、Complication枠1つだけで上限（約33回/日）を8倍以上超過していた。
+      対応方針はユーザーと合意のうえ「自動取得そのものを廃止し、タップでの更新前提とする。
+      代わりに前回取得日時を表示する」とした。`wear.tile.SesameTileStateResolver` から
+      `requestStatusIfStale` を削除し、`resolveState` を `resolveStatus` へ変更して
+      表示状態と最終取得時刻の文言を持つ `SesameTileStatus` を返すようにした。
+      文言の決定はAndroid非依存の `core.display.SesameStatusFreshness` へ置き、
+      1分未満「たった今」/ 1時間未満「N分前」/ 24時間未満「N時間前」/ 24時間以上は日付のみ「9/17」/
+      未取得「未取得」とする（表示形式はユーザー確認済み）。「全デバイス」対象は `oldestOf` が
+      最も古い取得時刻を代表値とし、1台でも未取得なら全体を未取得とする（集約状態の判定と同じ
+      最悪値の考え方）。デモ用デバイスは取得という概念が無いため表示しない。
+      表示位置はTileの右チップ（`TYPOGRAPHY_CAPTION3`）、ウィジェットの同位置（11sp）、
+      Complicationは`LONG_TEXT`のみ末尾へ括弧付き（`SHORT_TEXT`は文字数が足りないため対象外）。
+      ウィジェットは `SesameWidgetModelResolver.resolve` の `lockStateOf` を `snapshotOf`
+      （`SesameStatusSnapshot` を返す）へ変え、更新時刻も同じ経路で受け取るようにした。
+      detektの `LongMethod` と `TooManyFunctions` に達したため、`SesameTileService` の
+      ステータスチップ組み立てを `buildStatusColumn` としてトップレベル関数へ切り出した。
+      BL-142の「フルセット」で挙げた抑制策のうち、自動取得の廃止で対象が変わった
+      (3)uuid単位の最小取得間隔と(4)月間カウンタは、BL-148 / BL-147 として分離起票した
+      （ユーザー確認済み）。BL-143（エラー後のバックオフ）は抑制対象だった自動取得が消えたため
+      対象消滅として閉じた（ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusFreshness.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusFreshnessTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - README.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、相対表記と日付表記の境界（1分・1時間・
+      24時間）、端末時計のずれ（未来の時刻）、タイムゾーンによる日付の違い、「全デバイス」での
+      最古値の採用と1台未取得時の扱い、デモでの非表示を検証した。
+      Tile / Complication / ウィジェットの実機での見え方は未検証（BL-149として起票）。
+    関連ID:
+      - BL-142
+
+- date: 2026-09-18 09:45
+  summary: Sesame APIの失敗理由をリリースビルドのlogcatへ残せるようにした
+  details:
+    変更内容: >-
+      BL-139: リリースビルドでSesame APIの失敗理由がどこにも残らず、状態取得が「状態不明」に
+      なる原因（HTTPエラーなのか通信失敗なのか）を切り分けられなかった問題に対応した。
+      `core.api.SesameApiException` へ `httpStatusCode` を追加し、HTTPのエラー応答では
+      ステータスコードを保持する。あわせて例外メッセージから応答本文を除いた（従来は
+      `Sesame API error: HTTP 403 - {本文}` の形で本文を載せており、メッセージがログへ流れると
+      応答内容が露出しうるため。`rules/guardrails-unified.v1.md` 3.3）。
+      失敗の説明文を組み立てる `core.api.SesameApiFailureLog` と操作種別の
+      `core.api.SesameApiOperation` を新設し、`status failed: HTTP 403` のように
+      「どの操作が」「どの種類の失敗で」落ちたかだけを1行で表す。apikey・secretKey・uuid・URL・
+      応答本文は一切含めない。
+      `mobile.command.SesameDeviceCommandExecutor` はAndroid非依存のユニットテスト対象で
+      `android.util.Log` を直接呼べないため、出力先を注入可能にした。引数が
+      detektの `LongParameterList` 閾値（7）に達したため、API呼び出し口と失敗ログの出力先を
+      `SesameApiAccess` へまとめ、既定のAPIクライアント生成（`-PsesameApiBaseUrl` の差し替え、
+      BL-132）も同クラスへ移した。`SesameDeviceCommandExecutorFactory` が
+      `Log.w(SesameApiFailureLog.TAG, ...)` へ配線する（`Log.w` は
+      `mobile/proguard-rules.pro` の `-assumenosideeffects` の対象外でリリースビルドにも残る、BL-083）。
+      施錠/解錠側は `mobile.messaging.SesameCommandHandler` に `onFailure` を足し、
+      実行口が同じ経路でログを出す。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiException.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiFailureLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiFailureLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、ログ文字列が
+      HTTPステータスコードまたは原因例外の型名だけになり、uuid・apikey・secretKey・
+      応答本文・URLを含まないことを確認した
+    関連ID:
+      - BL-139
+
 - date: 2026-09-17 00:10
   summary: ウィジェットのタップ処理を受信の実行時間制限内へ収め実機で固着とANRの解消を確認した
   details:

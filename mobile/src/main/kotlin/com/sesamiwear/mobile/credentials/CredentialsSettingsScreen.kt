@@ -37,6 +37,8 @@ import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.help.HelpContent
 import com.sesamiwear.mobile.help.HelpTopic
 import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
+import com.sesamiwear.mobile.state.ApiUsageCounter
+import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.widget.SesameWidgetRepository
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 import kotlinx.coroutines.delay
@@ -50,8 +52,10 @@ import kotlinx.coroutines.launch
  * uuid/apikey/secretKeyはすべてbiz.candyhouse.co（SESAME Biz 開発者ページ）から取得する想定
  * （BL-059、Sesameアプリの「鍵をシェア」QRコードは使わない）。secretKeyは16進数32文字（BL-058）。
  * 取得元の詳細説明は初期表示せず、ヘルプボタンからのダイアログへ集約して情報量を抑える（BL-059）。
- * ヘルプは値の取得方法・デモの試し方・登録後の使い方を選べるメニュー形式で、文言は
- * [com.sesamiwear.mobile.help.HelpContent]が持つ（BL-113）。
+ * ヘルプは値の取得方法・APIのリクエスト上限・デモの試し方・登録後の使い方を選べるメニュー形式で、
+ * 文言は[com.sesamiwear.mobile.help.HelpContent]が持つ（BL-113 / BL-144）。
+ * 見出しの下には今月のAPI呼び出し回数を出す（BL-147、[ApiUsageCounter]）。月間リクエスト上限
+ * （BL-141）に対する消費の目安で、他経路の消費は含まない旨を文言に含める。
  */
 @Composable
 fun CredentialsSettingsScreen(
@@ -64,6 +68,10 @@ fun CredentialsSettingsScreen(
     val formState = rememberCredentialsFormState()
     var showSavedMessage by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
+    val apiUsageCount =
+        remember {
+            ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(context)).countOf(System.currentTimeMillis())
+        }
 
     if (showSavedMessage) {
         LaunchedEffect(Unit) {
@@ -88,15 +96,11 @@ fun CredentialsSettingsScreen(
     }
 
     Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Sesame API設定（${credentialsList.size}台登録済み）",
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { showHelp = true }) {
-                Text("ヘルプ")
-            }
-        }
+        ScreenHeader(
+            deviceCount = credentialsList.size,
+            apiUsageCount = apiUsageCount,
+            onHelpClick = { showHelp = true },
+        )
         DeviceList(
             credentialsList = credentialsList,
             onEdit = formState::startEditing,
@@ -177,8 +181,26 @@ private fun HelpMenuDialog(
 }
 
 /**
+ * 画面の見出し（登録台数とヘルプボタン）と、今月のAPI呼び出し回数（BL-147）。
+ * 呼び出し回数は月間リクエスト上限（BL-141）に対する消費の目安で、他経路の消費は含まない。
+ * 画面を開いた時点の値を出し、開いている間の更新は行わない（設定画面は操作の場ではないため）。
+ */
+@Composable
+private fun ScreenHeader(
+    deviceCount: Int,
+    apiUsageCount: Int,
+    onHelpClick: () -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(text = "Sesame API設定（${deviceCount}台登録済み）", modifier = Modifier.weight(1f))
+        TextButton(onClick = onHelpClick) { Text("ヘルプ") }
+    }
+    Text(text = ApiUsageCounter.label(apiUsageCount))
+}
+
+/**
  * ヘルプ1項目の本文（BL-113）。本文が画面の高さを超える項目があるためスクロール可能にし、
- * 外部ページへのリンクを持つ項目（値の取得方法）ではブラウザを開くボタンを添える。
+ * 外部ページへのリンクを持つ項目ではブラウザを開くボタンを添える（1項目に複数可、BL-144）。
  */
 @Composable
 private fun HelpTopicDialog(
@@ -196,7 +218,7 @@ private fun HelpTopicDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 topic.paragraphs.forEach { paragraph -> Text(paragraph) }
-                topic.link?.let { link ->
+                topic.links.forEach { link ->
                     TextButton(onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
                     }) {

@@ -2,9 +2,13 @@ package com.sesamiwear.mobile.widget
 
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameStatusDetail
+import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.core.display.SesameTileContent
 
 /**
@@ -26,6 +30,12 @@ sealed interface SesameWidgetModel {
         val displayName: String,
         val state: TileDisplayState,
         val isAllDevices: Boolean,
+        /**
+         * 状態文言の下へ添える1行（BL-142 / BL-140）。直近の取得・操作が失敗していればその理由、
+         * 成功していれば最後に取得した時刻の古さ。nullなら表示しない（デモ用デバイスは
+         * Sesame APIから取得しないため、鮮度も失敗も存在しない）。
+         */
+        val detailLabel: String? = null,
     ) : SesameWidgetModel {
         val statusIcon: String get() = SesameTileContent.statusIcon(state)
         val statusLabel: String get() = SesameTileContent.statusLabel(state, isAllDevices)
@@ -47,43 +57,24 @@ sealed interface SesameWidgetModel {
  *
  * mobileは自分自身がSesame APIを呼ぶため、wearの「スマホ未接続」は存在しない（常に接続扱い）。
  * 通信中の表示（IN_PROGRESS）はタップ操作（BL-122）で[isCommandInProgress]を渡す。
+ *
+ * 状態は保存済みスナップショット（[SesameStatusSnapshot]）から読み、状態文言の下へ添える1行
+ * （最後に取得した時刻の古さ、または直近の失敗の理由）もあわせて決める（BL-142 / BL-140）。
+ * 自動状態取得を廃止したため表示は最後に分かった状態を出し続ける。「全デバイス」対象では
+ * 最も古い取得時刻を代表値とし、1台でも未取得なら全体を「未取得」とする。失敗は1台でもあれば
+ * 表示し、利用者が対処できる認証エラーを優先する。
  */
 object SesameWidgetModelResolver {
     fun resolve(
         assignedUuid: String?,
         registeredDevices: List<SesameDeviceSummary>,
-        lockStateOf: (String) -> Boolean?,
+        snapshotOf: (String) -> SesameStatusSnapshot?,
         isCommandInProgress: Boolean = false,
+        nowEpochMillis: Long = System.currentTimeMillis(),
     ): SesameWidgetModel {
         val uuid = assignedUuid ?: return SesameWidgetModel.Unconfigured
-        val state =
-            when {
-                SesameDemoMode.isDemoDevice(uuid) ->
-                    if (SesameDemoMode.isAvailable(registeredDevices)) {
-                        TileDisplayStateResolver.resolve(
-                            isPhoneConnected = true,
-                            isCommandInProgress = isCommandInProgress,
-                            isLocked = lockStateOf(uuid) ?: SesameDemoMode.INITIAL_IS_LOCKED,
-                        )
-                    } else {
-                        null
-                    }
-                SesameDeviceTargets.isAllDevices(uuid) ->
-                    registeredDevices.takeIf { it.isNotEmpty() }?.let { devices ->
-                        TileDisplayStateResolver.resolveAggregate(
-                            isPhoneConnected = true,
-                            isCommandInProgress = isCommandInProgress,
-                            lockStates = devices.map { lockStateOf(it.uuid) },
-                        )
-                    }
-                registeredDevices.any { it.uuid == uuid } ->
-                    TileDisplayStateResolver.resolve(
-                        isPhoneConnected = true,
-                        isCommandInProgress = isCommandInProgress,
-                        isLocked = lockStateOf(uuid),
-                    )
-                else -> null
-            }
+        val targetUuids = targetUuidsOf(uuid, registeredDevices)
+        val state = resolveState(uuid, registeredDevices, snapshotOf, isCommandInProgress)
         return if (state == null) {
             SesameWidgetModel.Unconfigured
         } else {
@@ -92,7 +83,73 @@ object SesameWidgetModelResolver {
                 displayName = SesameDeviceTargets.displayName(uuid, registeredDevices),
                 state = state,
                 isAllDevices = SesameDeviceTargets.isAllDevices(uuid),
+                detailLabel = detailLabelOf(targetUuids, snapshotOf, nowEpochMillis),
             )
         }
     }
+
+    private fun resolveState(
+        uuid: String,
+        registeredDevices: List<SesameDeviceSummary>,
+        snapshotOf: (String) -> SesameStatusSnapshot?,
+        isCommandInProgress: Boolean,
+    ): TileDisplayState? =
+        when {
+            SesameDemoMode.isDemoDevice(uuid) ->
+                if (SesameDemoMode.isAvailable(registeredDevices)) {
+                    TileDisplayStateResolver.resolve(
+                        isPhoneConnected = true,
+                        isCommandInProgress = isCommandInProgress,
+                        isLocked = snapshotOf(uuid)?.isLocked ?: SesameDemoMode.INITIAL_IS_LOCKED,
+                    )
+                } else {
+                    null
+                }
+            SesameDeviceTargets.isAllDevices(uuid) ->
+                registeredDevices.takeIf { it.isNotEmpty() }?.let { devices ->
+                    TileDisplayStateResolver.resolveAggregate(
+                        isPhoneConnected = true,
+                        isCommandInProgress = isCommandInProgress,
+                        lockStates = devices.map { snapshotOf(it.uuid)?.isLocked },
+                    )
+                }
+            registeredDevices.any { it.uuid == uuid } ->
+                TileDisplayStateResolver.resolve(
+                    isPhoneConnected = true,
+                    isCommandInProgress = isCommandInProgress,
+                    isLocked = snapshotOf(uuid)?.isLocked,
+                )
+            else -> null
+        }
+
+    /**
+     * 鮮度表示の対象となるuuid。「全デバイス」なら登録済み全台、デモ用デバイスは対象外（空）。
+     * デモはSesame APIから取得しないため、鮮度という概念が無い。
+     */
+    private fun targetUuidsOf(
+        uuid: String,
+        registeredDevices: List<SesameDeviceSummary>,
+    ): List<String> =
+        when {
+            SesameDemoMode.isDemoDevice(uuid) -> emptyList()
+            SesameDeviceTargets.isAllDevices(uuid) -> registeredDevices.map { it.uuid }
+            else -> listOf(uuid)
+        }
+
+    private fun detailLabelOf(
+        targetUuids: List<String>,
+        snapshotOf: (String) -> SesameStatusSnapshot?,
+        nowEpochMillis: Long,
+    ): String? =
+        if (targetUuids.isEmpty()) {
+            null
+        } else {
+            val snapshots = targetUuids.map { snapshotOf(it) }
+            // ウィジェットは表示領域に余裕があるため、失敗時は対処を併記する詳しい文言を使う（BL-140）。
+            SesameStatusDetail.detailedLabel(
+                failure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure }),
+                updatedAtEpochMillis = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis }),
+                nowEpochMillis = nowEpochMillis,
+            )
+        }
 }

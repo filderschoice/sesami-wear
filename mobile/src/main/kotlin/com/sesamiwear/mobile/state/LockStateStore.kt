@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.state
 
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusSnapshot
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -8,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -36,7 +38,33 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
         isLocked: Boolean,
         updatedAtEpochMillis: Long,
     ) {
+        // 成功したので直近の失敗は消す（BL-140）。
         saveAll(loadAll() + (uuid to SesameStatusSnapshot(isLocked, updatedAtEpochMillis)))
+    }
+
+    /**
+     * 直近の取得・操作が[failure]で失敗したことを記録する（BL-140）。
+     * 最後に分かった施錠状態と、その取得時刻はそのまま残す（BL-142の「最後に分かった状態を
+     * 出し続ける」設計に合わせる）。一度も取得できていないデバイスでは失敗だけを保存する。
+     */
+    @Synchronized
+    fun saveFailure(
+        uuid: String,
+        failure: SesameStatusFailure,
+    ) {
+        val states = loadAll()
+        val previous = states[uuid]
+        saveAll(
+            states +
+                (
+                    uuid to
+                        SesameStatusSnapshot(
+                            isLocked = previous?.isLocked,
+                            updatedAtEpochMillis = previous?.updatedAtEpochMillis,
+                            lastFailure = failure,
+                        )
+                ),
+        )
     }
 
     /** 資格情報を削除したデバイスの状態を消す。 */
@@ -61,7 +89,19 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
             val entry = value as? JsonObject
             val isLocked = (entry?.get(FIELD_IS_LOCKED) as? JsonPrimitive)?.booleanOrNull
             val updatedAt = (entry?.get(FIELD_UPDATED_AT) as? JsonPrimitive)?.longOrNull
-            if (isLocked != null && updatedAt != null) uuid to SesameStatusSnapshot(isLocked, updatedAt) else null
+            val failure =
+                SesameStatusFailure.ofNameOrNull((entry?.get(FIELD_LAST_FAILURE) as? JsonPrimitive)?.contentOrNull)
+            val hasLockState = isLocked != null && updatedAt != null
+            if (!hasLockState && failure == null) {
+                null
+            } else {
+                uuid to
+                    SesameStatusSnapshot(
+                        isLocked = if (hasLockState) isLocked else null,
+                        updatedAtEpochMillis = if (hasLockState) updatedAt else null,
+                        lastFailure = failure,
+                    )
+            }
         }.toMap()
     }
 
@@ -70,8 +110,9 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
             JsonObject(
                 states.mapValues { (_, snapshot) ->
                     buildJsonObject {
-                        put(FIELD_IS_LOCKED, snapshot.isLocked)
-                        put(FIELD_UPDATED_AT, snapshot.updatedAtEpochMillis)
+                        snapshot.isLocked?.let { put(FIELD_IS_LOCKED, it) }
+                        snapshot.updatedAtEpochMillis?.let { put(FIELD_UPDATED_AT, it) }
+                        snapshot.lastFailure?.let { put(FIELD_LAST_FAILURE, it.name) }
                     }
                 },
             )
@@ -82,3 +123,4 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
 private const val KEY_LOCK_STATES = "lock_states"
 private const val FIELD_IS_LOCKED = "isLocked"
 private const val FIELD_UPDATED_AT = "updatedAtEpochMillis"
+private const val FIELD_LAST_FAILURE = "lastFailure"

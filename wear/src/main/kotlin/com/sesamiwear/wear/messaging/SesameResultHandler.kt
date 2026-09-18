@@ -2,8 +2,8 @@ package com.sesamiwear.wear.messaging
 
 import com.sesamiwear.core.SesameCommandResult
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.wear.haptics.HapticPattern
-import com.sesamiwear.wear.haptics.SesameHapticPatternResolver
+import com.sesamiwear.core.haptics.HapticPattern
+import com.sesamiwear.core.haptics.SesameHapticPatternResolver
 
 /**
  * 受信メッセージ（path・payload）から、再生すべき[HapticPattern]を決定する。

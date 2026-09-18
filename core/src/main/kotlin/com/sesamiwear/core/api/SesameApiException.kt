@@ -6,6 +6,13 @@ package com.sesamiwear.core.api
  *
  * 呼び出し側がこの型だけを捕捉すれば取りこぼしが無くなるようにするための取り決めで、
  * 以前は`java.io.IOException`等が素通りし、コルーチンから漏れてプロセスが落ちる経路があった。
- * [message]には資格情報（uuid・apikey・secretKey）を含めない。原因例外は[cause]として保持する。
+ * [message]には資格情報（uuid・apikey・secretKey）も応答本文も含めない。原因例外は[cause]として保持する。
+ *
+ * @property httpStatusCode HTTPのエラー応答に由来する場合のステータスコード。通信失敗・解析失敗ではnull。
+ * 失敗の種類（認証エラーなのか通信失敗なのか）を呼び出し側が区別するために保持する（BL-139）。
  */
-class SesameApiException(message: String, cause: Throwable? = null) : Exception(message, cause)
+class SesameApiException(
+    message: String,
+    cause: Throwable? = null,
+    val httpStatusCode: Int? = null,
+) : Exception(message, cause)

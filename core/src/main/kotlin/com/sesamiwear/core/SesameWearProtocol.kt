@@ -25,6 +25,12 @@ object SesameWearProtocol {
     const val KEY_UPDATED_AT_EPOCH_MILLIS = "updated_at_epoch_millis"
 
     /**
+     * 直近の状態取得・施錠/解錠が失敗した理由（[SesameStatusFailure]の`name`）。
+     * 成功していればキー自体を載せない（BL-140）。
+     */
+    const val KEY_LAST_FAILURE = "last_failure"
+
+    /**
      * 施錠/解錠コマンドのメッセージペイロードへ、操作対象デバイスのuuid（[SesameCredentials.uuid]と
      * 対応する識別子）を載せるためのエンコード/デコード（BL-048、複数Sesameデバイス対応）。
      * uuidをそのままUTF-8バイト列化するだけの単純な形式で、JSON等は使わない。

@@ -58,6 +58,18 @@
     `SesameApiException`だけを捕捉するため、正規化前は通信エラーが素通りしてコルーチンから漏れ、
     プロセスが落ちる経路になっていた。例外メッセージには原因例外の型名だけを載せる（uuidを含むURLや
     応答内容をログへ流さないため）。原因例外は`cause`として保持する。
+  - `SesameApiException`はHTTPのエラー応答に由来する場合だけ`httpStatusCode`を持つ（BL-139）。
+    通信失敗・解析失敗ではnullで、呼び出し側が「認証エラー・上限超過（401 / 403 / 429）」と
+    「圏外などの通信失敗」を区別するための唯一の手がかりになる。メッセージへは応答本文を載せない
+    （従来は`Sesame API error: HTTP 403 - {本文}`の形で本文を含んでおり、メッセージがログへ流れると
+    応答内容が露出しうるため。`rules/guardrails-unified.v1.md` 3.3）。
+  - 失敗のログ文言は`core.api.SesameApiFailureLog.describe`が組み立てる（BL-139）。出力は
+    `status failed: HTTP 403` / `lock failed: IOException` のように「どの操作
+    （`core.api.SesameApiOperation`: STATUS / LOCK / UNLOCK）が」「どの種類の失敗で」落ちたかの1行だけで、
+    apikey・secretKey・uuid・URL・応答本文は含めない。理由は`httpStatusCode`があればステータスコード、
+    無ければ原因例外の型名を使う（`withContext`をまたぐ例外はkotlinx.coroutinesが複製するため、
+    `cause`を最内までたどってから型名を取る）。含めてはならない値を埋め込んだ例外を渡すテストで、
+    それらが出力へ現れないことを検証している。
   - 既定の`OkHttpClient`は接続3秒・読み書き3秒・呼び出し全体6秒のタイムアウトを持ち、プロセス内で
     共有する1インスタンス（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行し、
     Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は
@@ -78,27 +90,86 @@
     応答は約240msで返るためタイムアウトではない。uuidは36文字・大文字で形式は正常。
     `mapping.txt`上で`SesameStatus` / `$$serializer` / `$Companion`はいずれも非難読化のまま残存して
     おり、R8によるkotlinx.serializationの破壊でもない。**アプリの実装は正常**で、修正は不要。
-  - ただしこの調査で、リリースビルドでは失敗理由がどこにも残らないことが判明した。
+  - ただしこの調査で、リリースビルドでは失敗理由がどこにも残らないことが判明した。当時の
     `SesameDeviceCommandExecutor.fetchIsLocked`は`SesameApiException`を捕捉してnullを返すだけで、
-    ログ出力を行わない。`Log.d`はproguard-rules.proの`-assumenosideeffects`で除去される（BL-083）。
+    ログ出力を行わなかった。`Log.d`はproguard-rules.proの`-assumenosideeffects`で除去される（BL-083）。
     Play App Signingのため配布済みのリリース版へ後から診断ログを足すこともできない
     （インストール済みAPKの署名は`CN=Android, O=Google Inc.`で、アップロード鍵では上書き更新不可。
     アンインストールすると保存済みの資格情報が消える）。原因特定にはデバッグ版（BL-131の併存
-    インストール）へ実資格情報を入力して一時的な診断ログを仕込む必要があった。HTTPステータスコードの
-    ログ出力はBL-139、認証エラーと未取得の表示上の区別はBL-140として起票済み。
+    インストール）へ実資格情報を入力して一時的な診断ログを仕込む必要があった。
+    この反省からBL-139で最低限の失敗ログをリリースビルドへ最初から含めるようにした（対応済み）。
+    認証エラーと未取得の表示上の区別はBL-140として起票済み。
   - 403の直接の原因は、当月のAPIリクエスト数が上限（1000回）に達してアカウントのAPIキーが
     拒否されたことである可能性が高い（biz.candyhouse.coのサイト上からのリクエストも同時に
     通らなくなっていた）。上限到達時の応答がHTTP 429ではなく403である点はCANDY HOUSE側の実装に
     よるものと推測しており未確認。
-  - **本アプリには状態取得のリクエスト数を抑える仕組みが無い。**
-    `wear.tile.SesameTileStateResolver.requestStatusIfStale`は、保存済みスナップショットが
-    `STATUS_STALE_THRESHOLD_MILLIS`（30秒）より古ければ`PATH_STATUS_REQUEST`を送り、これはTileの
-    描画のたびに評価される。`wear.complication.SesameComplicationDataSourceService`も同じ
-    `resolveState`を呼ぶためComplicationの更新でも発生する。対象が「全デバイス」の場合は1回の描画で
-    登録台数ぶん飛ぶ。mobile側の`CommandDebouncer`は状態取得を対象外としており（施錠/解錠のみ）、
-    `SesameDeviceCommandExecutor.refreshStatus`にも最小間隔が無い。
-    リクエスト数の削減はBL-142、エラー後のバックオフはBL-143として起票済み。
-    実際の1日あたり消費回数は未計測。
+  - **自動状態取得は廃止した（BL-142、対応済み）。** 以前は
+    `wear.tile.SesameTileStateResolver.requestStatusIfStale`が、保存済みスナップショットが
+    `STATUS_STALE_THRESHOLD_MILLIS`（30秒）より古ければ`PATH_STATUS_REQUEST`を送っていた。これは
+    Tileの描画のたびに評価され、`wear.complication.SesameComplicationDataSourceService`も同じ
+    解決処理を呼ぶためComplicationの更新でも発生し、対象が「全デバイス」なら1回の描画で登録台数ぶん
+    飛んでいた。mobile側の`CommandDebouncer`は状態取得を対象外（施錠/解錠のみ）で、
+    `SesameDeviceCommandExecutor.refreshStatus`にも最小間隔が無く、経路のどこにも抑制が無かった。
+  - 消費ペースの見積もり（設計値からの算出、BL-142）。実機での実測ではなく、確定している設定値から
+    上限値を求めた。Complicationのマニフェスト`UPDATE_PERIOD_SECONDS`は600秒のため定期更新は
+    **144回/日/枠**。鮮度閾値30秒はこの間隔より常に短いため、更新のたびに必ず状態取得が飛ぶ。
+    登録2台で「全デバイス」を対象にすると**288回/日 = 約8,600回/月**となり、Complication枠1つだけで
+    月間上限1000回（= **約33回/日**）を8倍以上超過する。Tileの描画ぶんはこれに上乗せされる。
+    実機での1日サンプルより、この算出のほうが上限の見積もりとして確実で、実機・実資格情報も要らない。
+  - 対応後の消費は**利用者が明示的にタップした回数だけ**になる。状態が更新される契機は
+    (1) 施錠/解錠の成功（APIのGETを伴わず、送ったコマンドの意図した状態を保存する）、
+    (2) Tileのデバイス名チップのタップ（`SesameStatusRefreshActivity`）、
+    (3) ホーム画面ウィジェットのデバイス名のタップ、の3つだけ。
+    代償として表示は最後に分かった状態を出し続けるため、その古さを
+    `core.display.SesameStatusFreshness`の文言として表示へ添える（下記「状態の鮮度表示」）。
+    月間消費回数のカウントと表示はBL-147、タップ連打時の状態取得の重複抑止はBL-148として起票済み。
+    エラー後のバックオフ（BL-143）は、抑制対象だった自動取得が消えたため対象消滅として閉じた
+    （2026-09-18、ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
+
+### 状態の鮮度表示と失敗の区別
+
+状態文言のすぐ下へ1行だけ添える表示。直近の取得・操作が失敗していればその理由、成功していれば
+最後に取得した時刻の古さを出す（BL-142 / BL-140）。決定は`core.display.SesameStatusDetail`が行い、
+`compactLabel`（Tile・Complication向け）と`detailedLabel`（ホーム画面ウィジェット向け）の
+2通りの文言を返す。
+
+- `core.display.SesameStatusFreshness`（Android非依存、ユニットテスト対象）: 「最後に状態を取得した
+  時刻」の表示文言を決める（BL-142）。自動状態取得を廃止したことで、Tile・Complication・ホーム画面
+  ウィジェットは最後に分かった状態を出し続けるため、利用者がその表示をいつまで信用してよいかを
+  判断できるようにする。
+- 文言の規則は次のとおり。1分未満は「たった今」、1時間未満は「N分前」、24時間未満は「N時間前」、
+  24時間以上は日付のみ（「9/17」）、一度も取得していなければ「未取得」。24時間以内を相対表記に
+  するのは「どれだけ古いか」が一目で分かるため、24時間を超えたものを日付のみにするのは、その状態が
+  既に参考値であり日付まで分かれば足りるため。端末時計のずれで未来の時刻が保存されていた場合も
+  「たった今」へ丸める。日付表記のタイムゾーンは引数で受け、既定は端末のタイムゾーン
+  （`java.time`はminSdk 26で利用でき、desugaringは不要）。
+- 「全デバイス」対象では`oldestOf`が最も古い取得時刻を代表値として返し、1台でも未取得なら全体を
+  未取得（null）として扱う。集約状態の判定（`TileDisplayStateResolver.resolveAggregate`が1台でも
+  未取得なら「状態不明」にする）と同じ、最悪値を採る考え方で揃えている。
+- デモ用デバイス（BL-109 / BL-123）はSesame APIから取得しないため鮮度という概念が無く、表示しない
+  （`SesameTileStatus.detailLabel` / `SesameWidgetModel.Configured.detailLabel`がnull）。
+- 表示位置は、Tileは右チップの状態文言の下（`TYPOGRAPHY_CAPTION3`）、ウィジェットは同じ位置の
+  11sp、Complicationは`LONG_TEXT`のみ末尾へ括弧付きで添える（`SHORT_TEXT`は表示できる文字数が
+  非常に少ないため対象外）。wearのTileとmobileのウィジェットで文言を食い違わせないよう、
+  文言の決定はcoreに置く（`SesameTileContent`と同方針、BL-119）。
+- `core.SesameStatusFailure`（Android非依存、ユニットテスト対象）: 直近の失敗の分類（BL-140）。
+  利用者が自分で対処できるかどうかで2つに分ける。`AUTH_OR_QUOTA`（HTTP 401 / 403 / 429。資格情報が
+  拒否された、またはAPIの月間リクエスト上限に達した）と`COMMUNICATION`（それ以外のすべて。圏外・
+  タイムアウト・名前解決失敗・想定外の応答）。分類は`core.api.SesameApiException.httpStatusCode`
+  （BL-139）から決める。
+  - `AUTH_OR_QUOTA`をさらに「資格情報の誤り」と「上限到達」へ分けることはできない。Sesame APIは
+    どちらもHTTP 403（本文も同一）で返すためで、429が返るかどうかもCANDY HOUSE側の実装次第で未確認
+    （BL-141）。そのため文言も両方を含む案内にする。
+  - 文言は`shortLabel`（Tile・Complication向け、「認証エラー」「通信エラー」の5文字。過去に7文字の
+    文言がタイル幅に収まらず末尾省略された事例があるため、BL-102 / BL-104）と`detailedLabel`
+    （ウィジェット向け、「認証エラー（設定を確認）」「通信エラー（電波状況を確認）」）の2つを持つ。
+  - 「全デバイス」対象では`worstOf`が集約する。1台でも`AUTH_OR_QUOTA`があればそれを優先し、次に
+    `COMMUNICATION`。利用者が対処できる失敗を、対処できない失敗に埋もれさせないため。
+- **失敗しても表示している施錠状態は「状態不明」へ戻さない**（BL-140、ユーザー確認済み）。
+  最後に分かった状態を残し、下の1行だけを失敗の理由へ差し替える。BL-142で「最後に分かった状態を
+  出し続ける」設計にしたことと揃えるためで、分かっていた情報を捨てず、Tileからの施錠/解錠操作も
+  引き続き行える。失敗を鮮度より優先して表示するのは、失敗のほうが新しい情報であり、かつ利用者が
+  次に取るべき行動に直結するため（失敗しているときは表示が古いことも同時に意味する）。
 
 ### 資格情報管理（複数デバイス対応）
 
@@ -140,11 +211,26 @@
     (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
     遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの
     ページから取得する。Sesameアプリの「鍵をシェア」QRコードは使わない運用）、
-    (2)「Sesameが無くてもデモで試す」（ウォッチのタイルとホーム画面ウィジェットの両方の試し方、
+    (2)「APIのリクエスト回数の上限」（BL-144）、
+    (3)「Sesameが無くてもデモで試す」（ウォッチのタイルとホーム画面ウィジェットの両方の試し方、
     両者のデモは連動しないこと、登録後にデモのウィジェットが「タップして設定」へ戻ること）、
-    (3)「登録後のウォッチでの使い方」、(4)「ホーム画面ウィジェットの使い方」（BL-124）の4項目を持つ。
+    (4)「登録後のウォッチでの使い方」、(5)「ホーム画面ウィジェットの使い方」（BL-124）の5項目を持つ。
     ウィジェットの説明はウィジェットの表示文言（「変更」「全デバイス」「通信中...」「タップして設定」）を
     含むことをユニットテストで固定する。
+  - `HelpTopic`の外部リンクは`links: List<HelpLink>`（0個以上）。「値の取得方法」がSESAME Bizと
+    公式の取得手順記事の2本を持つため、単一の`link`から変更した（BL-144）。
+  - 「APIのリクエスト回数の上限」の文言は、上限の存在・上限到達時の表示が「認証エラー」になること・
+    確認先（SESAME Biz）・対処（翌月のリセット待ちか引き上げの問い合わせ）・本アプリが自動取得を
+    しないこと、を説明する。**上限の具体的な回数は書かない。** 1000回という値は利用者の環境での
+    実測値であり、公式ドキュメント上の記載を確認できていないため（BL-141）。
+    書かないことをユニットテストで固定する。
+  - 併記する公式リンクは、SESAME Biz 開発者ページ（`HelpContent.SESAME_BIZ_DEVELOPER_URL`）と、
+    APIキーの取得手順の公式記事（`SESAME_API_KEY_GUIDE_URL`、`jp.candyhouse.co/blogs/how-to/...`）の
+    2本。いずれも2026-09-18に認証なしで開けることを実際にアクセスして確認した。
+    Web APIのリファレンス（`doc.candyhouse.co/ja/SesameAPI/`）は同日時点でGitHub Pagesの認証へ
+    リダイレクトされ認証なしでは開けないため、リンクとして採用しない。
+    公式記事のURLは日本語のパスを持つため、`Uri.parse`がそのまま扱えるようパーセントエンコード済みの
+    形で保持し、非ASCII文字を含まないことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
     体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
   - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
@@ -179,10 +265,26 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
     また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
-  - 結果の通知: wearは成否をハプティクスで区別するが、ウィジェットは失敗時に操作前の表示へ戻すのみ（改善はBL-129）。
-  - 表示の鮮度: wearはDataItemが30秒以上古いと自動で状態取得するが、ウィジェットは自動取得しない
-    （保存値の表示のみ。改善の検討はBL-129）。
-  - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
+  - 結果の通知: wear・ウィジェットとも成否をハプティクスで区別する（BL-129で揃えた）。
+    ウィジェットはさらに、失敗の理由を状態文言の下へ表示する（BL-140）。
+  - 表示の鮮度: wear・ウィジェットとも自動取得は行わず（BL-142）、保存値を表示したうえで
+    最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
+    ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
+    更新は利用者のタップで行う。
+  - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
+    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
+    決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
+    しきい値は幅200dp・高さ100dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
+    状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
+    4行が入る下限から決めた。
+    `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
+    出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
+    対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。
+    未設定時の文言は「タップして設定」ではなく「設定」にする。
+    `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
+    250x110dpのままにし、縮小の下限は`minResizeWidth`/`minResizeHeight`（50dp）で指定する。
+    **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+    なり、以降の表示変更で両方を追従させる必要が出るため。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
   `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
@@ -372,8 +474,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `PATH_COMMAND_RESULT`: コマンド結果返送（BL-006）。
 - `PATH_STATUS_REQUEST`: 状態取得リクエスト、Fire-and-forget（BL-061）。結果は返さず
   `STATUS_DATA_ITEM_PATH`のDataItem変更として非同期に届く。
-- `STATUS_DATA_ITEM_PATH` / `KEY_IS_LOCKED` / `KEY_UPDATED_AT_EPOCH_MILLIS`: ロック状態の同期
-  （BL-015）。`statusDataItemPath(uuid)`でデバイスごとに一意なパスを生成する（BL-050）。
+- `STATUS_DATA_ITEM_PATH` / `KEY_IS_LOCKED` / `KEY_UPDATED_AT_EPOCH_MILLIS` / `KEY_LAST_FAILURE`:
+  ロック状態と直近の失敗の同期（BL-015 / BL-140）。`statusDataItemPath(uuid)`でデバイスごとに
+  一意なパスを生成する（BL-050）。値が無い項目はキーごと載せず、wear側は
+  `core.SesameStatusSnapshotFactory`がキーの有無から復元する。施錠状態が未取得のまま失敗だけが
+  同期されることもある（一度も取得できていないデバイスで認証エラーになった場合）。
 - `encodeDeviceUuid` / `decodeDeviceUuid`: 施錠/解錠/状態取得コマンドの対象デバイスuuidを
   メッセージペイロードへUTF-8バイト列としてそのまま載せる（BL-048）。
 - `DEVICE_LIST_DATA_ITEM_PATH` / `KEY_DEVICE_LIST_JSON`: 登録済みデバイス一覧（`SesameDeviceSummary`
@@ -398,29 +503,75 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     戻り値は`SUCCESS`/`FAILURE`/`DEBOUNCED`。資格情報が無い・鍵が不正（`secretKeyBytesOrNull`がnull、
     BL-026）ならAPIを呼ばず`FAILURE`。保存する状態は「送信したコマンドが意図した状態」（LOCK→施錠、
     UNLOCK→解錠、BL-015の簡略化ロジック）。
-  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
-    APIエラーはnull（保存・通知しない）。重複判定の対象外。
+  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。
+    資格情報が無い場合はAPIを呼ばずnull（保存・通知もしない）。APIエラーの場合はnullを返すが、
+    失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。
+    同一uuidへの連打は`CommandDebouncer`で抑止し、抑止した場合はAPIを呼ばず保存済みの状態を返す
+    （BL-148。失敗ではないため失敗の記録も残さない）。
+  - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
+    本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
+    注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
+  - あわせて失敗の分類を`LockStateStore.saveFailure`で保存し、ウォッチ・ウィジェットへ通知する
+    （BL-140）。状態取得と施錠/解錠のどちらの失敗も同じ扱いにする。成功時の`save`は失敗の記録を
+    消すため、直近の1回の結果だけが残る。最後に分かった施錠状態と、その取得時刻はそのまま残す。
   - デモ用デバイス（BL-123）: `execute`はAPIを呼ばず常に成功として端末内の状態だけを書き換え（重複判定は
     実デバイスと同じ）、`refreshStatus`は保存値（無ければ`INITIAL_IS_LOCKED`）を返すだけで保存・通知しない。
     ウォッチへのDataItem同期も行わず、ウォッチ側のデモ状態（`wear.demo.DemoLockStateStore`）とは同期しない。
   - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateNotifier`（`local`＝すべての
-    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ）、
-    `CommandDebouncer`、APIクライアント生成、時刻取得を注入する。`CommandDebouncer`は
+    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ。
+    通知は`SesameStatusSnapshot`（施錠状態・取得時刻・直近の失敗）を丸ごと渡す、BL-140）、
+    `SesameApiAccess`、`CommandDebouncer`、時刻取得を注入する。`CommandDebouncer`は
     companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
     同一uuidへの2秒以内の重複も1回にまとめる。
+  - `mobile.command.SesameApiAccess`（同一ファイル、Android非依存）: APIクライアントの生成
+    （`clientFactory`。既定はデバッグビルドで`-PsesameApiBaseUrl`があれば接続先を差し替える、BL-132）、
+    失敗ログの出力先（`logFailure`。既定は何もしない、BL-139）、呼び出し回数の記録口
+    （`recordApiCall`。既定は何もしない、BL-147）をまとめた型。実行口の引数がdetektの
+    `LongParameterList`閾値（7）に達したため、Sesame APIとのつなぎ方を1つにまとめた。
   - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
     `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
-    通知先は`watch`＝`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）、`local`＝
-    `SesameWidgetUpdater.updateAll`で生成する。
+    通知先は`watch`＝`SesameStatusSyncer.sync`（スナップショットをそのままDataItemへ、BL-118の
+    ベストエフォート）、`local`＝`SesameWidgetUpdater.updateAll`、
+    失敗ログは`Log.w(SesameApiFailureLog.TAG, ...)`で生成する。
+    `Log.w`はproguard-rules.proの`-assumenosideeffects`の対象外のため、リリースビルドにも残る（BL-083）。
 - `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
-  更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
+  更新時刻・直近の失敗、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120 / BL-140）。
+  `save`は状態を保存して失敗の記録を消し、`saveFailure`は状態を残したまま失敗だけを上書きする。機密情報を含まないため
   保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名
   `sesami_wear_lock_state`）。全デバイス分を1つのJSONオブジェクト（uuid → `isLocked`/`updatedAtEpochMillis`）
   にして単一キー`lock_states`へ保存し、`remove(uuid)`で個別に消せる。mobileはkotlinx.serializationの
   コンパイラプラグインを適用していないため`@Serializable`を使わずJsonObjectを直接組み立てる（R8の
   keepルールも不要）。壊れた値・欠けた項目は未取得扱い。書き込みは`@Synchronized`で同期化する。
-- `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一デバイスuuidへの
-  2秒以内の重複コマンドを無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
+- `mobile.state.ApiUsageCounter`（Android非依存、ユニットテスト対象、BL-147）: このアプリが
+  Sesame Web APIを呼び出した回数を暦月ごとに数える。`SesameApiAccess.recordApiCall`が実際にAPIを
+  呼ぶ直前に呼ばれ、**成否によらず**数える（上限は成功・失敗を問わず消費されるため）。
+  デモ用デバイス・重複として無視した操作・資格情報が無い場合はAPIを呼ばないため数えない。
+  保存値は「対象の年月」と「回数」の2つだけで機密情報を含まないため、保存先は非暗号化
+  SharedPreferences（ファイル名`sesami_wear_api_usage`）。月が変わったら数え直す。
+  月の境界を判定するタイムゾーンは注入可能で、既定は端末のタイムゾーン（CANDY HOUSE側のカウンタが
+  どのタイムゾーンで月を区切るかは未確認のため、利用者の体感に合う側を既定とする）。
+  - **数えるのはこのアプリからの呼び出しだけで、Sesame純正アプリなど他経路の消費は含まない。**
+    上限値そのものも契約内容によって変わりアプリからは取得できないため、表示は「上限までの残り」
+    ではなく消費の目安として出す。文言（`ApiUsageCounter.label`）に「このアプリからの分のみ・目安」
+    を含めることをユニットテストで固定する。
+  - 表示場所は資格情報設定画面の見出しの直下（`ScreenHeader`）。画面を開いた時点の値を出し、
+    開いている間の更新は行わない（設定画面は操作の場ではないため）。上限の存在そのものの説明は
+    ヘルプの「APIのリクエスト回数の上限」（BL-144）が持つ。
+- `mobile.messaging.CommandDebouncer`（Android非依存、時刻取得を注入可能）: 同一キーへの
+  2秒以内の重複を無視する（BL-062、Tile連打による多重送信・多重ハプティクスの防止）。
+  - キーは施錠/解錠が`cmd:{uuid}`、状態取得が`status:{uuid}`で、**別々に数える**（BL-148）。
+    分けないと、施錠した直後に状態を取り直せなくなる（BL-061の巻き戻り防止と衝突する）。
+  - 状態取得を抑止の対象へ加えたのはBL-148。BL-142で自動状態取得を廃止し、Sesame Web APIの消費が
+    利用者のタップ回数と等しくなったため、誤タップ・二度押しがそのまま月間リクエスト上限
+    （BL-141）へ効くようになった。
+  - 間隔は施錠/解錠と同じ2秒（`DEFAULT_WINDOW_MILLIS`）。**「連打」の定義を経路で揃えるため**で、
+    二度押し・誤タップは確実に弾き、「取れなかったのでもう一度」という意図的な再試行（通常は
+    2秒以上あく）は通す。利用者が明示的に意図した取得は抑制しないという方針（BL-142）を崩さない
+    範囲で最大の効果を取る値として選んだ。
+  - 「全デバイス」対象のタップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なるため
+    同一キーの重複に当たらない）。
+  - `sharedDebouncer`をプロセス内で共有するため、ウォッチ経由とウィジェット経由の重複も
+    まとめて1回に抑える。
 - `mobile.messaging.SesameStatusSyncer`: `DataClient.putDataItem`ラッパー。コマンド送信成功時は
   「送信したコマンドが意図した状態」（LOCK成功→施錠、UNLOCK成功→解錠）をそのまま同期する簡略化
   ロジック。`PATH_STATUS_REQUEST`経由ではSesame APIのGET結果をそのまま同期する（BL-015, BL-061）。
@@ -441,10 +592,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （-1）として通知する（BL-134）。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
   入っていない端末ではWearable APIが`ApiException`で失敗しうるが、以前は例外処理なしで`await()`して
   いたため、資格情報の保存時に起動したコルーチンから例外が漏れてアプリが落ちる経路があった。
-- **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（Tile/Complication
-  表示時にDataItemが30秒以上古い場合、またはデバイス名チップタップ時）に限られ、定期ポーリングは
-  行わない。Sesame純正アプリでの操作等、他経路による状態変化はTileが再表示・更新要求されるまで
-  反映されない。
+- **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（デバイス名チップの
+  タップ時のみ。自動取得はBL-142で廃止した）に限られ、定期ポーリングは行わない。
+  Sesame純正アプリでの操作等、他経路による状態変化は、利用者が明示的に状態取得するまで反映されない。
+  表示が古いことは鮮度の文言（前述「状態の鮮度表示」）で分かるようにしている。
 
 ### wear側コマンド送信・結果受信
 
@@ -517,11 +668,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   ウィジェット（BL-121以降）とTileで表示・操作ルールを食い違わせないよう、両者が参照できるcoreへ
   移した（BL-119。mobileはwearへ依存できない）。wear側は参照先を付け替えただけで挙動は変えておらず、
   固定文言の対象（デモ・全デバイス）ではDataItemを読まない点も移設前と同じ。
-- `wear.tile.SesameTileStateResolver`（Android非依存、Tile/Complication共通）: 対象uuidが
+- `wear.tile.SesameTileStateResolver`（Tile/Complication共通）: 対象uuidが
   `ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの状態を`TileDisplayStateResolver
-  .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する。いずれもDataItemが古い場合
-  （30秒以上）の自動状態取得リクエストを行う（BL-071でSesameTileService/
-  SesameComplicationDataSourceServiceの重複ロジックを集約）。
+  .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する（BL-071でSesameTileService/
+  SesameComplicationDataSourceServiceの重複ロジックを集約）。**状態取得のリクエストは送らない**
+  （BL-142で廃止）。戻り値は`SesameTileStatus`（表示状態と、状態文言の下へ添える1行）。
 - `wear.tile.TileConfigurationActivity` / `TileDeviceAssignmentStore`: Tileインスタンス
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」
@@ -653,9 +804,29 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 
 ### ハプティクス
 
-- `wear.haptics.HapticPattern`（SUCCESS/FAILURE）/ `SesameHapticPatternResolver`（Android非依存、
-  `SesameCommandResult`→`HapticPattern`）/ `SesameHapticPlayer`（`Vibrator`/`VibratorManager`
-  ベースの振動再生）: 施錠/解錠の成否をハプティクスパターンで区別して通知する（BL-008, BL-016）。
+施錠/解錠の成否を、画面を見なくても区別できるよう振動で通知する（BL-008 / BL-016、
+ホーム画面ウィジェットはBL-129）。
+
+- `core.haptics.HapticPattern`（Android非依存、ユニットテスト対象）: SUCCESS（短い振動2回）と
+  FAILURE（長い振動1回）の2種類。波形（`timingsMillis`、`VibrationEffect.createWaveform`へ渡す
+  時間の並び）もここで持つ。wearのTile経由とmobileのウィジェット経由で手触りを揃えるため、
+  両者が参照できるcoreに置く（`SesameTileContent`と同方針、BL-119。mobileはwearへ依存できない）。
+- `core.haptics.SesameHapticPatternResolver`（Android非依存、ユニットテスト対象）:
+  `SesameCommandResult`→`HapticPattern`。wearがData Layer経由で受け取った結果に使う。
+- `wear.haptics.SesameHapticPlayer` / `mobile.haptics.SesameHapticPlayer`
+  （`Vibrator`/`VibratorManager`ベースの振動再生、Android依存のためユニットテスト対象外）:
+  同じ実装を両モジュールが持つ。mobileはwearへ依存できず、Android依存コードはcoreへ置けないため、
+  共通化できるのは波形の定義（`HapticPattern`）までになる。
+- `mobile.widget.WidgetHapticResolver`（Android非依存、ユニットテスト対象、BL-129）:
+  ウィジェットの施錠/解錠の実行結果（`List<Outcome>`）から鳴らすパターンを決める。
+  1台でも`FAILURE`があれば`FAILURE`（一部だけ成功した状態を「成功」と伝えないため）、
+  すべて`DEBOUNCED`なら鳴らさない（APIを呼んでおらず伝えるべき結果が無く、連打のたびに振動させると
+  抑止の意味が薄れる。wear側も重複として無視した場合は結果を返さず振動しない、BL-062）、
+  それ以外は`SUCCESS`。
+- **状態取得（デバイス名のタップ）では振動しない。** wear側の状態取得もFire-and-forgetで結果を
+  返さず振動しない（BL-061）ため、挙動を揃える。
+- mobile側は`VIBRATE`権限を宣言する（wearは既に宣言済み）。端末が振動に対応していない、
+  または設定で切られている場合は何も起きない（例外にはならない）。
 
 ### mobile/wearエントリポイント
 
@@ -849,6 +1020,94 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   資格情報の検索・署名・重複抑止・状態保存は1か所に集約されている。secretKeyを`wear`へ持たせない方針は
   変わらない（ウィジェットはsecretKeyを保持する`mobile`自身の中で完結する）。ウィジェットから成功した操作は
   DataItemでウォッチへベストエフォートで同期し、ウォッチ経由の成功はウィジェットの再描画を要求する。
+
+### BLE直接操作の併用方針（採用決定、未実装）
+
+Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な対策として、BLE（Bluetooth Low Energy）
+での直接操作をWeb APIと**併用**する方針を採用した（BL-145、2026-09-18にユーザー決定）。
+本節は調査の結論と、実装に着手する際の前提をまとめたもので、実装そのものは未着手（BL-150〜BL-154）。
+
+#### 調査の結論（論点1〜5）
+
+1. **鍵の同一性（最重要）**: 本アプリが保持するsecretKey（SESAME Biz由来、16進数32文字、BL-058）は、
+   BLE操作に必要なsecret keyと**同一である確度が高い**。`meronepy/gomalock`のREADMEは`SECRET_KEY`を
+   16進数32文字とし、入手元としてQRコードリーダー（マネージャー権限以上のQRから抽出）と
+   SESAME Bizの**両方**を挙げており、両者は同じ値に収束する。`homy-newfs8/libsesame3bt-core`は
+   Sesame 5で`set_keys("", SESAME_SECRET)`と公開鍵を空にしてsecretだけを渡す。
+   **実機では未実証**のため、BL-150（人手検証）で先に確かめる。
+   - 現行ヘルプの「secretKeyは16進数32文字です。Sesameアプリの『鍵をシェア』QRコードの値では
+     ありません」は、QRの生の`sk`（base64・先頭1バイトがモデル番号）を指した表現であり、
+     QRリーダーが**抽出したあと**の値とは矛盾しない。BL-150で同一性が確認できた場合も、
+     この文言は「生のQRの値ではない」という意味で正しいため、変更は不要と判断する。
+2. **クラウド依存**: 公式SDKのREADMEはAmplify（AWS Cognito）の初期化を「OS3の登録やクラウド機能を
+   利用するには」必要としており、**既登録デバイスのBLE操作のみの最小構成は明記されていない**。
+   非公式実装（gomalock / libsesame3bt-core / ha-sesame-ble）はいずれもクラウドへ一切接続せず
+   BLEのみで施錠/解錠まで到達している。公式SDKを使う場合に初期化で要求されるかは、
+   BL-151の着手時に実際に組み込んで確かめる。
+3. **secretKeyの保持場所**: **現行方針を変更しない。** secretKeyは`mobile`のみが保持し、
+   BLEの実行主体も`mobile`とする。`wear`は従来どおりData Layer経由でコマンドの意図だけを送る。
+   この結果、**BLEはスマートフォンがSesameの電波圏内にあるときしか使えない**。
+4. **権限と審査**: API 31以上は`BLUETOOTH_SCAN`（`android:usesPermissionFlags="neverForLocation"`を
+   宣言）と`BLUETOOTH_CONNECT`で足り、位置情報権限は不要。minSdkが26のためAPI 30以下向けに
+   `ACCESS_FINE_LOCATION`が必要だが、`android:maxSdkVersion="30"`を付けて旧端末限定にできる。
+   `uses-feature android.hardware.bluetooth_le`は`required="false"`とする（BLE非搭載端末でも
+   Web API経由で動くため、配信対象を狭めない）。Google Playのデータセーフティ申告と権限の
+   用途説明の更新が必要（BL-154）。
+5. **実装方式**: 公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布、
+   JDK 17 / Android SDK 36 / minSdk 24。本アプリのminSdk 26と両立する）をJitPackで取り込むことを
+   既定とする。自前実装より保守負担が小さいため。ただしAABサイズへの影響をBL-151の着手時に計測し、
+   許容できない場合はBLE部分だけの自前実装へ切り替える（その場合もAES-CMACは
+   `core.crypto.AesCmac`を流用できる）。`core`はAndroid非依存の制約があるため、
+   BLE実装は`mobile`の新パッケージ（`mobile.ble`想定）へ置く。
+
+#### 経路の優先順位と切り替え条件
+
+施錠/解錠・状態取得のいずれも、次の順に試す。
+
+1. **BLE**: Bluetoothが有効で、必要な権限が許可されており、対象デバイスがスキャンで見つかり、
+   所定時間内に接続できた場合。
+2. **Web API**: 上記以外のすべて（圏外、Bluetoothオフ、権限未許可、スキャン・接続の失敗）。
+
+- **利用者は経路を意識しない。** 表示・操作・結果の見え方は経路によらず同じにする。
+  どちらの経路で実行したかは`Log.w`相当の診断ログ（BL-139）にのみ残す。
+- **実行時間の制限が最大の制約**（BL-137）。ウィジェットのタップは`FLAG_RECEIVER_FOREGROUND`により
+  約10秒で打ち切られ、現状はSesame APIのタイムアウトを接続3秒・読み書き3秒・全体6秒、
+  受信全体を`withTimeoutOrNull`の8秒で囲んでいる。「BLEを試して失敗→Web API」を直列に行うと
+  この枠を超えるため、BLEの探索・接続に与える上限は合計2秒程度に抑える。
+- 上記でも枠が厳しいため、**直近のスキャン結果（uuidごとに「最後にBLEで到達できた時刻」）を
+  保存し、一定時間内に到達実績がある場合だけBLEを先に試す**設計を既定とする。到達実績が無ければ
+  Web APIから始め、成功後にバックグラウンドでスキャンして到達実績を更新する。
+- 状態取得はBLEなら上限を消費しないため、BLEで到達できる間は自動取得の再開（BL-142で廃止した
+  鮮度ベースの取得）を検討できる。ただしBL-152の完了までは自動取得を再開しない。
+
+#### 段階的移行案
+
+| 段階 | 内容 | 項目 |
+| --- | --- | --- |
+| 1 | 保持中のsecretKeyでBLE接続・状態取得ができることを実機で確認する | BL-150（人手検証） |
+| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151 |
+| 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152 |
+| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153 |
+| 5 | データセーフティ申告・ストア掲載情報・利用者向けドキュメントを更新する | BL-154（人手検証） |
+
+`-PsesameApiBaseUrl`のようなモック差し替えがBLEには存在せず、**検証は実機必須**になる
+（本リポジトリにCIは無く、ローカル実行が唯一の品質ゲート）。経路選択の判定ロジックは
+Android非依存のクラスへ切り出し、ユニットテストで検証できる範囲を最大化する。
+
+#### 参照する外部実装（2026-09-18時点、BL-146の調査結果）
+
+- 公式: `CANDY-HOUSE/SesameSDK_Android_with_DemoApp`（Kotlin、MIT、更新継続、JitPack配布
+  `com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>`）。BLE実装は
+  `sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/`で、Sesame 5は`CHSesame5Device.kt`が担当。
+  プロトコル定義は`ble/SesameProtocols.kt`、AES-CMACは`utils/aescmac/`配下。
+  `VALIARK-jp/Pedal_Share`は、このSDKを自アプリへモジュールとして同梱した先行事例。
+- 非公式（いずれもクラウド未接続でBLEのみで動作）: `meronepy/gomalock`（Python、MIT、最も読みやすい。
+  必要な資格情報はBLEアドレスと16進数32文字のsecret keyのみ）、`homy-newfs8/libsesame3bt-core`
+  （C++、MIT。サービスUUIDは`0000fd81-0000-1000-8000-00805f9b34fb`、Tx/Rxの各キャラクタリスティック
+  経由で通信）、`bingxyz/ha-sesame-ble`（Python、MIT、SESAME 5 Proの実機で検証済み）、
+  `lanpili/ha-sesame-local`、`Khronos31/home-assistant-candy-house-ble`、
+  `zunda-pixel/sesame-swift`（Swift、Apache-2.0）。
+- ライセンスはいずれもMITまたはApache-2.0で、参照・流用の障害は無い。
 
 ### モジュール構成・パッケージ方針
 

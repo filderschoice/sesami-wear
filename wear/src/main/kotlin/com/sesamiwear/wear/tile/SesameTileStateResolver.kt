@@ -2,28 +2,47 @@ package com.sesamiwear.wear.tile
 
 import android.content.Context
 import com.sesamiwear.core.SesameDemoMode
-import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameStatusDetail
+import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.wear.demo.DemoLockStateStore
-import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 
 /**
+ * Tile / Complicationが表示する状態と、状態文言の下へ添える1行（BL-142 / BL-140）。
+ * [detailLabel]は直近の取得・操作が失敗していればその理由、成功していれば最後に取得した時刻の
+ * 古さを表す。nullの場合は何も表示しない（デモモードは取得という概念が無いため）。
+ */
+data class SesameTileStatus(
+    val state: TileDisplayState,
+    val detailLabel: String?,
+)
+
+/**
  * Tile/Complication表示用の表示名・状態解決をまとめる（BL-071、複数デバイス一括操作対応）。
- * 対象デバイスuuidが[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択、
+ * 対象デバイスuuidが[SesameDeviceTargets.isAllDevices]（「全デバイス」選択、
  * [com.sesamiwear.wear.ui.DeviceSelectionScreen]参照）の場合は登録済み全デバイスの状態を
  * [TileDisplayStateResolver.resolveAggregate]で集約し、それ以外は単一デバイスの状態を解決する。
- * いずれもDataItemが一定時間以上古い場合は状態取得をリクエストする（BL-061と同様の巻き戻り防止
- * 対応、コマンド実行直後に古いGET結果へ上書きされることを避けるため）。
  * 対象デバイスuuidが[SesameDemoMode.DEMO_DEVICE_UUID]（デモモード、BL-109）の場合は
- * wear単体で保持するダミー状態（[DemoLockStateStore]）から解決し、スマホへの状態取得
- * リクエストは一切送らない。
+ * wear単体で保持するダミー状態（[DemoLockStateStore]）から解決する。
+ *
+ * **状態取得のリクエストは一切送らない（BL-142）。** 以前はDataItemが30秒以上古ければ
+ * `PATH_STATUS_REQUEST`を送っていたが、これはTileの描画ごと・Complicationの定期更新ごと
+ * （`UPDATE_PERIOD_SECONDS`=600秒）に評価されるため、Sesame Web APIの月間リクエスト上限
+ * （1000回）を大幅に超過していた。状態の更新契機は、施錠/解錠の成功と、利用者が明示的に
+ * タップしたとき（[com.sesamiwear.wear.action.SesameStatusRefreshActivity]）だけにする。
+ * 代わりに、保存済みスナップショット（[SesameStatusSnapshot]）の古さ、または直近の失敗の理由を
+ * [SesameStatusDetail]の文言として表示へ添える（BL-140）。
+ *
  * 表示名の決定規則は[SesameDeviceTargets.displayName]（BL-119でcoreへ移設）が持つ。
  * Android Google Play Services依存の薄いアダプタのためユニットテスト対象外
- * （表示状態の判定ロジック自体は[TileDisplayStateResolver]・[SesameDemoMode]でテスト済み）。
+ * （表示状態の判定ロジック自体は[TileDisplayStateResolver]・[SesameDemoMode]・
+ * [SesameStatusFreshness]でテスト済み）。
  */
 object SesameTileStateResolver {
     suspend fun resolveDisplayName(
@@ -36,55 +55,52 @@ object SesameTileStateResolver {
         return SesameDeviceTargets.displayName(deviceUuid, registeredDevices)
     }
 
-    suspend fun resolveState(
+    suspend fun resolveStatus(
         context: Context,
         deviceUuid: String,
         nodeId: String?,
-    ): TileDisplayState =
+    ): SesameTileStatus =
         when {
             SesameDemoMode.isDemoDevice(deviceUuid) ->
-                SesameDemoMode.displayState(DemoLockStateStore(context).isLocked())
-            deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID -> resolveAggregateState(context, nodeId)
-            else -> resolveSingleDeviceState(context, deviceUuid, nodeId)
+                SesameTileStatus(
+                    state = SesameDemoMode.displayState(DemoLockStateStore(context).isLocked()),
+                    // デモはSesame APIから取得しないため、鮮度も失敗も存在しない。
+                    detailLabel = null,
+                )
+            SesameDeviceTargets.isAllDevices(deviceUuid) -> resolveAggregateStatus(context, nodeId)
+            else -> resolveSingleDeviceStatus(context, deviceUuid, nodeId)
         }
 
-    private suspend fun resolveSingleDeviceState(
+    private suspend fun resolveSingleDeviceStatus(
         context: Context,
         deviceUuid: String,
         nodeId: String?,
-    ): TileDisplayState {
+    ): SesameTileStatus {
         val snapshot = SesameStatusSnapshotReader.readLatest(context, deviceUuid)
-        requestStatusIfStale(context, nodeId, deviceUuid, snapshot?.updatedAtEpochMillis)
-        return TileDisplayStateResolver.resolve(nodeId != null, false, snapshot?.isLocked)
+        return SesameTileStatus(
+            state = TileDisplayStateResolver.resolve(nodeId != null, false, snapshot?.isLocked),
+            detailLabel = detailLabelOf(snapshot?.lastFailure, snapshot?.updatedAtEpochMillis),
+        )
     }
 
-    private suspend fun resolveAggregateState(
+    private suspend fun resolveAggregateStatus(
         context: Context,
         nodeId: String?,
-    ): TileDisplayState {
-        val devices = SesameDeviceListReader.readLatest(context)
-        val lockStates =
-            devices.map { device ->
-                val snapshot = SesameStatusSnapshotReader.readLatest(context, device.uuid)
-                requestStatusIfStale(context, nodeId, device.uuid, snapshot?.updatedAtEpochMillis)
-                snapshot?.isLocked
+    ): SesameTileStatus {
+        val snapshots =
+            SesameDeviceListReader.readLatest(context).map { device ->
+                SesameStatusSnapshotReader.readLatest(context, device.uuid)
             }
-        return TileDisplayStateResolver.resolveAggregate(nodeId != null, false, lockStates)
+        val oldestUpdatedAt = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis })
+        val worstFailure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure })
+        return SesameTileStatus(
+            state = TileDisplayStateResolver.resolveAggregate(nodeId != null, false, snapshots.map { it?.isLocked }),
+            detailLabel = detailLabelOf(worstFailure, oldestUpdatedAt),
+        )
     }
 
-    private suspend fun requestStatusIfStale(
-        context: Context,
-        nodeId: String?,
-        deviceUuid: String,
+    private fun detailLabelOf(
+        failure: SesameStatusFailure?,
         updatedAtEpochMillis: Long?,
-    ) {
-        val isStale =
-            updatedAtEpochMillis == null ||
-                System.currentTimeMillis() - updatedAtEpochMillis > STATUS_STALE_THRESHOLD_MILLIS
-        if (nodeId != null && isStale) {
-            SesameCommandSenderProvider.create(context).requestStatus(nodeId, deviceUuid)
-        }
-    }
-
-    private const val STATUS_STALE_THRESHOLD_MILLIS = 30_000L
+    ): String = SesameStatusDetail.compactLabel(failure, updatedAtEpochMillis, System.currentTimeMillis())
 }

@@ -7,7 +7,9 @@ import android.net.Uri
 import android.util.Log
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.EntryPointGuard
+import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
+import com.sesamiwear.mobile.haptics.SesameHapticPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +30,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 超えるとプロセスごとANRで強制終了される（実機で確認、BL-137）。全デバイスの操作は
  * [WidgetCommandRunner]が並行して呼んで所要時間を1台分に近づけ、さらに[WORK_TIMEOUT_MILLIS]で
  * 制限より手前から自分で打ち切る。
+ * 施錠/解錠の結果は振動でも伝える（BL-129、判定は[WidgetHapticResolver]）。
  * Intentからの値の取り出しと配線だけの薄いアダプタのためユニットテスト対象外。
  */
 class WidgetCommandReceiver : BroadcastReceiver() {
@@ -51,7 +54,9 @@ class WidgetCommandReceiver : BroadcastReceiver() {
                         withTimeoutOrNull(WORK_TIMEOUT_MILLIS) {
                             val runner = createRunner(appContext)
                             when (action) {
-                                ACTION_RUN_COMMAND -> command?.let { runner.runCommand(deviceUuid, it) }
+                                ACTION_RUN_COMMAND ->
+                                    command?.let { playHaptic(appContext, runner.runCommand(deviceUuid, it)) }
+                                // 状態取得は結果を振動で伝えない（wear側のFire-and-forgetと揃える、BL-129）。
                                 ACTION_REFRESH_STATUS -> runner.refreshStatus(deviceUuid)
                                 else -> Log.w(TAG, "unknown action")
                             }
@@ -63,6 +68,18 @@ class WidgetCommandReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    /**
+     * 施錠/解錠の結果を振動で伝える（BL-129）。画面を見ていなくても成否が分かるようにするもので、
+     * 鳴らすかどうかと種類の判定は[WidgetHapticResolver]が持つ。
+     * 端末が振動に対応していない・設定で切られている場合は何も起きない（例外にはならない）。
+     */
+    private fun playHaptic(
+        context: Context,
+        outcomes: List<SesameDeviceCommandExecutor.Outcome>,
+    ) {
+        WidgetHapticResolver.resolve(outcomes)?.let { SesameHapticPlayer(context).play(it) }
     }
 
     companion object {

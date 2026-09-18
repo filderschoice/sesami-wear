@@ -11,15 +11,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
@@ -51,12 +54,26 @@ import kotlinx.coroutines.withContext
  * mobileのホーム画面ウィジェット（BL-121）。wearのTileと同じく、左側にデバイス名と「変更」、右側の大きな
  * 領域に状態アイコン・状態文言・操作文言を置き、状態色は右側にだけ使う。表示内容の決定は
  * [SesameWidgetModelResolver]（Android非依存）が行い、ここはGlanceで並べるだけにしている。
+ * 表示領域に応じて1マス（1x1）相当のコンパクト表示へ切り替える（BL-128）。どちらを使うかの判定は
+ * [SesameWidgetLayout]（Android非依存）が持つ。
  *
  * 表示の更新は[SesameWidgetUpdater]がウィジェットの状態へ更新トークン（[REFRESH_TOKEN_KEY]）を書き込んで
  * 再描画を要求し、描画側はトークンの変化を契機に保存済みの割り当て・資格情報・ロック状態を読み直す。
  * Glanceのセッションが生きている間は[provideGlance]が再実行されないため、この仕組みで最新値を反映する。
  */
 class SesameWidget : GlanceAppWidget() {
+    /**
+     * サイズ別レイアウト（BL-128）。提示した候補のうち、実際の表示領域に収まる最大のものが
+     * [LocalSize]として渡される。候補は「1マス（1x1）相当」と「Tile相当（4x2）」の2つ。
+     */
+    override val sizeMode: SizeMode =
+        SizeMode.Responsive(
+            setOf(
+                DpSize(COMPACT_WIDTH_DP.dp, COMPACT_HEIGHT_DP.dp),
+                DpSize(FULL_WIDTH_DP.dp, FULL_HEIGHT_DP.dp),
+            ),
+        )
+
     override suspend fun provideGlance(
         context: Context,
         id: GlanceId,
@@ -69,7 +86,16 @@ class SesameWidget : GlanceAppWidget() {
             LaunchedEffect(refreshToken) {
                 model = withContext(Dispatchers.IO) { SesameWidgetRepository.loadModel(context, appWidgetId) }
             }
-            SesameWidgetContent(model = model, actions = WidgetActions(context, appWidgetId, model))
+            val size = LocalSize.current
+            SesameWidgetContent(
+                model = model,
+                actions = WidgetActions(context, appWidgetId, model),
+                layout =
+                    SesameWidgetLayout.of(
+                        widthDp = size.width.value.toInt(),
+                        heightDp = size.height.value.toInt(),
+                    ),
+            )
         }
     }
 
@@ -131,6 +157,7 @@ private class WidgetActions(
 private fun SesameWidgetContent(
     model: SesameWidgetModel,
     actions: WidgetActions,
+    layout: SesameWidgetLayout,
 ) {
     val containerModifier =
         GlanceModifier
@@ -138,20 +165,54 @@ private fun SesameWidgetContent(
             .background(ColorProvider(Color(WIDGET_BACKGROUND_ARGB)))
             .cornerRadius(CORNER_RADIUS_DP.dp)
             .padding(CONTAINER_PADDING_DP.dp)
+    val isCompact = layout == SesameWidgetLayout.COMPACT
     when (model) {
         SesameWidgetModel.Unconfigured ->
             Box(
                 modifier = containerModifier.clickable(actions.configure),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = SesameWidgetModel.Unconfigured.MESSAGE, style = textStyle(NEUTRAL_TEXT_ARGB, BODY_SP))
+                // 1マスでは「タップして設定」（7文字）が収まらないため短縮する（BL-128）。
+                val message = if (isCompact) COMPACT_UNCONFIGURED_MESSAGE else SesameWidgetModel.Unconfigured.MESSAGE
+                Text(text = message, style = textStyle(NEUTRAL_TEXT_ARGB, BODY_SP), maxLines = 2)
             }
         is SesameWidgetModel.Configured ->
-            Row(modifier = containerModifier) {
-                LeftColumn(displayName = model.displayName, actions = actions)
-                Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
-                StatusBox(model = model, onClick = actions.status)
+            if (isCompact) {
+                CompactStatusBox(model = model, modifier = containerModifier, onClick = actions.status)
+            } else {
+                Row(modifier = containerModifier) {
+                    LeftColumn(displayName = model.displayName, actions = actions)
+                    Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
+                    StatusBox(model = model, onClick = actions.status)
+                }
             }
+    }
+}
+
+/**
+ * 1マス（1x1）相当のコンパクト表示（BL-128）。状態アイコンと短い状態文言だけを出す。
+ * タップの挙動はTile相当の表示と同じ（[WidgetTapAction]の判定どおり）。
+ * デバイス名・「変更」・最終取得時刻は入らないため出さない。対象デバイスの変更は、
+ * ウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行える。
+ */
+@Composable
+private fun CompactStatusBox(
+    model: SesameWidgetModel.Configured,
+    modifier: GlanceModifier,
+    onClick: Action?,
+) {
+    Box(
+        modifier = modifier.clickableOrSelf(onClick).background(ColorProvider(Color(model.backgroundColorArgb))),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = model.statusIcon, style = textStyle(model.textColorArgb, COMPACT_ICON_SP))
+            Text(
+                text = model.statusLabel,
+                style = textStyle(model.textColorArgb, CAPTION_SP, bold = true),
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -192,6 +253,10 @@ private fun NeutralChip(
 private fun StatusTexts(model: SesameWidgetModel.Configured) {
     Text(text = model.statusIcon, style = textStyle(model.textColorArgb, ICON_SP))
     Text(text = model.statusLabel, style = textStyle(model.textColorArgb, BODY_SP, bold = true))
+    // 最後に状態を取得した時刻、または直近の失敗の理由（BL-142 / BL-140）。
+    model.detailLabel?.let {
+        Text(text = it, style = textStyle(model.textColorArgb, FOOTNOTE_SP), maxLines = 2)
+    }
     model.actionLabel?.let { Text(text = it, style = textStyle(model.textColorArgb, CAPTION_SP)) }
 }
 
@@ -230,6 +295,9 @@ private fun textStyle(
 
 private const val CHANGE_LABEL = "変更"
 
+/** 1マス表示で「タップして設定」の代わりに出す文言（BL-128）。 */
+private const val COMPACT_UNCONFIGURED_MESSAGE = "設定"
+
 // ウィジェット全体の背景（wearのTileの黒背景に相当する暗色）と、左側チップの文字色。
 private const val WIDGET_BACKGROUND_ARGB = 0xFF121212.toInt()
 private const val NEUTRAL_TEXT_ARGB = 0xFFFFFFFF.toInt()
@@ -244,3 +312,12 @@ private const val CHIP_INNER_PADDING_DP = 6
 private const val ICON_SP = 28
 private const val BODY_SP = 16
 private const val CAPTION_SP = 13
+private const val FOOTNOTE_SP = 11
+private const val COMPACT_ICON_SP = 24
+
+// サイズ別レイアウト（BL-128）へ提示する候補。実際の表示領域に収まる最大のものが選ばれる。
+// 1マスの実寸は端末とランチャーで前後するため、一般的な値より小さめを候補にしている。
+private const val COMPACT_WIDTH_DP = 50
+private const val COMPACT_HEIGHT_DP = 50
+private const val FULL_WIDTH_DP = SesameWidgetLayout.FULL_MIN_WIDTH_DP
+private const val FULL_HEIGHT_DP = SesameWidgetLayout.FULL_MIN_HEIGHT_DP
