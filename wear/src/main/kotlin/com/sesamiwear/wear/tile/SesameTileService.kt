@@ -1,5 +1,6 @@
 package com.sesamiwear.wear.tile
 
+import android.content.Context
 import android.util.Log
 import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.ColorBuilders
@@ -17,7 +18,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
@@ -73,8 +73,8 @@ class SesameTileService : TileService() {
     ): TileBuilders.Tile {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
         val displayName = SesameTileStateResolver.resolveDisplayName(applicationContext, deviceUuid)
-        val state = SesameTileStateResolver.resolveState(applicationContext, deviceUuid, nodeId)
-        Log.d(TAG, "buildConfiguredTile tileId=$tileId nodeId=${nodeId != null} state=$state")
+        val status = SesameTileStateResolver.resolveStatus(applicationContext, deviceUuid, nodeId)
+        Log.d(TAG, "buildConfiguredTile tileId=$tileId nodeId=${nodeId != null} state=${status.state}")
 
         val leftColumn = buildLeftColumn(displayName, deviceUuid, tileId)
         // セーフエリア（内接正方形）からチップがはみ出さないよう、タイル端から内側へ寄せる。
@@ -101,7 +101,7 @@ class SesameTileService : TileService() {
                                 .setWidth(DimensionBuilders.dp(CHIP_SPACING_DP))
                                 .build(),
                         )
-                        .addContent(buildStatusBox(state, deviceUuid, displayName))
+                        .addContent(buildStatusBox(status, deviceUuid, displayName))
                         .build(),
                 )
                 .build()
@@ -205,10 +205,11 @@ class SesameTileService : TileService() {
      * 施錠/解錠のクリック領域とデバイス変更のクリック領域が競合しないようにする。
      */
     private fun buildStatusBox(
-        state: TileDisplayState,
+        status: SesameTileStatus,
         deviceUuid: String,
         displayName: String,
     ): LayoutElementBuilders.LayoutElement {
+        val state = status.state
         val isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID
         val modifiersBuilder =
             buildChipModifiers(SesameTileContent.backgroundColorArgb(state))
@@ -223,50 +224,12 @@ class SesameTileService : TileService() {
             modifiersBuilder.setClickable(buildCommandClickable(command, deviceUuid))
         }
 
-        val textColor = ColorBuilders.argb(SesameTileContent.statusTextColorArgb(state))
-        val statusColumnBuilder =
-            LayoutElementBuilders.Column.Builder()
-                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-                .addContent(
-                    Text.Builder(this, SesameTileContent.statusIcon(state))
-                        .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
-                        .setColor(textColor)
-                        .build(),
-                )
-                .addContent(
-                    // 操作ラベルと同様、既定の1行では長い状態文言が末尾で省略される（BL-104）。
-                    // 「施錠/解錠混在」は文言側を短縮したが、今後文言を増やしたときに同じ事故が
-                    // 起きないよう、折り返しを許可して末尾省略を避ける安全網も入れておく。
-                    Text.Builder(this, SesameTileContent.statusLabel(state, isAllDevices))
-                        .setTypography(Typography.TYPOGRAPHY_TITLE2)
-                        .setColor(textColor)
-                        .setMaxLines(2)
-                        .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
-                        .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
-                        .build(),
-                )
-        val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
-        if (actionLabel != null) {
-            statusColumnBuilder.addContent(
-                // ProtoLayoutのTextは既定で1行のため、指定がないと「タップで全解錠」のような
-                // 7文字の操作ラベルが「タップで全解…」と末尾で省略されていた（BL-102）。
-                // 状態ラベルより一段小さいCAPTION2にしたうえで2行までの折り返しを許可する。
-                Text.Builder(this, actionLabel)
-                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
-                    .setColor(textColor)
-                    .setMaxLines(2)
-                    .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
-                    .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
-                    .build(),
-            )
-        }
-
         return LayoutElementBuilders.Box.Builder()
             .setWidth(DimensionBuilders.expand())
             .setHeight(DimensionBuilders.expand())
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .addContent(statusColumnBuilder.build())
+            .addContent(buildStatusColumn(this, status, isAllDevices))
             .setModifiers(modifiersBuilder.build())
             .build()
     }
@@ -419,4 +382,73 @@ class SesameTileService : TileService() {
         const val CHIP_NEUTRAL_TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()
         const val TAG = "SesameTileService"
     }
+}
+
+/**
+ * ステータスチップの中身（アイコン・状態文言・最終取得時刻・操作文言を縦に並べたColumn）。
+ * 文字サイズはアイコン > 状態文言 > 操作文言 > 最終取得時刻の順に小さくし、
+ * 円形画面でも4行が収まるようにする。
+ *
+ * クラス内のメソッド数がdetektの`TooManyFunctions`閾値（11）に達したため、
+ * Contextを引数で受けるトップレベル関数として切り出している。
+ */
+private fun buildStatusColumn(
+    context: Context,
+    status: SesameTileStatus,
+    isAllDevices: Boolean,
+): LayoutElementBuilders.LayoutElement {
+    val state = status.state
+    val textColor = ColorBuilders.argb(SesameTileContent.statusTextColorArgb(state))
+    val statusColumnBuilder =
+        LayoutElementBuilders.Column.Builder()
+            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+            .addContent(
+                Text.Builder(context, SesameTileContent.statusIcon(state))
+                    .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
+                    .setColor(textColor)
+                    .build(),
+            )
+            .addContent(
+                // 操作ラベルと同様、既定の1行では長い状態文言が末尾で省略される（BL-104）。
+                // 「施錠/解錠混在」は文言側を短縮したが、今後文言を増やしたときに同じ事故が
+                // 起きないよう、折り返しを許可して末尾省略を避ける安全網も入れておく。
+                Text.Builder(context, SesameTileContent.statusLabel(state, isAllDevices))
+                    .setTypography(Typography.TYPOGRAPHY_TITLE2)
+                    .setColor(textColor)
+                    .setMaxLines(2)
+                    .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+                    .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
+                    .build(),
+            )
+    // 最後に状態を取得した時刻（BL-142）。自動取得を廃止したため、表示がどれだけ古いかを
+    // 利用者が判断できるよう状態文言のすぐ下へ添える。文言は最長でも「23時間前」の6文字。
+    status.freshnessLabel?.let { freshnessLabel ->
+        statusColumnBuilder.addContent(
+            Text.Builder(context, freshnessLabel)
+                .setTypography(Typography.TYPOGRAPHY_CAPTION3)
+                .setColor(textColor)
+                .setMaxLines(1)
+                .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+                .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
+                .build(),
+        )
+    }
+
+    val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
+    if (actionLabel != null) {
+        statusColumnBuilder.addContent(
+            // ProtoLayoutのTextは既定で1行のため、指定がないと「タップで全解錠」のような
+            // 7文字の操作ラベルが「タップで全解…」と末尾で省略されていた（BL-102）。
+            // 状態ラベルより一段小さいCAPTION2にしたうえで2行までの折り返しを許可する。
+            Text.Builder(context, actionLabel)
+                .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+                .setColor(textColor)
+                .setMaxLines(2)
+                .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+                .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
+                .build(),
+        )
+    }
+
+    return statusColumnBuilder.build()
 }

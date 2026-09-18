@@ -31,6 +31,23 @@ class SesameComplicationContentTest {
     }
 
     @Test
+    fun `long text appends the freshness label when given`() {
+        assertEquals(
+            "玄関 施錠（3分前）",
+            SesameComplicationContent.longText("玄関", TileDisplayState.LOCKED, "3分前"),
+        )
+        assertEquals(
+            "玄関 不明（未取得）",
+            SesameComplicationContent.longText("玄関", TileDisplayState.UNKNOWN, "未取得"),
+        )
+    }
+
+    @Test
+    fun `long text omits the freshness label for the demo device`() {
+        assertEquals("デモ 施錠", SesameComplicationContent.longText("デモ", TileDisplayState.LOCKED, null))
+    }
+
+    @Test
     fun `long text is defined for every state`() {
         TileDisplayState.entries.forEach { state ->
             assertTrue(SesameComplicationContent.longText("玄関", state).isNotBlank())

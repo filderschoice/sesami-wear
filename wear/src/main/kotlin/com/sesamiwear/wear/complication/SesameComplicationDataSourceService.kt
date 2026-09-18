@@ -100,14 +100,14 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         type: ComplicationType,
     ): ComplicationData {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
-        val state = SesameTileStateResolver.resolveState(applicationContext, deviceUuid, nodeId)
-        Log.d(TAG, "buildConfiguredComplicationData nodeId=${nodeId != null} state=$state")
+        val status = SesameTileStateResolver.resolveStatus(applicationContext, deviceUuid, nodeId)
+        Log.d(TAG, "buildConfiguredComplicationData nodeId=${nodeId != null} state=${status.state}")
         val text =
             if (type == ComplicationType.LONG_TEXT) {
                 val displayName = SesameTileStateResolver.resolveDisplayName(applicationContext, deviceUuid)
-                SesameComplicationContent.longText(displayName, state)
+                SesameComplicationContent.longText(displayName, status.state, status.freshnessLabel)
             } else {
-                SesameComplicationContent.shortText(state)
+                SesameComplicationContent.shortText(status.state)
             }
         return buildComplicationData(type, text, configurationTapAction(complicationInstanceId))
     }

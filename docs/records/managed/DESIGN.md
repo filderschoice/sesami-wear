@@ -103,15 +103,50 @@
     拒否されたことである可能性が高い（biz.candyhouse.coのサイト上からのリクエストも同時に
     通らなくなっていた）。上限到達時の応答がHTTP 429ではなく403である点はCANDY HOUSE側の実装に
     よるものと推測しており未確認。
-  - **本アプリには状態取得のリクエスト数を抑える仕組みが無い。**
-    `wear.tile.SesameTileStateResolver.requestStatusIfStale`は、保存済みスナップショットが
-    `STATUS_STALE_THRESHOLD_MILLIS`（30秒）より古ければ`PATH_STATUS_REQUEST`を送り、これはTileの
-    描画のたびに評価される。`wear.complication.SesameComplicationDataSourceService`も同じ
-    `resolveState`を呼ぶためComplicationの更新でも発生する。対象が「全デバイス」の場合は1回の描画で
-    登録台数ぶん飛ぶ。mobile側の`CommandDebouncer`は状態取得を対象外としており（施錠/解錠のみ）、
-    `SesameDeviceCommandExecutor.refreshStatus`にも最小間隔が無い。
-    リクエスト数の削減はBL-142、エラー後のバックオフはBL-143として起票済み。
-    実際の1日あたり消費回数は未計測。
+  - **自動状態取得は廃止した（BL-142、対応済み）。** 以前は
+    `wear.tile.SesameTileStateResolver.requestStatusIfStale`が、保存済みスナップショットが
+    `STATUS_STALE_THRESHOLD_MILLIS`（30秒）より古ければ`PATH_STATUS_REQUEST`を送っていた。これは
+    Tileの描画のたびに評価され、`wear.complication.SesameComplicationDataSourceService`も同じ
+    解決処理を呼ぶためComplicationの更新でも発生し、対象が「全デバイス」なら1回の描画で登録台数ぶん
+    飛んでいた。mobile側の`CommandDebouncer`は状態取得を対象外（施錠/解錠のみ）で、
+    `SesameDeviceCommandExecutor.refreshStatus`にも最小間隔が無く、経路のどこにも抑制が無かった。
+  - 消費ペースの見積もり（設計値からの算出、BL-142）。実機での実測ではなく、確定している設定値から
+    上限値を求めた。Complicationのマニフェスト`UPDATE_PERIOD_SECONDS`は600秒のため定期更新は
+    **144回/日/枠**。鮮度閾値30秒はこの間隔より常に短いため、更新のたびに必ず状態取得が飛ぶ。
+    登録2台で「全デバイス」を対象にすると**288回/日 = 約8,600回/月**となり、Complication枠1つだけで
+    月間上限1000回（= **約33回/日**）を8倍以上超過する。Tileの描画ぶんはこれに上乗せされる。
+    実機での1日サンプルより、この算出のほうが上限の見積もりとして確実で、実機・実資格情報も要らない。
+  - 対応後の消費は**利用者が明示的にタップした回数だけ**になる。状態が更新される契機は
+    (1) 施錠/解錠の成功（APIのGETを伴わず、送ったコマンドの意図した状態を保存する）、
+    (2) Tileのデバイス名チップのタップ（`SesameStatusRefreshActivity`）、
+    (3) ホーム画面ウィジェットのデバイス名のタップ、の3つだけ。
+    代償として表示は最後に分かった状態を出し続けるため、その古さを
+    `core.display.SesameStatusFreshness`の文言として表示へ添える（下記「状態の鮮度表示」）。
+    月間消費回数のカウントと表示はBL-147、タップ連打時の状態取得の重複抑止はBL-148として起票済み。
+    エラー後のバックオフ（BL-143）は、抑制対象だった自動取得が消えたため対象消滅として閉じた
+    （2026-09-18、ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
+
+### 状態の鮮度表示
+
+- `core.display.SesameStatusFreshness`（Android非依存、ユニットテスト対象）: 「最後に状態を取得した
+  時刻」の表示文言を決める（BL-142）。自動状態取得を廃止したことで、Tile・Complication・ホーム画面
+  ウィジェットは最後に分かった状態を出し続けるため、利用者がその表示をいつまで信用してよいかを
+  判断できるようにする。
+- 文言の規則は次のとおり。1分未満は「たった今」、1時間未満は「N分前」、24時間未満は「N時間前」、
+  24時間以上は日付のみ（「9/17」）、一度も取得していなければ「未取得」。24時間以内を相対表記に
+  するのは「どれだけ古いか」が一目で分かるため、24時間を超えたものを日付のみにするのは、その状態が
+  既に参考値であり日付まで分かれば足りるため。端末時計のずれで未来の時刻が保存されていた場合も
+  「たった今」へ丸める。日付表記のタイムゾーンは引数で受け、既定は端末のタイムゾーン
+  （`java.time`はminSdk 26で利用でき、desugaringは不要）。
+- 「全デバイス」対象では`oldestOf`が最も古い取得時刻を代表値として返し、1台でも未取得なら全体を
+  未取得（null）として扱う。集約状態の判定（`TileDisplayStateResolver.resolveAggregate`が1台でも
+  未取得なら「状態不明」にする）と同じ、最悪値を採る考え方で揃えている。
+- デモ用デバイス（BL-109 / BL-123）はSesame APIから取得しないため鮮度という概念が無く、表示しない
+  （`SesameTileStatus.freshnessLabel` / `SesameWidgetModel.Configured.freshnessLabel`がnull）。
+- 表示位置は、Tileは右チップの状態文言の下（`TYPOGRAPHY_CAPTION3`）、ウィジェットは同じ位置の
+  11sp、Complicationは`LONG_TEXT`のみ末尾へ括弧付きで添える（`SHORT_TEXT`は表示できる文字数が
+  非常に少ないため対象外）。wearのTileとmobileのウィジェットで文言を食い違わせないよう、
+  文言の決定はcoreに置く（`SesameTileContent`と同方針、BL-119）。
 
 ### 資格情報管理（複数デバイス対応）
 
@@ -193,8 +228,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
   - 結果の通知: wearは成否をハプティクスで区別するが、ウィジェットは失敗時に操作前の表示へ戻すのみ（改善はBL-129）。
-  - 表示の鮮度: wearはDataItemが30秒以上古いと自動で状態取得するが、ウィジェットは自動取得しない
-    （保存値の表示のみ。改善の検討はBL-129）。
+  - 表示の鮮度: wear・ウィジェットとも自動取得は行わず（BL-142）、保存値を表示したうえで
+    最後に取得した時刻の文言を添える（前述「状態の鮮度表示」）。更新は利用者のタップで行う。
   - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
@@ -462,10 +497,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （-1）として通知する（BL-134）。コルーチンのキャンセルは捕捉しない。Wear OSのコンパニオンアプリが
   入っていない端末ではWearable APIが`ApiException`で失敗しうるが、以前は例外処理なしで`await()`して
   いたため、資格情報の保存時に起動したコルーチンから例外が漏れてアプリが落ちる経路があった。
-- **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（Tile/Complication
-  表示時にDataItemが30秒以上古い場合、またはデバイス名チップタップ時）に限られ、定期ポーリングは
-  行わない。Sesame純正アプリでの操作等、他経路による状態変化はTileが再表示・更新要求されるまで
-  反映されない。
+- **未確認事項**: 状態同期はコマンド送信成功時と`PATH_STATUS_REQUEST`経由（デバイス名チップの
+  タップ時のみ。自動取得はBL-142で廃止した）に限られ、定期ポーリングは行わない。
+  Sesame純正アプリでの操作等、他経路による状態変化は、利用者が明示的に状態取得するまで反映されない。
+  表示が古いことは鮮度の文言（前述「状態の鮮度表示」）で分かるようにしている。
 
 ### wear側コマンド送信・結果受信
 
@@ -538,11 +573,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   ウィジェット（BL-121以降）とTileで表示・操作ルールを食い違わせないよう、両者が参照できるcoreへ
   移した（BL-119。mobileはwearへ依存できない）。wear側は参照先を付け替えただけで挙動は変えておらず、
   固定文言の対象（デモ・全デバイス）ではDataItemを読まない点も移設前と同じ。
-- `wear.tile.SesameTileStateResolver`（Android非依存、Tile/Complication共通）: 対象uuidが
+- `wear.tile.SesameTileStateResolver`（Tile/Complication共通）: 対象uuidが
   `ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの状態を`TileDisplayStateResolver
-  .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する。いずれもDataItemが古い場合
-  （30秒以上）の自動状態取得リクエストを行う（BL-071でSesameTileService/
-  SesameComplicationDataSourceServiceの重複ロジックを集約）。
+  .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する（BL-071でSesameTileService/
+  SesameComplicationDataSourceServiceの重複ロジックを集約）。**状態取得のリクエストは送らない**
+  （BL-142で廃止）。戻り値は`SesameTileStatus`（表示状態と、最後に取得した時刻の文言）。
 - `wear.tile.TileConfigurationActivity` / `TileDeviceAssignmentStore`: Tileインスタンス
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」

@@ -25,7 +25,7 @@ object SesameWidgetRepository {
         return SesameWidgetModelResolver.resolve(
             assignedUuid = assignedUuid,
             registeredDevices = registeredDevices,
-            lockStateOf = { uuid -> lockStateStore.load(uuid)?.isLocked },
+            snapshotOf = { uuid -> lockStateStore.load(uuid) },
             isCommandInProgress = WidgetInProgressTracker.shared.isInProgress(assignedUuid, registeredDevices),
         )
     }

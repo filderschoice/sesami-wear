@@ -5,6 +5,63 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 11:30
+  summary: 自動状態取得を廃止しSesame APIの月間リクエスト上限の超過を止めて最終取得時刻を表示するようにした
+  details:
+    変更内容: >-
+      BL-142: 自動状態取得がSesame Web APIの月間リクエスト上限（1000回）を使い切る問題に対応した。
+      消費ペースは実機計測ではなく設計値から算出した（ユーザー確認済み）。Complicationのマニフェスト
+      `UPDATE_PERIOD_SECONDS`は600秒のため定期更新は144回/日/枠で、鮮度閾値30秒はこの間隔より常に
+      短いため更新のたびに必ず状態取得が飛ぶ。登録2台で「全デバイス」を対象にすると288回/日
+      （約8,600回/月）となり、Complication枠1つだけで上限（約33回/日）を8倍以上超過していた。
+      対応方針はユーザーと合意のうえ「自動取得そのものを廃止し、タップでの更新前提とする。
+      代わりに前回取得日時を表示する」とした。`wear.tile.SesameTileStateResolver` から
+      `requestStatusIfStale` を削除し、`resolveState` を `resolveStatus` へ変更して
+      表示状態と最終取得時刻の文言を持つ `SesameTileStatus` を返すようにした。
+      文言の決定はAndroid非依存の `core.display.SesameStatusFreshness` へ置き、
+      1分未満「たった今」/ 1時間未満「N分前」/ 24時間未満「N時間前」/ 24時間以上は日付のみ「9/17」/
+      未取得「未取得」とする（表示形式はユーザー確認済み）。「全デバイス」対象は `oldestOf` が
+      最も古い取得時刻を代表値とし、1台でも未取得なら全体を未取得とする（集約状態の判定と同じ
+      最悪値の考え方）。デモ用デバイスは取得という概念が無いため表示しない。
+      表示位置はTileの右チップ（`TYPOGRAPHY_CAPTION3`）、ウィジェットの同位置（11sp）、
+      Complicationは`LONG_TEXT`のみ末尾へ括弧付き（`SHORT_TEXT`は文字数が足りないため対象外）。
+      ウィジェットは `SesameWidgetModelResolver.resolve` の `lockStateOf` を `snapshotOf`
+      （`SesameStatusSnapshot` を返す）へ変え、更新時刻も同じ経路で受け取るようにした。
+      detektの `LongMethod` と `TooManyFunctions` に達したため、`SesameTileService` の
+      ステータスチップ組み立てを `buildStatusColumn` としてトップレベル関数へ切り出した。
+      BL-142の「フルセット」で挙げた抑制策のうち、自動取得の廃止で対象が変わった
+      (3)uuid単位の最小取得間隔と(4)月間カウンタは、BL-148 / BL-147 として分離起票した
+      （ユーザー確認済み）。BL-143（エラー後のバックオフ）は抑制対象だった自動取得が消えたため
+      対象消滅として閉じた（ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusFreshness.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusFreshnessTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - README.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、相対表記と日付表記の境界（1分・1時間・
+      24時間）、端末時計のずれ（未来の時刻）、タイムゾーンによる日付の違い、「全デバイス」での
+      最古値の採用と1台未取得時の扱い、デモでの非表示を検証した。
+      Tile / Complication / ウィジェットの実機での見え方は未検証（BL-149として起票）。
+    関連ID:
+      - BL-142
+
 - date: 2026-09-18 09:45
   summary: Sesame APIの失敗理由をリリースビルドのlogcatへ残せるようにした
   details:
