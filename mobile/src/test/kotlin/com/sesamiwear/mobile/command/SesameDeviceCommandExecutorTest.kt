@@ -2,6 +2,8 @@ package com.sesamiwear.mobile.command
 
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.messaging.CommandDebouncer
@@ -11,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,8 +25,8 @@ import org.junit.Test
 class SesameDeviceCommandExecutorTest {
     private lateinit var server: MockWebServer
     private lateinit var lockStateStore: LockStateStore
-    private val notifications = mutableListOf<Pair<String, Boolean>>()
-    private val watchSyncs = mutableListOf<Pair<String, Boolean>>()
+    private val notifications = mutableListOf<Pair<String, SesameStatusSnapshot>>()
+    private val watchSyncs = mutableListOf<Pair<String, SesameStatusSnapshot>>()
     private var now = 10_000L
     private var credentialsList = listOf(validCredentials)
     private val failureLogs = mutableListOf<String>()
@@ -46,8 +49,8 @@ class SesameDeviceCommandExecutorTest {
             lockStateStore = lockStateStore,
             notifier =
                 LockStateNotifier(
-                    local = { uuid, isLocked -> notifications += uuid to isLocked },
-                    watch = { uuid, isLocked -> watchSyncs += uuid to isLocked },
+                    local = { uuid, snapshot -> notifications += uuid to snapshot },
+                    watch = { uuid, snapshot -> watchSyncs += uuid to snapshot },
                 ),
             apiAccess =
                 SesameApiAccess(
@@ -76,8 +79,8 @@ class SesameDeviceCommandExecutorTest {
             assertEquals("/$DEVICE_UUID/cmd", server.takeRequest().path)
             assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
             assertEquals(now, lockStateStore.load(DEVICE_UUID)?.updatedAtEpochMillis)
-            assertEquals(listOf(DEVICE_UUID to true), notifications)
-            assertEquals(listOf(DEVICE_UUID to true), watchSyncs)
+            assertEquals(listOf(DEVICE_UUID to true), lockStatesOf(notifications))
+            assertEquals(listOf(DEVICE_UUID to true), lockStatesOf(watchSyncs))
         }
 
     @Test
@@ -91,7 +94,7 @@ class SesameDeviceCommandExecutorTest {
             assertEquals(0, server.requestCount)
             assertTrue(watchSyncs.isEmpty())
             assertEquals(false, lockStateStore.load(SesameDemoMode.DEMO_DEVICE_UUID)?.isLocked)
-            assertEquals(listOf(SesameDemoMode.DEMO_DEVICE_UUID to false), notifications)
+            assertEquals(listOf(SesameDemoMode.DEMO_DEVICE_UUID to false), lockStatesOf(notifications))
         }
 
     @Test
@@ -131,20 +134,22 @@ class SesameDeviceCommandExecutorTest {
 
             assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
             assertEquals(false, lockStateStore.load(DEVICE_UUID)?.isLocked)
-            assertEquals(listOf(DEVICE_UUID to false), notifications)
+            assertEquals(listOf(DEVICE_UUID to false), lockStatesOf(notifications))
         }
 
     @Test
-    fun `API error returns failure without saving or notifying`() =
+    fun `API error returns failure and records it without inventing a lock state`() =
         runTest {
             server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))
 
             val outcome = createExecutor().execute(DEVICE_UUID, SesameCommand.LOCK)
 
             assertEquals(SesameDeviceCommandExecutor.Outcome.FAILURE, outcome)
-            assertNull(lockStateStore.load(DEVICE_UUID))
-            assertTrue(notifications.isEmpty())
-            assertTrue(watchSyncs.isEmpty())
+            // 施錠状態は分からないままだが、失敗したことは表示のために残す（BL-140）。
+            assertNull(lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertEquals(SesameStatusFailure.AUTH_OR_QUOTA, lockStateStore.load(DEVICE_UUID)?.lastFailure)
+            assertEquals(listOf(DEVICE_UUID to null), lockStatesOf(notifications))
+            assertEquals(listOf(DEVICE_UUID to null), lockStatesOf(watchSyncs))
         }
 
     @Test
@@ -218,7 +223,7 @@ class SesameDeviceCommandExecutorTest {
             assertEquals(true, isLocked)
             assertEquals("/$DEVICE_UUID", server.takeRequest().path)
             assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
-            assertEquals(listOf(DEVICE_UUID to true), notifications)
+            assertEquals(listOf(DEVICE_UUID to true), lockStatesOf(notifications))
         }
 
     @Test
@@ -236,15 +241,50 @@ class SesameDeviceCommandExecutorTest {
         }
 
     @Test
-    fun `refresh status API error returns null without saving or notifying`() =
+    fun `refresh status API error returns null and records the failure`() =
         runTest {
             server.enqueue(MockResponse().setBody("{}").setResponseCode(HTTP_FORBIDDEN))
 
             val isLocked = createExecutor().refreshStatus(DEVICE_UUID)
 
             assertNull(isLocked)
-            assertNull(lockStateStore.load(DEVICE_UUID))
-            assertTrue(notifications.isEmpty())
+            assertNull(lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertEquals(SesameStatusFailure.AUTH_OR_QUOTA, lockStateStore.load(DEVICE_UUID)?.lastFailure)
+            assertEquals(listOf(DEVICE_UUID to null), lockStatesOf(notifications))
+        }
+
+    @Test
+    fun `refresh status failure keeps the last known state and marks it as failed`() =
+        runTest {
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            val fetchedAt = lockStateStore.load(DEVICE_UUID)?.updatedAtEpochMillis
+            now += 60_000L
+            executor.refreshStatus(DEVICE_UUID)
+
+            val snapshot = lockStateStore.load(DEVICE_UUID)
+            assertEquals(true, snapshot?.isLocked)
+            assertEquals(fetchedAt, snapshot?.updatedAtEpochMillis)
+            // 通信そのものの失敗はHTTPステータスコードを持たないため通信エラーになる（BL-139 / BL-140）。
+            assertEquals(SesameStatusFailure.COMMUNICATION, snapshot?.lastFailure)
+        }
+
+    @Test
+    fun `a later success clears the recorded failure`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))
+            server.enqueue(MockResponse().setBody(statusJson("unlocked")).setResponseCode(HTTP_OK))
+            val executor = createExecutor()
+
+            executor.refreshStatus(DEVICE_UUID)
+            executor.refreshStatus(DEVICE_UUID)
+
+            val snapshot = lockStateStore.load(DEVICE_UUID)
+            assertEquals(false, snapshot?.isLocked)
+            assertNull(snapshot?.lastFailure)
         }
 
     @Test
@@ -320,6 +360,9 @@ class SesameDeviceCommandExecutorTest {
             assertNull(createExecutor().refreshStatus(DEVICE_UUID))
             assertEquals(0, server.requestCount)
         }
+
+    private fun lockStatesOf(records: List<Pair<String, SesameStatusSnapshot>>) =
+        records.map { (uuid, snapshot) -> uuid to snapshot.isLocked }
 
     private fun statusJson(lockStatus: String) =
         """{"batteryVoltage":5.8,"position":11,"CHSesame2Status":"$lockStatus"}"""

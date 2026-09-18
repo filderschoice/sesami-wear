@@ -22,17 +22,18 @@ object SesameComplicationContent {
      * 選べない・表示されない事象を避けるため、`LONG_TEXT`もサポート対象に加えた際に追加した。
      * 表示領域に余裕があるため、状態文言に加えて対象デバイス名も併記する。
      *
-     * [freshnessLabel]（`core.display.SesameStatusFreshness`が組み立てた「3分前」等）を渡すと
-     * 括弧付きで末尾へ添える（BL-142）。Complicationは自動での状態取得を行わなくなったため、
-     * 表示がどれだけ古いかを利用者が判断できるようにする。`SHORT_TEXT`枠は表示できる文字数が
-     * 非常に少ないため対象外とし、[shortText]は状態文言のみのままにする。
+     * [detailLabel]（`core.display.SesameStatusDetail`が組み立てた「3分前」「認証エラー」等）を
+     * 渡すと括弧付きで末尾へ添える（BL-142 / BL-140）。Complicationは自動での状態取得を
+     * 行わなくなったため、表示がどれだけ古いか・直近の取得が失敗していないかを利用者が判断
+     * できるようにする。`SHORT_TEXT`枠は表示できる文字数が非常に少ないため対象外とし、
+     * [shortText]は状態文言のみのままにする。
      */
     fun longText(
         displayName: String,
         state: TileDisplayState,
-        freshnessLabel: String? = null,
+        detailLabel: String? = null,
     ): String {
         val base = "$displayName ${shortText(state)}"
-        return if (freshnessLabel == null) base else "$base（$freshnessLabel）"
+        return if (detailLabel == null) base else "$base（$detailLabel）"
     }
 }

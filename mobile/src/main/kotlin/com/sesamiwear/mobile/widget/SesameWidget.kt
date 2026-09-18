@@ -192,8 +192,10 @@ private fun NeutralChip(
 private fun StatusTexts(model: SesameWidgetModel.Configured) {
     Text(text = model.statusIcon, style = textStyle(model.textColorArgb, ICON_SP))
     Text(text = model.statusLabel, style = textStyle(model.textColorArgb, BODY_SP, bold = true))
-    // 最後に状態を取得した時刻（BL-142）。自動取得を廃止したため、表示がどれだけ古いかを示す。
-    model.freshnessLabel?.let { Text(text = it, style = textStyle(model.textColorArgb, FOOTNOTE_SP)) }
+    // 最後に状態を取得した時刻、または直近の失敗の理由（BL-142 / BL-140）。
+    model.detailLabel?.let {
+        Text(text = it, style = textStyle(model.textColorArgb, FOOTNOTE_SP), maxLines = 2)
+    }
     model.actionLabel?.let { Text(text = it, style = textStyle(model.textColorArgb, CAPTION_SP)) }
 }
 

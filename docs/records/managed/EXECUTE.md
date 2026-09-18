@@ -5,6 +5,72 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 13:15
+  summary: 状態取得・施錠/解錠の失敗理由を表示し「まだ取得していない」と区別できるようにした
+  details:
+    変更内容: >-
+      BL-140: 「状態不明」が「まだ一度も取得していない」と「取得を試みたが失敗した」を区別せず、
+      apikeyが拒否されていても利用者が設定を見直す契機を得られなかった問題に対応した。
+      `core.SesameStatusFailure` を新設し、HTTPステータスコード（BL-139で保持させた
+      `SesameApiException.httpStatusCode`）から `AUTH_OR_QUOTA`（401 / 403 / 429）と
+      `COMMUNICATION`（それ以外・通信失敗）へ分類する。403は「apikey無効」と「月間上限到達」の
+      両方で返り本文も同一のため区別できず（BL-141）、文言も両方を含む案内にしている。
+      表示文言は `core.display.SesameStatusDetail` が決め、直近が失敗ならその理由、成功なら
+      BL-142で追加した最終取得時刻を返す。失敗を優先するのは、より新しい情報であり利用者が次に
+      取るべき行動へ直結するため。Tile・Complicationは5文字の `shortLabel`（「認証エラー」
+      「通信エラー」）、表示領域に余裕があるホーム画面ウィジェットは `detailedLabel`
+      （「認証エラー（設定を確認）」「通信エラー（電波状況を確認）」）を使う（ユーザー確認済み）。
+      失敗しても表示中の施錠状態は「状態不明」へ戻さず、最後に分かった状態を残す（ユーザー確認済み。
+      BL-142の「最後に分かった状態を出し続ける」設計と揃え、Tileからの施錠/解錠も引き続き行える）。
+      保持と同期のため、`SesameStatusSnapshot` へ `lastFailure` を追加し `updatedAtEpochMillis` を
+      null許容にした（一度も取得できないまま失敗した場合を表せるようにするため）。
+      `LockStateStore.saveFailure` は状態を残したまま失敗だけを上書きし、成功時の `save` が消す。
+      `SesameWearProtocol.KEY_LAST_FAILURE` を追加し、`SesameStatusSyncer.sync` が
+      スナップショットを丸ごとDataItemへ載せる（値の無い項目はキーごと載せず、wear側は
+      `SesameStatusSnapshotFactory` がキーの有無から復元する）。これに伴い
+      `LockStateListener.onLockStateChanged(uuid, isLocked)` を
+      `onStatusChanged(uuid, snapshot)` へ変更した。
+      「全デバイス」対象では `SesameStatusFailure.worstOf` が集約し、利用者が対処できる
+      `AUTH_OR_QUOTA` を優先する。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactory.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactoryTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加・更新したユニットテストで、401 / 403 / 429 と
+      それ以外・ステータスコード無しの分類、失敗が鮮度表示より優先されること、失敗しても
+      施錠状態と取得時刻が残ること、次の成功で失敗の記録が消えること、「全デバイス」で
+      認証エラーが優先されること、未知の保存値を失敗なしとして扱うことを確認した。
+      実機での表示崩れの確認はBL-149へ含めた。
+    関連ID:
+      - BL-140
+
 - date: 2026-09-18 11:30
   summary: 自動状態取得を廃止しSesame APIの月間リクエスト上限の超過を止めて最終取得時刻を表示するようにした
   details:

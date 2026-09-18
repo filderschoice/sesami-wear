@@ -28,7 +28,7 @@ object SesameDeviceCommandExecutorFactory {
             notifier =
                 LockStateNotifier(
                     local = { _, _ -> SesameWidgetUpdater.updateAll(appContext) },
-                    watch = { uuid, isLocked -> SesameStatusSyncer(appContext).syncLocked(uuid, isLocked) },
+                    watch = { uuid, snapshot -> SesameStatusSyncer(appContext).sync(uuid, snapshot) },
                 ),
             apiAccess =
                 SesameApiAccess(

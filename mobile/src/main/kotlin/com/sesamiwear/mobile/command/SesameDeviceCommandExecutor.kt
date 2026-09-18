@@ -3,6 +3,8 @@ package com.sesamiwear.mobile.command
 import com.sesamiwear.core.SesameCommandResult
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameApiFailureLog
@@ -69,15 +71,20 @@ class SesameDeviceCommandExecutor(
     ): Boolean {
         val credentials = findCredentials(uuid)
         val secretKey = credentials?.secretKeyBytesOrNull ?: return false
+        // 失敗の分類はコールバックで受け取る（コールバックはsuspendでないためその場では保存できない）。
+        var failure: SesameStatusFailure? = null
         val handler =
             SesameCommandHandler(
                 apiClient = apiAccess.clientFactory(credentials),
                 secretKey = secretKey,
                 onFailure = { e ->
                     apiAccess.logFailure(SesameApiFailureLog.describe(operationOf(command), e))
+                    failure = SesameStatusFailure.of(e.httpStatusCode)
                 },
             )
-        return handler.execute(command) == SesameCommandResult.SUCCESS
+        val succeeded = handler.execute(command) == SesameCommandResult.SUCCESS
+        failure?.let { recordFailure(uuid, it) }
+        return succeeded
     }
 
     /**
@@ -101,10 +108,24 @@ class SesameDeviceCommandExecutor(
             apiAccess.clientFactory(credentials).getStatus().isInLockRange
         } catch (e: SesameApiException) {
             // 呼び出し元（ウォッチ・ウィジェット）へは「取得できなかった」ことだけを伝える。
-            // 切り分けに必要な情報はlogcatへ残す（BL-139）。
+            // 切り分けに必要な情報はlogcatへ残し（BL-139）、失敗の分類は表示のため保存する（BL-140）。
             apiAccess.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
+            recordFailure(uuid, SesameStatusFailure.of(e.httpStatusCode))
             null
         }
+    }
+
+    /**
+     * 直近の取得・操作が失敗したことを保存し、ウォッチ・ウィジェットへ知らせる（BL-140）。
+     * 最後に分かった施錠状態は残したまま、失敗の分類だけを上書きする。
+     * デモ用デバイスはAPIを呼ばないため失敗も起こらない。
+     */
+    private suspend fun recordFailure(
+        uuid: String,
+        failure: SesameStatusFailure,
+    ) {
+        lockStateStore.saveFailure(uuid, failure)
+        notifySnapshot(uuid)
     }
 
     private fun operationOf(command: SesameCommand): SesameApiOperation =
@@ -120,8 +141,13 @@ class SesameDeviceCommandExecutor(
         isLocked: Boolean,
     ) {
         lockStateStore.save(uuid, isLocked, nowMillis())
-        if (!SesameDemoMode.isDemoDevice(uuid)) notifier.watch.onLockStateChanged(uuid, isLocked)
-        notifier.local.onLockStateChanged(uuid, isLocked)
+        notifySnapshot(uuid)
+    }
+
+    private suspend fun notifySnapshot(uuid: String) {
+        val snapshot = lockStateStore.load(uuid) ?: SesameStatusSnapshot(isLocked = null, updatedAtEpochMillis = null)
+        if (!SesameDemoMode.isDemoDevice(uuid)) notifier.watch.onStatusChanged(uuid, snapshot)
+        notifier.local.onStatusChanged(uuid, snapshot)
     }
 
     companion object {
@@ -177,8 +203,8 @@ class LockStateNotifier(
 
 /** [LockStateNotifier]の通知先1つ分。 */
 fun interface LockStateListener {
-    suspend fun onLockStateChanged(
+    suspend fun onStatusChanged(
         uuid: String,
-        isLocked: Boolean,
+        snapshot: SesameStatusSnapshot,
     )
 }

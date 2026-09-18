@@ -2,6 +2,7 @@ package com.sesamiwear.mobile.widget
 
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
+import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
@@ -14,6 +15,7 @@ class SesameWidgetModelResolverTest {
     private val back = SesameDeviceSummary(uuid = "uuid-back", displayName = "勝手口")
     private val lockStates = mutableMapOf<String, Boolean>()
     private val updatedAtMillis = mutableMapOf<String, Long>()
+    private val failures = mutableMapOf<String, SesameStatusFailure>()
 
     private fun resolve(
         assignedUuid: String?,
@@ -22,14 +24,21 @@ class SesameWidgetModelResolverTest {
     ) = SesameWidgetModelResolver.resolve(
         assignedUuid = assignedUuid,
         registeredDevices = registered,
-        snapshotOf = { uuid ->
-            lockStates[uuid]?.let { isLocked ->
-                SesameStatusSnapshot(isLocked, updatedAtMillis[uuid] ?: NOW)
-            }
-        },
+        snapshotOf = { uuid -> snapshotOf(uuid) },
         isCommandInProgress = isCommandInProgress,
         nowEpochMillis = NOW,
     )
+
+    private fun snapshotOf(uuid: String): SesameStatusSnapshot? {
+        val isLocked = lockStates[uuid]
+        val failure = failures[uuid]
+        if (isLocked == null && failure == null) return null
+        return SesameStatusSnapshot(
+            isLocked = isLocked,
+            updatedAtEpochMillis = if (isLocked == null) null else updatedAtMillis[uuid] ?: NOW,
+            lastFailure = failure,
+        )
+    }
 
     private fun configured(model: SesameWidgetModel) = model as SesameWidgetModel.Configured
 
@@ -153,12 +162,12 @@ class SesameWidgetModelResolverTest {
         lockStates["uuid-front"] = true
         updatedAtMillis["uuid-front"] = NOW - 5 * 60_000L
 
-        assertEquals("5分前", configured(resolve("uuid-front", listOf(front))).freshnessLabel)
+        assertEquals("5分前", configured(resolve("uuid-front", listOf(front))).detailLabel)
     }
 
     @Test
     fun `single device without saved state shows never fetched`() {
-        assertEquals("未取得", configured(resolve("uuid-front", listOf(front))).freshnessLabel)
+        assertEquals("未取得", configured(resolve("uuid-front", listOf(front))).detailLabel)
     }
 
     @Test
@@ -170,7 +179,7 @@ class SesameWidgetModelResolverTest {
 
         val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
 
-        assertEquals("1時間前", model.freshnessLabel)
+        assertEquals("1時間前", model.detailLabel)
     }
 
     @Test
@@ -180,12 +189,47 @@ class SesameWidgetModelResolverTest {
 
         val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
 
-        assertEquals("未取得", model.freshnessLabel)
+        assertEquals("未取得", model.detailLabel)
     }
 
     @Test
     fun `demo device has no freshness because it never calls the API`() {
-        assertEquals(null, configured(resolve(SesameDemoMode.DEMO_DEVICE_UUID, emptyList())).freshnessLabel)
+        assertEquals(null, configured(resolve(SesameDemoMode.DEMO_DEVICE_UUID, emptyList())).detailLabel)
+    }
+
+    @Test
+    fun `a failed refresh keeps the last known state and shows the reason instead of the freshness`() {
+        lockStates["uuid-front"] = true
+        updatedAtMillis["uuid-front"] = NOW - 5 * 60_000L
+        failures["uuid-front"] = SesameStatusFailure.AUTH_OR_QUOTA
+
+        val model = configured(resolve("uuid-front", listOf(front)))
+
+        assertEquals(TileDisplayState.LOCKED, model.state)
+        assertEquals("施錠中", model.statusLabel)
+        assertEquals("認証エラー（設定を確認）", model.detailLabel)
+    }
+
+    @Test
+    fun `a communication failure without any saved state stays unknown`() {
+        failures["uuid-front"] = SesameStatusFailure.COMMUNICATION
+
+        val model = configured(resolve("uuid-front", listOf(front)))
+
+        assertEquals(TileDisplayState.UNKNOWN, model.state)
+        assertEquals("通信エラー（電波状況を確認）", model.detailLabel)
+    }
+
+    @Test
+    fun `all devices prefers the failure the user can act on`() {
+        lockStates["uuid-front"] = true
+        lockStates["uuid-back"] = true
+        failures["uuid-front"] = SesameStatusFailure.COMMUNICATION
+        failures["uuid-back"] = SesameStatusFailure.AUTH_OR_QUOTA
+
+        val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
+
+        assertEquals("認証エラー（設定を確認）", model.detailLabel)
     }
 
     private companion object {

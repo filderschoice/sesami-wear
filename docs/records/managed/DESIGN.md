@@ -126,7 +126,12 @@
     エラー後のバックオフ（BL-143）は、抑制対象だった自動取得が消えたため対象消滅として閉じた
     （2026-09-18、ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
 
-### 状態の鮮度表示
+### 状態の鮮度表示と失敗の区別
+
+状態文言のすぐ下へ1行だけ添える表示。直近の取得・操作が失敗していればその理由、成功していれば
+最後に取得した時刻の古さを出す（BL-142 / BL-140）。決定は`core.display.SesameStatusDetail`が行い、
+`compactLabel`（Tile・Complication向け）と`detailedLabel`（ホーム画面ウィジェット向け）の
+2通りの文言を返す。
 
 - `core.display.SesameStatusFreshness`（Android非依存、ユニットテスト対象）: 「最後に状態を取得した
   時刻」の表示文言を決める（BL-142）。自動状態取得を廃止したことで、Tile・Complication・ホーム画面
@@ -142,11 +147,29 @@
   未取得（null）として扱う。集約状態の判定（`TileDisplayStateResolver.resolveAggregate`が1台でも
   未取得なら「状態不明」にする）と同じ、最悪値を採る考え方で揃えている。
 - デモ用デバイス（BL-109 / BL-123）はSesame APIから取得しないため鮮度という概念が無く、表示しない
-  （`SesameTileStatus.freshnessLabel` / `SesameWidgetModel.Configured.freshnessLabel`がnull）。
+  （`SesameTileStatus.detailLabel` / `SesameWidgetModel.Configured.detailLabel`がnull）。
 - 表示位置は、Tileは右チップの状態文言の下（`TYPOGRAPHY_CAPTION3`）、ウィジェットは同じ位置の
   11sp、Complicationは`LONG_TEXT`のみ末尾へ括弧付きで添える（`SHORT_TEXT`は表示できる文字数が
   非常に少ないため対象外）。wearのTileとmobileのウィジェットで文言を食い違わせないよう、
   文言の決定はcoreに置く（`SesameTileContent`と同方針、BL-119）。
+- `core.SesameStatusFailure`（Android非依存、ユニットテスト対象）: 直近の失敗の分類（BL-140）。
+  利用者が自分で対処できるかどうかで2つに分ける。`AUTH_OR_QUOTA`（HTTP 401 / 403 / 429。資格情報が
+  拒否された、またはAPIの月間リクエスト上限に達した）と`COMMUNICATION`（それ以外のすべて。圏外・
+  タイムアウト・名前解決失敗・想定外の応答）。分類は`core.api.SesameApiException.httpStatusCode`
+  （BL-139）から決める。
+  - `AUTH_OR_QUOTA`をさらに「資格情報の誤り」と「上限到達」へ分けることはできない。Sesame APIは
+    どちらもHTTP 403（本文も同一）で返すためで、429が返るかどうかもCANDY HOUSE側の実装次第で未確認
+    （BL-141）。そのため文言も両方を含む案内にする。
+  - 文言は`shortLabel`（Tile・Complication向け、「認証エラー」「通信エラー」の5文字。過去に7文字の
+    文言がタイル幅に収まらず末尾省略された事例があるため、BL-102 / BL-104）と`detailedLabel`
+    （ウィジェット向け、「認証エラー（設定を確認）」「通信エラー（電波状況を確認）」）の2つを持つ。
+  - 「全デバイス」対象では`worstOf`が集約する。1台でも`AUTH_OR_QUOTA`があればそれを優先し、次に
+    `COMMUNICATION`。利用者が対処できる失敗を、対処できない失敗に埋もれさせないため。
+- **失敗しても表示している施錠状態は「状態不明」へ戻さない**（BL-140、ユーザー確認済み）。
+  最後に分かった状態を残し、下の1行だけを失敗の理由へ差し替える。BL-142で「最後に分かった状態を
+  出し続ける」設計にしたことと揃えるためで、分かっていた情報を捨てず、Tileからの施錠/解錠操作も
+  引き続き行える。失敗を鮮度より優先して表示するのは、失敗のほうが新しい情報であり、かつ利用者が
+  次に取るべき行動に直結するため（失敗しているときは表示が古いことも同時に意味する）。
 
 ### 資格情報管理（複数デバイス対応）
 
@@ -227,9 +250,12 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
     また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
-  - 結果の通知: wearは成否をハプティクスで区別するが、ウィジェットは失敗時に操作前の表示へ戻すのみ（改善はBL-129）。
+  - 結果の通知: wearは成否をハプティクスで区別する。ウィジェットは失敗の理由を状態文言の下へ
+    表示する（BL-140）が、失敗した瞬間を伝える手段（振動など）は持たない（改善はBL-129）。
   - 表示の鮮度: wear・ウィジェットとも自動取得は行わず（BL-142）、保存値を表示したうえで
-    最後に取得した時刻の文言を添える（前述「状態の鮮度表示」）。更新は利用者のタップで行う。
+    最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
+    ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
+    更新は利用者のタップで行う。
   - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
@@ -420,8 +446,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `PATH_COMMAND_RESULT`: コマンド結果返送（BL-006）。
 - `PATH_STATUS_REQUEST`: 状態取得リクエスト、Fire-and-forget（BL-061）。結果は返さず
   `STATUS_DATA_ITEM_PATH`のDataItem変更として非同期に届く。
-- `STATUS_DATA_ITEM_PATH` / `KEY_IS_LOCKED` / `KEY_UPDATED_AT_EPOCH_MILLIS`: ロック状態の同期
-  （BL-015）。`statusDataItemPath(uuid)`でデバイスごとに一意なパスを生成する（BL-050）。
+- `STATUS_DATA_ITEM_PATH` / `KEY_IS_LOCKED` / `KEY_UPDATED_AT_EPOCH_MILLIS` / `KEY_LAST_FAILURE`:
+  ロック状態と直近の失敗の同期（BL-015 / BL-140）。`statusDataItemPath(uuid)`でデバイスごとに
+  一意なパスを生成する（BL-050）。値が無い項目はキーごと載せず、wear側は
+  `core.SesameStatusSnapshotFactory`がキーの有無から復元する。施錠状態が未取得のまま失敗だけが
+  同期されることもある（一度も取得できていないデバイスで認証エラーになった場合）。
 - `encodeDeviceUuid` / `decodeDeviceUuid`: 施錠/解錠/状態取得コマンドの対象デバイスuuidを
   メッセージペイロードへUTF-8バイト列としてそのまま載せる（BL-048）。
 - `DEVICE_LIST_DATA_ITEM_PATH` / `KEY_DEVICE_LIST_JSON`: 登録済みデバイス一覧（`SesameDeviceSummary`
@@ -446,16 +475,21 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     戻り値は`SUCCESS`/`FAILURE`/`DEBOUNCED`。資格情報が無い・鍵が不正（`secretKeyBytesOrNull`がnull、
     BL-026）ならAPIを呼ばず`FAILURE`。保存する状態は「送信したコマンドが意図した状態」（LOCK→施錠、
     UNLOCK→解錠、BL-015の簡略化ロジック）。
-  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。資格情報なし・
-    APIエラーはnull（保存・通知しない）。重複判定の対象外。
+  - `refreshStatus(uuid)`: `SesameApiClient.getStatus()`の結果を保存・通知し、施錠状態を返す。
+    資格情報が無い場合はAPIを呼ばずnull（保存・通知もしない）。APIエラーの場合はnullを返すが、
+    失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。重複判定の対象外。
   - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
     本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
     注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
+  - あわせて失敗の分類を`LockStateStore.saveFailure`で保存し、ウォッチ・ウィジェットへ通知する
+    （BL-140）。状態取得と施錠/解錠のどちらの失敗も同じ扱いにする。成功時の`save`は失敗の記録を
+    消すため、直近の1回の結果だけが残る。最後に分かった施錠状態と、その取得時刻はそのまま残す。
   - デモ用デバイス（BL-123）: `execute`はAPIを呼ばず常に成功として端末内の状態だけを書き換え（重複判定は
     実デバイスと同じ）、`refreshStatus`は保存値（無ければ`INITIAL_IS_LOCKED`）を返すだけで保存・通知しない。
     ウォッチへのDataItem同期も行わず、ウォッチ側のデモ状態（`wear.demo.DemoLockStateStore`）とは同期しない。
   - 資格情報の読み出し（`loadCredentials`）、`LockStateStore`、通知先`LockStateNotifier`（`local`＝すべての
-    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ）、
+    変化でウィジェット再描画、`watch`＝実デバイスの変化だけでDataItem同期。`watch`→`local`の順に呼ぶ。
+    通知は`SesameStatusSnapshot`（施錠状態・取得時刻・直近の失敗）を丸ごと渡す、BL-140）、
     `SesameApiAccess`、`CommandDebouncer`、時刻取得を注入する。`CommandDebouncer`は
     companion objectの`sharedDebouncer`をプロセス内で共有し、ウォッチ経由とウィジェット経由の
     同一uuidへの2秒以内の重複も1回にまとめる。
@@ -465,11 +499,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     `LongParameterList`閾値（7）に達したため、Sesame APIとのつなぎ方を1つにまとめた（BL-139）。
   - `mobile.command.SesameDeviceCommandExecutorFactory`（Android依存の配線のみ）: 資格情報は
     `EncryptedSharedPreferencesKeyValueStore`、ロック状態は`SharedPreferencesKeyValueStore.forLockState`、
-    通知先は`watch`＝`SesameStatusSyncer`（DataItem同期、BL-118のベストエフォート）、`local`＝
-    `SesameWidgetUpdater.updateAll`、失敗ログは`Log.w(SesameApiFailureLog.TAG, ...)`で生成する。
+    通知先は`watch`＝`SesameStatusSyncer.sync`（スナップショットをそのままDataItemへ、BL-118の
+    ベストエフォート）、`local`＝`SesameWidgetUpdater.updateAll`、
+    失敗ログは`Log.w(SesameApiFailureLog.TAG, ...)`で生成する。
     `Log.w`はproguard-rules.proの`-assumenosideeffects`の対象外のため、リリースビルドにも残る（BL-083）。
 - `mobile.state.LockStateStore`（Android非依存、ユニットテスト対象）: uuidごとのロック状態（施錠中か・
-  更新時刻、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120）。機密情報を含まないため
+  更新時刻・直近の失敗、`core.SesameStatusSnapshot`で返す）をmobile端末内に保存する（BL-120 / BL-140）。
+  `save`は状態を保存して失敗の記録を消し、`saveFailure`は状態を残したまま失敗だけを上書きする。機密情報を含まないため
   保存先は非暗号化SharedPreferences（`mobile.state.SharedPreferencesKeyValueStore`、ファイル名
   `sesami_wear_lock_state`）。全デバイス分を1つのJSONオブジェクト（uuid → `isLocked`/`updatedAtEpochMillis`）
   にして単一キー`lock_states`へ保存し、`remove(uuid)`で個別に消せる。mobileはkotlinx.serializationの
@@ -577,7 +613,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `ALL_DEVICES_TARGET_UUID`の場合は登録済み全デバイスの状態を`TileDisplayStateResolver
   .resolveAggregate`で集約し、それ以外は単一デバイスの状態を解決する（BL-071でSesameTileService/
   SesameComplicationDataSourceServiceの重複ロジックを集約）。**状態取得のリクエストは送らない**
-  （BL-142で廃止）。戻り値は`SesameTileStatus`（表示状態と、最後に取得した時刻の文言）。
+  （BL-142で廃止）。戻り値は`SesameTileStatus`（表示状態と、状態文言の下へ添える1行）。
 - `wear.tile.TileConfigurationActivity` / `TileDeviceAssignmentStore`: Tileインスタンス
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」

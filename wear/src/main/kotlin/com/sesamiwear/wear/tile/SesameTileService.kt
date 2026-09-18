@@ -385,8 +385,8 @@ class SesameTileService : TileService() {
 }
 
 /**
- * ステータスチップの中身（アイコン・状態文言・最終取得時刻・操作文言を縦に並べたColumn）。
- * 文字サイズはアイコン > 状態文言 > 操作文言 > 最終取得時刻の順に小さくし、
+ * ステータスチップの中身（アイコン・状態文言・最終取得時刻または失敗理由・操作文言を縦に並べたColumn）。
+ * 文字サイズはアイコン > 状態文言 > 操作文言 > 最終取得時刻・失敗理由の順に小さくし、
  * 円形画面でも4行が収まるようにする。
  *
  * クラス内のメソッド数がdetektの`TooManyFunctions`閾値（11）に達したため、
@@ -420,11 +420,12 @@ private fun buildStatusColumn(
                     .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
                     .build(),
             )
-    // 最後に状態を取得した時刻（BL-142）。自動取得を廃止したため、表示がどれだけ古いかを
-    // 利用者が判断できるよう状態文言のすぐ下へ添える。文言は最長でも「23時間前」の6文字。
-    status.freshnessLabel?.let { freshnessLabel ->
+    // 最後に状態を取得した時刻、または直近の失敗の理由（BL-142 / BL-140）。自動取得を廃止した
+    // ため、表示がどれだけ古いかを利用者が判断できるよう状態文言のすぐ下へ添える。
+    // 文言は最長でも「23時間前」「認証エラー」の5〜6文字。
+    status.detailLabel?.let { detailLabel ->
         statusColumnBuilder.addContent(
-            Text.Builder(context, freshnessLabel)
+            Text.Builder(context, detailLabel)
                 .setTypography(Typography.TYPOGRAPHY_CAPTION3)
                 .setColor(textColor)
                 .setMaxLines(1)
