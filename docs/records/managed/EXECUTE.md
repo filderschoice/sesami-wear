@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 19:10
+  summary: 全デバイス操作でロック状態の一部が失われる競合を修正した
+  details:
+    変更内容: >-
+      BL-157: `SesameMessageListenerService`がメッセージごとに別コルーチンで
+      `SesameDeviceCommandExecutorFactory.create`を呼ぶため、「全デバイス」操作では
+      デバイス数ぶんの`LockStateStore`インスタンスが並行して単一キー（`lock_states`）へ
+      read-modify-writeを行っていた。`@Synchronized`はインスタンス単位のロックのため
+      排他にならず、後勝ちで一方の更新が失われ、実際には解錠されているのに「施錠中」と
+      表示され続けていた。
+      `LockStateStore`の`load` / `save` / `saveFailure` / `remove`を、ファイルスコープの
+      共有ロック`LOCK`による`synchronized(LOCK)`へ置き換えた。対策候補のうちクラス単位の
+      ロックを選んだのは、保存先が同一プロセス内のSharedPreferences1ファイルのみで
+      プロセス内の排他で足り、呼び出し側（Service・ウィジェット・設定画面）の生成方法を
+      変えずに済むため。シングルトン化はContextの保持先を増やし、1コルーチンへの直列化は
+      `SesameMessageListenerService`の構造変更を伴うため採らなかった。
+      検出できる回帰テストとして、読み出しに20ms要する保存先へ8スレッドが別インスタンスから
+      同時に`save`するユニットテストを追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したテストが修正前は失敗し（一部uuidの保存が消える）、
+      修正後は8デバイスぶんすべて残ることを確認した。実機での確認は本ブランチの最後に行う。
+    関連ID:
+      - BL-157
+
 - date: 2026-09-18 17:50
   summary: 状態取得の連打を抑止してSesame APIの無駄な消費を防いだ
   details:
