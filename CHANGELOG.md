@@ -7,6 +7,33 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-18（BLE直接操作の併用方針を採用、BL-145 / BL-146）
+
+Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な対策として、BLE（Bluetooth Low Energy）
+での直接操作をWeb APIと**併用**する方針を採用しました。調査の結論と実装の前提を
+[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md)「BLE直接操作の併用方針」へ記載し、
+実装を段階ごとにBL-150〜BL-154として起票しています。コード修正は伴いません。
+
+調査で判明した主な事実（2026-09-18時点、いずれも公開リポジトリのREADMEとGitHub APIで確認）:
+
+- 本アプリが保持するsecretKey（SESAME Biz由来、16進数32文字）は、BLE操作に必要なsecret keyと
+  **同一である確度が高い**。`meronepy/gomalock` のREADMEは入手元としてQRコードリーダーと
+  SESAME Bizの両方を挙げており、両者は同じ値に収束します。**ただし実機では未実証**のため、
+  先にBL-150（人手検証）で確かめます。
+- 非公式実装（gomalock / libsesame3bt-core / ha-sesame-ble）はいずれもクラウドへ接続せずBLEのみで
+  施錠/解錠まで到達しています。公式SDKのREADMEはAmplify（AWS Cognito）の初期化を「OS3の登録や
+  クラウド機能を利用するには」必要としており、既登録デバイスのBLE操作のみの最小構成は未記載です。
+- **BLEはスマートフォンがSesameの電波圏内にあるときしか使えず、外出先からの操作を代替できません。**
+  secretKeyを`mobile`のみが保持する現行方針は変更せず、「自宅ではBLE、圏外ではWeb API」という
+  併用として設計します。
+- 位置情報権限はAPI 31以上では不要（`BLUETOOTH_SCAN`に`neverForLocation`を宣言）。minSdk 26のため
+  API 30以下向けに`ACCESS_FINE_LOCATION`が要りますが、`android:maxSdkVersion="30"`で旧端末限定に
+  できます。データセーフティ申告の更新は必要です（BL-154）。
+- `-PsesameApiBaseUrl`のようなモック差し替えがBLEには存在せず、**検証は実機必須**になります
+  （本リポジトリにCIは無く、ローカル実行が唯一の品質ゲート）。
+
+BL-146（外部実装の調査結果）は、内容をDESIGN.mdの同節「参照する外部実装」へ移したため削除しました。
+
 ## 2026-09-18（ウィジェットの状態取得が「状態不明」のままになる事象の調査、BL-139〜BL-146）
 
 Play版0.11.0を入れたPixel 8 Proで、ホーム画面ウィジェットの状態取得が常に「状態不明」のままに

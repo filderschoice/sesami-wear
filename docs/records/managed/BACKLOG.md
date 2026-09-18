@@ -5,86 +5,138 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-145
+- id: BL-154
+  区分: 人手検証
+  タスク内容: >-
+    BLE直接操作（BL-152）の配信にあたり、Google Playのデータセーフティ申告・権限の用途説明・
+    ストア掲載情報を更新する。追加される権限はBLUETOOTH_SCAN / BLUETOOTH_CONNECT
+    （API 31以上）とACCESS_FINE_LOCATION（`android:maxSdkVersion="30"`で旧端末限定）。
+    位置情報権限は旧端末限定でも申告の対象になりうるため、Play Consoleの質問に沿って
+    「位置情報を収集・共有しない（BLEスキャンのためだけに宣言している）」ことを説明する。
+    あわせて docs/USER_GUIDE.md・docs/store/STORE_LISTING.md・docs/RELEASE_NOTES.md へ
+    「自宅ではBluetoothで直接操作し、APIのリクエストを消費しない」ことを記載する。
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    データセーフティ申告と権限の用途説明が更新され、審査を通過して配信されていること。
+    利用者向けドキュメントにBLE経由で動作する条件（スマートフォンがSesameの電波圏内にあること）が
+    記載されていること
+  根拠: >-
+    Play Consoleの操作を伴うため自律ループ実行モードでは実行できない
+    （rules/guardrails-unified.v1.md セクション12.2）。DESIGN.md「BLE直接操作の併用方針」の
+    段階5に対応する。
+  依存:
+    - BL-152
+
+- id: BL-153
   区分: 機能追加
   タスク内容: >-
-    Web API以外の経路として、BLE（Bluetooth Low Energy）での直接操作を併用できるかを検討する。
-    Web APIには月間リクエスト上限があり、到達するとアプリ全体が機能停止する（BL-141）。
-    BLEはクラウドを経由しないため上限の影響を受けず、Hub 3が無くても動く一方、Sesameの電波圏内でしか
-    使えない。「代替」ではなく「圏内ではBLE、圏外ではWeb API」という併用の可否として評価する。
-    2026-09-18に公開リポジトリを調査し、実現可能性は高いという心証を得た（詳細は下記）。
-    残る論点は、鍵の同一性の実証と、アーキテクチャ・配布への影響の評価。
-    論点1（鍵の同一性、最重要）。非公式実装は一様に「16進数32文字のsecret key」だけでSesame 5を
-    BLE操作しており、meronepy/gomalockのREADMEは、このsecret keyの入手元として
-    SESAME BizとQRコードの両方を挙げている。本アプリがbiz.candyhouse.coから取得して保持している
-    secretKey（16進数32文字、BL-058）と同一である可能性が高いが、実機で未実証。
-    なお現在のヘルプ文言「secretKeyは16進数32文字です。Sesameアプリの『鍵をシェア』QRコードの値では
-    ありません」は、QRのsk値がbase64かつ先頭1バイトがモデル番号であることに由来する表現であり、
-    同一性が実証された場合は誤解を招かないよう見直す（ヘルプの文言はBL-144で
-    `mobile.help.HelpContent.credentials`に残っている）。
-    論点2（クラウド依存）。公式SDKのREADMEはAmplify（AWS Cognito / API）の初期化を求めているが、
-    これは登録・クラウド機能向けであり、非公式実装はいずれもクラウドに一切接続せずBLEのみで
-    施錠/解錠まで到達している。既登録デバイスの操作にAWS設定は不要と考えられるが、公式SDKを
-    そのまま使う場合に初期化で要求されるかは未確認。
-    論点3（secretKeyの保持場所）。現行方針はsecretKeyをmobileのみが持ち、wearには持たせない
-    （DESIGN.md「アーキテクチャ方針」）。wearが直接BLE操作する構成はこの方針の変更を伴うため、
-    既定はmobileがBLEを担い、wearは従来どおりData Layer経由でコマンドを送る構成とする。
-    この場合スマホがSesameの電波圏内に無いと動かないため、経路の優先順位と切り替え条件を定義する。
-    論点4（権限と審査）。追加される権限はACCESS_FINE_LOCATION / BLUETOOTH_SCAN / BLUETOOTH_CONNECTと
-    uses-feature android.hardware.bluetooth_le。位置情報権限の追加はGoogle Playのデータセーフティ
-    申告と権限の用途説明に影響するため、審査上の追加作業を洗い出す。
-    論点5（実装方式とサイズ）。公式SDKをJitPackで取り込む、公式SDKのBLE部分を参考に自前実装する、
-    のいずれかを選ぶ。coreはAndroid非依存の制約があるためBLE実装はcoreへ置けずmobile側の新パッケージに
-    なるが、AES-CMACはcoreに実装済み（com.sesamiwear.core.crypto.AesCmac）で流用できる。
-    -PsesameApiBaseUrlのようなモック差し替えがBLEには無く、検証は実機必須になる。
-  優先度: P2
+    BLE直接操作に必要な権限の要求UIとマニフェストを整備する。
+    AndroidManifestへ`BLUETOOTH_SCAN`（`android:usesPermissionFlags="neverForLocation"`を宣言）、
+    `BLUETOOTH_CONNECT`、`ACCESS_FINE_LOCATION`（`android:maxSdkVersion="30"`）、
+    `uses-feature android.hardware.bluetooth_le`（`required="false"`。BLE非搭載端末でも
+    Web API経由で動くため配信対象を狭めない）を追加する。
+    権限は資格情報設定画面から任意で許可を求める形にし、**拒否されてもアプリは従来どおり
+    Web API経由で動作する**こと（必須にしない）を実装とUIの両方で担保する。
+    許可を求める画面では、位置情報権限が近くのSesameを探すためだけに必要で、位置情報の
+    収集・送信は行わないことを明示する。
+  優先度: P3
   状態: 未着手
   担当: AIエージェント
   完了条件: >-
-    論点1〜5それぞれについて結論（可否と根拠）がDESIGN.mdへ記載されていること。とくに論点1は、
-    保持中のsecretKeyでBLE接続と状態取得ができたかどうかを実機で確認した結果として記載すること。
-    採用する場合は経路の優先順位・切り替え条件・段階的な移行案が、見送る場合はその理由が記載され、
-    実装作業が別項目として起票されていること
+    権限を拒否した状態でも従来どおりWeb API経由で施錠/解錠・状態取得ができること。
+    権限の要求可否の判定がAndroid非依存のクラスで行われ、ユニットテストで検証されていること。
+    マニフェストの宣言がDESIGN.md「BLE直接操作の併用方針」の論点4と一致していること
   根拠: >-
-    本項目は調査と採否判断までを範囲とし、実装は含めない。BLEは上限問題に対する構造的な
-    解決策になりうる。短期的なリクエスト数削減（自動状態取得の廃止）はBL-142で対応済みで、
-    本項目の結論を待たずに進めた（依存は張らない）。
-    論点1の実証は実機のSesameとsecretKeyを要するため、当該ステップのみ人手検証として扱う。
-  依存: []
+    DESIGN.md「BLE直接操作の併用方針」の段階4に対応する。BL-151の実装で必要な権限が確定するため
+    依存を張るが、マニフェストの宣言自体はBL-151と同時に入れてもよい。
+  依存:
+    - BL-151
 
-- id: BL-146
+- id: BL-152
   区分: 機能追加
   タスク内容: >-
-    BL-145の検討で参照する外部実装の調査結果。2026-09-18時点の調査で見つかった参照先を、
-    採否判断とその後の実装で再調査せずに済むよう記録しておくための項目。
-    公式実装。CANDY-HOUSE/SesameSDK_Android_with_DemoApp（Kotlin、MITライセンス、2026-09-14時点で
-    更新継続、minSdk 24 / JDK 17 / Android SDK 36、JitPack配布
-    com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>）。
-    BLE実装は sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/ にあり、Sesame 5は
-    CHSesame5Device.kt が担当する。プロトコル定義は同 ble/SesameProtocols.kt、AES-CMACは
-    同 utils/aescmac/ 配下。VALIARK-jp/Pedal_Share は、このSDKを android/sesame-sdk モジュールとして
-    自アプリへ同梱した先行事例。
-    非公式実装。いずれもクラウドへ接続せずBLEのみで動作する。
-    meronepy/gomalock（Python、MIT、2026-08-25、Sesame 5 / 5 Pro / 5 USAの施錠・解錠・トグル、
-    角度・電池・オートロックの取得と変更、スキャン、新規登録に対応）が最も読みやすく、
-    必要な資格情報はBLEアドレスと16進数32文字のsecret keyのみ。
-    homy-newfs8/libsesame3bt-core（C++、MIT、2026-08-23）はBLE接続部を外に出したメッセージ処理の
-    実装で、Sesame 5ではset_keysの公開鍵を空文字にしてsecretだけを渡す。サービスUUIDは
-    0000fd81-0000-1000-8000-00805f9b34fb、Tx/Rxの各キャラクタリスティック経由で通信する。
-    bingxyz/ha-sesame-ble（Python、MIT、Home Assistant統合、gomalockを利用、SESAME 5 Proの実機で
-    検証済み）、lanpili/ha-sesame-local、Khronos31/home-assistant-candy-house-ble、
-    zunda-pixel/sesame-swift（Swift、Apache-2.0、Remote/Localの両クライアント）も参照先になる。
-    これらのライセンスはMITまたはApache-2.0で、参照・流用の障害は無い。
+    経路選択（BLE優先・Web APIフォールバック）を実装する。DESIGN.md「BLE直接操作の併用方針」の
+    「経路の優先順位と切り替え条件」に従い、`mobile.command.SesameDeviceCommandExecutor`が
+    BLEとWeb APIのどちらで実行するかを決める。
+    最大の制約は実行時間の制限（BL-137）。ウィジェットのタップは`FLAG_RECEIVER_FOREGROUND`により
+    約10秒で打ち切られ、現状はAPIのタイムアウトを接続3秒・読み書き3秒・全体6秒、受信全体を
+    `withTimeoutOrNull`の8秒で囲んでいる。「BLEを試して失敗→Web API」を直列に行うと枠を超えるため、
+    BLEの探索・接続に与える上限は合計2秒程度に抑える。
+    さらに、uuidごとに「最後にBLEで到達できた時刻」を保存し、一定時間内に到達実績がある場合だけ
+    BLEを先に試す。到達実績が無ければWeb APIから始め、成功後にバックグラウンドでスキャンして
+    到達実績を更新する。判定ロジックはAndroid非依存のクラスへ切り出す。
+    利用者は経路を意識しない（表示・操作・結果の見え方は経路によらず同じ）。どちらの経路で
+    実行したかは`core.api.SesameApiFailureLog`と同様の診断ログ（BL-139）にのみ残す。
+    BLEで到達できる間は状態の自動取得（BL-142で廃止した鮮度ベースの取得）を再開できるが、
+    本項目の完了までは再開しない。
   優先度: P3
-  状態: 完了
+  状態: 未着手
   担当: AIエージェント
   完了条件: >-
-    BL-145の検討に必要な外部実装の所在・ライセンス・必要な資格情報・プロトコルの入口
-    （サービスUUIDと実装ファイルのパス）が記録されていること
+    到達実績がある場合はBLE、無い場合はWeb APIから始めること、BLEが失敗してもWeb APIへ
+    フォールバックすること、全体が実行時間の制限内へ収まる設計値であることが、Android非依存の
+    クラスのユニットテストで検証されていること。設計値と根拠がDESIGN.mdへ記載されていること
   根拠: >-
-    調査結果そのものを残す項目のため、起票時点で完了状態とする。BL-145の着手時に参照し、
-    BL-145の完了時に本項目も削除する。本文の記述はいずれも各リポジトリのREADMEとGitHub APIで
-    確認した2026-09-18時点の事実で、実機での検証は行っていない。
+    DESIGN.md「BLE直接操作の併用方針」の段階3に対応する。実機での動作確認は別途必要になるため、
+    完了時に人手検証項目を起票する。
+  依存:
+    - BL-151
+
+- id: BL-151
+  区分: 機能追加
+  タスク内容: >-
+    `mobile.ble`（新パッケージ）へBLEクライアントを実装し、施錠/解錠と状態取得をBLE経由で
+    行えるようにする。この段階では経路の自動切り替えは入れず、デバッグビルドの隠し設定で
+    BLE単体を検証できるようにする（`-PsesameApiBaseUrl`に相当するモック差し替えがBLEには
+    存在しないため、検証は実機必須）。
+    実装方式は公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布）の
+    取り込みを既定とする。着手時に次の2点を確かめる。
+    (1) AABサイズへの影響を計測し、許容できない場合はBLE部分だけの自前実装へ切り替える
+    （その場合もAES-CMACは`core.crypto.AesCmac`を流用できる）。
+    (2) 既登録デバイスのBLE操作だけでAmplify（AWS Cognito）の初期化が要求されるかを確かめる。
+    要求される場合は、公式SDKの取り込みを取りやめて自前実装へ切り替える（クラウドへ接続しない
+    という前提を崩さないため）。
+    `core`はAndroid非依存の制約があるためBLE実装を`core`へは置かない。
+    secretKeyは引き続き`mobile`のみが保持し、`wear`へは持たせない（DESIGN.md「アーキテクチャ方針」）。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    デバッグビルドで、保持中のsecretKeyを使いBLE経由の施錠/解錠と状態取得ができること。
+    採用した実装方式（公式SDK取り込みか自前実装か）と、その判断根拠（AABサイズの計測値、
+    Amplify初期化の要否）がDESIGN.mdへ記載されていること。クラウドへ接続していないことを
+    確認していること
+  根拠: >-
+    DESIGN.md「BLE直接操作の併用方針」の段階2に対応する。BL-150で鍵の同一性が確認できない場合は
+    本項目を含むBL-151〜BL-154をすべて取りやめるため、依存を張る。
+  依存:
+    - BL-150
+
+- id: BL-150
+  区分: 人手検証
+  タスク内容: >-
+    本アプリが保持しているsecretKey（SESAME Biz由来、16進数32文字、BL-058）で、Sesame 5へ
+    BLE接続して状態（角度・電池）を取得できることを実機で確認する。BLE併用（2026-09-18に採用決定、
+    DESIGN.md「BLE直接操作の併用方針」）の
+    前提となる唯一の未実証事項で、これが成り立たない場合はBL-151〜BL-154をすべて取りやめる。
+    確認手段は`meronepy/gomalock`（Python、MIT）が最も手軽で、BLEアドレスと16進数32文字の
+    secret keyだけを渡してスキャン・接続・状態取得ができる。Androidアプリの実装を待たずに
+    PCから確認できる。
+    あわせて、クラウド（AWS Cognito等）へ一切接続せずに到達できることも確認する。
+    施錠/解錠まで実行するかは任意（実際の鍵が動くため、確認は状態取得までで足りる）。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    保持中のsecretKeyでSesame 5へBLE接続でき、状態（角度または電池残量）を取得できること。
+    または、できないことと、その場合に必要な鍵が何かが分かっていること
+  根拠: >-
+    実Sesameデバイスと実資格情報を要するため自律ループ実行モードでは実行できない
+    （rules/guardrails-unified.v1.md 12.5）。公開情報からは同一である確度が高いが未実証で、
+    BLE併用の可否がこの1点にかかっているため、実装の前段として先に確かめる
+    （DESIGN.md「BLE直接操作の併用方針」の段階1）。
   依存: []
 
 - id: BL-149

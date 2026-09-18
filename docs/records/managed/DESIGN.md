@@ -957,6 +957,94 @@ apikeyを「個人情報 > ユーザーID」、Sesameデバイスのuuidを「�
   変わらない（ウィジェットはsecretKeyを保持する`mobile`自身の中で完結する）。ウィジェットから成功した操作は
   DataItemでウォッチへベストエフォートで同期し、ウォッチ経由の成功はウィジェットの再描画を要求する。
 
+### BLE直接操作の併用方針（採用決定、未実装）
+
+Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な対策として、BLE（Bluetooth Low Energy）
+での直接操作をWeb APIと**併用**する方針を採用した（BL-145、2026-09-18にユーザー決定）。
+本節は調査の結論と、実装に着手する際の前提をまとめたもので、実装そのものは未着手（BL-150〜BL-154）。
+
+#### 調査の結論（論点1〜5）
+
+1. **鍵の同一性（最重要）**: 本アプリが保持するsecretKey（SESAME Biz由来、16進数32文字、BL-058）は、
+   BLE操作に必要なsecret keyと**同一である確度が高い**。`meronepy/gomalock`のREADMEは`SECRET_KEY`を
+   16進数32文字とし、入手元としてQRコードリーダー（マネージャー権限以上のQRから抽出）と
+   SESAME Bizの**両方**を挙げており、両者は同じ値に収束する。`homy-newfs8/libsesame3bt-core`は
+   Sesame 5で`set_keys("", SESAME_SECRET)`と公開鍵を空にしてsecretだけを渡す。
+   **実機では未実証**のため、BL-150（人手検証）で先に確かめる。
+   - 現行ヘルプの「secretKeyは16進数32文字です。Sesameアプリの『鍵をシェア』QRコードの値では
+     ありません」は、QRの生の`sk`（base64・先頭1バイトがモデル番号）を指した表現であり、
+     QRリーダーが**抽出したあと**の値とは矛盾しない。BL-150で同一性が確認できた場合も、
+     この文言は「生のQRの値ではない」という意味で正しいため、変更は不要と判断する。
+2. **クラウド依存**: 公式SDKのREADMEはAmplify（AWS Cognito）の初期化を「OS3の登録やクラウド機能を
+   利用するには」必要としており、**既登録デバイスのBLE操作のみの最小構成は明記されていない**。
+   非公式実装（gomalock / libsesame3bt-core / ha-sesame-ble）はいずれもクラウドへ一切接続せず
+   BLEのみで施錠/解錠まで到達している。公式SDKを使う場合に初期化で要求されるかは、
+   BL-151の着手時に実際に組み込んで確かめる。
+3. **secretKeyの保持場所**: **現行方針を変更しない。** secretKeyは`mobile`のみが保持し、
+   BLEの実行主体も`mobile`とする。`wear`は従来どおりData Layer経由でコマンドの意図だけを送る。
+   この結果、**BLEはスマートフォンがSesameの電波圏内にあるときしか使えない**。
+4. **権限と審査**: API 31以上は`BLUETOOTH_SCAN`（`android:usesPermissionFlags="neverForLocation"`を
+   宣言）と`BLUETOOTH_CONNECT`で足り、位置情報権限は不要。minSdkが26のためAPI 30以下向けに
+   `ACCESS_FINE_LOCATION`が必要だが、`android:maxSdkVersion="30"`を付けて旧端末限定にできる。
+   `uses-feature android.hardware.bluetooth_le`は`required="false"`とする（BLE非搭載端末でも
+   Web API経由で動くため、配信対象を狭めない）。Google Playのデータセーフティ申告と権限の
+   用途説明の更新が必要（BL-154）。
+5. **実装方式**: 公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布、
+   JDK 17 / Android SDK 36 / minSdk 24。本アプリのminSdk 26と両立する）をJitPackで取り込むことを
+   既定とする。自前実装より保守負担が小さいため。ただしAABサイズへの影響をBL-151の着手時に計測し、
+   許容できない場合はBLE部分だけの自前実装へ切り替える（その場合もAES-CMACは
+   `core.crypto.AesCmac`を流用できる）。`core`はAndroid非依存の制約があるため、
+   BLE実装は`mobile`の新パッケージ（`mobile.ble`想定）へ置く。
+
+#### 経路の優先順位と切り替え条件
+
+施錠/解錠・状態取得のいずれも、次の順に試す。
+
+1. **BLE**: Bluetoothが有効で、必要な権限が許可されており、対象デバイスがスキャンで見つかり、
+   所定時間内に接続できた場合。
+2. **Web API**: 上記以外のすべて（圏外、Bluetoothオフ、権限未許可、スキャン・接続の失敗）。
+
+- **利用者は経路を意識しない。** 表示・操作・結果の見え方は経路によらず同じにする。
+  どちらの経路で実行したかは`Log.w`相当の診断ログ（BL-139）にのみ残す。
+- **実行時間の制限が最大の制約**（BL-137）。ウィジェットのタップは`FLAG_RECEIVER_FOREGROUND`により
+  約10秒で打ち切られ、現状はSesame APIのタイムアウトを接続3秒・読み書き3秒・全体6秒、
+  受信全体を`withTimeoutOrNull`の8秒で囲んでいる。「BLEを試して失敗→Web API」を直列に行うと
+  この枠を超えるため、BLEの探索・接続に与える上限は合計2秒程度に抑える。
+- 上記でも枠が厳しいため、**直近のスキャン結果（uuidごとに「最後にBLEで到達できた時刻」）を
+  保存し、一定時間内に到達実績がある場合だけBLEを先に試す**設計を既定とする。到達実績が無ければ
+  Web APIから始め、成功後にバックグラウンドでスキャンして到達実績を更新する。
+- 状態取得はBLEなら上限を消費しないため、BLEで到達できる間は自動取得の再開（BL-142で廃止した
+  鮮度ベースの取得）を検討できる。ただしBL-152の完了までは自動取得を再開しない。
+
+#### 段階的移行案
+
+| 段階 | 内容 | 項目 |
+| --- | --- | --- |
+| 1 | 保持中のsecretKeyでBLE接続・状態取得ができることを実機で確認する | BL-150（人手検証） |
+| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151 |
+| 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152 |
+| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153 |
+| 5 | データセーフティ申告・ストア掲載情報・利用者向けドキュメントを更新する | BL-154（人手検証） |
+
+`-PsesameApiBaseUrl`のようなモック差し替えがBLEには存在せず、**検証は実機必須**になる
+（本リポジトリにCIは無く、ローカル実行が唯一の品質ゲート）。経路選択の判定ロジックは
+Android非依存のクラスへ切り出し、ユニットテストで検証できる範囲を最大化する。
+
+#### 参照する外部実装（2026-09-18時点、BL-146の調査結果）
+
+- 公式: `CANDY-HOUSE/SesameSDK_Android_with_DemoApp`（Kotlin、MIT、更新継続、JitPack配布
+  `com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>`）。BLE実装は
+  `sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/`で、Sesame 5は`CHSesame5Device.kt`が担当。
+  プロトコル定義は`ble/SesameProtocols.kt`、AES-CMACは`utils/aescmac/`配下。
+  `VALIARK-jp/Pedal_Share`は、このSDKを自アプリへモジュールとして同梱した先行事例。
+- 非公式（いずれもクラウド未接続でBLEのみで動作）: `meronepy/gomalock`（Python、MIT、最も読みやすい。
+  必要な資格情報はBLEアドレスと16進数32文字のsecret keyのみ）、`homy-newfs8/libsesame3bt-core`
+  （C++、MIT。サービスUUIDは`0000fd81-0000-1000-8000-00805f9b34fb`、Tx/Rxの各キャラクタリスティック
+  経由で通信）、`bingxyz/ha-sesame-ble`（Python、MIT、SESAME 5 Proの実機で検証済み）、
+  `lanpili/ha-sesame-local`、`Khronos31/home-assistant-candy-house-ble`、
+  `zunda-pixel/sesame-swift`（Swift、Apache-2.0）。
+- ライセンスはいずれもMITまたはApache-2.0で、参照・流用の障害は無い。
+
 ### モジュール構成・パッケージ方針
 
 - ルートパッケージ: `com.sesamiwear`（`core` / `mobile` / `wear` 配下にサブパッケージ）。
