@@ -17,7 +17,7 @@
     削除前の状態と失敗文言がそのまま表示される。`onDelete`から`LockStateStore.remove(uuid)`を
     呼ぶ（あわせて`WidgetDeviceAssignmentStore.unassignDevice(uuid)`の要否も判断する）。
   優先度: P3
-  状態: 未着手
+  状態: 進行中
   担当: AIエージェント
   完了条件: >-
     資格情報を削除したあと`shared_prefs/sesami_wear_lock_state.xml`から当該uuidの項目が消えており、
@@ -25,6 +25,9 @@
   根拠: >-
     保存されるのはuuidと真偽値と時刻のみで機密情報を含まず、実害は再登録時の一時的な誤表示に
     とどまるためP3とした。BL-149の実機検証で判明した。
+    2026-09-18に`mobile.state.RemovedDeviceCleaner`を追加し、削除時にロック状態・ウィジェットの
+    割り当て・ウォッチへ同期済みのDataItemを消すようにした。ウィジェットの割り当ては、表示自体は
+    「タップして設定」へ倒れるものの再登録で黙って結び付き直すため消す判断とした。残りは実機での確認のみ。
   依存: []
 
 - id: BL-159

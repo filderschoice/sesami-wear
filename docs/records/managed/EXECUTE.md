@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 20:50
+  summary: 資格情報を削除したデバイスの残存状態を消すようにした
+  details:
+    変更内容: >-
+      BL-160: 削除は`credentialsStore.remove(uuid)`だけを行っており、`LockStateStore.remove`は
+      本体のコードから呼ばれていなかった。同じuuidを登録し直すと、一度も取得していないのに
+      削除前の施錠状態と失敗文言がそのまま表示されていた。
+      `mobile.state.RemovedDeviceCleaner`を追加し、`CredentialsSettingsScreen`の削除操作から
+      呼ぶようにした。消す対象は(1)`LockStateStore`のロック状態、(2)ホーム画面ウィジェットの
+      対象デバイス割り当て、(3)ウォッチへ同期済みのDataItem
+      （`SesameWearProtocol.statusDataItemPath`、`wear://`のURIで`deleteDataItems`）の3つ。
+      (2)は表示自体が未登録uuidなら「タップして設定」へ倒れるため必須ではないが、同じuuidを
+      登録し直したときに利用者が設定し直していないウィジェットが黙って結び付くため消す判断とした。
+      (3)はBACKLOGに挙がっていなかったが、残すとウォッチ側で同じ症状が出るため同時に消す。
+      DataItemの削除はsuspendかつ失敗しても削除操作を止めてはならないため、
+      `DataLayerBestEffort`で包み、画面のコルーチンスコープで実行する。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/RemovedDeviceCleaner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。保存先をつなぐだけのAndroid依存アダプタのためユニットテストは
+      追加していない（各ストアの削除そのものは既存のテストで検証済み）。実機での確認は
+      本ブランチの最後に行う。
+    関連ID:
+      - BL-160
+
 - date: 2026-09-18 20:20
   summary: 今月のAPI呼び出し回数を画面の再開ごとに読み直すようにした
   details:

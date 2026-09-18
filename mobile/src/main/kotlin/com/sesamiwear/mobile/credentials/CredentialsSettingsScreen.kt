@@ -40,6 +40,7 @@ import com.sesamiwear.mobile.help.HelpContent
 import com.sesamiwear.mobile.help.HelpTopic
 import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
 import com.sesamiwear.mobile.state.ApiUsageCounter
+import com.sesamiwear.mobile.state.RemovedDeviceCleaner
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.widget.SesameWidgetRepository
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
@@ -74,6 +75,7 @@ private fun rememberApiUsageCount(): Int {
  * （BL-141）に対する消費の目安で、他経路の消費は含まない旨を文言に含める。
  * 回数は画面が再開するたび（`ON_RESUME`）に読み直す（BL-159）。ウィジェットやウォッチからの操作で
  * 増えるため、この画面を開いたまま他の操作を行って戻ってきた場合に古い値が残らないようにする。
+ * 削除時は資格情報だけでなく、そのデバイスの残存状態も消す（[RemovedDeviceCleaner]、BL-160）。
  */
 @Composable
 fun CredentialsSettingsScreen(
@@ -121,6 +123,7 @@ fun CredentialsSettingsScreen(
             onEdit = formState::startEditing,
             onDelete = { credentials ->
                 credentialsStore.remove(credentials.uuid)
+                RemovedDeviceCleaner.clean(context, credentials.uuid, coroutineScope)
                 credentialsList = credentialsStore.loadAll()
                 syncDeviceList(credentialsList)
                 if (formState.editingUuid == credentials.uuid) formState.startEditing(null)

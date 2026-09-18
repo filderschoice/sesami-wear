@@ -357,6 +357,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `MainActivity.onStart`（BL-135）に呼ぶ。定期更新は行わない（`updatePeriodMillis=0`）。
   `MainActivity`から呼ぶのは、解除の再描画が行われず表示が固まった場合に、利用者が最初にとる行動
   （アプリを開く）で確実に復帰させるため。
+- `mobile.state.RemovedDeviceCleaner`（Android依存、ユニットテスト対象外）: 資格情報を削除したデバイスの
+  残存状態を消す（BL-160）。`CredentialsSettingsScreen`の削除操作から呼び、(1)`LockStateStore`のロック状態、
+  (2)ホーム画面ウィジェットの対象デバイス割り当て、(3)ウォッチへ同期済みのDataItem
+  （`SesameWearProtocol.statusDataItemPath`、`wear://`のURIで`deleteDataItems`）を消す。
+  端末内の保存値は同期的に、DataItemの削除だけは呼び出し元のコルーチンスコープでベストエフォートに行う。
+  消さないと、同じuuidを登録し直したときに一度も取得していない状態で削除前の施錠状態・失敗文言が表示される。
+  ウィジェットの割り当ては、未登録uuidなら表示自体は「タップして設定」へ倒れるが、再登録で黙って
+  結び付き直すのを避けるため消す。
 - `mobile.widget.WidgetDeviceAssignmentStore`（Android非依存、ユニットテスト対象）: appWidgetIdごとの対象uuid
   （実uuid・全デバイス・デモ）を非暗号化SharedPreferences（`sesami_wear_widget_assignments`）の単一キーへ
   JSONオブジェクトで保存する。`remove`（削除されたインスタンス）と`unassignDevice`（特定uuidの割り当て解除）を持つ。
