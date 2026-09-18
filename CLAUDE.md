@@ -169,7 +169,7 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 | 単体テスト | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
 | ビルド | `./gradlew assembleDebug` | 終了コード0 |
 | Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` | 終了コード0（`Summary: 0 issues`） |
-| 記録ファイルのYAML検証 | `docs/records/spec/FORMAT.md`「YAMLとしての体裁」の手順でマーカー内を抽出し `yaml.safe_load` へ通す | 例外なく読み込めること |
+| 記録ファイルのYAML検証 | `python scripts/validate-records.py` | 終了コード0（マーカー内がYAMLとして読み込め、`BACKLOG.md` の必須キー・許容値が揃っていること。手順の正本は `docs/records/spec/FORMAT.md`「YAMLとしての体裁」） |
 | 脆弱性チェック | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
 
 - 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する

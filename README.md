@@ -120,13 +120,17 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ```
 
 上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
-次のMarkdownチェックを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
+次の2つを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
 [CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
 [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
+python scripts/validate-records.py
 ```
+
+`validate-records.py` は `docs/records/managed/` 配下の記録ファイルがYAMLとして読み込めることを
+確認します（PyYAMLが必要）。
 
 ## リリースビルド・Google Play公開
 
@@ -206,7 +210,7 @@ sesami-wear/
 ├── mobile/  # スマートフォン用アプリ（資格情報保存、Sesame API通信、Data Layer受信）
 ├── wear/    # Wear OS用アプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
 │            # mobileと同一のapplicationIdを持つ独立したapplicationモジュール
-├── scripts/ # バージョン管理付きリリースビルド（release-build.bat / .ps1）
+├── scripts/ # リリースビルド（release-build.bat / .ps1）、記録ファイル検証、検証用モックAPI
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
 ├── templates/ # ガードレールのプロジェクト別設定・モデルリスク台帳のテンプレート

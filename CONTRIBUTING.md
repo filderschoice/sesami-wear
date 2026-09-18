@@ -91,7 +91,14 @@ Pull Requestをいただいても、内容を確認せずにクローズする�
 ./gradlew testDebugUnitTest test
 ./gradlew assembleDebug
 npx markdownlint-cli2 "**/*.md"
+python scripts/validate-records.py
 ```
+
+`python scripts/validate-records.py` は、`docs/records/managed/` 配下の記録ファイル
+（`BACKLOG.md` / `EXECUTE.md`）のマーカー内をYAMLとして読み込めること、`BACKLOG.md` の必須キーと
+許容値が揃っていること、改行コードがLFであることを確認します（体裁の正本は
+[docs/records/spec/FORMAT.md](docs/records/spec/FORMAT.md)「YAMLとしての体裁」）。
+PyYAMLが必要です（`pip install pyyaml`）。
 
 ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビルド環境の準備は
 [README.md](README.md)「前提環境」を参照してください。コマンドの定義は

@@ -35,3 +35,4 @@
 - [ ] 資格情報（apikey / secretKey / uuid）や個人情報が差分へ混入していないことを確認した
 - [ ] 利用者に影響する変更の場合、`docs/RELEASE_NOTES.md` を更新した
 - [ ] コード修正を伴う場合、`docs/records/managed/EXECUTE.md` を更新した
+- [ ] 記録ファイル（`docs/records/managed/`）を変更した場合、`python scripts/validate-records.py` が成功した

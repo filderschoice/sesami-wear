@@ -5,33 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-163
-  区分: 品質ゲート
-  タスク内容: >-
-    品質ゲートの定義が`CLAUDE.md`と`CONTRIBUTING.md`・`.github/PULL_REQUEST_TEMPLATE.md`の間で
-    乖離している。`CLAUDE.md`「本リポジトリの品質ゲート定義」には「記録ファイルのYAML検証」
-    （`docs/records/spec/FORMAT.md`「YAMLとしての体裁」の手順でマーカー内を抽出し`yaml.safe_load`へ
-    通す）が含まれるが、`CONTRIBUTING.md`「品質ゲート」（87〜94行目のコマンド列）と
-    `.github/PULL_REQUEST_TEMPLATE.md`のチェックリスト（32〜40行目）には無い。
-    `CLAUDE.md`自身が「上記コマンドを変更・追加した場合は本セクションと`CONTRIBUTING.md`
-    「品質ゲート」の両方を更新する（定義とドキュメントの乖離を禁止）」と定めているため、
-    規約上の不整合にあたる。`CONTRIBUTING.md`へYAML検証の手順を追記し、PRテンプレートの
-    チェックリストへ記録ファイルを変更した場合の確認項目を追加する。
-    なお`CONTRIBUTING.md`と`.github/`配下はルールファイルにあたるため、変更前にユーザーの承認を
-    得てから反映する（`CLAUDE.md`「記録ファイルの権限設定」）。
-  優先度: P3
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    `CONTRIBUTING.md`「品質ゲート」と`.github/PULL_REQUEST_TEMPLATE.md`のチェックリストが
-    `CLAUDE.md`「本リポジトリの品質ゲート定義」の表と一致すること。`npx markdownlint-cli2 "**/*.md"`が
-    0 issuesであること
-  根拠: >-
-    2026-09-18のドキュメント整合性レビュー（Skill `docs-consistency-review`の第2節・第4節）で
-    機械的に検出した。定義の正本は`CLAUDE.md`側であり、記述を消すのではなく参照側へ追記して
-    一致させる方針とする（品質ゲートのコマンドは、圧縮する側にも残すと定められているため）。
-  依存: []
-
 - id: BL-155
   区分: 人手検証
   タスク内容: >-
