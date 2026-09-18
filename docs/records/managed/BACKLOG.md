@@ -5,6 +5,87 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-145
+  区分: 機能追加
+  タスク内容: >-
+    Web API以外の経路として、BLE（Bluetooth Low Energy）での直接操作を併用できるかを検討する。
+    Web APIには月間リクエスト上限があり、到達するとアプリ全体が機能停止する（BL-141 / BL-142）。
+    BLEはクラウドを経由しないため上限の影響を受けず、Hub 3が無くても動く一方、Sesameの電波圏内でしか
+    使えない。「代替」ではなく「圏内ではBLE、圏外ではWeb API」という併用の可否として評価する。
+    2026-09-18に公開リポジトリを調査し、実現可能性は高いという心証を得た（詳細は下記）。
+    残る論点は、鍵の同一性の実証と、アーキテクチャ・配布への影響の評価。
+    論点1（鍵の同一性、最重要）。非公式実装は一様に「16進数32文字のsecret key」だけでSesame 5を
+    BLE操作しており、meronepy/gomalockのREADMEは、このsecret keyの入手元として
+    SESAME BizとQRコードの両方を挙げている。本アプリがbiz.candyhouse.coから取得して保持している
+    secretKey（16進数32文字、BL-058）と同一である可能性が高いが、実機で未実証。
+    なお現在のヘルプ文言「secretKeyは16進数32文字です。Sesameアプリの『鍵をシェア』QRコードの値では
+    ありません」は、QRのsk値がbase64かつ先頭1バイトがモデル番号であることに由来する表現であり、
+    同一性が実証された場合は誤解を招かないよう見直す（BL-144と併せて検討する）。
+    論点2（クラウド依存）。公式SDKのREADMEはAmplify（AWS Cognito / API）の初期化を求めているが、
+    これは登録・クラウド機能向けであり、非公式実装はいずれもクラウドに一切接続せずBLEのみで
+    施錠/解錠まで到達している。既登録デバイスの操作にAWS設定は不要と考えられるが、公式SDKを
+    そのまま使う場合に初期化で要求されるかは未確認。
+    論点3（secretKeyの保持場所）。現行方針はsecretKeyをmobileのみが持ち、wearには持たせない
+    （DESIGN.md「アーキテクチャ方針」）。wearが直接BLE操作する構成はこの方針の変更を伴うため、
+    既定はmobileがBLEを担い、wearは従来どおりData Layer経由でコマンドを送る構成とする。
+    この場合スマホがSesameの電波圏内に無いと動かないため、経路の優先順位と切り替え条件を定義する。
+    論点4（権限と審査）。追加される権限はACCESS_FINE_LOCATION / BLUETOOTH_SCAN / BLUETOOTH_CONNECTと
+    uses-feature android.hardware.bluetooth_le。位置情報権限の追加はGoogle Playのデータセーフティ
+    申告と権限の用途説明に影響するため、審査上の追加作業を洗い出す。
+    論点5（実装方式とサイズ）。公式SDKをJitPackで取り込む、公式SDKのBLE部分を参考に自前実装する、
+    のいずれかを選ぶ。coreはAndroid非依存の制約があるためBLE実装はcoreへ置けずmobile側の新パッケージに
+    なるが、AES-CMACはcoreに実装済み（com.sesamiwear.core.crypto.AesCmac）で流用できる。
+    -PsesameApiBaseUrlのようなモック差し替えがBLEには無く、検証は実機必須になる。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    論点1〜5それぞれについて結論（可否と根拠）がDESIGN.mdへ記載されていること。とくに論点1は、
+    保持中のsecretKeyでBLE接続と状態取得ができたかどうかを実機で確認した結果として記載すること。
+    採用する場合は経路の優先順位・切り替え条件・段階的な移行案が、見送る場合はその理由が記載され、
+    実装作業が別項目として起票されていること
+  根拠: >-
+    本項目は調査と採否判断までを範囲とし、実装は含めない。BLEは上限問題（BL-142）に対する構造的な
+    解決策になりうるが、調査結果が出るまで採否が定まらないため、短期的なリクエスト数削減である
+    BL-142は本項目の結論を待たずに進める（依存は張らない）。
+    論点1の実証は実機のSesameとsecretKeyを要するため、当該ステップのみ人手検証として扱う。
+  依存: []
+
+- id: BL-146
+  区分: 機能追加
+  タスク内容: >-
+    BL-145の検討で参照する外部実装の調査結果。2026-09-18時点の調査で見つかった参照先を、
+    採否判断とその後の実装で再調査せずに済むよう記録しておくための項目。
+    公式実装。CANDY-HOUSE/SesameSDK_Android_with_DemoApp（Kotlin、MITライセンス、2026-09-14時点で
+    更新継続、minSdk 24 / JDK 17 / Android SDK 36、JitPack配布
+    com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>）。
+    BLE実装は sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/ にあり、Sesame 5は
+    CHSesame5Device.kt が担当する。プロトコル定義は同 ble/SesameProtocols.kt、AES-CMACは
+    同 utils/aescmac/ 配下。VALIARK-jp/Pedal_Share は、このSDKを android/sesame-sdk モジュールとして
+    自アプリへ同梱した先行事例。
+    非公式実装。いずれもクラウドへ接続せずBLEのみで動作する。
+    meronepy/gomalock（Python、MIT、2026-08-25、Sesame 5 / 5 Pro / 5 USAの施錠・解錠・トグル、
+    角度・電池・オートロックの取得と変更、スキャン、新規登録に対応）が最も読みやすく、
+    必要な資格情報はBLEアドレスと16進数32文字のsecret keyのみ。
+    homy-newfs8/libsesame3bt-core（C++、MIT、2026-08-23）はBLE接続部を外に出したメッセージ処理の
+    実装で、Sesame 5ではset_keysの公開鍵を空文字にしてsecretだけを渡す。サービスUUIDは
+    0000fd81-0000-1000-8000-00805f9b34fb、Tx/Rxの各キャラクタリスティック経由で通信する。
+    bingxyz/ha-sesame-ble（Python、MIT、Home Assistant統合、gomalockを利用、SESAME 5 Proの実機で
+    検証済み）、lanpili/ha-sesame-local、Khronos31/home-assistant-candy-house-ble、
+    zunda-pixel/sesame-swift（Swift、Apache-2.0、Remote/Localの両クライアント）も参照先になる。
+    これらのライセンスはMITまたはApache-2.0で、参照・流用の障害は無い。
+  優先度: P3
+  状態: 完了
+  担当: AIエージェント
+  完了条件: >-
+    BL-145の検討に必要な外部実装の所在・ライセンス・必要な資格情報・プロトコルの入口
+    （サービスUUIDと実装ファイルのパス）が記録されていること
+  根拠: >-
+    調査結果そのものを残す項目のため、起票時点で完了状態とする。BL-145の着手時に参照し、
+    BL-145の完了時に本項目も削除する。本文の記述はいずれも各リポジトリのREADMEとGitHub APIで
+    確認した2026-09-18時点の事実で、実機での検証は行っていない。
+  依存: []
+
 - id: BL-144
   区分: UX改善
   タスク内容: >-
