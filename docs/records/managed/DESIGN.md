@@ -271,7 +271,20 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
     ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
     更新は利用者のタップで行う。
-  - サイズ: ウィジェットは1サイズ（4x2相当）のみ（サイズ別レイアウトはBL-128で検討）。
+  - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
+    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
+    決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
+    しきい値は幅200dp・高さ100dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
+    状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
+    4行が入る下限から決めた。
+    `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
+    出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
+    対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。
+    未設定時の文言は「タップして設定」ではなく「設定」にする。
+    `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
+    250x110dpのままにし、縮小の下限は`minResizeWidth`/`minResizeHeight`（50dp）で指定する。
+    **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+    なり、以降の表示変更で両方を追従させる必要が出るため。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
   `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を

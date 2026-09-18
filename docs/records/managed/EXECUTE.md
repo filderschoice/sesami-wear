@@ -5,6 +5,46 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-18 15:40
+  summary: ホーム画面ウィジェットをリサイズ可能にし1マス相当のコンパクト表示を追加した
+  details:
+    変更内容: >-
+      BL-128: ウィジェットがTile相当の1サイズ固定で、ホーム画面の1マスへ置きたい場合に大きすぎた
+      問題に対応した。`SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
+      `FULL`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して
+      `LocalSize`を受け取る。しきい値は幅200dp・高さ100dpで、幅は「左列（96dp）＋間隔（6dp）＋
+      状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
+      4行が入る下限から決めた。
+      `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
+      出さない。タップの挙動は`FULL`と同じで、対象デバイスの変更は長押しメニュー
+      （`widgetFeatures="reconfigurable"`）から行う。未設定時の文言は1マスに収まらないため
+      「タップして設定」から「設定」へ短縮する。
+      `sesame_widget_info.xml`は`resizeMode`を`none`から`horizontal|vertical`へ変え、
+      `minResizeWidth`/`minResizeHeight`を50dpで追加した。`minWidth`/`minHeight`はAPI 30以下で
+      既定の配置サイズを決めるため250x110dpのまま据え置いた（下げると旧端末で既定が1マスへ
+      縮むため）。
+      複数台を横に並べる表示（4x1等）は採らない（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+      なり、以降の表示変更で両方を追従させる必要が出るため。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md"
+    検証結果: >-
+      成功 - 全ゲート終了コード0。追加したユニットテストで、4x2相当・1x1相当・幅はあるが低い場合・
+      高さはあるが狭い場合の判定と、しきい値の境界（以上でFULL、1dp下回るとCOMPACT）を確認した。
+      実機での表示崩れとリサイズ操作の確認はBL-149へ含めた。
+    関連ID:
+      - BL-128
+
 - date: 2026-09-18 14:30
   summary: Sesame Web APIの月間リクエスト上限をアプリのヘルプと利用者向けドキュメントへ明示した
   details:

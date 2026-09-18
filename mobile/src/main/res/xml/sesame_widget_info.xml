@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ホーム画面ウィジェットの定義（BL-121）。サイズはwearのTile相当の1種類のみ（サイズ別レイアウトはBL-128で検討）。
+  ホーム画面ウィジェットの定義（BL-121）。
+  既定の大きさは wear の Tile 相当（4x2、minWidth/minHeight と targetCellWidth/Height）のままで、
+  利用者がリサイズしたときにホーム画面の1マス（1x1）まで縮められるようにする（BL-128）。
+  minWidth/minHeight は API 30 以下で既定の配置サイズを決めるため下げず、縮小の下限は
+  minResizeWidth/minResizeHeight で指定する。表示領域に応じたレイアウトの出し分けは
+  SesameWidget / SesameWidgetLayout が行う。
   追加時は android:configure の選択画面で対象デバイスを選ぶ。reconfigurable により長押しメニューからも再設定できる。
   表示の更新は資格情報の保存・操作結果などの契機で明示的に要求するため、定期更新は行わない（updatePeriodMillis=0）。
 -->
@@ -8,9 +13,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:minWidth="250dp"
     android:minHeight="110dp"
+    android:minResizeWidth="50dp"
+    android:minResizeHeight="50dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:configure="com.sesamiwear.mobile.widget.WidgetConfigurationActivity"
