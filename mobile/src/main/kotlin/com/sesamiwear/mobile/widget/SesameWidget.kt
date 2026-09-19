@@ -253,8 +253,9 @@ private fun NeutralChip(
 private fun StatusTexts(model: SesameWidgetModel.Configured) {
     Text(text = model.statusIcon, style = textStyle(model.textColorArgb, ICON_SP))
     Text(text = model.statusLabel, style = textStyle(model.textColorArgb, BODY_SP, bold = true))
-    // 最後に状態を取得した時刻、または直近の失敗の理由（BL-142 / BL-140）。
-    model.detailLabel?.let {
+    // 最後に状態を取得した時刻（または直近の失敗の理由）と電池残量（BL-142 / BL-140 / BL-171）。
+    // 高さ予算が埋まっているため、電池は行を足さずこの1行へ併記する。
+    model.detailWithBatteryLabel?.let {
         Text(text = it, style = textStyle(model.textColorArgb, FOOTNOTE_SP), maxLines = 2)
     }
     model.actionLabel?.let { Text(text = it, style = textStyle(model.textColorArgb, CAPTION_SP)) }

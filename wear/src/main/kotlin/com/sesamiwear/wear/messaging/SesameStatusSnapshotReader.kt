@@ -3,6 +3,8 @@ package com.sesamiwear.wear.messaging
 import android.content.Context
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameStatusSnapshotFactory
 import com.sesamiwear.core.SesameWearProtocol
@@ -29,6 +31,20 @@ object SesameStatusSnapshotReader {
                 isLocked = dataMap.getBoolean(SesameWearProtocol.KEY_IS_LOCKED),
                 updatedAtEpochMillis = dataMap.getLong(SesameWearProtocol.KEY_UPDATED_AT_EPOCH_MILLIS),
                 lastFailureName = dataMap.getString(SesameWearProtocol.KEY_LAST_FAILURE),
+                measurement =
+                    SesameStatusMeasurement(
+                        // 後から追加した項目（BL-166）。旧バージョンのmobileが同期したDataItemには
+                        // キーが無いため、未取得として扱う。
+                        batteryPercentage =
+                            dataMap
+                                .getInt(SesameWearProtocol.KEY_BATTERY_PERCENTAGE)
+                                .takeIf { dataMap.containsKey(SesameWearProtocol.KEY_BATTERY_PERCENTAGE) },
+                        position =
+                            dataMap
+                                .getInt(SesameWearProtocol.KEY_POSITION)
+                                .takeIf { dataMap.containsKey(SesameWearProtocol.KEY_POSITION) },
+                        route = SesameStatusRoute.ofNameOrNull(dataMap.getString(SesameWearProtocol.KEY_LAST_ROUTE)),
+                    ),
             )
         } finally {
             dataItems.release()

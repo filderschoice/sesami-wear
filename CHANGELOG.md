@@ -7,6 +7,45 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-19（経路の可視化方針を変更、BL-166〜BL-172）
+
+BLE直接操作とWeb API経由の併用が動くようになったことを受け、**「利用者は経路を意識しない」という
+方針を変更しました**（ユーザー判断）。BLEで届かなかったときに利用者が原因を切り分けられないためです。
+あわせて、セサミ本体の状態（電池残量・角度）を見られる画面を追加する方針を決め、
+BL-166〜BL-172 として起票しました。
+
+- 経路は、Tile・Complication・ウィジェットでは既存行へアイコン（📶 / ☁）を前置する形で示します。
+  表示余白が無く、過去に文言が収まらず省略された事例（BL-102 / BL-104 / BL-158）があるため、
+  **行は増やしません**。スマートフォンの画面では文言で明示します。
+- BLEを試して届かずインターネット経由へ倒れた場合は、スマートフォンでトーストを出します。
+  通知（Notification）ではなくトーストを選んだのは、Android 13 以降で POST_NOTIFICATIONS 権限の
+  要求が増え、データセーフティ申告（BL-154）も増えるためです。
+- 経路の方針（「自動（Bluetooth優先）」「常にインターネット経由」）を設定画面から選べるようにします。
+  「Bluetooth固定」は、圏外で操作できなくなるため用意しません。
+- **電池残量はBLE専用の情報ではありません。** Sesame Web API の状態取得レスポンスも
+  `batteryVoltage` と `position` を返しており、これまで捨てていただけでした。電池表示は経路に
+  よらず成立します。
+
+## 2026-09-19（公式SesameSDKの取り込みを断念、BL-151）
+
+BL-151 の着手条件だった 2 点（AAB サイズへの影響、Amplify 初期化の要否）を実測し、**公式 SDK
+（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`）の取り込みを断念して BLE 部分を自前実装する**
+方針へ変更しました。DESIGN.md「BLE直接操作の併用方針」に「公式SDK取り込みの実測」節を追加し、
+論点 2・論点 5 と外部実装一覧の記述を実測結果へ合わせています。
+
+- JitPack の座標はリポジトリ単位の `com.github.CANDY-HOUSE:SesameSDK_Android_with_DemoApp:<tag>` で、
+  従来 DESIGN.md に書いていたモジュール単位の座標（`...SesameSDK_Android_with_DemoApp:sesame-sdk`）は
+  存在しませんでした。記載を修正しています。
+- Amplify（AWS Cognito）・AWS IoT・Room・Navigation・RxJava・Tyrus が SDK の `api` 依存として
+  不可避に付いてきます。依存アーティファクトは 95 個 / 45.8MB から 200 個 / 75.1MB へ増え、
+  現状 5.09MB のリリース AAB に対して許容できる増分ではありません。
+- さらに、Amplify が core library desugaring を要求すること、SDK と AWS 系の Kotlin メタデータが
+  2.2.0 で本プロジェクトの Kotlin 2.0.21 と非互換であることから、そのままではビルドが通りません。
+  解消にはプロジェクト全体の Kotlin を 2.2 系へ上げる必要があり、Compose コンパイラ・detekt・
+  `wear` モジュールへ波及します。
+- 計測用に加えた JitPack リポジトリ・依存宣言・プローブコードはすべて破棄済みで、リポジトリには
+  残していません。
+
 ## 2026-09-19（BLE鍵の同一性を実証、BL-150）
 
 本アプリが保持している secretKey（SESAME Biz 由来、16進数32文字）だけで Sesame 5 へ BLE 直接接続し、

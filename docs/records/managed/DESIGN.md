@@ -130,6 +130,26 @@
     エラー後のバックオフ（BL-143）は、抑制対象だった自動取得が消えたため対象消滅として閉じた
     （2026-09-18、ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
 
+### セサミ本体の状態（電池残量・角度・経路）
+
+施錠状態だけでなく、電池残量・サムターンの角度・最後に使った経路を保持して表示に使う（BL-166）。
+
+- **電池残量はBLE専用の情報ではない。** Sesame Web APIの状態取得レスポンス（`core.api.SesameStatus`）も
+  `batteryVoltage`と`position`を返しており、BL-166より前は捨てていただけだった。したがって
+  電池・角度の表示は経路によらず成立する。
+- 電圧から残量（%）への換算表は`core.SesameBatteryLevel`が持つ（`meronepy/gomalock`と同じ値で、
+  公式アプリの表示に合わせた非線形な対応）。BLE経由・Web API経由のどちらも同じ換算を通るため、
+  経路によって表示がずれない。もとは`mobile.ble.SesameBleMechStatus`にあったものを`core`へ移した。
+- `core.SesameStatusSnapshot`へ`batteryPercentage` / `position` / `lastRoute`を追加した。
+  分かった値だけを上書きする`merge(SesameStatusMeasurement)`を持ち、**分からなかった項目は
+  前回の値を残す**。Web API経由の施錠/解錠は状態を返さないため、経路だけが更新される。
+- BLE経由の施錠/解錠では、ログイン直後に届く`MECH_STATUS`から電池残量が分かるため一緒に更新する。
+  **角度は使わない**（コマンドを送る前の値になるため。`SesameBleClient.CommandOutcome`のKDoc）。
+- 「電池切れ間近」フラグ（BLEのみ取得可能）は持たない。残量（%）があれば表示の判断には足り、
+  スナップショットの項目数を増やすとdetektの`LongParameterList`（上限7）に触れるため。
+- 保存（`mobile.state.LockStateStore`）とDataItemの双方で、キーが無い場合は未取得として扱う。
+  BL-166より前に保存された値・同期された値を読んでも壊れない。
+
 ### 状態の鮮度表示と失敗の区別
 
 状態文言のすぐ下へ1行だけ添える表示。直近の取得・操作が失敗していればその理由、成功していれば
@@ -245,6 +265,23 @@
     保存ボタンは`Modifier.fillMaxWidth()`で表示（BL-059）。
   - **未確認事項**: `biz.candyhouse.co`は動的サイトのためWebFetchでの実ページ内容確認はできて
     おらず、公式ドキュメントの記述とユーザーからの実機確認報告のみを根拠にしている。
+
+### セサミの状態一覧（スマートフォン）
+
+資格情報設定画面のデバイス一覧で、各デバイスの名前の下に状態の1行を出す（BL-169）。
+内容は「施錠中 ・ 電池85% ・ 角度42 ・ 3分前 ・ Bluetooth」の形で、分かっていない項目は出さない。
+何も分かっていなければ「未取得」だけになる。
+
+- 組み立ては`core.display.SesameDeviceStatusLine`（Android非依存、ユニットテスト対象）。
+  ウォッチの状態一覧（BL-170）と共用する。
+- **経路はアイコンではなく語で書く**（「Bluetooth」「インターネット」）。この画面は表示領域に
+  余裕があり、アイコンより語のほうが誤解が無いため（Tile・ウィジェットは逆にアイコン、BL-168）。
+- **角度はこの画面でだけ出す。** セサミが返す生の値で利用者が意味を読み取りにくいため、
+  既定では出さず、uuid・APIキーを直接入力するこの画面に限って情報量を許す。
+- 画面が再開するたび（`ON_RESUME`）に読み直す。ウィジェット・ウォッチからの操作で変わった分を
+  反映するため（BL-159と同じ理由）。
+- **この表示のために状態取得のリクエストは送らない。** 最後に分かった値をそのまま出すだけで、
+  Sesame Web APIのリクエスト回数を消費しない（BL-142の方針を維持する）。
 
 ### mobileホーム画面ウィジェット
 
@@ -531,6 +568,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   minResizeWidth / minResizeHeight 50dpにより1マス（1x1）まで縮められる（BL-128）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
+### ウィジェットの電池残量表示
+
+ホーム画面ウィジェットのFULLレイアウトで、電池残量を**最終取得時刻と同じ行**へ併記する
+（「📶3分前 🔋85%」、BL-171）。
+
+- **行は増やさない。** 高さ予算は最小サイズ140dpに対して約136dpを既に使っており（BL-158）、
+  行を足すと最小サイズで操作文言が見切れる。`SesameWidgetLayout`のしきい値は変更していない。
+- COMPACT（1マス相当）では出さない。アイコンと状態文言だけに絞るという目的が崩れるため。
+- 「全デバイス」対象では**最も少ない台の値**を代表値にする。失敗（最悪を出す）・鮮度（最も古い値を
+  出す）と同じく、利用者が対処すべき側を見せる。1台も分かっていなければ出さない。
+- 電池の書き方（`🔋85%`）は`core.display.SesameTileContent.batteryLabel`が持ち、
+  ウォッチの状態一覧（BL-170）と共通にしている。
+
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 
 `mobile`/`wear`間で共有するメッセージパス・DataItemパス・ペイロードキーの定義（Android非依存）。
@@ -544,6 +594,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   一意なパスを生成する（BL-050）。値が無い項目はキーごと載せず、wear側は
   `core.SesameStatusSnapshotFactory`がキーの有無から復元する。施錠状態が未取得のまま失敗だけが
   同期されることもある（一度も取得できていないデバイスで認証エラーになった場合）。
+- `KEY_BATTERY_PERCENTAGE` / `KEY_POSITION` / `KEY_LAST_ROUTE`: 電池残量（%）・サムターンの角度・
+  最後に使った経路（BL-166）。いずれも後から追加した任意のキーで、値が無ければ載せない。
+  旧バージョンのmobileが同期したDataItemにはキーが無いため、wear側は未取得として扱う（互換維持）。
 - `encodeDeviceUuid` / `decodeDeviceUuid`: 施錠/解錠/状態取得コマンドの対象デバイスuuidを
   メッセージペイロードへUTF-8バイト列としてそのまま載せる（BL-048）。
 - `DEVICE_LIST_DATA_ITEM_PATH` / `KEY_DEVICE_LIST_JSON`: 登録済みデバイス一覧（`SesameDeviceSummary`
@@ -691,6 +744,28 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   ログ（`mobile.messaging.SesameMessageListenerService`・`wear.messaging.SesameResultListenerService`・
   `wear.tile.SesameTileService`の`Log.d`）を残置している。出力内容はパス・成否・状態の真偽値のみで、
   資格情報は含めない。
+
+### セサミの状態一覧（ウォッチのアプリ本体）
+
+ウォッチのアプリ本体（`wear.MainActivity`）は初回実装以降「Sesami Wear」と表示するだけの
+スタブだったが、**登録済みセサミの状態一覧**にした（BL-170）。Tileは操作のための面で表示余白が無く、
+電池残量や経路までは入らないため、その置き場にする。
+
+- 1台につき3行（デバイス名 / 「🔒施錠中 🔋85%」 / 「📶3分前」）。
+  円形画面では行が長いと行頭・行末が見切れるため（BL-114）、スマートフォンの1行表示
+  （`core.display.SesameDeviceStatusLine`）はそのまま使わず、短い行へ分ける。
+  各行が幅の目安（全角11文字相当）に収まることは`SesameStatusListContentTest`で固定している。
+- **角度は出さない。** 生の値で意味を読み取りにくく、狭い画面では情報量が勝ちすぎるため
+  （スマートフォンの設定画面でのみ出す、BL-169）。
+- 施錠状態のアイコン・文言はTileと同じもの（`core.display.SesameTileContent`）を使い、
+  同じ状態が別の言い方で出ないようにする。**スマートフォンとの接続状態は見ない**
+  （この画面は最後に同期された値を見るためのもので、つながっていなければ値が古くなるだけであり、
+  それは最終取得時刻の行が示す）。
+- **この画面から状態取得のリクエストは送らない。** 開くたびにリクエストが飛ぶと、月間リクエスト
+  上限（BL-141）を画面を開いた回数だけ消費するため（BL-142で自動取得を廃止した理由と同じ）。
+- 画面が再開するたび（`ON_RESUME`）に読み直す。Tileで操作してからアプリへ戻ったときに追随させるため。
+  このために`wear`へ`lifecycle-runtime-compose`を追加した（mobileが使っているものと同じ版で、
+  compose-uiが推移的に持ち込む`lifecycle-runtime`と同一バージョンのため依存グラフは変わらない）。
 
 ### Tile
 
@@ -1116,8 +1191,9 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
    利用するには」必要としており、**既登録デバイスのBLE操作のみの最小構成は明記されていない**。
    非公式実装（gomalock / libsesame3bt-core / ha-sesame-ble）はいずれもクラウドへ一切接続せず
    BLEのみで施錠/解錠まで到達している。gomalockについては2026-09-19のBL-150で、ネットワーク
-   切断下でも状態取得が成立することを実機で確認した。公式SDKを使う場合に初期化で要求されるかは、
-   BL-151の着手時に実際に組み込んで確かめる。
+   切断下でも状態取得が成立することを実機で確認した。公式SDKについては2026-09-19のBL-151の計測で、
+   **Amplify（AWS Cognito）がライブラリの`api`依存として不可避に付いてくる**ことを確認した
+   （下記「公式SDK取り込みの実測」）。
 3. **secretKeyの保持場所**: **現行方針を変更しない。** secretKeyは`mobile`のみが保持し、
    BLEの実行主体も`mobile`とする。`wear`は従来どおりData Layer経由でコマンドの意図だけを送る。
    この結果、**BLEはスマートフォンがSesameの電波圏内にあるときしか使えない**。
@@ -1127,12 +1203,28 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
    `uses-feature android.hardware.bluetooth_le`は`required="false"`とする（BLE非搭載端末でも
    Web API経由で動くため、配信対象を狭めない）。Google Playのデータセーフティ申告と権限の
    用途説明の更新が必要（BL-154）。
-5. **実装方式**: 公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布、
-   JDK 17 / Android SDK 36 / minSdk 24。本アプリのminSdk 26と両立する）をJitPackで取り込むことを
-   既定とする。自前実装より保守負担が小さいため。ただしAABサイズへの影響をBL-151の着手時に計測し、
-   許容できない場合はBLE部分だけの自前実装へ切り替える（その場合もAES-CMACは
-   `core.crypto.AesCmac`を流用できる）。`core`はAndroid非依存の制約があるため、
-   BLE実装は`mobile`の新パッケージ（`mobile.ble`想定）へ置く。
+5. **実装方式**: 当初は公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布）の
+   取り込みを既定としていたが、2026-09-19のBL-151の計測により**取り込みを断念し、BLE部分の自前実装へ
+   切り替える**（下記「公式SDK取り込みの実測」）。AES-CMACは`core.crypto.AesCmac`を流用できる。
+   `core`はAndroid非依存の制約があるため、BLE実装は`mobile`の新パッケージ（`mobile.ble`）へ置く。
+
+#### 公式SDK取り込みの実測（2026-09-19、BL-151）
+
+BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化の要否）を実測した。**結論として公式SDKの
+取り込みは断念する。** 計測は`v3.0.266-902`（JitPackのビルド成功を確認済みの最新タグ）で行い、計測用の
+変更はすべて破棄している。
+
+| 観点 | 実測結果 |
+| --- | --- |
+| JitPackの座標 | `com.github.CANDY-HOUSE:SesameSDK_Android_with_DemoApp:v3.0.266-902`。リポジトリ単位で1つのAARとして公開されており、**モジュール単位（`:sesame-sdk`）の座標は存在しない** |
+| Amplify依存 | **不可避。** `sesame-sdk/build.gradle`が`api`で`com.amplifyframework:aws-api` / `aws-auth-cognito` / `core-kotlin`（いずれも2.38.1）を宣言し、JitPackが生成したPOMにも`compile`スコープで載る。加えて`aws-iot-device-sdk-java`・Room・Navigation・RxJava・Tyrus（WebSocket）も`api`依存。ライブラリの`BuildConfig`にAWS Cognitoのidentity pool ID・API Gatewayのキー・APIサーバーURLが埋め込まれる |
+| 依存アーティファクト総量 | 95個 / 45.8MB → **200個 / 75.1MB**（+105個、+28.0MB、1.64倍）。本アプリのリリースAABは現状5.09MB（5,339,047バイト）であり、R8後でも同程度に収まる見込みは無い |
+| ビルド可否 | **通らない。** (1) Amplifyが core library desugaring を要求する（本アプリは未導入）。(2) SDKとAWS系アーティファクトのKotlinメタデータが2.2.0で、本プロジェクトのKotlin 2.0.21コンパイラが読めない（`Module was compiled with an incompatible version of Kotlin`）。解消にはプロジェクト全体のKotlinを2.2系へ上げる必要があり、Composeコンパイラ・detekt 1.23.7・ktlint・`wear`モジュールへ波及する。あわせて`kotlin-stdlib`が2.0.21→2.2.10へ引き上げられ、「stdlibをコンパイラより新しくしない」方針（BL-130）に反する |
+
+「クラウドへ接続しない」という本アプリの前提に対し、AWS Cognito・AWS IoT・API Gatewayの資格情報を含む
+ライブラリを同梱することは、たとえ実行時に初期化しなくてもデータセーフティ申告の説明を難しくする。
+サイズ・ビルド互換性・前提の3点がいずれも許容できないため、論点5の「許容できない場合はBLE部分だけの
+自前実装へ切り替える」条件に該当すると判断した。
 
 #### 経路の優先順位と切り替え条件
 
@@ -1142,8 +1234,16 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
    所定時間内に接続できた場合。
 2. **Web API**: 上記以外のすべて（圏外、Bluetoothオフ、権限未許可、スキャン・接続の失敗）。
 
-- **利用者は経路を意識しない。** 表示・操作・結果の見え方は経路によらず同じにする。
-  どちらの経路で実行したかは`Log.w`相当の診断ログ（BL-139）にのみ残す。
+- **経路は利用者へ見せる**（2026-09-19のユーザー判断で方針を変更、BL-168）。当初は
+  「利用者は経路を意識しない」としていたが、BLEで届かなかったときに利用者が原因を切り分けられない
+  という問題があった。表示の具体は下記「経路の可視化」を参照する。
+- **経路の方針は利用者が選べる**（BL-167）。「自動（Bluetooth優先）」と「常にインターネット経由」の
+  2つで、全デバイス共通。**「Bluetooth固定」は用意しない**（圏外で一切操作できなくなり、利用者が
+  締め出されるため）。「常にインターネット経由」を選ぶと、BLEの探索・接続・到達確認をいずれも
+  行わない（電力とスキャン回数を消費しない）。既定は「自動」。
+  方針は`core.SesameRoutePolicy`、保存は`mobile.ble.SesameRoutePolicyStore`（非暗号化
+  SharedPreferences、到達実績と同じファイルの別キー）。`SesameBleAccess`が操作のたびに読み直すため、
+  設定画面で変えた直後から効く。
 - **実行時間の制限が最大の制約**（BL-137）。ウィジェットのタップは`FLAG_RECEIVER_FOREGROUND`により
   約10秒で打ち切られ、現状はSesame APIのタイムアウトを接続3秒・読み書き3秒・全体6秒、
   受信全体を`withTimeoutOrNull`の8秒で囲んでいる。「BLEを試して失敗→Web API」を直列に行うと
@@ -1154,14 +1254,157 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
 - 状態取得はBLEなら上限を消費しないため、BLEで到達できる間は自動取得の再開（BL-142で廃止した
   鮮度ベースの取得）を検討できる。ただしBL-152の完了までは自動取得を再開しない。
 
+#### BLEクライアントの実装（BL-151、2026-09-19）
+
+公式SDKを採らない判断（上記「公式SDK取り込みの実測」）を受け、`mobile.ble`へ自前実装した。
+プロトコルは`meronepy/gomalock`（Python、MIT）と`homy-newfs8/libsesame3bt-core`（C++、MIT）を参照している。
+**この段階では経路の自動切り替えを行わない**（Web APIとの使い分けはBL-152）。
+
+| クラス | 役割 | テスト |
+| --- | --- | --- |
+| `core.crypto.AesCcm` | RFC 3610のAES-CCM。AndroidのJCEが`AES/CCM/NoPadding`を持たないため`AES/ECB/NoPadding`の上へ自前で組む | RFC 3610の公開テストベクタ（`AesCcmTest`） |
+| `mobile.ble.SesameBleProtocol` | サービス・キャラクタリスティックUUID、企業識別子、MTU、op code / item code / result code | 定数のみ |
+| `mobile.ble.SesameBlePacketCodec` / `SesameBlePacketAssembler` | 20バイト単位のパケットへの分割と、受信パケットの組み立て。ヘッダ1バイトで「先頭 / 終端 / 終端が暗号化か」を表す | `SesameBlePacketCodecTest` |
+| `mobile.ble.SesameBleSession` | セッション鍵の導出（`AesCmac(secretKey, sessionToken)`）と、送受信それぞれのカウンタを持つAES-CCM暗号化・復号 | `SesameBleSessionTest` |
+| `mobile.ble.SesameBleMessage` | 応答・通知の解釈と、コマンド・履歴タグの組み立て | `SesameBleMessageTest` |
+| `mobile.ble.SesameBleMechStatus` | `MECH_STATUS`通知（7バイト）の解釈。施錠/解錠範囲、角度、電池電圧・残量 | `SesameBleMechStatusTest` |
+| `mobile.ble.SesameBleAdvertisement` | アドバタイズの製造者データ（19バイト）の解釈。uuidでの突き合わせに使う | `SesameBleAdvertisementTest` |
+| `mobile.ble.SesameBlePermissions` | 必要な実行時権限の判定（API 31以上とAPI 30以下で異なる） | `SesameBlePermissionsTest` |
+| `mobile.ble.SesameBleScanner` | サービスUUIDでフィルタしたスキャンと、uuid一致の判定 | Android依存のため対象外 |
+| `mobile.ble.SesameBleConnection` | GATT接続・サービス探索・通知の有効化・分割送信 | Android依存のため対象外 |
+| `mobile.ble.SesameBleMessageReader` | 受信チャネルから目的のメッセージが届くまで読み進める | Android依存のため対象外 |
+| `mobile.ble.SesameBleClient` | スキャン → 接続 → ログイン → コマンド → 切断の統括 | Android依存のため対象外 |
+
+設計上の判断:
+
+- **AES-CCMは`core.crypto`へ置く。** BLE固有の要素を含まない暗号プリミティブで、`AesCmac`と同じ
+  位置づけになるため。BLEの実装そのものは`mobile.ble`にあり、`core`のAndroid非依存制約は維持している。
+- **接続は都度張って都度切る（常時接続しない）。** 操作はウィジェット・Tileのタップ起点で散発的であり、
+  常時接続はバックグラウンド実行の制約と電力消費の両面で割に合わないため。
+- **BLEアドレスは保存しない。** Androidでは端末ごと・起動ごとに変わりうるため、毎回スキャンして
+  アドバタイズのuuidで突き合わせる。
+- **状態取得は追加のコマンドを送らない。** ログイン直後にデバイスが`MECH_STATUS`を通知するため、
+  それを待つだけで足りる。
+- **復号に失敗した通知は捨て、受信カウンタを進めない。** ノイズや取りこぼしでカウンタがずれると
+  以降すべて復号できなくなるため。
+- **検証用の入口はデバッグビルドにのみ置く。** `mobile/src/debug`の`SesameBleDebugReceiver`（および
+  同ソースセットのマニフェスト宣言）で、リリースビルドとPlayへ配信するAABには含まれない。
+  adbから施錠/解錠を起動できるため`src/main`へ移してはならない。実機での検証手順はBL-165。
+
+権限はまだマニフェストへ宣言していない（BL-153で追加する）。そのため現時点では
+`SesameBleClient`が常に`PERMISSION_DENIED`を返す。
+
+#### 経路選択の実装（BL-152、2026-09-19）
+
+`mobile.command.SesameDeviceCommandExecutor`が、施錠/解錠（`execute`）と状態取得（`refreshStatus`）の
+両方で経路を選ぶ。**利用者からは経路が見えない**（表示・操作・結果の見え方は同じで、どちらで実行したかは
+`Log.w`の診断ログにのみ残る）。
+
+| クラス | 役割 | テスト |
+| --- | --- | --- |
+| `mobile.ble.SesameBleReachability` | uuidごとの「最後にBLEで到達できた時刻」と「最後に到達確認をした時刻」を非暗号化SharedPreferencesへ保存し、BLEを先に試すか・到達確認をするかを決める | `SesameBleReachabilityTest` |
+| `mobile.command.SesameBleAccess` | BLE経路の呼び出し口。到達実績の更新と診断ログもここで行う。BLEの実行そのものはラムダで受け取り、Android非依存のまま検証できる | `SesameDeviceCommandExecutorTest` |
+| `mobile.command.SesameRouteAccess` | Web APIとBLEの経路一式をまとめた引数。既定値ではBLEが常に「使えない」を返す | 同上 |
+
+判定の流れ:
+
+1. 到達実績が`REACHABLE_TTL_MILLIS`（30分）以内にあるデバイスは**BLEを先に試す**。成功すれば
+   Sesame Web APIを呼ばないため、月間リクエスト上限（BL-141）を消費せず、`ApiUsageCounter`も増えない。
+2. 到達実績が無い、またはBLEが失敗した場合はWeb APIで実行する。BLEが失敗したときは到達実績を消し、
+   次回はWeb APIから始める。
+3. Web APIで実行するときは、**その通信と並行して**スキャンだけの到達確認を行う（接続もログインもしない）。
+   `PROBE_INTERVAL_MILLIS`（15分）に1回までに絞る。並行して行うため、利用者から見た所要時間は変わらない。
+   DESIGN当初案の「成功後にバックグラウンドでスキャン」を、`BroadcastReceiver`の`goAsync`の寿命の外へ
+   処理を逃がさないために「同じコルーチンスコープ内で並行実行」へ変更している。
+4. デモ用デバイスはBLE経路に一切触れない（`execute`が先に分岐するため）。
+5. 資格情報を削除したデバイスの到達実績は`RemovedDeviceCleaner`が消す。
+
+実行時間の設計値（`SesameDeviceCommandExecutorFactory.BLE_TIMEOUTS`）:
+
+| 段階 | 上限 | 根拠 |
+| --- | --- | --- |
+| 全体 | 1,800ms | ウィジェットのタップは`WidgetCommandReceiver`の8秒で打ち切られ、Web APIだけで最大6秒（`SesameApiClient`のcallTimeout）かかる。BLEを試してから倒れても8秒に収める |
+| スキャン | 900ms | 到達実績があるデバイスのみを対象にするため、通常は数百msで見つかる想定 |
+| 接続 | 700ms | スキャンとあわせて「探索・接続は合計2秒程度」（上記「経路の優先順位と切り替え条件」）に収まる |
+| ログイン | 700ms | `INITIAL`通知の受信・`LOGIN`の応答まで |
+| コマンド | 600ms | 暗号化コマンドの応答まで |
+| 到達確認のスキャン | 1,500ms | Web APIの通信と並行して走るため、全体の所要時間には影響しない |
+
+**これらはいずれも実測に基づく値ではない。** BL-165（人手検証）でスキャンから応答までの所要時間を
+実測し、その結果で見直す。`REACHABLE_TTL_MILLIS` / `PROBE_INTERVAL_MILLIS`も同様。
+
+状態の自動取得（BL-142で廃止した鮮度ベースの取得）は、BL-152の完了後も**再開しない**。
+BLEで到達できる間は上限を消費しないが、再開の可否は実測（BL-165）と運用実績を見てから判断する。
+
+#### 権限の宣言と要求UI（BL-153、2026-09-19）
+
+**権限は任意で、拒否されてもアプリは従来どおりWeb API経由で動く。** 実装とUIの両方でこれを担保する。
+
+`mobile/src/main/AndroidManifest.xml`の宣言（論点4と一致）:
+
+| 宣言 | 内容 |
+| --- | --- |
+| `BLUETOOTH_SCAN` | `android:usesPermissionFlags="neverForLocation"`。位置情報の推定に使わないことを宣言し、API 31以上で位置情報の許可を不要にする |
+| `BLUETOOTH_CONNECT` | 接続に必要 |
+| `ACCESS_FINE_LOCATION` | `android:maxSdkVersion="30"`。API 30以下のBLEスキャンにのみ必要 |
+| `uses-feature android.hardware.bluetooth_le` | `required="false"`。BLE非搭載端末でもWeb API経由で動くため、配信対象を狭めない |
+
+UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ置く。
+
+- 常時出すのは**1行だけ**（`Bluetooth：未許可（インターネット経由で動作中）`など）。
+  資格情報設定画面は縦スクロールしないため、長い説明を常時表示すると入力フォームが見切れる。
+- 「設定」をタップすると**説明ダイアログ**（Androidが推奨するrationaleの形）を出してから権限を要求する。
+  ダイアログには、何に使うのか・**許可しなくても従来どおり動くこと**・（API 30以下では）位置情報を
+  近くの機器を探すためだけに使い収集も送信もしないことを書く。
+- 一度拒否された権限は再要求してもダイアログが出ないことがあるため、要求済みかを
+  `SesameBlePermissionAskedStore`（非暗号化SharedPreferences、到達実績と同じファイルの別キー）へ
+  覚えておき、2回目以降は端末の「アプリ情報」画面を開く導線へ切り替える。
+- 画面の再開（`ON_RESUME`）で許可状況を読み直し、設定画面で許可して戻ったときに追随させる。
+
+文言と状態の決定は`mobile.ble.SesameBlePermissionPrompt`（Android非依存）が持ち、
+`SesameBlePermissionPromptTest`で検証する。許可状況の問い合わせは`mobile.ble.SesameBlePermissions`。
+
+#### 経路の可視化（BL-168、2026-09-19）
+
+**当初の「利用者は経路を意識しない」方針を変更した。** BLEで届かなかったときに、利用者が
+「Bluetoothにしたのにリクエスト回数が減らない」という状況の原因を切り分けられないため
+（2026-09-19、ユーザー判断）。
+
+表示できる面積が大きく違うため、面ごとに見せ方を変える。
+
+| 面 | 見せ方 |
+| --- | --- |
+| Tile / Complication / ホーム画面ウィジェット | 「最終取得時刻」の行へ経路アイコンを**前置**する（`📶3分前`、`☁認証エラー`）。**行は増やさない** |
+| スマートフォンの画面 | アイコンではなく語で書く（「Bluetooth」「インターネット」） |
+
+- 行を増やさないのは、3つの面がいずれも表示余白を使い切っており、過去に文言が収まらず省略された
+  事例があるため（BL-102 / BL-104 / BL-158）。アイコンは1コードポイントに収まるものだけを使い、
+  区切りの空白も入れない。この制約は`SesameRouteLabelTest`で固定している。
+- 「全デバイス」対象の集約表示では、**全デバイスが同じ経路のときだけ**アイコンを出す
+  （`SesameRouteLabel.commonRoute`）。混在しているのに片方のアイコンを出すと、出ていない側の
+  デバイスについて誤解を与えるため。
+- 経路が分からない（一度も操作・取得していない）場合は何も前置しない。
+- 文言・アイコンは`core.display.SesameRouteLabel`が持ち、wearとmobileで食い違わないようにする。
+
+**BLEを試したのに届かずWeb APIへ倒れた場合は、スマートフォンでトーストを出す。**
+
+- 出すのは**実際にBLEを試して失敗したときだけ**。到達実績が無い・権限が無い・方針が
+  「常にインターネット経由」の場合はそもそも試していないため出さない（毎回出ると煩わしい）。
+- 判定は`mobile.command.SesameBleAccess`が行い、表示は
+  `SesameDeviceCommandExecutorFactory`がメインスレッドへ渡し直して行う。ウィジェットのタップも
+  ウォッチからのコマンドもバックグラウンドのコンポーネントで動くため。
+- **通知（Notification）ではなくトーストにしている。** Android 13以降で`POST_NOTIFICATIONS`権限の
+  要求がBluetooth権限に加えて必要になり、データセーフティ申告（BL-154）も増えるため。
+  トーストは追加の権限が要らず、ウィジェット・ウォッチ発の操作でも表示できる。
+
 #### 段階的移行案
 
 | 段階 | 内容 | 項目 |
 | --- | --- | --- |
 | 1 | 保持中のsecretKeyでBLE接続・状態取得ができることを実機で確認する | BL-150（人手検証、2026-09-19完了） |
-| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151 |
-| 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152 |
-| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153 |
+| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151（2026-09-19完了。実機検証はBL-165） |
+| 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152（2026-09-19完了。設計値の検証はBL-165） |
+| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153（2026-09-19完了） |
 | 5 | データセーフティ申告・ストア掲載情報・利用者向けドキュメントを更新する | BL-154（人手検証） |
 
 `-PsesameApiBaseUrl`のようなモック差し替えがBLEには存在せず、**検証は実機必須**になる
@@ -1171,7 +1414,8 @@ Android非依存のクラスへ切り出し、ユニットテストで検証で�
 #### 参照する外部実装（2026-09-18時点、BL-146の調査結果）
 
 - 公式: `CANDY-HOUSE/SesameSDK_Android_with_DemoApp`（Kotlin、MIT、更新継続、JitPack配布
-  `com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>`）。BLE実装は
+  `com.github.CANDY-HOUSE:SesameSDK_Android_with_DemoApp:<tag>`。取り込みは断念したが、
+  プロトコルの参照元としては引き続き有効）。BLE実装は
   `sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/`で、Sesame 5は`CHSesame5Device.kt`が担当。
   プロトコル定義は`ble/SesameProtocols.kt`、AES-CMACは`utils/aescmac/`配下。
   `VALIARK-jp/Pedal_Share`は、このSDKを自アプリへモジュールとして同梱した先行事例。

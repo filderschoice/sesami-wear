@@ -1,10 +1,21 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!--
         検証用モックサーバー（http://<PCのIP>:8080）へ接続するため、デバッグビルドでのみ
         平文HTTPを許可する（BL-132）。リリースビルドには含まれないため、本番の通信は
         HTTPSのままである。
     -->
-    <application android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true">
+        <!--
+            BLE直接操作の単体検証用の入口（BL-151）。デバッグビルドにだけマージされ、
+            リリースビルド（およびGoogle Playへ配信するAAB）には含まれない。
+            adbから施錠/解錠を起動できるため、src/main へ移してはならない。
+        -->
+        <receiver
+            android:name=".ble.SesameBleDebugReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
+    </application>
 
 </manifest>

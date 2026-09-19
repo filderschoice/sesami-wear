@@ -31,6 +31,15 @@ object SesameWearProtocol {
     const val KEY_LAST_FAILURE = "last_failure"
 
     /**
+     * 最後に分かった電池残量（%）・サムターンの角度・実行した経路（[SesameStatusRoute]の`name`）。
+     * いずれも分かっていなければキー自体を載せない（BL-166）。
+     * 旧バージョンのmobileと新しいwearが混在しても、キーが無い＝未取得として扱われるため壊れない。
+     */
+    const val KEY_BATTERY_PERCENTAGE = "battery_percentage"
+    const val KEY_POSITION = "position"
+    const val KEY_LAST_ROUTE = "last_route"
+
+    /**
      * 施錠/解錠コマンドのメッセージペイロードへ、操作対象デバイスのuuid（[SesameCredentials.uuid]と
      * 対応する識別子）を載せるためのエンコード/デコード（BL-048、複数Sesameデバイス対応）。
      * uuidをそのままUTF-8バイト列化するだけの単純な形式で、JSON等は使わない。

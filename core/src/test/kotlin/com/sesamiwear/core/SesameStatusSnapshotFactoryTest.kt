@@ -81,4 +81,46 @@ class SesameStatusSnapshotFactoryTest {
 
         assertEquals(SesameStatusSnapshot(isLocked = false, updatedAtEpochMillis = 1000L), snapshot)
     }
+
+    @Test
+    fun `battery, position and route are restored when they are present`() {
+        val snapshot =
+            SesameStatusSnapshotFactory.create(
+                hasIsLockedKey = true,
+                isLocked = true,
+                updatedAtEpochMillis = 1000L,
+                measurement =
+                    SesameStatusMeasurement(
+                        batteryPercentage = 85,
+                        position = 42,
+                        route = SesameStatusRoute.BLE,
+                    ),
+            )
+
+        assertEquals(
+            SesameStatusSnapshot(
+                isLocked = true,
+                updatedAtEpochMillis = 1000L,
+                batteryPercentage = 85,
+                position = 42,
+                lastRoute = SesameStatusRoute.BLE,
+            ),
+            snapshot,
+        )
+    }
+
+    @Test
+    fun `a data item synced by an older version restores without battery, position or route`() {
+        // BL-166より前のmobileはこれらのキーを載せないため、未取得として復元される。
+        val snapshot =
+            SesameStatusSnapshotFactory.create(
+                hasIsLockedKey = true,
+                isLocked = true,
+                updatedAtEpochMillis = 1000L,
+            )
+
+        assertEquals(null, snapshot?.batteryPercentage)
+        assertEquals(null, snapshot?.position)
+        assertEquals(null, snapshot?.lastRoute)
+    }
 }

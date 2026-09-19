@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameStatusDetail
 import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.core.display.SesameTileContent
@@ -36,7 +37,23 @@ sealed interface SesameWidgetModel {
          * Sesame APIから取得しないため、鮮度も失敗も存在しない）。
          */
         val detailLabel: String? = null,
+        /**
+         * 最後に分かった電池残量（%、BL-171）。未取得ならnull。「全デバイス」対象では
+         * 最も少ない台の値を代表値にする（失敗・鮮度と同じく、利用者が対処すべき側を出す）。
+         */
+        val batteryPercentage: Int? = null,
     ) : SesameWidgetModel {
+        /**
+         * [detailLabel]へ電池残量を併記した1行（BL-171）。**行は増やさない。**
+         * ウィジェットの高さ予算は既に埋まっており（[SesameWidgetLayout]のKDoc）、
+         * 行を足すと最小サイズで操作文言が見切れるため（BL-158と同じ事故）。
+         */
+        val detailWithBatteryLabel: String?
+            get() =
+                listOfNotNull(detailLabel, SesameTileContent.batteryLabel(batteryPercentage))
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(" ")
+
         val statusIcon: String get() = SesameTileContent.statusIcon(state)
         val statusLabel: String get() = SesameTileContent.statusLabel(state, isAllDevices)
         val actionLabel: String? get() = SesameTileContent.actionLabel(state, isAllDevices)
@@ -84,6 +101,7 @@ object SesameWidgetModelResolver {
                 state = state,
                 isAllDevices = SesameDeviceTargets.isAllDevices(uuid),
                 detailLabel = detailLabelOf(targetUuids, snapshotOf, nowEpochMillis),
+                batteryPercentage = batteryPercentageOf(targetUuids, snapshotOf),
             )
         }
     }
@@ -136,6 +154,15 @@ object SesameWidgetModelResolver {
             else -> listOf(uuid)
         }
 
+    /**
+     * 表示する電池残量（BL-171）。対象が複数台（「全デバイス」）なら**最も少ない台の値**を代表値にする。
+     * 1台も分かっていなければnull（表示しない）。デモ用デバイスは対象外のため常にnullになる。
+     */
+    private fun batteryPercentageOf(
+        targetUuids: List<String>,
+        snapshotOf: (String) -> SesameStatusSnapshot?,
+    ): Int? = targetUuids.mapNotNull { snapshotOf(it)?.batteryPercentage }.minOrNull()
+
     private fun detailLabelOf(
         targetUuids: List<String>,
         snapshotOf: (String) -> SesameStatusSnapshot?,
@@ -150,6 +177,7 @@ object SesameWidgetModelResolver {
                 failure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure }),
                 updatedAtEpochMillis = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis }),
                 nowEpochMillis = nowEpochMillis,
+                route = SesameRouteLabel.commonRoute(snapshots.map { it?.lastRoute }),
             )
         }
 }

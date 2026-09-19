@@ -1,6 +1,7 @@
 package com.sesamiwear.core.display
 
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusRoute
 import java.time.ZoneId
 
 /**
@@ -13,6 +14,11 @@ import java.time.ZoneId
  *
  * 表示している施錠状態そのものは失敗しても「状態不明」へ戻さず、最後に分かった状態を残す
  * （BL-142で自動取得を廃止し「最後に分かった状態を出し続ける」設計にしたことと揃える）。
+ *
+ * 先頭には最後に使った経路のアイコン（📶 / ☁）を前置する（BL-168）。Tile・Complication・
+ * ウィジェットはいずれも表示余白が無く、過去に文言が収まらず省略された事例がある
+ * （BL-102 / BL-104 / BL-158）ため、**行を増やさずこの1行へ相乗りさせる**。
+ * 経路が分からない場合は何も前置しない。
  */
 object SesameStatusDetail {
     /** Tile・Complication向け（表示領域が狭い面）。 */
@@ -21,7 +27,12 @@ object SesameStatusDetail {
         updatedAtEpochMillis: Long?,
         nowEpochMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
-    ): String = failure?.shortLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId)
+        route: SesameStatusRoute? = null,
+    ): String =
+        SesameRouteLabel.withIcon(
+            route,
+            failure?.shortLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId),
+        )
 
     /** ホーム画面ウィジェット向け（表示領域に余裕がある面）。 */
     fun detailedLabel(
@@ -29,5 +40,10 @@ object SesameStatusDetail {
         updatedAtEpochMillis: Long?,
         nowEpochMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
-    ): String = failure?.detailedLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId)
+        route: SesameStatusRoute? = null,
+    ): String =
+        SesameRouteLabel.withIcon(
+            route,
+            failure?.detailedLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId),
+        )
 }

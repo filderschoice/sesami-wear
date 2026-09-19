@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -131,6 +129,9 @@ fun CredentialsSettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+        ConnectionSettingsSection()
+
+        Spacer(modifier = Modifier.height(16.dp))
         CredentialsForm(
             formState = formState,
             onSave = {
@@ -199,24 +200,6 @@ private fun HelpMenuDialog(
 }
 
 /**
- * 画面の見出し（登録台数とヘルプボタン）と、今月のAPI呼び出し回数（BL-147）。
- * 呼び出し回数は月間リクエスト上限（BL-141）に対する消費の目安で、他経路の消費は含まない。
- * 画面を開いた時点の値を出し、開いている間の更新は行わない（設定画面は操作の場ではないため）。
- */
-@Composable
-private fun ScreenHeader(
-    deviceCount: Int,
-    apiUsageCount: Int,
-    onHelpClick: () -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Sesame API設定（${deviceCount}台登録済み）", modifier = Modifier.weight(1f))
-        TextButton(onClick = onHelpClick) { Text("ヘルプ") }
-    }
-    Text(text = ApiUsageCounter.label(apiUsageCount))
-}
-
-/**
  * ヘルプ1項目の本文（BL-113）。本文が画面の高さを超える項目があるためスクロール可能にし、
  * 外部ページへのリンクを持つ項目ではブラウザを開くボタンを添える（1項目に複数可、BL-144）。
  */
@@ -254,32 +237,22 @@ private fun HelpTopicDialog(
     )
 }
 
+/**
+ * 画面の見出し（登録台数とヘルプボタン）と、今月のAPI呼び出し回数（BL-147）。
+ * 呼び出し回数は月間リクエスト上限（BL-141）に対する消費の目安で、他経路の消費は含まない。
+ * 画面を開いた時点の値を出し、開いている間の更新は行わない（設定画面は操作の場ではないため）。
+ */
 @Composable
-private fun DeviceList(
-    credentialsList: List<SesameCredentials>,
-    onEdit: (SesameCredentials) -> Unit,
-    onDelete: (SesameCredentials) -> Unit,
+private fun ScreenHeader(
+    deviceCount: Int,
+    apiUsageCount: Int,
+    onHelpClick: () -> Unit,
 ) {
-    if (credentialsList.isEmpty()) {
-        Text(text = "まだSesameが登録されていません。下のフォームから追加してください。")
-        return
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(text = "Sesame API設定（${deviceCount}台登録済み）", modifier = Modifier.weight(1f))
+        TextButton(onClick = onHelpClick) { Text("ヘルプ") }
     }
-    LazyColumn {
-        items(credentialsList, key = { it.uuid }) { credentials ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Text(
-                    text = credentials.displayName.ifBlank { credentials.uuid },
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { onEdit(credentials) }) {
-                    Text("編集")
-                }
-                TextButton(onClick = { onDelete(credentials) }) {
-                    Text("削除")
-                }
-            }
-        }
-    }
+    Text(text = ApiUsageCounter.label(apiUsageCount))
 }
 
 @Composable

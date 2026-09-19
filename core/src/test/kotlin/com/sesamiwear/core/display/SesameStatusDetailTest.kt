@@ -1,6 +1,7 @@
 package com.sesamiwear.core.display
 
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusRoute
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.ZoneId
@@ -48,5 +49,57 @@ class SesameStatusDetailTest {
     private companion object {
         val ZONE: ZoneId = ZoneId.of("Asia/Tokyo")
         val NOW: Long = ZonedDateTime.of(2026, 9, 18, 12, 0, 0, 0, ZONE).toInstant().toEpochMilli()
+    }
+
+    @Test
+    fun `the route icon is prefixed to the compact label`() {
+        assertEquals(
+            "📶3分前",
+            SesameStatusDetail.compactLabel(
+                failure = null,
+                updatedAtEpochMillis = NOW - 3 * 60 * 1000,
+                nowEpochMillis = NOW,
+                route = SesameStatusRoute.BLE,
+            ),
+        )
+    }
+
+    @Test
+    fun `the route icon is prefixed to a failure label too`() {
+        assertEquals(
+            "☁認証エラー",
+            SesameStatusDetail.compactLabel(
+                failure = SesameStatusFailure.AUTH_OR_QUOTA,
+                updatedAtEpochMillis = NOW,
+                nowEpochMillis = NOW,
+                route = SesameStatusRoute.WEB_API,
+            ),
+        )
+    }
+
+    @Test
+    fun `nothing is prefixed when the route is unknown`() {
+        assertEquals(
+            "3分前",
+            SesameStatusDetail.compactLabel(
+                failure = null,
+                updatedAtEpochMillis = NOW - 3 * 60 * 1000,
+                nowEpochMillis = NOW,
+                route = null,
+            ),
+        )
+    }
+
+    @Test
+    fun `the detailed label also carries the route icon`() {
+        assertEquals(
+            "📶たった今",
+            SesameStatusDetail.detailedLabel(
+                failure = null,
+                updatedAtEpochMillis = NOW,
+                nowEpochMillis = NOW,
+                route = SesameStatusRoute.BLE,
+            ),
+        )
     }
 }

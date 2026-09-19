@@ -2,6 +2,8 @@ package com.sesamiwear.mobile.state
 
 import com.sesamiwear.core.SesameKeyValueStore
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -10,6 +12,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -35,13 +38,24 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
     /** [uuid]の保存済み状態。一度も取得・操作していなければnull。 */
     fun load(uuid: String): SesameStatusSnapshot? = synchronized(LOCK) { loadAll()[uuid] }
 
+    /**
+     * [uuid]の施錠状態を保存する。[measurement]で分かった電池残量・角度・経路も同時に反映し、
+     * 分からなかった項目は前回の値を残す（BL-166）。Web API経由の施錠/解錠は状態を返さないため、
+     * 電池残量・角度は前回の値のまま経路だけが更新される。
+     */
     fun save(
         uuid: String,
         isLocked: Boolean,
         updatedAtEpochMillis: Long,
+        measurement: SesameStatusMeasurement = SesameStatusMeasurement(),
     ) = synchronized(LOCK) {
-        // 成功したので直近の失敗は消す（BL-140）。
-        saveAll(loadAll() + (uuid to SesameStatusSnapshot(isLocked, updatedAtEpochMillis)))
+        val states = loadAll()
+        // 成功したので直近の失敗は消す（BL-140）。電池残量・角度・経路は引き継ぐ。
+        val updated =
+            (states[uuid] ?: SesameStatusSnapshot(isLocked = null, updatedAtEpochMillis = null))
+                .copy(isLocked = isLocked, updatedAtEpochMillis = updatedAtEpochMillis, lastFailure = null)
+                .merge(measurement)
+        saveAll(states + (uuid to updated))
     }
 
     /**
@@ -63,6 +77,10 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
                             isLocked = previous?.isLocked,
                             updatedAtEpochMillis = previous?.updatedAtEpochMillis,
                             lastFailure = failure,
+                            // 電池残量・角度・経路は最後に分かった値を残す（BL-166）。
+                            batteryPercentage = previous?.batteryPercentage,
+                            position = previous?.position,
+                            lastRoute = previous?.lastRoute,
                         )
                 ),
         )
@@ -92,6 +110,10 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
             val updatedAt = (entry?.get(FIELD_UPDATED_AT) as? JsonPrimitive)?.longOrNull
             val failure =
                 SesameStatusFailure.ofNameOrNull((entry?.get(FIELD_LAST_FAILURE) as? JsonPrimitive)?.contentOrNull)
+            // 電池残量・角度・経路は後から追加した項目（BL-166）。古い保存値にはキーが無くnullになる。
+            val battery = (entry?.get(FIELD_BATTERY_PERCENTAGE) as? JsonPrimitive)?.intOrNull
+            val position = (entry?.get(FIELD_POSITION) as? JsonPrimitive)?.intOrNull
+            val route = SesameStatusRoute.ofNameOrNull((entry?.get(FIELD_LAST_ROUTE) as? JsonPrimitive)?.contentOrNull)
             val hasLockState = isLocked != null && updatedAt != null
             if (!hasLockState && failure == null) {
                 null
@@ -101,6 +123,9 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
                         isLocked = if (hasLockState) isLocked else null,
                         updatedAtEpochMillis = if (hasLockState) updatedAt else null,
                         lastFailure = failure,
+                        batteryPercentage = battery,
+                        position = position,
+                        lastRoute = route,
                     )
             }
         }.toMap()
@@ -114,6 +139,9 @@ class LockStateStore(private val keyValueStore: SesameKeyValueStore) {
                         snapshot.isLocked?.let { put(FIELD_IS_LOCKED, it) }
                         snapshot.updatedAtEpochMillis?.let { put(FIELD_UPDATED_AT, it) }
                         snapshot.lastFailure?.let { put(FIELD_LAST_FAILURE, it.name) }
+                        snapshot.batteryPercentage?.let { put(FIELD_BATTERY_PERCENTAGE, it) }
+                        snapshot.position?.let { put(FIELD_POSITION, it) }
+                        snapshot.lastRoute?.let { put(FIELD_LAST_ROUTE, it.name) }
                     }
                 },
             )
@@ -131,3 +159,6 @@ private const val KEY_LOCK_STATES = "lock_states"
 private const val FIELD_IS_LOCKED = "isLocked"
 private const val FIELD_UPDATED_AT = "updatedAtEpochMillis"
 private const val FIELD_LAST_FAILURE = "lastFailure"
+private const val FIELD_BATTERY_PERCENTAGE = "batteryPercentage"
+private const val FIELD_POSITION = "position"
+private const val FIELD_LAST_ROUTE = "lastRoute"

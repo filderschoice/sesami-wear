@@ -5,6 +5,318 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 21:00
+  summary: ホーム画面ウィジェットのFULL表示へ電池残量を併記する
+  details:
+    変更内容: >-
+      ウィジェットのFULLレイアウトで、電池残量を最終取得時刻と同じ行へ併記するようにした。
+      高さ予算が既に埋まっている（最小140dpに対して約136dp使用）ため行は増やしていない。
+      COMPACTでは出さない。「全デバイス」対象では最も少ない台の値を代表値にする
+      （失敗・鮮度と同じく、利用者が対処すべき側を見せる）。1台も分かっていなければ出さない。
+      電池の書き方はcore.display.SesameTileContent.batteryLabelへ切り出し、
+      ウォッチの状態一覧（BL-170）と共通にした。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。未取得なら行が従来どおりであること、複数台では
+      最も少ない値が出ること、デモ用デバイスでは出ないことをユニットテストで確認した。
+      実機での収まりはBL-172で確認する。
+    関連ID:
+      - BL-171
+
+- date: 2026-09-19 20:30
+  summary: ウォッチのアプリ本体を登録済みセサミの状態一覧にする
+  details:
+    変更内容: >-
+      「Sesami Wear」と表示するだけのスタブだったwear.MainActivityを、登録済みセサミの
+      状態一覧へ置き換えた。1台につきデバイス名・施錠状態と電池残量・最終取得時刻と経路アイコンの
+      3行を出す。円形画面では行が長いと行頭・行末が見切れるため、スマートフォンの1行表示は
+      そのまま使わず短い行へ分け、各行が幅の目安に収まることをユニットテストで固定した。
+      角度は狭い画面では情報量が勝ちすぎるため出さない。施錠状態のアイコンと文言はTileと同じ
+      ものを使う。この画面から状態取得のリクエストは送らず、最後に同期された値をそのまま出す。
+      画面の再開を契機に読み直すため、wearへlifecycle-runtime-composeを追加した
+      （mobileと同じ版で依存グラフは変わらない）。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/MainActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - wear/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameStatusListContentTestは8件が成功し、
+      各行が円形画面の幅の目安（全角11文字相当）に収まることも確認した。
+      実機での表示確認はBL-172で行う。
+    関連ID:
+      - BL-170
+
+- date: 2026-09-19 19:50
+  summary: スマートフォンのデバイス一覧へセサミの状態を1行で表示する
+  details:
+    変更内容: >-
+      資格情報設定画面のデバイス一覧で、各デバイスの名前の下に施錠状態・電池残量・角度・
+      最終取得時刻・経路を1行で出すようにした。分かっていない項目は出さず、何も分かっていなければ
+      「未取得」だけになる。組み立てはcore.display.SesameDeviceStatusLineへ切り出し、
+      ウォッチの状態一覧（BL-170）と共用できるようにしている。
+      経路はアイコンではなく語で書く（この画面は表示領域に余裕があるため）。角度はこの画面でだけ
+      出す（生の値で意味を読み取りにくいため）。画面の再開時に読み直すが、この表示のために
+      状態取得のリクエストは送らない。
+      ファイルあたりの関数数の上限に達したため、デバイス一覧をDeviceListSection.ktへ分離した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLineTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListSection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。分かっていない項目が出ないこと、失敗時は鮮度の代わりに
+      理由が出ることをユニットテストで確認した。実機での表示確認はBL-172で行う。
+    関連ID:
+      - BL-169
+
+- date: 2026-09-19 19:10
+  summary: 経路を表示し、BLEからフォールバックしたときにトーストで知らせる
+  details:
+    変更内容: >-
+      Tile・Complication・ホーム画面ウィジェットの「最終取得時刻」の行へ経路アイコン
+      （BLE=📶、インターネット=☁）を前置するようにした。3つの面はいずれも表示余白を使い切って
+      おり、過去に文言が収まらず省略された事例があるため行は増やしていない。
+      アイコンが1コードポイントに収まることをユニットテストで固定した。
+      「全デバイス」対象の集約表示では、全デバイスが同じ経路のときだけアイコンを出す。
+      BLEを試したのに届かずWeb APIへ倒れた場合は、スマートフォンでトーストを出す。
+      そもそもBLEを試していない場合（到達実績が無い・権限が無い・方針が常にインターネット経由）は
+      出さない。通知ではなくトーストにしたのは、Android 13以降の通知権限の要求と
+      データセーフティ申告を増やさないため。
+      SesameBleAccessの引数が上限に達したため、BLEの実行3種をSesameBleOperationsへまとめた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。フォールバック通知が「実際に試して失敗したときだけ」
+      出ることを4通りのケースで確認した。実機での表示の収まりはBL-172で確認する。
+    関連ID:
+      - BL-168
+
+- date: 2026-09-19 18:20
+  summary: 経路の方針（自動/常にインターネット経由）を設定画面から選べるようにする
+  details:
+    変更内容: >-
+      core.SesameRoutePolicyと保存先（SesameRoutePolicyStore）を追加し、SesameBleAccessが
+      操作のたびに読み直すようにした。「常にインターネット経由」を選ぶとBLEの探索・接続・
+      到達確認をいずれも行わない。圏外で操作できなくなるため「Bluetooth固定」は用意せず、
+      選択肢が2つのままであることをユニットテストで固定した。
+      設定画面には現在の方針の1行と「変更」だけを置き、選択肢と説明はダイアログへ回している
+      （画面が縦スクロールしないため）。経路の方針とBLE権限はどちらも「どうやってつなぐか」の
+      設定のため、ConnectionSettingsSectionとして隣り合わせにまとめた。
+      表示文言はcore.display.SesameRouteLabelへ置き、wearとmobileで食い違わないようにしている。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameRoutePolicy.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameRoutePolicyStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicySection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameRoutePolicyStoreTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。「常にインターネット経由」で施錠/解錠・状態取得とも
+      BLEを試さず、到達確認のスキャンも行わないことをユニットテストで確認した。
+    関連ID:
+      - BL-167
+
+- date: 2026-09-19 17:40
+  summary: 状態のスナップショットへ電池残量・角度・経路を追加する
+  details:
+    変更内容: >-
+      core.SesameStatusSnapshotへbatteryPercentage / position / lastRouteを追加し、
+      保存（LockStateStore）とウォッチへのDataItem同期まで通した。分からなかった項目は
+      前回の値を残すmergeを用意し、Web API経由の施錠/解錠では経路だけが更新されるようにした。
+      電池残量はBLE専用ではなく、Sesame Web APIの状態取得レスポンスも電圧と角度を返している。
+      これまで捨てていた値を使うようにし、電圧から残量への換算表をmobile.bleからcoreへ移して
+      両経路で同じ換算を通す。BLE経由の施錠/解錠ではログイン直後の機構状態から電池残量も
+      更新するが、角度はコマンド送信前の値になるため使わない。
+      保存値・DataItemのいずれも、キーが無い場合は未取得として扱うため旧バージョンと互換がある。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusRoute.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameBatteryLevel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusMeasurement.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactory.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameBatteryLevelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactoryTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatus.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleDebugReceiver.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。旧形式の保存値を読んでも壊れないことと、
+      分からなかった項目が前回の値を残すことをユニットテストで固定した。
+    関連ID:
+      - BL-166
+
+- date: 2026-09-19 16:20
+  summary: BLE直接操作の権限をマニフェストへ宣言し、任意で許可を求めるUIを追加する
+  details:
+    変更内容: >-
+      AndroidManifestへBLUETOOTH_SCAN（neverForLocationを宣言）・BLUETOOTH_CONNECT・
+      ACCESS_FINE_LOCATION（maxSdkVersion 30）と、required=false の bluetooth_le を追加した。
+      資格情報設定画面には許可状況の1行と「設定」ボタンを置き、要求の直前に説明ダイアログを出す。
+      説明には、何に使うのか・許可しなくても従来どおりWeb API経由で動くこと・API 30以下で必要な
+      位置情報を近くの機器の探索にのみ使い収集も送信もしないことを含めた。
+      一度拒否された場合は端末のアプリ設定画面を開く導線へ切り替えるため、要求済みかを
+      SesameBlePermissionAskedStoreへ保存する。設定画面は縦スクロールしないため、
+      長い説明は常時表示せずダイアログへ回している。
+      あわせて docs/USER_GUIDE.md と docs/RELEASE_NOTES.md を追随させた（BL-154の一部）。
+    変更ファイル:
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionPrompt.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionAskedStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/BlePermissionSection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionPromptTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameBlePermissionPromptTestは10件が成功。
+      実機での許可・拒否の挙動確認はBL-165（人手検証）に含める。
+    関連ID:
+      - BL-153
+
+- date: 2026-09-19 15:05
+  summary: 施錠/解錠と状態取得の経路選択（BLE優先・Web APIフォールバック）を実装する
+  details:
+    変更内容: >-
+      SesameDeviceCommandExecutorが、施錠/解錠と状態取得の両方でBLEとWeb APIを使い分けるようにした。
+      uuidごとの到達実績（SesameBleReachability）を非暗号化SharedPreferencesへ保存し、直近30分以内に
+      BLEで到達できたデバイスだけBLEを先に試す。成功時はWeb APIを呼ばないため月間リクエスト上限を
+      消費しない。到達実績が無い場合はWeb APIから始め、その通信と並行してスキャンだけの到達確認を
+      15分に1回まで行う。BLEが失敗したら到達実績を消してWeb APIへ倒す。
+      利用者からは経路が見えず、どちらで実行したかは診断ログにのみ残す（uuidは先頭8文字のみ）。
+      引数の数を抑えるためWeb APIとBLEの経路をSesameRouteAccessへまとめ、既存の呼び出し元を追随させた。
+      資格情報を削除したデバイスの到達実績はRemovedDeviceCleanerが消す。
+      実行時間の設計値（全体1800ms）はウィジェットの8秒制限から逆算したもので、実測値ではない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleReachability.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/RemovedDeviceCleaner.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleReachabilityTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameDeviceCommandExecutorTestは33件
+      （BLE経路の9件を追加）、SesameBleReachabilityTestは13件がいずれも成功。
+      実行時間の設計値の妥当性はBL-165（人手検証）で実測する。
+    関連ID:
+      - BL-152
+
+- date: 2026-09-19 14:10
+  summary: BLE直接操作のクライアントをmobile.bleへ自前実装する
+  details:
+    変更内容: >-
+      公式SesameSDKの取り込みを断念した判断（DESIGN.md「公式SDK取り込みの実測」）を受け、
+      Sesame OS3のBLEプロトコルをmobile.bleへ自前実装した。AES-CCM（RFC 3610）は
+      AndroidのJCEが提供しないため、AES/ECB/NoPaddingの上へcore.crypto.AesCcmとして
+      組み立てた。プロトコル層（パケット分割・組み立て、セッション鍵の導出と暗号化・復号、
+      メッセージの解釈、機構状態とアドバタイズの解釈、権限の判定）はAndroid非依存の
+      クラスへ切り出してユニットテストで検証し、GATT接続とスキャンだけをAndroid依存にした。
+      この段階では経路の自動切り替えを入れていない（BL-152で対応）。
+      検証用のブロードキャスト受信口はsrc/debugにのみ置き、リリースビルドには含めない。
+      期待値はRFC 3610の公開テストベクタとPyCryptodomeで生成し、実資格情報は使用していない。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/crypto/AesCcm.kt
+      - core/src/test/kotlin/com/sesamiwear/core/crypto/AesCcmTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProtocol.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePacketCodec.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleSession.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMessage.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMessageReader.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatus.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAdvertisement.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissions.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleDebugReceiver.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePacketCodecTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleSessionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleMessageTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatusTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAdvertisementTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionsTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。markdownlintはSummary 0 issues、
+      記録ファイルのYAML検証もOK。実機での疎通確認はBL-165（人手検証）として起票した。
+    関連ID:
+      - BL-151
+
 - date: 2026-09-18 23:40
   summary: 記録ファイルのYAML検証をスクリプト化し品質ゲートの定義の乖離を解消した
   details:

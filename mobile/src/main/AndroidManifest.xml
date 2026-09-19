@@ -4,6 +4,30 @@
     <!-- ホーム画面ウィジェットの施錠/解錠の成否を振動で伝える（BL-129）。 -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!--
+        BLE直接操作（BL-153）。スマートフォンがSesameの電波圏内にあるときだけ使う追加の経路で、
+        許可されなくてもアプリは従来どおりWeb API経由で動く（必須にしない）。
+
+        BLUETOOTH_SCAN は近くのSesameを探すためだけに使い、位置情報の推定には使わないため
+        neverForLocation を宣言する。これにより API 31 以上では位置情報の許可が不要になる。
+        ACCESS_FINE_LOCATION は API 30 以下でBLEスキャンに必須のため、maxSdkVersion="30" を付けて
+        旧端末限定にする。位置情報そのものの収集・送信は行わない（DESIGN.md「BLE直接操作の併用方針」論点4）。
+    -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+
+    <!--
+        BLE非搭載の端末でもWeb API経由で動くため、配信対象を狭めないよう required="false" とする。
+    -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
