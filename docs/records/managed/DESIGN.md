@@ -1171,12 +1171,52 @@ BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化
 - 状態取得はBLEなら上限を消費しないため、BLEで到達できる間は自動取得の再開（BL-142で廃止した
   鮮度ベースの取得）を検討できる。ただしBL-152の完了までは自動取得を再開しない。
 
+#### BLEクライアントの実装（BL-151、2026-09-19）
+
+公式SDKを採らない判断（上記「公式SDK取り込みの実測」）を受け、`mobile.ble`へ自前実装した。
+プロトコルは`meronepy/gomalock`（Python、MIT）と`homy-newfs8/libsesame3bt-core`（C++、MIT）を参照している。
+**この段階では経路の自動切り替えを行わない**（Web APIとの使い分けはBL-152）。
+
+| クラス | 役割 | テスト |
+| --- | --- | --- |
+| `core.crypto.AesCcm` | RFC 3610のAES-CCM。AndroidのJCEが`AES/CCM/NoPadding`を持たないため`AES/ECB/NoPadding`の上へ自前で組む | RFC 3610の公開テストベクタ（`AesCcmTest`） |
+| `mobile.ble.SesameBleProtocol` | サービス・キャラクタリスティックUUID、企業識別子、MTU、op code / item code / result code | 定数のみ |
+| `mobile.ble.SesameBlePacketCodec` / `SesameBlePacketAssembler` | 20バイト単位のパケットへの分割と、受信パケットの組み立て。ヘッダ1バイトで「先頭 / 終端 / 終端が暗号化か」を表す | `SesameBlePacketCodecTest` |
+| `mobile.ble.SesameBleSession` | セッション鍵の導出（`AesCmac(secretKey, sessionToken)`）と、送受信それぞれのカウンタを持つAES-CCM暗号化・復号 | `SesameBleSessionTest` |
+| `mobile.ble.SesameBleMessage` | 応答・通知の解釈と、コマンド・履歴タグの組み立て | `SesameBleMessageTest` |
+| `mobile.ble.SesameBleMechStatus` | `MECH_STATUS`通知（7バイト）の解釈。施錠/解錠範囲、角度、電池電圧・残量 | `SesameBleMechStatusTest` |
+| `mobile.ble.SesameBleAdvertisement` | アドバタイズの製造者データ（19バイト）の解釈。uuidでの突き合わせに使う | `SesameBleAdvertisementTest` |
+| `mobile.ble.SesameBlePermissions` | 必要な実行時権限の判定（API 31以上とAPI 30以下で異なる） | `SesameBlePermissionsTest` |
+| `mobile.ble.SesameBleScanner` | サービスUUIDでフィルタしたスキャンと、uuid一致の判定 | Android依存のため対象外 |
+| `mobile.ble.SesameBleConnection` | GATT接続・サービス探索・通知の有効化・分割送信 | Android依存のため対象外 |
+| `mobile.ble.SesameBleMessageReader` | 受信チャネルから目的のメッセージが届くまで読み進める | Android依存のため対象外 |
+| `mobile.ble.SesameBleClient` | スキャン → 接続 → ログイン → コマンド → 切断の統括 | Android依存のため対象外 |
+
+設計上の判断:
+
+- **AES-CCMは`core.crypto`へ置く。** BLE固有の要素を含まない暗号プリミティブで、`AesCmac`と同じ
+  位置づけになるため。BLEの実装そのものは`mobile.ble`にあり、`core`のAndroid非依存制約は維持している。
+- **接続は都度張って都度切る（常時接続しない）。** 操作はウィジェット・Tileのタップ起点で散発的であり、
+  常時接続はバックグラウンド実行の制約と電力消費の両面で割に合わないため。
+- **BLEアドレスは保存しない。** Androidでは端末ごと・起動ごとに変わりうるため、毎回スキャンして
+  アドバタイズのuuidで突き合わせる。
+- **状態取得は追加のコマンドを送らない。** ログイン直後にデバイスが`MECH_STATUS`を通知するため、
+  それを待つだけで足りる。
+- **復号に失敗した通知は捨て、受信カウンタを進めない。** ノイズや取りこぼしでカウンタがずれると
+  以降すべて復号できなくなるため。
+- **検証用の入口はデバッグビルドにのみ置く。** `mobile/src/debug`の`SesameBleDebugReceiver`（および
+  同ソースセットのマニフェスト宣言）で、リリースビルドとPlayへ配信するAABには含まれない。
+  adbから施錠/解錠を起動できるため`src/main`へ移してはならない。実機での検証手順はBL-165。
+
+権限はまだマニフェストへ宣言していない（BL-153で追加する）。そのため現時点では
+`SesameBleClient`が常に`PERMISSION_DENIED`を返す。
+
 #### 段階的移行案
 
 | 段階 | 内容 | 項目 |
 | --- | --- | --- |
 | 1 | 保持中のsecretKeyでBLE接続・状態取得ができることを実機で確認する | BL-150（人手検証、2026-09-19完了） |
-| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151 |
+| 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151（2026-09-19完了。実機検証はBL-165） |
 | 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152 |
 | 4 | BLE権限の要求UIとマニフェストを整備する | BL-153 |
 | 5 | データセーフティ申告・ストア掲載情報・利用者向けドキュメントを更新する | BL-154（人手検証） |

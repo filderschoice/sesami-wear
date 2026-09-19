@@ -5,6 +5,52 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 14:10
+  summary: BLE直接操作のクライアントをmobile.bleへ自前実装する
+  details:
+    変更内容: >-
+      公式SesameSDKの取り込みを断念した判断（DESIGN.md「公式SDK取り込みの実測」）を受け、
+      Sesame OS3のBLEプロトコルをmobile.bleへ自前実装した。AES-CCM（RFC 3610）は
+      AndroidのJCEが提供しないため、AES/ECB/NoPaddingの上へcore.crypto.AesCcmとして
+      組み立てた。プロトコル層（パケット分割・組み立て、セッション鍵の導出と暗号化・復号、
+      メッセージの解釈、機構状態とアドバタイズの解釈、権限の判定）はAndroid非依存の
+      クラスへ切り出してユニットテストで検証し、GATT接続とスキャンだけをAndroid依存にした。
+      この段階では経路の自動切り替えを入れていない（BL-152で対応）。
+      検証用のブロードキャスト受信口はsrc/debugにのみ置き、リリースビルドには含めない。
+      期待値はRFC 3610の公開テストベクタとPyCryptodomeで生成し、実資格情報は使用していない。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/crypto/AesCcm.kt
+      - core/src/test/kotlin/com/sesamiwear/core/crypto/AesCcmTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProtocol.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePacketCodec.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleSession.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMessage.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMessageReader.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatus.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAdvertisement.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissions.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleDebugReceiver.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePacketCodecTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleSessionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleMessageTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatusTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAdvertisementTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionsTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。markdownlintはSummary 0 issues、
+      記録ファイルのYAML検証もOK。実機での疎通確認はBL-165（人手検証）として起票した。
+    関連ID:
+      - BL-151
+
 - date: 2026-09-18 23:40
   summary: 記録ファイルのYAML検証をスクリプト化し品質ゲートの定義の乖離を解消した
   details:
