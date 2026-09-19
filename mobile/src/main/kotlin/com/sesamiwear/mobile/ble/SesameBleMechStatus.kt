@@ -1,5 +1,7 @@
 package com.sesamiwear.mobile.ble
 
+import com.sesamiwear.core.SesameBatteryLevel
+
 /**
  * `MECH_STATUS`通知の本体（7バイト）を解釈した、Sesame 5の機構状態（BL-151）。
  *
@@ -27,8 +29,8 @@ data class SesameBleMechStatus(
     /** 電池電圧（V）。生値はADCの読み値で、2倍して1000で割ると電圧になる。 */
     val batteryVoltage: Double get() = rawBattery * VOLTAGE_SCALE_NUMERATOR / VOLTAGE_SCALE_DENOMINATOR
 
-    /** 電池残量（%）。電圧を既定のテーブルへ線形補間して求める。 */
-    val batteryPercentage: Int get() = percentageOf(batteryVoltage)
+    /** 電池残量（%）。換算表はWeb API経由の状態取得と共用する（BL-166）。 */
+    val batteryPercentage: Int get() = SesameBatteryLevel.percentageOf(batteryVoltage)
 
     companion object {
         /** 通知本体のバイト数。これ未満・超過の場合は解釈しない。 */
@@ -41,15 +43,6 @@ data class SesameBleMechStatus(
         private const val VOLTAGE_SCALE_NUMERATOR = 2.0
         private const val VOLTAGE_SCALE_DENOMINATOR = 1000.0
         private const val BYTE_MASK = 0xFF
-
-        /**
-         * 電圧と残量の対応表。gomalockの`VOLTAGE_LEVELS` / `BATTERY_PERCENTAGES`と同じ値で、
-         * 公式アプリの表示に合わせた非線形な対応になっている。降順に並ぶ前提。
-         */
-        private val VOLTAGE_LEVELS =
-            doubleArrayOf(5.85, 5.82, 5.79, 5.76, 5.73, 5.70, 5.65, 5.60, 5.55, 5.50, 5.40, 5.20, 5.10, 5.0, 4.8, 4.6)
-        private val BATTERY_PERCENTAGES =
-            doubleArrayOf(100.0, 95.0, 90.0, 85.0, 80.0, 70.0, 60.0, 50.0, 40.0, 32.0, 21.0, 13.0, 10.0, 7.0, 3.0, 0.0)
 
         /**
          * 通知本体[payload]を解釈する。長さが[PAYLOAD_SIZE]と一致しない場合はnullを返す
@@ -74,28 +67,5 @@ data class SesameBleMechStatus(
             source: ByteArray,
             offset: Int,
         ): Int = readUInt16(source, offset).toShort().toInt()
-
-        /**
-         * テーブルの範囲へ丸めたうえで、[voltage]が入る区間を探して線形補間する。
-         * 下限以下（区間が見つからない）の場合は0%とする。
-         */
-        private fun percentageOf(voltage: Double): Int {
-            val clamped = voltage.coerceIn(VOLTAGE_LEVELS.last(), VOLTAGE_LEVELS.first())
-            val index =
-                (0 until VOLTAGE_LEVELS.size - 1).firstOrNull { i ->
-                    clamped > VOLTAGE_LEVELS[i + 1] && clamped <= VOLTAGE_LEVELS[i]
-                }
-            return if (index == null) {
-                BATTERY_PERCENTAGES.last().toInt()
-            } else {
-                val upper = VOLTAGE_LEVELS[index]
-                val lower = VOLTAGE_LEVELS[index + 1]
-                val ratio = (clamped - lower) / (upper - lower)
-                (
-                    (BATTERY_PERCENTAGES[index] - BATTERY_PERCENTAGES[index + 1]) * ratio +
-                        BATTERY_PERCENTAGES[index + 1]
-                ).toInt()
-            }
-        }
     }
 }

@@ -1,6 +1,8 @@
 package com.sesamiwear.mobile.command
 
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import kotlinx.coroutines.async
@@ -26,40 +28,42 @@ import kotlinx.coroutines.coroutineScope
  */
 class SesameBleAccess(
     val reachability: SesameBleReachability = SesameBleReachability(),
-    private val executeOverBle: suspend (SesameCredentials, SesameCommand) -> Boolean = { _, _ -> false },
-    private val fetchStatusOverBle: suspend (SesameCredentials) -> Boolean? = { null },
+    private val executeOverBle: suspend (SesameCredentials, SesameCommand) -> SesameStatusMeasurement? =
+        { _, _ -> null },
+    private val fetchStatusOverBle: suspend (SesameCredentials) -> SesameStatusReading? = { null },
     private val probeReachable: suspend (SesameCredentials) -> Boolean = { false },
     private val logRoute: (String) -> Unit = {},
 ) {
     /**
-     * BLEで[command]を実行できたらtrueを返す。到達実績が無い場合・失敗した場合はfalseで、
-     * 呼び出し側はWeb APIへ倒す。試した結果は到達実績へ反映する。
+     * BLEで[command]を実行できたら、そのとき分かった実測値（電池残量と経路、BL-166）を返す。
+     * 到達実績が無い場合・失敗した場合はnullで、呼び出し側はWeb APIへ倒す。
+     * 試した結果は到達実績へ反映する。
      */
     suspend fun tryCommand(
         credentials: SesameCredentials,
         command: SesameCommand,
         nowMillis: Long,
-    ): Boolean {
-        if (!reachability.preferBle(credentials.uuid, nowMillis)) return false
-        val succeeded = executeOverBle(credentials, command)
-        reachability.record(credentials.uuid, nowMillis, succeeded)
-        logRoute(describe(command.name, credentials.uuid, succeeded))
-        return succeeded
+    ): SesameStatusMeasurement? {
+        if (!reachability.preferBle(credentials.uuid, nowMillis)) return null
+        val measurement = executeOverBle(credentials, command)
+        reachability.record(credentials.uuid, nowMillis, measurement != null)
+        logRoute(describe(command.name, credentials.uuid, measurement != null))
+        return measurement
     }
 
     /**
-     * BLEで状態を取得できたら施錠中かどうかを返す。到達実績が無い場合・失敗した場合はnullで、
-     * 呼び出し側はWeb APIへ倒す。
+     * BLEで状態を取得できたら、施錠状態と実測値（電池残量・角度・経路）を返す。
+     * 到達実績が無い場合・失敗した場合はnullで、呼び出し側はWeb APIへ倒す。
      */
     suspend fun tryStatus(
         credentials: SesameCredentials,
         nowMillis: Long,
-    ): Boolean? {
+    ): SesameStatusReading? {
         if (!reachability.preferBle(credentials.uuid, nowMillis)) return null
-        val isLocked = fetchStatusOverBle(credentials)
-        reachability.record(credentials.uuid, nowMillis, isLocked != null)
-        logRoute(describe("STATUS", credentials.uuid, isLocked != null))
-        return isLocked
+        val reading = fetchStatusOverBle(credentials)
+        reachability.record(credentials.uuid, nowMillis, reading != null)
+        logRoute(describe("STATUS", credentials.uuid, reading != null))
+        return reading
     }
 
     /**

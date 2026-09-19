@@ -5,6 +5,49 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 17:40
+  summary: 状態のスナップショットへ電池残量・角度・経路を追加する
+  details:
+    変更内容: >-
+      core.SesameStatusSnapshotへbatteryPercentage / position / lastRouteを追加し、
+      保存（LockStateStore）とウォッチへのDataItem同期まで通した。分からなかった項目は
+      前回の値を残すmergeを用意し、Web API経由の施錠/解錠では経路だけが更新されるようにした。
+      電池残量はBLE専用ではなく、Sesame Web APIの状態取得レスポンスも電圧と角度を返している。
+      これまで捨てていた値を使うようにし、電圧から残量への換算表をmobile.bleからcoreへ移して
+      両経路で同じ換算を通す。BLE経由の施錠/解錠ではログイン直後の機構状態から電池残量も
+      更新するが、角度はコマンド送信前の値になるため使わない。
+      保存値・DataItemのいずれも、キーが無い場合は未取得として扱うため旧バージョンと互換がある。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusRoute.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameBatteryLevel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusMeasurement.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactory.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameBatteryLevelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusSnapshotFactoryTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMechStatus.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameStatusSyncer.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/LockStateStore.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleDebugReceiver.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/state/LockStateStoreTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusSnapshotReader.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。旧形式の保存値を読んでも壊れないことと、
+      分からなかった項目が前回の値を残すことをユニットテストで固定した。
+    関連ID:
+      - BL-166
+
 - date: 2026-09-19 16:20
   summary: BLE直接操作の権限をマニフェストへ宣言し、任意で許可を求めるUIを追加する
   details:

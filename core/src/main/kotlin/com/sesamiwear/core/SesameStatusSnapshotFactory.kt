@@ -13,13 +13,19 @@ object SesameStatusSnapshotFactory {
         isLocked: Boolean,
         updatedAtEpochMillis: Long,
         lastFailureName: String? = null,
+        measurement: SesameStatusMeasurement = SesameStatusMeasurement(),
     ): SesameStatusSnapshot? {
         val failure = SesameStatusFailure.ofNameOrNull(lastFailureName)
+        // 電池残量・角度・経路だけが同期されている状態（施錠状態も失敗も無い）は起こりうるが、
+        // 施錠状態が分からないまま電池だけ出しても意味がないため、従来どおりnullを返す。
         if (!hasIsLockedKey && failure == null) return null
         return SesameStatusSnapshot(
             isLocked = if (hasIsLockedKey) isLocked else null,
             updatedAtEpochMillis = if (hasIsLockedKey) updatedAtEpochMillis else null,
             lastFailure = failure,
+            batteryPercentage = measurement.batteryPercentage,
+            position = measurement.position,
+            lastRoute = measurement.route,
         )
     }
 }

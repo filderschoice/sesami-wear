@@ -58,6 +58,16 @@ class SesameBleClient(
     )
 
     /**
+     * 施錠/解錠の結果（BL-166）。[status]はログイン直後に届いた機構状態で、
+     * **コマンドを送る前の値**である点に注意する。電池残量は数秒で変わらないため利用できるが、
+     * サムターンの角度は操作前のものになるため、呼び出し側は使わない。
+     */
+    data class CommandOutcome(
+        val result: Result,
+        val status: SesameBleMechStatus?,
+    )
+
+    /**
      * [credentials]のデバイスへ[command]（施錠/解錠）をBLEで送る。
      * [historyName]はデバイスの操作履歴に残る名前で、空文字なら既定値を使う。
      */
@@ -65,12 +75,15 @@ class SesameBleClient(
         credentials: SesameCredentials,
         command: SesameCommand,
         historyName: String = DEFAULT_HISTORY_NAME,
-    ): Result =
-        withBudget(credentials) { connection, session, _ ->
-            val itemCode = if (command == SesameCommand.LOCK) ItemCode.LOCK else ItemCode.UNLOCK
-            val payload = SesameBleMessage.encodeHistoryTag(historyName.ifBlank { DEFAULT_HISTORY_NAME })
-            sendEncrypted(connection, session, itemCode, payload)
-        }.first
+    ): CommandOutcome {
+        val (result, status) =
+            withBudget(credentials) { connection, session, _ ->
+                val itemCode = if (command == SesameCommand.LOCK) ItemCode.LOCK else ItemCode.UNLOCK
+                val payload = SesameBleMessage.encodeHistoryTag(historyName.ifBlank { DEFAULT_HISTORY_NAME })
+                sendEncrypted(connection, session, itemCode, payload)
+            }
+        return CommandOutcome(result, status)
+    }
 
     /** [credentials]のデバイスの機構状態をBLEで取得する。ログイン直後に届く通知をそのまま使う。 */
     suspend fun fetchStatus(credentials: SesameCredentials): StatusResult {

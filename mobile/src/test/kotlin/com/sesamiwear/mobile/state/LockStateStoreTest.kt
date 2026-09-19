@@ -1,6 +1,9 @@
 package com.sesamiwear.mobile.state
 
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -111,6 +114,98 @@ class LockStateStoreTest {
                 loaded.load(uuid),
             )
         }
+    }
+
+    // --- 電池残量・角度・経路（BL-166） ---
+
+    @Test
+    fun `saving with a measurement keeps battery, position and route`() {
+        store.save(
+            DEVICE_UUID,
+            isLocked = true,
+            updatedAtEpochMillis = 1000L,
+            measurement =
+                SesameStatusMeasurement(
+                    batteryPercentage = 85,
+                    position = 42,
+                    route = SesameStatusRoute.BLE,
+                ),
+        )
+
+        val snapshot = store.load(DEVICE_UUID)
+        assertEquals(85, snapshot?.batteryPercentage)
+        assertEquals(42, snapshot?.position)
+        assertEquals(SesameStatusRoute.BLE, snapshot?.lastRoute)
+    }
+
+    @Test
+    fun `a measurement without battery keeps the previously known value`() {
+        store.save(
+            DEVICE_UUID,
+            isLocked = true,
+            updatedAtEpochMillis = 1000L,
+            measurement = SesameStatusMeasurement(batteryPercentage = 85, position = 42, route = SesameStatusRoute.BLE),
+        )
+
+        // Web API経由の施錠/解錠は状態を返さないため、分かるのは経路だけ。
+        store.save(
+            DEVICE_UUID,
+            isLocked = false,
+            updatedAtEpochMillis = 2000L,
+            measurement = SesameStatusMeasurement.ofRoute(SesameStatusRoute.WEB_API),
+        )
+
+        val snapshot = store.load(DEVICE_UUID)
+        assertEquals(false, snapshot?.isLocked)
+        assertEquals(85, snapshot?.batteryPercentage)
+        assertEquals(42, snapshot?.position)
+        assertEquals(SesameStatusRoute.WEB_API, snapshot?.lastRoute)
+    }
+
+    @Test
+    fun `recording a failure keeps battery, position and route`() {
+        store.save(
+            DEVICE_UUID,
+            isLocked = true,
+            updatedAtEpochMillis = 1000L,
+            measurement = SesameStatusMeasurement(batteryPercentage = 85, position = 42, route = SesameStatusRoute.BLE),
+        )
+
+        store.saveFailure(DEVICE_UUID, SesameStatusFailure.COMMUNICATION)
+
+        val snapshot = store.load(DEVICE_UUID)
+        assertEquals(85, snapshot?.batteryPercentage)
+        assertEquals(SesameStatusRoute.BLE, snapshot?.lastRoute)
+        assertEquals(SesameStatusFailure.COMMUNICATION, snapshot?.lastFailure)
+    }
+
+    @Test
+    fun `a value saved before battery existed still loads`() {
+        // BL-166より前の保存形式（電池・角度・経路のキーが無い）。
+        keyValueStore.putString(
+            "lock_states",
+            """{"$DEVICE_UUID":{"isLocked":true,"updatedAtEpochMillis":1000}}""",
+        )
+
+        val snapshot = store.load(DEVICE_UUID)
+
+        assertEquals(true, snapshot?.isLocked)
+        assertEquals(null, snapshot?.batteryPercentage)
+        assertEquals(null, snapshot?.lastRoute)
+    }
+
+    @Test
+    fun `an unknown route name is treated as unknown`() {
+        keyValueStore.putString(
+            "lock_states",
+            """{"$DEVICE_UUID":{"isLocked":true,"updatedAtEpochMillis":1000,"lastRoute":"RETIRED"}}""",
+        )
+
+        assertEquals(null, store.load(DEVICE_UUID)?.lastRoute)
+    }
+
+    private companion object {
+        const val DEVICE_UUID = "uuid-battery"
     }
 }
 

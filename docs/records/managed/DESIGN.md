@@ -130,6 +130,26 @@
     エラー後のバックオフ（BL-143）は、抑制対象だった自動取得が消えたため対象消滅として閉じた
     （2026-09-18、ユーザー確認済み。失敗の種類を利用者へ伝える側面はBL-140が引き取る）。
 
+### セサミ本体の状態（電池残量・角度・経路）
+
+施錠状態だけでなく、電池残量・サムターンの角度・最後に使った経路を保持して表示に使う（BL-166）。
+
+- **電池残量はBLE専用の情報ではない。** Sesame Web APIの状態取得レスポンス（`core.api.SesameStatus`）も
+  `batteryVoltage`と`position`を返しており、BL-166より前は捨てていただけだった。したがって
+  電池・角度の表示は経路によらず成立する。
+- 電圧から残量（%）への換算表は`core.SesameBatteryLevel`が持つ（`meronepy/gomalock`と同じ値で、
+  公式アプリの表示に合わせた非線形な対応）。BLE経由・Web API経由のどちらも同じ換算を通るため、
+  経路によって表示がずれない。もとは`mobile.ble.SesameBleMechStatus`にあったものを`core`へ移した。
+- `core.SesameStatusSnapshot`へ`batteryPercentage` / `position` / `lastRoute`を追加した。
+  分かった値だけを上書きする`merge(SesameStatusMeasurement)`を持ち、**分からなかった項目は
+  前回の値を残す**。Web API経由の施錠/解錠は状態を返さないため、経路だけが更新される。
+- BLE経由の施錠/解錠では、ログイン直後に届く`MECH_STATUS`から電池残量が分かるため一緒に更新する。
+  **角度は使わない**（コマンドを送る前の値になるため。`SesameBleClient.CommandOutcome`のKDoc）。
+- 「電池切れ間近」フラグ（BLEのみ取得可能）は持たない。残量（%）があれば表示の判断には足り、
+  スナップショットの項目数を増やすとdetektの`LongParameterList`（上限7）に触れるため。
+- 保存（`mobile.state.LockStateStore`）とDataItemの双方で、キーが無い場合は未取得として扱う。
+  BL-166より前に保存された値・同期された値を読んでも壊れない。
+
 ### 状態の鮮度表示と失敗の区別
 
 状態文言のすぐ下へ1行だけ添える表示。直近の取得・操作が失敗していればその理由、成功していれば
@@ -544,6 +564,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   一意なパスを生成する（BL-050）。値が無い項目はキーごと載せず、wear側は
   `core.SesameStatusSnapshotFactory`がキーの有無から復元する。施錠状態が未取得のまま失敗だけが
   同期されることもある（一度も取得できていないデバイスで認証エラーになった場合）。
+- `KEY_BATTERY_PERCENTAGE` / `KEY_POSITION` / `KEY_LAST_ROUTE`: 電池残量（%）・サムターンの角度・
+  最後に使った経路（BL-166）。いずれも後から追加した任意のキーで、値が無ければ載せない。
+  旧バージョンのmobileが同期したDataItemにはキーが無いため、wear側は未取得として扱う（互換維持）。
 - `encodeDeviceUuid` / `decodeDeviceUuid`: 施錠/解錠/状態取得コマンドの対象デバイスuuidを
   メッセージペイロードへUTF-8バイト列としてそのまま載せる（BL-048）。
 - `DEVICE_LIST_DATA_ITEM_PATH` / `KEY_DEVICE_LIST_JSON`: 登録済みデバイス一覧（`SesameDeviceSummary`

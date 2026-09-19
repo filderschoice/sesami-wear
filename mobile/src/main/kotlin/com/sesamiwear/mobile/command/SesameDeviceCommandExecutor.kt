@@ -1,9 +1,13 @@
 package com.sesamiwear.mobile.command
 
+import com.sesamiwear.core.SesameBatteryLevel
 import com.sesamiwear.core.SesameCommandResult
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusReading
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
@@ -62,12 +66,13 @@ class SesameDeviceCommandExecutor(
         command: SesameCommand,
     ): Outcome {
         if (!debouncer.shouldProcess(COMMAND_KEY_PREFIX + uuid)) return Outcome.DEBOUNCED
-        val succeeded = SesameDemoMode.isDemoDevice(uuid) || sendCommand(uuid, command)
-        if (succeeded) {
+        val measurement =
+            if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
+        if (measurement != null) {
             // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
-            updateLockState(uuid, isLocked = command == SesameCommand.LOCK)
+            updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
         }
-        return if (succeeded) Outcome.SUCCESS else Outcome.FAILURE
+        return if (measurement != null) Outcome.SUCCESS else Outcome.FAILURE
     }
 
     /**
@@ -77,12 +82,17 @@ class SesameDeviceCommandExecutor(
     private suspend fun sendCommand(
         uuid: String,
         command: SesameCommand,
-    ): Boolean {
+    ): SesameStatusMeasurement? {
         val credentials = findCredentials(uuid)
-        val secretKey = credentials?.secretKeyBytesOrNull ?: return false
-        return routes.ble.tryCommand(credentials, command, nowMillis()) ||
-            routes.ble.withReachabilityProbe(credentials, nowMillis()) {
-                sendCommandOverApi(credentials, secretKey, command)
+        val secretKey = credentials?.secretKeyBytesOrNull ?: return null
+        return routes.ble.tryCommand(credentials, command, nowMillis())
+            ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) {
+                // Web API経由の施錠/解錠は状態を返さないため、分かるのは経路だけ（BL-166）。
+                if (sendCommandOverApi(credentials, secretKey, command)) {
+                    SesameStatusMeasurement.ofRoute(SesameStatusRoute.WEB_API)
+                } else {
+                    null
+                }
             }
     }
 
@@ -126,23 +136,39 @@ class SesameDeviceCommandExecutor(
         // 連打として無視した場合はAPIを呼ばず保存済みの状態を返す。失敗ではないため、
         // 失敗の記録（BL-140）も残さない。
         return if (debouncer.shouldProcess(STATUS_KEY_PREFIX + uuid)) {
-            fetchIsLocked(uuid)?.also { updateLockState(uuid, it) }
+            fetchStatus(uuid)?.let { reading ->
+                updateLockState(uuid, reading.isLocked, reading.measurement)
+                reading.isLocked
+            }
         } else {
             lockStateStore.load(uuid)?.isLocked
         }
     }
 
-    private suspend fun fetchIsLocked(uuid: String): Boolean? {
+    private suspend fun fetchStatus(uuid: String): SesameStatusReading? {
         val credentials = findCredentials(uuid) ?: return null
         // BLEで取得できた場合はWeb APIを呼ばない（上限を消費しない、BL-152）。
         return routes.ble.tryStatus(credentials, nowMillis())
-            ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) { fetchIsLockedOverApi(credentials) }
+            ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) { fetchStatusOverApi(credentials) }
     }
 
-    private suspend fun fetchIsLockedOverApi(credentials: SesameCredentials): Boolean? {
+    /**
+     * Sesame Web APIの状態取得。施錠状態に加えて電池残量と角度も返ってくるため、
+     * あわせて実測値として取り出す（BL-166。電池残量はBLE専用の情報ではない）。
+     */
+    private suspend fun fetchStatusOverApi(credentials: SesameCredentials): SesameStatusReading? {
         routes.api.recordApiCall()
         return try {
-            routes.api.clientFactory(credentials).getStatus().isInLockRange
+            val status = routes.api.clientFactory(credentials).getStatus()
+            SesameStatusReading(
+                isLocked = status.isInLockRange,
+                measurement =
+                    SesameStatusMeasurement(
+                        batteryPercentage = SesameBatteryLevel.percentageOf(status.batteryVoltage),
+                        position = status.position,
+                        route = SesameStatusRoute.WEB_API,
+                    ),
+            )
         } catch (e: SesameApiException) {
             // 呼び出し元（ウォッチ・ウィジェット）へは「取得できなかった」ことだけを伝える。
             // 切り分けに必要な情報はlogcatへ残し（BL-139）、失敗の分類は表示のため保存する（BL-140）。
@@ -170,8 +196,9 @@ class SesameDeviceCommandExecutor(
     private suspend fun updateLockState(
         uuid: String,
         isLocked: Boolean,
+        measurement: SesameStatusMeasurement = SesameStatusMeasurement(),
     ) {
-        lockStateStore.save(uuid, isLocked, nowMillis())
+        lockStateStore.save(uuid, isLocked, nowMillis(), measurement)
         notifySnapshot(uuid)
     }
 

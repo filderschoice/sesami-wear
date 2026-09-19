@@ -3,6 +3,9 @@ package com.sesamiwear.mobile.command
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusReading
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
@@ -455,11 +458,25 @@ class SesameDeviceCommandExecutorTest {
         reachability = reachability,
         executeOverBle = { _, _ ->
             bleAttempts++
-            bleSucceeds
+            if (bleSucceeds) {
+                SesameStatusMeasurement(batteryPercentage = BLE_BATTERY_PERCENTAGE, route = SesameStatusRoute.BLE)
+            } else {
+                null
+            }
         },
         fetchStatusOverBle = { _ ->
             bleAttempts++
-            bleStatus
+            bleStatus?.let {
+                SesameStatusReading(
+                    isLocked = it,
+                    measurement =
+                        SesameStatusMeasurement(
+                            batteryPercentage = BLE_BATTERY_PERCENTAGE,
+                            position = BLE_POSITION,
+                            route = SesameStatusRoute.BLE,
+                        ),
+                )
+            }
         },
         probeReachable = { _ ->
             probes++
@@ -608,6 +625,8 @@ class SesameDeviceCommandExecutorTest {
         const val DEVICE_UUID = "test-uuid"
         const val HTTP_OK = 200
         const val HTTP_FORBIDDEN = 403
+        const val BLE_BATTERY_PERCENTAGE = 85
+        const val BLE_POSITION = 42
 
         // RFC 4493のテストベクタ鍵（ダミー、実資格情報ではない）。
         val validCredentials =

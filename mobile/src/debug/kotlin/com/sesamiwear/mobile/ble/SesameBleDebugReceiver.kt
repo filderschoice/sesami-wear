@@ -67,8 +67,9 @@ class SesameBleDebugReceiver : BroadcastReceiver() {
         }
         val client = SesameBleClient(context)
         when (operation) {
-            OPERATION_LOCK -> Log.w(TAG, "lock result=${client.execute(credentials, SesameCommand.LOCK)}")
-            OPERATION_UNLOCK -> Log.w(TAG, "unlock result=${client.execute(credentials, SesameCommand.UNLOCK)}")
+            OPERATION_LOCK -> Log.w(TAG, "lock result=${client.execute(credentials, SesameCommand.LOCK).result}")
+            OPERATION_UNLOCK ->
+                Log.w(TAG, "unlock result=${client.execute(credentials, SesameCommand.UNLOCK).result}")
             OPERATION_STATUS -> logStatus(client, credentials.uuid, client.fetchStatus(credentials))
             else -> Log.w(TAG, "unknown op=$operation (expected status/lock/unlock)")
         }

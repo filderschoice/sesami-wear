@@ -33,6 +33,10 @@ class SesameStatusSyncer(private val context: Context) {
                 request.dataMap.putLong(SesameWearProtocol.KEY_UPDATED_AT_EPOCH_MILLIS, it)
             }
             snapshot.lastFailure?.let { request.dataMap.putString(SesameWearProtocol.KEY_LAST_FAILURE, it.name) }
+            // 電池残量・角度・経路（BL-166）。分かっていない項目はキー自体を載せない。
+            snapshot.batteryPercentage?.let { request.dataMap.putInt(SesameWearProtocol.KEY_BATTERY_PERCENTAGE, it) }
+            snapshot.position?.let { request.dataMap.putInt(SesameWearProtocol.KEY_POSITION, it) }
+            snapshot.lastRoute?.let { request.dataMap.putString(SesameWearProtocol.KEY_LAST_ROUTE, it.name) }
             Wearable.getDataClient(context).putDataItem(request.asPutDataRequest().setUrgent()).await()
         }
     }

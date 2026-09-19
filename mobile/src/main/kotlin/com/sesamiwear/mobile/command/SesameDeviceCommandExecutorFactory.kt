@@ -3,6 +3,9 @@ package com.sesamiwear.mobile.command
 import android.content.Context
 import android.util.Log
 import com.sesamiwear.core.SesameCredentialsStore
+import com.sesamiwear.core.SesameStatusMeasurement
+import com.sesamiwear.core.SesameStatusReading
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
@@ -58,9 +61,30 @@ object SesameDeviceCommandExecutorFactory {
         return SesameBleAccess(
             reachability = SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)),
             executeOverBle = { credentials, command ->
-                client.execute(credentials, command) == SesameBleClient.Result.SUCCESS
+                val outcome = client.execute(credentials, command)
+                // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
+                outcome.status
+                    ?.takeIf { outcome.result == SesameBleClient.Result.SUCCESS }
+                    ?.let {
+                        SesameStatusMeasurement(
+                            batteryPercentage = it.batteryPercentage,
+                            route = SesameStatusRoute.BLE,
+                        )
+                    }
             },
-            fetchStatusOverBle = { credentials -> client.fetchStatus(credentials).status?.isInLockRange },
+            fetchStatusOverBle = { credentials ->
+                client.fetchStatus(credentials).status?.let {
+                    SesameStatusReading(
+                        isLocked = it.isInLockRange,
+                        measurement =
+                            SesameStatusMeasurement(
+                                batteryPercentage = it.batteryPercentage,
+                                position = it.position,
+                                route = SesameStatusRoute.BLE,
+                            ),
+                    )
+                }
+            },
             probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
             logRoute = { message -> Log.w(SesameApiFailureLog.TAG, message) },
         )
