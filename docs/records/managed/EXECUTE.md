@@ -5,6 +5,36 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 20:30
+  summary: ウォッチのアプリ本体を登録済みセサミの状態一覧にする
+  details:
+    変更内容: >-
+      「Sesami Wear」と表示するだけのスタブだったwear.MainActivityを、登録済みセサミの
+      状態一覧へ置き換えた。1台につきデバイス名・施錠状態と電池残量・最終取得時刻と経路アイコンの
+      3行を出す。円形画面では行が長いと行頭・行末が見切れるため、スマートフォンの1行表示は
+      そのまま使わず短い行へ分け、各行が幅の目安に収まることをユニットテストで固定した。
+      角度は狭い画面では情報量が勝ちすぎるため出さない。施錠状態のアイコンと文言はTileと同じ
+      ものを使う。この画面から状態取得のリクエストは送らず、最後に同期された値をそのまま出す。
+      画面の再開を契機に読み直すため、wearへlifecycle-runtime-composeを追加した
+      （mobileと同じ版で依存グラフは変わらない）。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/MainActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - wear/build.gradle.kts
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameStatusListContentTestは8件が成功し、
+      各行が円形画面の幅の目安（全角11文字相当）に収まることも確認した。
+      実機での表示確認はBL-172で行う。
+    関連ID:
+      - BL-170
+
 - date: 2026-09-19 19:50
   summary: スマートフォンのデバイス一覧へセサミの状態を1行で表示する
   details:

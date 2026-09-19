@@ -92,6 +92,10 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    // 状態一覧（BL-170）で、画面の再開（ON_RESUME）を契機に表示を読み直すための
+    // `LifecycleEventEffect`。mobileが使っているものと同じ版で、compose-uiが推移的に持ち込む
+    // lifecycle-runtimeと同一バージョンのため依存グラフは変わらない（BL-159と同じ判断）。
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
