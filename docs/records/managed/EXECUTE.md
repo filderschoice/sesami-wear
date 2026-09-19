@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 21:00
+  summary: ホーム画面ウィジェットのFULL表示へ電池残量を併記する
+  details:
+    変更内容: >-
+      ウィジェットのFULLレイアウトで、電池残量を最終取得時刻と同じ行へ併記するようにした。
+      高さ予算が既に埋まっている（最小140dpに対して約136dp使用）ため行は増やしていない。
+      COMPACTでは出さない。「全デバイス」対象では最も少ない台の値を代表値にする
+      （失敗・鮮度と同じく、利用者が対処すべき側を見せる）。1台も分かっていなければ出さない。
+      電池の書き方はcore.display.SesameTileContent.batteryLabelへ切り出し、
+      ウォッチの状態一覧（BL-170）と共通にした。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。未取得なら行が従来どおりであること、複数台では
+      最も少ない値が出ること、デモ用デバイスでは出ないことをユニットテストで確認した。
+      実機での収まりはBL-172で確認する。
+    関連ID:
+      - BL-171
+
 - date: 2026-09-19 20:30
   summary: ウォッチのアプリ本体を登録済みセサミの状態一覧にする
   details:

@@ -27,9 +27,6 @@ object SesameStatusListContent {
      */
     const val MAX_LINE_CHARS = 11
 
-    /** 電池残量の前に付ける記号。 */
-    const val BATTERY_ICON = "🔋"
-
     /** 画面の見出し。 */
     const val TITLE = "セサミの状態"
 
@@ -87,7 +84,7 @@ object SesameStatusListContent {
     private fun statusLineOf(snapshot: SesameStatusSnapshot?): String {
         val state = displayStateOf(snapshot?.isLocked)
         val base = "${SesameTileContent.statusIcon(state)}${SesameTileContent.statusLabel(state)}"
-        return snapshot?.batteryPercentage?.let { "$base $BATTERY_ICON$it%" } ?: base
+        return SesameTileContent.batteryLabel(snapshot?.batteryPercentage)?.let { "$base $it" } ?: base
     }
 
     /**

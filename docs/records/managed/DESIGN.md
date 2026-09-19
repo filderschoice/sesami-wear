@@ -568,6 +568,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   minResizeWidth / minResizeHeight 50dpにより1マス（1x1）まで縮められる（BL-128）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
+### ウィジェットの電池残量表示
+
+ホーム画面ウィジェットのFULLレイアウトで、電池残量を**最終取得時刻と同じ行**へ併記する
+（「📶3分前 🔋85%」、BL-171）。
+
+- **行は増やさない。** 高さ予算は最小サイズ140dpに対して約136dpを既に使っており（BL-158）、
+  行を足すと最小サイズで操作文言が見切れる。`SesameWidgetLayout`のしきい値は変更していない。
+- COMPACT（1マス相当）では出さない。アイコンと状態文言だけに絞るという目的が崩れるため。
+- 「全デバイス」対象では**最も少ない台の値**を代表値にする。失敗（最悪を出す）・鮮度（最も古い値を
+  出す）と同じく、利用者が対処すべき側を見せる。1台も分かっていなければ出さない。
+- 電池の書き方（`🔋85%`）は`core.display.SesameTileContent.batteryLabel`が持ち、
+  ウォッチの状態一覧（BL-170）と共通にしている。
+
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 
 `mobile`/`wear`間で共有するメッセージパス・DataItemパス・ペイロードキーの定義（Android非依存）。

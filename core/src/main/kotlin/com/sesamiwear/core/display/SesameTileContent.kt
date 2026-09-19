@@ -76,6 +76,15 @@ object SesameTileContent {
             -> COLOR_TEXT_LIGHT
         }
 
+    /** 電池残量の前に付ける記号（BL-171）。 */
+    const val BATTERY_ICON = "🔋"
+
+    /**
+     * 電池残量の表示（「🔋85%」）。未取得（null）なら表示しないためnullを返す。
+     * ウォッチの状態一覧・ホーム画面ウィジェットで同じ書き方になるよう、ここに置く。
+     */
+    fun batteryLabel(percentage: Int?): String? = percentage?.let { "$BATTERY_ICON$it%" }
+
     /**
      * 状態色と無関係な中立チップ（Tileのデバイス名/デバイス変更チップ、施錠/解錠確認画面の
      * キャンセルボタン等）に共通で使うダークグレー（BL-063/BL-070）。

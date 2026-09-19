@@ -16,6 +16,7 @@ class SesameWidgetModelResolverTest {
     private val lockStates = mutableMapOf<String, Boolean>()
     private val updatedAtMillis = mutableMapOf<String, Long>()
     private val failures = mutableMapOf<String, SesameStatusFailure>()
+    private val batteries = mutableMapOf<String, Int>()
 
     private fun resolve(
         assignedUuid: String?,
@@ -37,6 +38,7 @@ class SesameWidgetModelResolverTest {
             isLocked = isLocked,
             updatedAtEpochMillis = if (isLocked == null) null else updatedAtMillis[uuid] ?: NOW,
             lastFailure = failure,
+            batteryPercentage = batteries[uuid],
         )
     }
 
@@ -230,6 +232,60 @@ class SesameWidgetModelResolverTest {
         val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
 
         assertEquals("認証エラー（設定を確認）", model.detailLabel)
+    }
+
+    // --- 電池残量（BL-171） ---
+
+    @Test
+    fun `the battery is shown next to the freshness without adding a row`() {
+        lockStates[front.uuid] = true
+        batteries[front.uuid] = 85
+
+        val model = configured(resolve(front.uuid, listOf(front)))
+
+        assertEquals(85, model.batteryPercentage)
+        assertEquals("たった今 🔋85%", model.detailWithBatteryLabel)
+    }
+
+    @Test
+    fun `no battery reading leaves the line as it was`() {
+        lockStates[front.uuid] = true
+
+        val model = configured(resolve(front.uuid, listOf(front)))
+
+        assertEquals(null, model.batteryPercentage)
+        assertEquals("たった今", model.detailWithBatteryLabel)
+    }
+
+    @Test
+    fun `the lowest battery represents all devices`() {
+        lockStates[front.uuid] = true
+        lockStates[back.uuid] = true
+        batteries[front.uuid] = 85
+        batteries[back.uuid] = 40
+
+        val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
+
+        assertEquals(40, model.batteryPercentage)
+    }
+
+    @Test
+    fun `a device without a reading does not hide the readings of the others`() {
+        lockStates[front.uuid] = true
+        lockStates[back.uuid] = true
+        batteries[back.uuid] = 40
+
+        val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
+
+        assertEquals(40, model.batteryPercentage)
+    }
+
+    @Test
+    fun `a demo device never shows a battery`() {
+        val model = configured(resolve(SesameDemoMode.DEMO_DEVICE_UUID, emptyList()))
+
+        assertEquals(null, model.batteryPercentage)
+        assertEquals(null, model.detailWithBatteryLabel)
     }
 
     private companion object {
