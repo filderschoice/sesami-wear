@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 19:50
+  summary: スマートフォンのデバイス一覧へセサミの状態を1行で表示する
+  details:
+    変更内容: >-
+      資格情報設定画面のデバイス一覧で、各デバイスの名前の下に施錠状態・電池残量・角度・
+      最終取得時刻・経路を1行で出すようにした。分かっていない項目は出さず、何も分かっていなければ
+      「未取得」だけになる。組み立てはcore.display.SesameDeviceStatusLineへ切り出し、
+      ウォッチの状態一覧（BL-170）と共用できるようにしている。
+      経路はアイコンではなく語で書く（この画面は表示領域に余裕があるため）。角度はこの画面でだけ
+      出す（生の値で意味を読み取りにくいため）。画面の再開時に読み直すが、この表示のために
+      状態取得のリクエストは送らない。
+      ファイルあたりの関数数の上限に達したため、デバイス一覧をDeviceListSection.ktへ分離した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLineTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListSection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。分かっていない項目が出ないこと、失敗時は鮮度の代わりに
+      理由が出ることをユニットテストで確認した。実機での表示確認はBL-172で行う。
+    関連ID:
+      - BL-169
+
 - date: 2026-09-19 19:10
   summary: 経路を表示し、BLEからフォールバックしたときにトーストで知らせる
   details:
