@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 19:10
+  summary: 経路を表示し、BLEからフォールバックしたときにトーストで知らせる
+  details:
+    変更内容: >-
+      Tile・Complication・ホーム画面ウィジェットの「最終取得時刻」の行へ経路アイコン
+      （BLE=📶、インターネット=☁）を前置するようにした。3つの面はいずれも表示余白を使い切って
+      おり、過去に文言が収まらず省略された事例があるため行は増やしていない。
+      アイコンが1コードポイントに収まることをユニットテストで固定した。
+      「全デバイス」対象の集約表示では、全デバイスが同じ経路のときだけアイコンを出す。
+      BLEを試したのに届かずWeb APIへ倒れた場合は、スマートフォンでトーストを出す。
+      そもそもBLEを試していない場合（到達実績が無い・権限が無い・方針が常にインターネット経由）は
+      出さない。通知ではなくトーストにしたのは、Android 13以降の通知権限の要求と
+      データセーフティ申告を増やさないため。
+      SesameBleAccessの引数が上限に達したため、BLEの実行3種をSesameBleOperationsへまとめた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。フォールバック通知が「実際に試して失敗したときだけ」
+      出ることを4通りのケースで確認した。実機での表示の収まりはBL-172で確認する。
+    関連ID:
+      - BL-168
+
 - date: 2026-09-19 18:20
   summary: 経路の方針（自動/常にインターネット経由）を設定画面から選べるようにする
   details:

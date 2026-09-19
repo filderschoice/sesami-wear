@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameStatusDetail
 import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.core.display.SesameTileContent
@@ -150,6 +151,7 @@ object SesameWidgetModelResolver {
                 failure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure }),
                 updatedAtEpochMillis = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis }),
                 nowEpochMillis = nowEpochMillis,
+                route = SesameRouteLabel.commonRoute(snapshots.map { it?.lastRoute }),
             )
         }
 }

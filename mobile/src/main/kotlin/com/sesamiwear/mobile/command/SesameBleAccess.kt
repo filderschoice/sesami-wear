@@ -29,15 +29,17 @@ import kotlinx.coroutines.coroutineScope
  *
  * どの経路で実行したかは[logRoute]（診断ログ、BL-139）へ残すほか、状態のスナップショットへ載せて
  * 利用者にも見せる（BL-166 / BL-168）。
+ *
+ * **BLEを試したのに届かずWeb APIへ倒れた場合は[onFallbackToWebApi]を呼ぶ**（BL-168）。
+ * 利用者が切り替えに気づけるようにするためで、そもそもBLEを試していない場合
+ * （到達実績が無い・権限が無い・方針が「常にインターネット経由」）は呼ばない。
  */
 class SesameBleAccess(
     val reachability: SesameBleReachability = SesameBleReachability(),
     private val routePolicy: () -> SesameRoutePolicy = { SesameRoutePolicy.DEFAULT },
-    private val executeOverBle: suspend (SesameCredentials, SesameCommand) -> SesameStatusMeasurement? =
-        { _, _ -> null },
-    private val fetchStatusOverBle: suspend (SesameCredentials) -> SesameStatusReading? = { null },
-    private val probeReachable: suspend (SesameCredentials) -> Boolean = { false },
+    private val operations: SesameBleOperations = SesameBleOperations(),
     private val logRoute: (String) -> Unit = {},
+    private val onFallbackToWebApi: () -> Unit = {},
 ) {
     /**
      * BLEで[command]を実行できたら、そのとき分かった実測値（電池残量と経路、BL-166）を返す。
@@ -50,9 +52,8 @@ class SesameBleAccess(
         nowMillis: Long,
     ): SesameStatusMeasurement? {
         if (!allowsBle(credentials.uuid, nowMillis)) return null
-        val measurement = executeOverBle(credentials, command)
-        reachability.record(credentials.uuid, nowMillis, measurement != null)
-        logRoute(describe(command.name, credentials.uuid, measurement != null))
+        val measurement = operations.execute(credentials, command)
+        recordAttempt(credentials.uuid, nowMillis, command.name, measurement != null)
         return measurement
     }
 
@@ -65,9 +66,8 @@ class SesameBleAccess(
         nowMillis: Long,
     ): SesameStatusReading? {
         if (!allowsBle(credentials.uuid, nowMillis)) return null
-        val reading = fetchStatusOverBle(credentials)
-        reachability.record(credentials.uuid, nowMillis, reading != null)
-        logRoute(describe("STATUS", credentials.uuid, reading != null))
+        val reading = operations.fetchStatus(credentials)
+        recordAttempt(credentials.uuid, nowMillis, "STATUS", reading != null)
         return reading
     }
 
@@ -84,7 +84,7 @@ class SesameBleAccess(
             block()
         } else {
             coroutineScope {
-                val probe = async { probeReachable(credentials) }
+                val probe = async { operations.probeReachable(credentials) }
                 try {
                     block()
                 } finally {
@@ -92,6 +92,21 @@ class SesameBleAccess(
                 }
             }
         }
+
+    /**
+     * BLEを試した結果を、到達実績・診断ログ・利用者への通知へ反映する。
+     * 通知は**実際に試して失敗したときだけ**行う（試していない場合は呼ばれない）。
+     */
+    private fun recordAttempt(
+        uuid: String,
+        nowMillis: Long,
+        operation: String,
+        succeeded: Boolean,
+    ) {
+        reachability.record(uuid, nowMillis, succeeded)
+        logRoute(describe(operation, uuid, succeeded))
+        if (!succeeded) onFallbackToWebApi()
+    }
 
     /** 方針が許し、かつ直近に到達できた実績がある場合だけBLEを試す。 */
     private fun allowsBle(
@@ -117,3 +132,21 @@ class SesameBleAccess(
         const val UUID_LOG_PREFIX_LENGTH = 8
     }
 }
+
+/**
+ * BLE経路の実行そのもの（BL-152 / BL-166）。
+ *
+ * [SesameBleAccess]はAndroid非依存のユニットテスト対象のため、実際のBLE通信はここへラムダとして
+ * 切り出して注入する。既定値はすべて「BLEを使わない」実装で、配線していない呼び出し元
+ * （テストや、BLEを使わない構成）では従来どおりWeb APIだけが動く。
+ * 3つをまとめて1つの引数にしているのは、[SesameBleAccess]の引数の数を抑えるためでもある。
+ *
+ * @property execute 施錠/解錠。成功したらそのとき分かった実測値、失敗・未到達ならnull。
+ * @property fetchStatus 状態取得。成功したら施錠状態と実測値、失敗・未到達ならnull。
+ * @property probeReachable スキャンだけの到達確認。接続もログインもしない。
+ */
+class SesameBleOperations(
+    val execute: suspend (SesameCredentials, SesameCommand) -> SesameStatusMeasurement? = { _, _ -> null },
+    val fetchStatus: suspend (SesameCredentials) -> SesameStatusReading? = { null },
+    val probeReachable: suspend (SesameCredentials) -> Boolean = { false },
+)

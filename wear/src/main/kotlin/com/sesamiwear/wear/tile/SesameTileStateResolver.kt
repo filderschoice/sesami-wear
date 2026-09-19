@@ -3,10 +3,12 @@ package com.sesamiwear.wear.tile
 import android.content.Context
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameStatusDetail
 import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.wear.demo.DemoLockStateStore
@@ -79,7 +81,7 @@ object SesameTileStateResolver {
         val snapshot = SesameStatusSnapshotReader.readLatest(context, deviceUuid)
         return SesameTileStatus(
             state = TileDisplayStateResolver.resolve(nodeId != null, false, snapshot?.isLocked),
-            detailLabel = detailLabelOf(snapshot?.lastFailure, snapshot?.updatedAtEpochMillis),
+            detailLabel = detailLabelOf(snapshot?.lastFailure, snapshot?.updatedAtEpochMillis, snapshot?.lastRoute),
         )
     }
 
@@ -95,12 +97,24 @@ object SesameTileStateResolver {
         val worstFailure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure })
         return SesameTileStatus(
             state = TileDisplayStateResolver.resolveAggregate(nodeId != null, false, snapshots.map { it?.isLocked }),
-            detailLabel = detailLabelOf(worstFailure, oldestUpdatedAt),
+            detailLabel =
+                detailLabelOf(
+                    worstFailure,
+                    oldestUpdatedAt,
+                    SesameRouteLabel.commonRoute(snapshots.map { it?.lastRoute }),
+                ),
         )
     }
 
     private fun detailLabelOf(
         failure: SesameStatusFailure?,
         updatedAtEpochMillis: Long?,
-    ): String = SesameStatusDetail.compactLabel(failure, updatedAtEpochMillis, System.currentTimeMillis())
+        route: SesameStatusRoute?,
+    ): String =
+        SesameStatusDetail.compactLabel(
+            failure = failure,
+            updatedAtEpochMillis = updatedAtEpochMillis,
+            nowEpochMillis = System.currentTimeMillis(),
+            route = route,
+        )
 }

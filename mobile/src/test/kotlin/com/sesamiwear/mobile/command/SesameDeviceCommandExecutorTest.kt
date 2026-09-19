@@ -39,6 +39,7 @@ class SesameDeviceCommandExecutorTest {
     private var apiCalls = 0
     private var bleAttempts = 0
     private var probes = 0
+    private var fallbackNotices = 0
 
     @Before
     fun setUp() {
@@ -459,33 +460,40 @@ class SesameDeviceCommandExecutorTest {
     ) = SesameBleAccess(
         reachability = reachability,
         routePolicy = { routePolicy },
-        executeOverBle = { _, _ ->
-            bleAttempts++
-            if (bleSucceeds) {
-                SesameStatusMeasurement(batteryPercentage = BLE_BATTERY_PERCENTAGE, route = SesameStatusRoute.BLE)
-            } else {
-                null
-            }
-        },
-        fetchStatusOverBle = { _ ->
-            bleAttempts++
-            bleStatus?.let {
-                SesameStatusReading(
-                    isLocked = it,
-                    measurement =
+        operations =
+            SesameBleOperations(
+                execute = { _, _ ->
+                    bleAttempts++
+                    if (bleSucceeds) {
                         SesameStatusMeasurement(
                             batteryPercentage = BLE_BATTERY_PERCENTAGE,
-                            position = BLE_POSITION,
                             route = SesameStatusRoute.BLE,
-                        ),
-                )
-            }
-        },
-        probeReachable = { _ ->
-            probes++
-            probeFindsDevice
-        },
+                        )
+                    } else {
+                        null
+                    }
+                },
+                fetchStatus = { _ ->
+                    bleAttempts++
+                    bleStatus?.let {
+                        SesameStatusReading(
+                            isLocked = it,
+                            measurement =
+                                SesameStatusMeasurement(
+                                    batteryPercentage = BLE_BATTERY_PERCENTAGE,
+                                    position = BLE_POSITION,
+                                    route = SesameStatusRoute.BLE,
+                                ),
+                        )
+                    }
+                },
+                probeReachable = { _ ->
+                    probes++
+                    probeFindsDevice
+                },
+            ),
         logRoute = { message -> routeLogs += message },
+        onFallbackToWebApi = { fallbackNotices++ },
     )
 
     @Test
@@ -630,6 +638,94 @@ class SesameDeviceCommandExecutorTest {
             assertEquals(true, isLocked)
             assertEquals(0, bleAttempts)
             assertEquals(1, server.requestCount)
+        }
+
+    @Test
+    fun `falling back from ble notifies the user once`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            createExecutor(bleAccess = bleAccess(reachability, bleSucceeds = false))
+                .execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(1, fallbackNotices)
+        }
+
+    @Test
+    fun `a device that was never reachable does not notify a fallback`() =
+        runTest {
+            // BLEを試していないため「切り替わった」わけではない。毎回通知するとうるさい。
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            createExecutor(bleAccess = bleAccess(reachability)).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(0, fallbackNotices)
+        }
+
+    @Test
+    fun `the web api only policy does not notify a fallback`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            createExecutor(
+                bleAccess = bleAccess(reachability, routePolicy = SesameRoutePolicy.WEB_API_ONLY),
+            ).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(0, fallbackNotices)
+        }
+
+    @Test
+    fun `a successful ble operation does not notify a fallback`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+
+            createExecutor(bleAccess = bleAccess(reachability)).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(0, fallbackNotices)
+        }
+
+    @Test
+    fun `a failed ble status fetch also notifies the fallback`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+
+            createExecutor(bleAccess = bleAccess(reachability, bleStatus = null)).refreshStatus(DEVICE_UUID)
+
+            assertEquals(1, fallbackNotices)
+        }
+
+    @Test
+    fun `the route is stored so the display can show which one was used`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+
+            createExecutor(bleAccess = bleAccess(reachability)).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameStatusRoute.BLE, lockStateStore.load(DEVICE_UUID)?.lastRoute)
+            assertEquals(BLE_BATTERY_PERCENTAGE, lockStateStore.load(DEVICE_UUID)?.batteryPercentage)
+        }
+
+    @Test
+    fun `a web api status fetch stores the battery and the route`() =
+        runTest {
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+
+            createExecutor().refreshStatus(DEVICE_UUID)
+
+            val snapshot = lockStateStore.load(DEVICE_UUID)
+            assertEquals(SesameStatusRoute.WEB_API, snapshot?.lastRoute)
+            // statusJson の batteryVoltage は 5.8V → 91%。
+            assertEquals(91, snapshot?.batteryPercentage)
+            assertEquals(11, snapshot?.position)
         }
 
     @Test

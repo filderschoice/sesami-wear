@@ -71,6 +71,24 @@ object SesameRouteLabel {
                     "操作のたびにAPIのリクエスト回数を消費します。"
         }
 
+    /**
+     * 複数デバイスを1つの表示へ集約する（「全デバイス」対象、BL-071）ときの経路。
+     *
+     * 全デバイスが同じ経路で、かつ1台以上分かっている場合だけその経路を返す。
+     * 経路が混在している場合・1台でも分かっていない場合はnull（アイコンを出さない）。
+     * 混在しているのに片方のアイコンを出すと、出ていない側のデバイスについて誤解を与えるため。
+     */
+    fun commonRoute(routes: List<SesameStatusRoute?>): SesameStatusRoute? = routes.distinct().singleOrNull()
+
+    /**
+     * Bluetoothで届かず、インターネット経由へ切り替えたときにスマートフォンで出す文言（BL-168）。
+     *
+     * 切り替えが起きたことに利用者が気づけないと、「Bluetoothにしたのに回数が減らない」という
+     * 状況の原因を切り分けられない。まだWeb APIの呼び出しは終わっていない時点で出すため、
+     * 完了形ではなく「操作します」と書く。
+     */
+    const val FALLBACK_MESSAGE = "Bluetoothで届かないため、インターネット経由で操作します"
+
     /** 経路が分からないときの呼び名。 */
     const val UNKNOWN_ROUTE_NAME = "未取得"
 }

@@ -1,12 +1,16 @@
 package com.sesamiwear.mobile.command
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
@@ -64,34 +68,55 @@ object SesameDeviceCommandExecutorFactory {
             reachability = SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)),
             // 設定は操作のたびに読み直す（設定画面で変えた直後から効かせるため）。
             routePolicy = policyStore::load,
-            executeOverBle = { credentials, command ->
-                val outcome = client.execute(credentials, command)
-                // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
-                outcome.status
-                    ?.takeIf { outcome.result == SesameBleClient.Result.SUCCESS }
-                    ?.let {
-                        SesameStatusMeasurement(
-                            batteryPercentage = it.batteryPercentage,
-                            route = SesameStatusRoute.BLE,
-                        )
-                    }
-            },
-            fetchStatusOverBle = { credentials ->
-                client.fetchStatus(credentials).status?.let {
-                    SesameStatusReading(
-                        isLocked = it.isInLockRange,
-                        measurement =
-                            SesameStatusMeasurement(
-                                batteryPercentage = it.batteryPercentage,
-                                position = it.position,
-                                route = SesameStatusRoute.BLE,
-                            ),
-                    )
-                }
-            },
-            probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
+            operations =
+                SesameBleOperations(
+                    execute = { credentials, command ->
+                        val outcome = client.execute(credentials, command)
+                        // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
+                        outcome.status
+                            ?.takeIf { outcome.result == SesameBleClient.Result.SUCCESS }
+                            ?.let {
+                                SesameStatusMeasurement(
+                                    batteryPercentage = it.batteryPercentage,
+                                    route = SesameStatusRoute.BLE,
+                                )
+                            }
+                    },
+                    fetchStatus = { credentials ->
+                        client.fetchStatus(credentials).status?.let {
+                            SesameStatusReading(
+                                isLocked = it.isInLockRange,
+                                measurement =
+                                    SesameStatusMeasurement(
+                                        batteryPercentage = it.batteryPercentage,
+                                        position = it.position,
+                                        route = SesameStatusRoute.BLE,
+                                    ),
+                            )
+                        }
+                    },
+                    probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
+                ),
             logRoute = { message -> Log.w(SesameApiFailureLog.TAG, message) },
+            onFallbackToWebApi = { showToast(appContext, SesameRouteLabel.FALLBACK_MESSAGE) },
         )
+    }
+
+    /**
+     * 経路が切り替わったことを利用者へ伝えるトースト（BL-168）。
+     *
+     * ウィジェットのタップもウォッチからのコマンドもバックグラウンドのコンポーネントで動くため、
+     * メインスレッドへ渡し直してから表示する。通知（Notification）ではなくトーストにしているのは、
+     * Android 13以降で`POST_NOTIFICATIONS`権限の要求が増え、データセーフティ申告（BL-154）も
+     * 増えるため（トーストは追加の権限が要らない）。
+     */
+    private fun showToast(
+        context: Context,
+        message: String,
+    ) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     /**
