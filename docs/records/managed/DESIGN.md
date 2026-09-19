@@ -1116,8 +1116,9 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
    利用するには」必要としており、**既登録デバイスのBLE操作のみの最小構成は明記されていない**。
    非公式実装（gomalock / libsesame3bt-core / ha-sesame-ble）はいずれもクラウドへ一切接続せず
    BLEのみで施錠/解錠まで到達している。gomalockについては2026-09-19のBL-150で、ネットワーク
-   切断下でも状態取得が成立することを実機で確認した。公式SDKを使う場合に初期化で要求されるかは、
-   BL-151の着手時に実際に組み込んで確かめる。
+   切断下でも状態取得が成立することを実機で確認した。公式SDKについては2026-09-19のBL-151の計測で、
+   **Amplify（AWS Cognito）がライブラリの`api`依存として不可避に付いてくる**ことを確認した
+   （下記「公式SDK取り込みの実測」）。
 3. **secretKeyの保持場所**: **現行方針を変更しない。** secretKeyは`mobile`のみが保持し、
    BLEの実行主体も`mobile`とする。`wear`は従来どおりData Layer経由でコマンドの意図だけを送る。
    この結果、**BLEはスマートフォンがSesameの電波圏内にあるときしか使えない**。
@@ -1127,12 +1128,28 @@ Sesame Web APIの月間リクエスト上限（BL-141）に対する構造的な
    `uses-feature android.hardware.bluetooth_le`は`required="false"`とする（BLE非搭載端末でも
    Web API経由で動くため、配信対象を狭めない）。Google Playのデータセーフティ申告と権限の
    用途説明の更新が必要（BL-154）。
-5. **実装方式**: 公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布、
-   JDK 17 / Android SDK 36 / minSdk 24。本アプリのminSdk 26と両立する）をJitPackで取り込むことを
-   既定とする。自前実装より保守負担が小さいため。ただしAABサイズへの影響をBL-151の着手時に計測し、
-   許容できない場合はBLE部分だけの自前実装へ切り替える（その場合もAES-CMACは
-   `core.crypto.AesCmac`を流用できる）。`core`はAndroid非依存の制約があるため、
-   BLE実装は`mobile`の新パッケージ（`mobile.ble`想定）へ置く。
+5. **実装方式**: 当初は公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`、MIT、JitPack配布）の
+   取り込みを既定としていたが、2026-09-19のBL-151の計測により**取り込みを断念し、BLE部分の自前実装へ
+   切り替える**（下記「公式SDK取り込みの実測」）。AES-CMACは`core.crypto.AesCmac`を流用できる。
+   `core`はAndroid非依存の制約があるため、BLE実装は`mobile`の新パッケージ（`mobile.ble`）へ置く。
+
+#### 公式SDK取り込みの実測（2026-09-19、BL-151）
+
+BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化の要否）を実測した。**結論として公式SDKの
+取り込みは断念する。** 計測は`v3.0.266-902`（JitPackのビルド成功を確認済みの最新タグ）で行い、計測用の
+変更はすべて破棄している。
+
+| 観点 | 実測結果 |
+| --- | --- |
+| JitPackの座標 | `com.github.CANDY-HOUSE:SesameSDK_Android_with_DemoApp:v3.0.266-902`。リポジトリ単位で1つのAARとして公開されており、**モジュール単位（`:sesame-sdk`）の座標は存在しない** |
+| Amplify依存 | **不可避。** `sesame-sdk/build.gradle`が`api`で`com.amplifyframework:aws-api` / `aws-auth-cognito` / `core-kotlin`（いずれも2.38.1）を宣言し、JitPackが生成したPOMにも`compile`スコープで載る。加えて`aws-iot-device-sdk-java`・Room・Navigation・RxJava・Tyrus（WebSocket）も`api`依存。ライブラリの`BuildConfig`にAWS Cognitoのidentity pool ID・API Gatewayのキー・APIサーバーURLが埋め込まれる |
+| 依存アーティファクト総量 | 95個 / 45.8MB → **200個 / 75.1MB**（+105個、+28.0MB、1.64倍）。本アプリのリリースAABは現状5.09MB（5,339,047バイト）であり、R8後でも同程度に収まる見込みは無い |
+| ビルド可否 | **通らない。** (1) Amplifyが core library desugaring を要求する（本アプリは未導入）。(2) SDKとAWS系アーティファクトのKotlinメタデータが2.2.0で、本プロジェクトのKotlin 2.0.21コンパイラが読めない（`Module was compiled with an incompatible version of Kotlin`）。解消にはプロジェクト全体のKotlinを2.2系へ上げる必要があり、Composeコンパイラ・detekt 1.23.7・ktlint・`wear`モジュールへ波及する。あわせて`kotlin-stdlib`が2.0.21→2.2.10へ引き上げられ、「stdlibをコンパイラより新しくしない」方針（BL-130）に反する |
+
+「クラウドへ接続しない」という本アプリの前提に対し、AWS Cognito・AWS IoT・API Gatewayの資格情報を含む
+ライブラリを同梱することは、たとえ実行時に初期化しなくてもデータセーフティ申告の説明を難しくする。
+サイズ・ビルド互換性・前提の3点がいずれも許容できないため、論点5の「許容できない場合はBLE部分だけの
+自前実装へ切り替える」条件に該当すると判断した。
 
 #### 経路の優先順位と切り替え条件
 
@@ -1171,7 +1188,8 @@ Android非依存のクラスへ切り出し、ユニットテストで検証で�
 #### 参照する外部実装（2026-09-18時点、BL-146の調査結果）
 
 - 公式: `CANDY-HOUSE/SesameSDK_Android_with_DemoApp`（Kotlin、MIT、更新継続、JitPack配布
-  `com.github.CANDY-HOUSE.SesameSDK_Android_with_DemoApp:sesame-sdk:<version>`）。BLE実装は
+  `com.github.CANDY-HOUSE:SesameSDK_Android_with_DemoApp:<tag>`。取り込みは断念したが、
+  プロトコルの参照元としては引き続き有効）。BLE実装は
   `sesame-sdk/src/main/java/co/candyhouse/sesame/ble/os3/`で、Sesame 5は`CHSesame5Device.kt`が担当。
   プロトコル定義は`ble/SesameProtocols.kt`、AES-CMACは`utils/aescmac/`配下。
   `VALIARK-jp/Pedal_Share`は、このSDKを自アプリへモジュールとして同梱した先行事例。
