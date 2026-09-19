@@ -9,6 +9,7 @@ import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
+import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.state.ApiUsageCounter
@@ -58,8 +59,11 @@ object SesameDeviceCommandExecutorFactory {
 
     private fun createBleAccess(appContext: Context): SesameBleAccess {
         val client = SesameBleClient(appContext, timeouts = BLE_TIMEOUTS)
+        val policyStore = SesameRoutePolicyStore(SharedPreferencesKeyValueStore.forBleReachability(appContext))
         return SesameBleAccess(
             reachability = SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)),
+            // 設定は操作のたびに読み直す（設定画面で変えた直後から効かせるため）。
+            routePolicy = policyStore::load,
             executeOverBle = { credentials, command ->
                 val outcome = client.execute(credentials, command)
                 // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。

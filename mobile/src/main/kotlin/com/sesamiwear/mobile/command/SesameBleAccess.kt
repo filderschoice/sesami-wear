@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.command
 
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.core.SesameRoutePolicy
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.api.SesameCommand
@@ -23,11 +24,15 @@ import kotlinx.coroutines.coroutineScope
  *    **並行して**短いスキャン（[probeReachable]）を行い、次回に備えて到達実績を取り直す。
  *    並行して行うため、利用者から見た所要時間はほぼ変わらない。
  *
- * **利用者は経路を意識しない。** 表示・操作・結果の見え方は経路によらず同じで、どちらで実行したかは
- * [logRoute]（診断ログ、BL-139）にのみ残す。
+ * 利用者が設定画面で「常にインターネット経由」（[SesameRoutePolicy.WEB_API_ONLY]）を選んでいる場合は、
+ * BLEの探索・接続・到達確認をいずれも行わない（BL-167）。
+ *
+ * どの経路で実行したかは[logRoute]（診断ログ、BL-139）へ残すほか、状態のスナップショットへ載せて
+ * 利用者にも見せる（BL-166 / BL-168）。
  */
 class SesameBleAccess(
     val reachability: SesameBleReachability = SesameBleReachability(),
+    private val routePolicy: () -> SesameRoutePolicy = { SesameRoutePolicy.DEFAULT },
     private val executeOverBle: suspend (SesameCredentials, SesameCommand) -> SesameStatusMeasurement? =
         { _, _ -> null },
     private val fetchStatusOverBle: suspend (SesameCredentials) -> SesameStatusReading? = { null },
@@ -44,7 +49,7 @@ class SesameBleAccess(
         command: SesameCommand,
         nowMillis: Long,
     ): SesameStatusMeasurement? {
-        if (!reachability.preferBle(credentials.uuid, nowMillis)) return null
+        if (!allowsBle(credentials.uuid, nowMillis)) return null
         val measurement = executeOverBle(credentials, command)
         reachability.record(credentials.uuid, nowMillis, measurement != null)
         logRoute(describe(command.name, credentials.uuid, measurement != null))
@@ -59,7 +64,7 @@ class SesameBleAccess(
         credentials: SesameCredentials,
         nowMillis: Long,
     ): SesameStatusReading? {
-        if (!reachability.preferBle(credentials.uuid, nowMillis)) return null
+        if (!allowsBle(credentials.uuid, nowMillis)) return null
         val reading = fetchStatusOverBle(credentials)
         reachability.record(credentials.uuid, nowMillis, reading != null)
         logRoute(describe("STATUS", credentials.uuid, reading != null))
@@ -75,7 +80,7 @@ class SesameBleAccess(
         nowMillis: Long,
         block: suspend () -> T,
     ): T =
-        if (!reachability.shouldProbe(credentials.uuid, nowMillis)) {
+        if (!routePolicy().allowsBle || !reachability.shouldProbe(credentials.uuid, nowMillis)) {
             block()
         } else {
             coroutineScope {
@@ -87,6 +92,12 @@ class SesameBleAccess(
                 }
             }
         }
+
+    /** 方針が許し、かつ直近に到達できた実績がある場合だけBLEを試す。 */
+    private fun allowsBle(
+        uuid: String,
+        nowMillis: Long,
+    ): Boolean = routePolicy().allowsBle && reachability.preferBle(uuid, nowMillis)
 
     /**
      * 診断ログの1行。資格情報・BLEアドレスは含めず、uuidは先頭8文字だけを残す

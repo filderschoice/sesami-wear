@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 18:20
+  summary: 経路の方針（自動/常にインターネット経由）を設定画面から選べるようにする
+  details:
+    変更内容: >-
+      core.SesameRoutePolicyと保存先（SesameRoutePolicyStore）を追加し、SesameBleAccessが
+      操作のたびに読み直すようにした。「常にインターネット経由」を選ぶとBLEの探索・接続・
+      到達確認をいずれも行わない。圏外で操作できなくなるため「Bluetooth固定」は用意せず、
+      選択肢が2つのままであることをユニットテストで固定した。
+      設定画面には現在の方針の1行と「変更」だけを置き、選択肢と説明はダイアログへ回している
+      （画面が縦スクロールしないため）。経路の方針とBLE権限はどちらも「どうやってつなぐか」の
+      設定のため、ConnectionSettingsSectionとして隣り合わせにまとめた。
+      表示文言はcore.display.SesameRouteLabelへ置き、wearとmobileで食い違わないようにしている。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameRoutePolicy.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameRoutePolicyStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicySection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameRoutePolicyStoreTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。「常にインターネット経由」で施錠/解錠・状態取得とも
+      BLEを試さず、到達確認のスキャンも行わないことをユニットテストで確認した。
+    関連ID:
+      - BL-167
+
 - date: 2026-09-19 17:40
   summary: 状態のスナップショットへ電池残量・角度・経路を追加する
   details:

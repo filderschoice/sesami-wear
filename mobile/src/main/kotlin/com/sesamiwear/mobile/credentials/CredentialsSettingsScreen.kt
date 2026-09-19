@@ -131,7 +131,7 @@ fun CredentialsSettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        BlePermissionSection()
+        ConnectionSettingsSection()
 
         Spacer(modifier = Modifier.height(16.dp))
         CredentialsForm(

@@ -2,6 +2,7 @@ package com.sesamiwear.mobile.command
 
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
+import com.sesamiwear.core.SesameRoutePolicy
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusReading
@@ -454,8 +455,10 @@ class SesameDeviceCommandExecutorTest {
         bleSucceeds: Boolean = true,
         bleStatus: Boolean? = true,
         probeFindsDevice: Boolean = false,
+        routePolicy: SesameRoutePolicy = SesameRoutePolicy.AUTO,
     ) = SesameBleAccess(
         reachability = reachability,
+        routePolicy = { routePolicy },
         executeOverBle = { _, _ ->
             bleAttempts++
             if (bleSucceeds) {
@@ -585,6 +588,48 @@ class SesameDeviceCommandExecutorTest {
 
             assertEquals(1, probes)
             assertFalse(reachability.preferBle(DEVICE_UUID, now))
+        }
+
+    @Test
+    fun `the web api only policy never touches bluetooth`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            // 直近にBLEで到達できていても、方針が「常にインターネット経由」なら使わない。
+            reachability.record(DEVICE_UUID, now, reachable = true)
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            val outcome =
+                createExecutor(
+                    bleAccess =
+                        bleAccess(
+                            reachability,
+                            probeFindsDevice = true,
+                            routePolicy = SesameRoutePolicy.WEB_API_ONLY,
+                        ),
+                ).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
+            assertEquals(0, bleAttempts)
+            // 到達確認のスキャンも行わない（電力とスキャン回数を消費しない）。
+            assertEquals(0, probes)
+            assertEquals(1, server.requestCount)
+        }
+
+    @Test
+    fun `the web api only policy also applies to status fetches`() =
+        runTest {
+            val reachability = SesameBleReachability(InMemoryKeyValueStore())
+            reachability.record(DEVICE_UUID, now, reachable = true)
+            server.enqueue(MockResponse().setBody(statusJson("locked")).setResponseCode(HTTP_OK))
+
+            val isLocked =
+                createExecutor(
+                    bleAccess = bleAccess(reachability, routePolicy = SesameRoutePolicy.WEB_API_ONLY),
+                ).refreshStatus(DEVICE_UUID)
+
+            assertEquals(true, isLocked)
+            assertEquals(0, bleAttempts)
+            assertEquals(1, server.requestCount)
         }
 
     @Test
