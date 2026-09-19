@@ -7,6 +7,25 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-19（BLE鍵の同一性を実証、BL-150）
+
+本アプリが保持している secretKey（SESAME Biz 由来、16進数32文字）だけで Sesame 5 へ BLE 直接接続し、
+状態を取得できることを実機で確認しました（BL-150、完了）。BLE 直接操作の併用方針
+（DESIGN.md「BLE直接操作の併用方針」）の前提となっていた唯一の未実証事項が解消し、
+BL-151〜BL-154 の着手条件が整いました。
+
+- 手順は [docs/BLE_KEY_VERIFICATION.md](docs/BLE_KEY_VERIFICATION.md) に従い、
+  gomalock 2.1.0 / Python 3.14.6 / Windows 11 で実施しました。周囲のスキャンで登録済みの
+  Sesame 5 を検出し、同じ secretKey で `is_logged_in` が `True` となり、角度と電池残量を
+  取得できています。施錠/解錠は実行していません（状態取得までで完了条件を満たすため）。
+- PC のネットワークを切断した状態で再実行しても同じ結果が得られ、**クラウド（AWS Cognito 等）へ
+  接続せずに BLE のみで完結する**ことも確認しました。Sesame Web API のリクエストは消費していません。
+- 同手順書にあった「本リポジトリでは未実行です」の注記を実行済みの記述へ更新し、`check_status.py` を
+  実際に使用した形（BLE アドレスを引数で受け取る）へ差し替えました。
+- 資格情報の取り扱いは `rules/guardrails-unified.v1.md` 3.3 / 12.5 に従い、作業ディレクトリを
+  リポジトリ外に置き、secretKey は実行時入力（`getpass`）のみで扱っています。本記録・BACKLOG・
+  DESIGN のいずれにも secretKey・uuid・BLE アドレスの値は残していません。
+
 ## 2026-09-19（v0.12.0の公開、BL-164）
 
 0.12.0 がクローズドテストの両トラックで公開中になったため、注釈付きタグ `v0.12.0` を作成し、
