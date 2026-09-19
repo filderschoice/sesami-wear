@@ -7,6 +7,21 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-19（v0.12.0の公開、BL-164）
+
+0.12.0 がクローズドテストの両トラックで公開中になったため、注釈付きタグ `v0.12.0` を作成し、
+GitHub Releases へ [v0.12.0](https://github.com/filderschoice/sesami-wear/releases/tag/v0.12.0) を
+公開しました（BL-164、完了）。
+
+- タグが指すのは 0.12.0 のリリース PR #48 のマージコミット（`e0dfc24`）です。`scripts/version.properties`
+  が versionName 0.12.0 / mobile の versionCode 7 / wear の versionCode 1005 になっており、
+  `docs/RELEASE_NOTES.md` の配信日も入っている状態のコミットにあたります。
+- 本文は [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) の 0.12.0 を転記し、相対リンクを絶対 URL へ
+  変換したうえで、ストア掲載用の要約は除外しました。冒頭にクローズドテストでの配信であることと
+  参加方法、末尾にセキュリティ上の注記と関連ドキュメントへのリンクを添えています。
+- 一般公開前かつ `0.x` のため、v0.9.0・v0.10.0・v0.11.0 と同じく pre-release として公開しています。
+- 手順は Skill `github-release-publish` に従い、タグの push はユーザーが実行しました。
+
 ## 2026-09-19（0.12.0の配信完了とAPI月間上限の解消、BL-155 / BL-141）
 
 0.12.0 がクローズドテストの両トラックで公開中になり、ストア掲載情報の転記も完了しました。
