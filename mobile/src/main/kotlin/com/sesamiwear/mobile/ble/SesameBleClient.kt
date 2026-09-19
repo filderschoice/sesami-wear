@@ -28,12 +28,17 @@ class SesameBleClient(
     /**
      * 各段階の上限時間（ミリ秒）。BL-152の経路選択では合計2秒程度へ絞る必要があるため、
      * 呼び出し側が用途に応じて差し替えられるようにする（既定値は単体検証向けの緩い値）。
+     *
+     * 拘束力を持つのは[totalMillis]で、各段階の上限はその内訳の目安にすぎない
+     * （段階の合計が[totalMillis]を超えていても、全体はこの値で打ち切られる）。
      */
     data class Timeouts(
+        val totalMillis: Long = 12_000,
         val scanMillis: Long = 3_000,
         val connectMillis: Long = 5_000,
         val loginMillis: Long = 3_000,
         val commandMillis: Long = 3_000,
+        val probeMillis: Long = 2_000,
     )
 
     /** BLE操作の結果。失敗の理由は診断ログ（BL-139）と呼び出し側の分岐に使う。 */
@@ -61,7 +66,7 @@ class SesameBleClient(
         command: SesameCommand,
         historyName: String = DEFAULT_HISTORY_NAME,
     ): Result =
-        withSession(credentials) { connection, session, _ ->
+        withBudget(credentials) { connection, session, _ ->
             val itemCode = if (command == SesameCommand.LOCK) ItemCode.LOCK else ItemCode.UNLOCK
             val payload = SesameBleMessage.encodeHistoryTag(historyName.ifBlank { DEFAULT_HISTORY_NAME })
             sendEncrypted(connection, session, itemCode, payload)
@@ -69,9 +74,28 @@ class SesameBleClient(
 
     /** [credentials]のデバイスの機構状態をBLEで取得する。ログイン直後に届く通知をそのまま使う。 */
     suspend fun fetchStatus(credentials: SesameCredentials): StatusResult {
-        val (result, status) = withSession(credentials) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
+        val (result, status) = withBudget(credentials) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
         return StatusResult(result, status)
     }
+
+    /**
+     * [deviceUuid]のデバイスが電波圏内にいるかだけを、スキャンだけで確かめる（BL-152）。
+     * 接続もログインもしないため短時間で済み、Web APIの通信と並行して呼ぶ用途を想定している。
+     */
+    suspend fun probeReachable(deviceUuid: String): Boolean =
+        SesameBlePermissions.hasAll(context) &&
+            scanner.findDevice(deviceUuid, timeouts.probeMillis) != null
+
+    /**
+     * [withSession]を全体の上限[Timeouts.totalMillis]で囲む。打ち切られた場合は
+     * [Result.CONNECTION_FAILED]として扱い、呼び出し側（BL-152の経路選択）がWeb APIへ倒せるようにする。
+     */
+    private suspend fun withBudget(
+        credentials: SesameCredentials,
+        block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
+    ): Pair<Result, SesameBleMechStatus?> =
+        withTimeoutOrNull(timeouts.totalMillis) { withSession(credentials, block) }
+            ?: (Result.CONNECTION_FAILED to null)
 
     /**
      * スキャンからログインまでを行い、[block]を実行してから必ず切断する。

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.google.android.gms.wearable.Wearable
 import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.messaging.DataLayerBestEffort
 import com.sesamiwear.mobile.widget.SesameWidgetRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,8 @@ import kotlinx.coroutines.tasks.await
  *    同じuuidを登録し直したときに利用者が設定し直していないウィジェットが黙って再び結び付くため消す。
  * 3. ウォッチへ同期済みのDataItem（[SesameWearProtocol.statusDataItemPath]）。
  *    残すとウォッチ側で同じ症状（再登録直後に削除前の状態が出る）が起きる。
+ * 4. BLEの到達実績（[SesameBleReachability]、BL-152）。残すと、再登録直後に一度も到達確認を
+ *    していないデバイスへBLEを先に試してしまい、そのぶん操作が遅くなる。
  *
  * 保存先をつなぐだけのAndroid依存アダプタのためユニットテスト対象外
  * （各ストアの削除そのものは`LockStateStoreTest` / `WidgetDeviceAssignmentStoreTest`でテスト済み）。
@@ -41,6 +44,7 @@ object RemovedDeviceCleaner {
     ) {
         val appContext = context.applicationContext
         LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)).remove(uuid)
+        SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)).remove(uuid)
         SesameWidgetRepository.assignmentStore(appContext).unassignDevice(uuid)
         scope.launch { deleteSyncedStatus(appContext, uuid) }
     }

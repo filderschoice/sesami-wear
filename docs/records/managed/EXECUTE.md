@@ -5,6 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 15:05
+  summary: 施錠/解錠と状態取得の経路選択（BLE優先・Web APIフォールバック）を実装する
+  details:
+    変更内容: >-
+      SesameDeviceCommandExecutorが、施錠/解錠と状態取得の両方でBLEとWeb APIを使い分けるようにした。
+      uuidごとの到達実績（SesameBleReachability）を非暗号化SharedPreferencesへ保存し、直近30分以内に
+      BLEで到達できたデバイスだけBLEを先に試す。成功時はWeb APIを呼ばないため月間リクエスト上限を
+      消費しない。到達実績が無い場合はWeb APIから始め、その通信と並行してスキャンだけの到達確認を
+      15分に1回まで行う。BLEが失敗したら到達実績を消してWeb APIへ倒す。
+      利用者からは経路が見えず、どちらで実行したかは診断ログにのみ残す（uuidは先頭8文字のみ）。
+      引数の数を抑えるためWeb APIとBLEの経路をSesameRouteAccessへまとめ、既存の呼び出し元を追随させた。
+      資格情報を削除したデバイスの到達実績はRemovedDeviceCleanerが消す。
+      実行時間の設計値（全体1800ms）はウィジェットの8秒制限から逆算したもので、実測値ではない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleReachability.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/RemovedDeviceCleaner.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleReachabilityTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameDeviceCommandExecutorTestは33件
+      （BLE経路の9件を追加）、SesameBleReachabilityTestは13件がいずれも成功。
+      実行時間の設計値の妥当性はBL-165（人手検証）で実測する。
+    関連ID:
+      - BL-152
+
 - date: 2026-09-19 14:10
   summary: BLE直接操作のクライアントをmobile.bleへ自前実装する
   details:

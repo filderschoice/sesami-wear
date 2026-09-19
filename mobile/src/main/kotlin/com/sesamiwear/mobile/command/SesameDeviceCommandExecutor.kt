@@ -31,12 +31,16 @@ import com.sesamiwear.mobile.state.LockStateStore
  * Sesame APIへもウォッチへも一切送らない（ウォッチ側のデモ状態とは同期せず、端末ごとに独立して体験する）。
  *
  * Sesame APIの呼び出し口と失敗ログの出力先は[SesameApiAccess]としてまとめて受け取る（BL-139）。
+ *
+ * 施錠/解錠と状態取得は、BLEで到達できるデバイスならBLE、それ以外はWeb APIで実行する（[SesameBleAccess]、
+ * BL-152）。BLEで成功した場合はWeb APIを呼ばないため、月間リクエスト上限（BL-141）を消費しない。
+ * 経路の違いは利用者からは見えず、診断ログにのみ残る。
  */
 class SesameDeviceCommandExecutor(
     private val loadCredentials: () -> List<SesameCredentials>,
     private val lockStateStore: LockStateStore,
     private val notifier: LockStateNotifier,
-    private val apiAccess: SesameApiAccess = SesameApiAccess(),
+    private val routes: SesameRouteAccess = SesameRouteAccess(),
     private val debouncer: CommandDebouncer = sharedDebouncer,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
@@ -66,26 +70,41 @@ class SesameDeviceCommandExecutor(
         return if (succeeded) Outcome.SUCCESS else Outcome.FAILURE
     }
 
+    /**
+     * BLEで到達できるデバイスはBLEで実行し、それ以外はSesame Web APIで実行する（BL-152）。
+     * BLEで成功した場合はWeb APIを呼ばないため、月間リクエスト上限（BL-141）を消費しない。
+     */
     private suspend fun sendCommand(
         uuid: String,
         command: SesameCommand,
     ): Boolean {
         val credentials = findCredentials(uuid)
         val secretKey = credentials?.secretKeyBytesOrNull ?: return false
+        return routes.ble.tryCommand(credentials, command, nowMillis()) ||
+            routes.ble.withReachabilityProbe(credentials, nowMillis()) {
+                sendCommandOverApi(credentials, secretKey, command)
+            }
+    }
+
+    private suspend fun sendCommandOverApi(
+        credentials: SesameCredentials,
+        secretKey: ByteArray,
+        command: SesameCommand,
+    ): Boolean {
         // 失敗の分類はコールバックで受け取る（コールバックはsuspendでないためその場では保存できない）。
         var failure: SesameStatusFailure? = null
-        apiAccess.recordApiCall()
+        routes.api.recordApiCall()
         val handler =
             SesameCommandHandler(
-                apiClient = apiAccess.clientFactory(credentials),
+                apiClient = routes.api.clientFactory(credentials),
                 secretKey = secretKey,
                 onFailure = { e ->
-                    apiAccess.logFailure(SesameApiFailureLog.describe(operationOf(command), e))
+                    routes.api.logFailure(SesameApiFailureLog.describe(operationOf(command), e))
                     failure = SesameStatusFailure.of(e.httpStatusCode)
                 },
             )
         val succeeded = handler.execute(command) == SesameCommandResult.SUCCESS
-        failure?.let { recordFailure(uuid, it) }
+        failure?.let { recordFailure(credentials.uuid, it) }
         return succeeded
     }
 
@@ -115,14 +134,20 @@ class SesameDeviceCommandExecutor(
 
     private suspend fun fetchIsLocked(uuid: String): Boolean? {
         val credentials = findCredentials(uuid) ?: return null
-        apiAccess.recordApiCall()
+        // BLEで取得できた場合はWeb APIを呼ばない（上限を消費しない、BL-152）。
+        return routes.ble.tryStatus(credentials, nowMillis())
+            ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) { fetchIsLockedOverApi(credentials) }
+    }
+
+    private suspend fun fetchIsLockedOverApi(credentials: SesameCredentials): Boolean? {
+        routes.api.recordApiCall()
         return try {
-            apiAccess.clientFactory(credentials).getStatus().isInLockRange
+            routes.api.clientFactory(credentials).getStatus().isInLockRange
         } catch (e: SesameApiException) {
             // 呼び出し元（ウォッチ・ウィジェット）へは「取得できなかった」ことだけを伝える。
             // 切り分けに必要な情報はlogcatへ残し（BL-139）、失敗の分類は表示のため保存する（BL-140）。
-            apiAccess.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
-            recordFailure(uuid, SesameStatusFailure.of(e.httpStatusCode))
+            routes.api.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
+            recordFailure(credentials.uuid, SesameStatusFailure.of(e.httpStatusCode))
             null
         }
     }
@@ -139,12 +164,6 @@ class SesameDeviceCommandExecutor(
         lockStateStore.saveFailure(uuid, failure)
         notifySnapshot(uuid)
     }
-
-    private fun operationOf(command: SesameCommand): SesameApiOperation =
-        when (command) {
-            SesameCommand.LOCK -> SesameApiOperation.LOCK
-            SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK
-        }
 
     private fun findCredentials(uuid: String): SesameCredentials? = loadCredentials().find { it.uuid == uuid }
 
@@ -177,6 +196,18 @@ class SesameDeviceCommandExecutor(
         private const val STATUS_KEY_PREFIX = "status:"
     }
 }
+
+/**
+ * 施錠/解錠・状態取得に使える経路の一式（BL-152）。
+ *
+ * [api]はSesame Web API、[ble]はBLE直接操作。既定値では[ble]が常に「使えない」を返すため、
+ * 配線していない呼び出し元（ユニットテストや、BLEを使わない構成）では従来どおりWeb APIだけが動く。
+ * 2つをまとめて1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数を抑えるためでもある。
+ */
+class SesameRouteAccess(
+    val api: SesameApiAccess = SesameApiAccess(),
+    val ble: SesameBleAccess = SesameBleAccess(),
+)
 
 /**
  * Sesame APIの呼び出し口（[clientFactory]）と、その失敗を1行残す出力先（[logFailure]）をまとめたもの。
@@ -233,3 +264,13 @@ fun interface LockStateListener {
         snapshot: SesameStatusSnapshot,
     )
 }
+
+/**
+ * 診断ログ（BL-139）で使う操作種別へ変換する。
+ * [SesameDeviceCommandExecutor]の関数数を増やさないようトップレベルへ置く。
+ */
+private fun operationOf(command: SesameCommand): SesameApiOperation =
+    when (command) {
+        SesameCommand.LOCK -> SesameApiOperation.LOCK
+        SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK
+    }
