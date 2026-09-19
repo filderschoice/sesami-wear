@@ -37,8 +37,9 @@
 BLE アドレスと16進数32文字の secret key だけでスキャン・接続・状態取得ができ、クラウドへは接続しません。
 
 > 本書のスクリプトは 2026-09-18 時点の gomalock の `examples/discover.py` と
-> `examples/detailed_status.py` の API に基づいて書いています。**本リポジトリでは未実行です**
-> （実資格情報と実 Sesame デバイスを要するため）。API が変わっていて動かない場合は、同リポジトリの
+> `examples/detailed_status.py` の API に基づいて書いています。
+> **2026-09-19 に本手順を実行し、成功しました**（gomalock 2.1.0 / Python 3.14.6 / Windows 11、
+> Sesame 5 実機。手順3・手順4とも成功）。API が変わっていて動かない場合は、同リポジトリの
 > `examples/` と `docs/` を参照してください。
 
 ## 手順
@@ -89,18 +90,25 @@ if __name__ == "__main__":
 
 ### 3. secretKey で接続し、状態を取得する
 
-`check_status.py` として保存し、`ADDRESS` を手順2で調べた値へ置き換えて実行します。
-実行すると secretKey の入力を求められます（入力は画面に表示されません）。
+`check_status.py` として保存し、手順2で調べた BLE アドレスを引数に渡して実行します。
+実行すると secretKey の入力を求められます（入力は画面に表示されず、シェルの履歴にも残りません）。
+
+```powershell
+.\.venv\Scripts\python.exe check_status.py XX:XX:XX:XX:XX:XX
+```
 
 ```python
 import asyncio
 import getpass
-import os
+import sys
 
 import gomalock
 
-ADDRESS = "XX:XX:XX:XX:XX:XX"  # 手順2で調べた値へ置き換える
-SECRET_KEY = os.environ.get("SESAME_SECRET_KEY") or getpass.getpass("secretKey (16進数32文字): ")
+if len(sys.argv) < 2:
+    sys.exit("使い方: python check_status.py <BLEアドレス>")
+
+ADDRESS = sys.argv[1]
+SECRET_KEY = getpass.getpass("secretKey (16進数32文字、入力は表示されません): ").strip()
 
 received = asyncio.Event()
 
