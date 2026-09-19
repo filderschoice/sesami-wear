@@ -131,6 +131,9 @@ fun CredentialsSettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+        BlePermissionSection()
+
+        Spacer(modifier = Modifier.height(16.dp))
         CredentialsForm(
             formState = formState,
             onSave = {

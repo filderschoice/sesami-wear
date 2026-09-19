@@ -1253,6 +1253,34 @@ BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化
 状態の自動取得（BL-142で廃止した鮮度ベースの取得）は、BL-152の完了後も**再開しない**。
 BLEで到達できる間は上限を消費しないが、再開の可否は実測（BL-165）と運用実績を見てから判断する。
 
+#### 権限の宣言と要求UI（BL-153、2026-09-19）
+
+**権限は任意で、拒否されてもアプリは従来どおりWeb API経由で動く。** 実装とUIの両方でこれを担保する。
+
+`mobile/src/main/AndroidManifest.xml`の宣言（論点4と一致）:
+
+| 宣言 | 内容 |
+| --- | --- |
+| `BLUETOOTH_SCAN` | `android:usesPermissionFlags="neverForLocation"`。位置情報の推定に使わないことを宣言し、API 31以上で位置情報の許可を不要にする |
+| `BLUETOOTH_CONNECT` | 接続に必要 |
+| `ACCESS_FINE_LOCATION` | `android:maxSdkVersion="30"`。API 30以下のBLEスキャンにのみ必要 |
+| `uses-feature android.hardware.bluetooth_le` | `required="false"`。BLE非搭載端末でもWeb API経由で動くため、配信対象を狭めない |
+
+UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ置く。
+
+- 常時出すのは**1行だけ**（`Bluetooth：未許可（インターネット経由で動作中）`など）。
+  資格情報設定画面は縦スクロールしないため、長い説明を常時表示すると入力フォームが見切れる。
+- 「設定」をタップすると**説明ダイアログ**（Androidが推奨するrationaleの形）を出してから権限を要求する。
+  ダイアログには、何に使うのか・**許可しなくても従来どおり動くこと**・（API 30以下では）位置情報を
+  近くの機器を探すためだけに使い収集も送信もしないことを書く。
+- 一度拒否された権限は再要求してもダイアログが出ないことがあるため、要求済みかを
+  `SesameBlePermissionAskedStore`（非暗号化SharedPreferences、到達実績と同じファイルの別キー）へ
+  覚えておき、2回目以降は端末の「アプリ情報」画面を開く導線へ切り替える。
+- 画面の再開（`ON_RESUME`）で許可状況を読み直し、設定画面で許可して戻ったときに追随させる。
+
+文言と状態の決定は`mobile.ble.SesameBlePermissionPrompt`（Android非依存）が持ち、
+`SesameBlePermissionPromptTest`で検証する。許可状況の問い合わせは`mobile.ble.SesameBlePermissions`。
+
 #### 段階的移行案
 
 | 段階 | 内容 | 項目 |
@@ -1260,7 +1288,7 @@ BLEで到達できる間は上限を消費しないが、再開の可否は実�
 | 1 | 保持中のsecretKeyでBLE接続・状態取得ができることを実機で確認する | BL-150（人手検証、2026-09-19完了） |
 | 2 | `mobile.ble`にBLEクライアントを実装する。デバッグビルドの隠し設定でBLE単体を検証できるようにし、この段階では経路の自動切り替えを入れない | BL-151（2026-09-19完了。実機検証はBL-165） |
 | 3 | 経路選択（BLE優先・Web APIフォールバック）を実装し、実行時間の制限内へ収める | BL-152（2026-09-19完了。設計値の検証はBL-165） |
-| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153 |
+| 4 | BLE権限の要求UIとマニフェストを整備する | BL-153（2026-09-19完了） |
 | 5 | データセーフティ申告・ストア掲載情報・利用者向けドキュメントを更新する | BL-154（人手検証） |
 
 `-PsesameApiBaseUrl`のようなモック差し替えがBLEには存在せず、**検証は実機必須**になる

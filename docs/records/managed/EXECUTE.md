@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-19 16:20
+  summary: BLE直接操作の権限をマニフェストへ宣言し、任意で許可を求めるUIを追加する
+  details:
+    変更内容: >-
+      AndroidManifestへBLUETOOTH_SCAN（neverForLocationを宣言）・BLUETOOTH_CONNECT・
+      ACCESS_FINE_LOCATION（maxSdkVersion 30）と、required=false の bluetooth_le を追加した。
+      資格情報設定画面には許可状況の1行と「設定」ボタンを置き、要求の直前に説明ダイアログを出す。
+      説明には、何に使うのか・許可しなくても従来どおりWeb API経由で動くこと・API 30以下で必要な
+      位置情報を近くの機器の探索にのみ使い収集も送信もしないことを含めた。
+      一度拒否された場合は端末のアプリ設定画面を開く導線へ切り替えるため、要求済みかを
+      SesameBlePermissionAskedStoreへ保存する。設定画面は縦スクロールしないため、
+      長い説明は常時表示せずダイアログへ回している。
+      あわせて docs/USER_GUIDE.md と docs/RELEASE_NOTES.md を追随させた（BL-154の一部）。
+    変更ファイル:
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionPrompt.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionAskedStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/BlePermissionSection.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBlePermissionPromptTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全品質ゲートが終了コード0。SesameBlePermissionPromptTestは10件が成功。
+      実機での許可・拒否の挙動確認はBL-165（人手検証）に含める。
+    関連ID:
+      - BL-153
+
 - date: 2026-09-19 15:05
   summary: 施錠/解錠と状態取得の経路選択（BLE優先・Web APIフォールバック）を実装する
   details:

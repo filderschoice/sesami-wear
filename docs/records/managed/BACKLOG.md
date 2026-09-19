@@ -13,8 +13,8 @@
     （API 31以上）とACCESS_FINE_LOCATION（`android:maxSdkVersion="30"`で旧端末限定）。
     位置情報権限は旧端末限定でも申告の対象になりうるため、Play Consoleの質問に沿って
     「位置情報を収集・共有しない（BLEスキャンのためだけに宣言している）」ことを説明する。
-    あわせて docs/USER_GUIDE.md・docs/store/STORE_LISTING.md・docs/RELEASE_NOTES.md へ
-    「自宅ではBluetoothで直接操作し、APIのリクエストを消費しない」ことを記載する。
+    docs/USER_GUIDE.md と docs/RELEASE_NOTES.md への記載は2026-09-19に完了済みのため、
+    残りは Play Console 上の操作と docs/store/STORE_LISTING.md の更新。
   優先度: P3
   状態: 未着手
   担当: ユーザー
@@ -25,34 +25,8 @@
   根拠: >-
     Play Consoleの操作を伴うため自律ループ実行モードでは実行できない
     （rules/guardrails-unified.v1.md セクション12.2）。DESIGN.md「BLE直接操作の併用方針」の
-    段階5に対応する。BL-152の実装は2026-09-19に完了しており、依存は解消している
-    （申告の前提となる権限はBL-153で確定する）。
-  依存:
-    - BL-153
-
-- id: BL-153
-  区分: 機能追加
-  タスク内容: >-
-    BLE直接操作に必要な権限の要求UIとマニフェストを整備する。
-    AndroidManifestへ`BLUETOOTH_SCAN`（`android:usesPermissionFlags="neverForLocation"`を宣言）、
-    `BLUETOOTH_CONNECT`、`ACCESS_FINE_LOCATION`（`android:maxSdkVersion="30"`）、
-    `uses-feature android.hardware.bluetooth_le`（`required="false"`。BLE非搭載端末でも
-    Web API経由で動くため配信対象を狭めない）を追加する。
-    権限は資格情報設定画面から任意で許可を求める形にし、**拒否されてもアプリは従来どおり
-    Web API経由で動作する**こと（必須にしない）を実装とUIの両方で担保する。
-    許可を求める画面では、位置情報権限が近くのSesameを探すためだけに必要で、位置情報の
-    収集・送信は行わないことを明示する。
-  優先度: P3
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    権限を拒否した状態でも従来どおりWeb API経由で施錠/解錠・状態取得ができること。
-    権限の要求可否の判定がAndroid非依存のクラスで行われ、ユニットテストで検証されていること。
-    マニフェストの宣言がDESIGN.md「BLE直接操作の併用方針」の論点4と一致していること
-  根拠: >-
-    DESIGN.md「BLE直接操作の併用方針」の段階4に対応する。BL-151の実装で必要な権限が確定するため
-    依存を張っていたが、BL-151の実装が2026-09-19に完了し、必要な権限は
-    `mobile.ble.SesameBlePermissions`で確定したため解消している。
+    段階5に対応する。BL-152・BL-153の実装は2026-09-19に完了しており、依存は解消している
+    （申告の対象となる権限は mobile/src/main/AndroidManifest.xml で確定済み）。
   依存: []
 
 - id: BL-165
