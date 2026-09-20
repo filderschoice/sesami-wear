@@ -179,6 +179,8 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | `.github/copilot-instructions.md` | **全エージェント共通の実行ルールの正本** | セキュリティ要件、開発プロセス要件、品質・信頼性要件、ドキュメント管理要件、出力要件、例外と保守 |
 | 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用 |
 | `CLAUDE.md` | Claude Code 固有の差分と本リポジトリ固有の情報 | 共通規約への上書き表、アーキテクチャ概要、本リポジトリの品質ゲート定義、記録ファイルの権限設定、自律ループ実行モードの適用条件 |
+| `.github/instructions/*.instructions.md` | **特定の作業に限った共通規約の正本** | PR説明文・コードレビューの言語と構成。Copilot へは `.vscode/settings.json` から自動適用され、Claude Code はスキル経由で読む |
+| `.github/prompts/*.prompt.md` | Copilot のオンデマンド手順（`/名前` で呼び出す） | Copilot 固有の実行手順。規範は `.github/instructions/` 側に置き、ここへは複製しない |
 | `.claude/skills/*/SKILL.md` | Claude Code のオンデマンド手順 | 明示指示時にしか使わない手順（自律ループ実行モードの実行手順など） |
 
 構成上の前提:
@@ -197,7 +199,9 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | 本リポジトリの品質ゲート定義（実行コマンドと合否基準） | `CLAUDE.md`「本リポジトリの品質ゲート定義」 | 全エージェントで同一コマンドを使うため一元化している |
 | 自律ループ実行モードの統制要件 | `rules/guardrails-unified.v1.md` セクション12 | 禁止操作と停止条件は常時読み込みされる必要がある |
 | 自律ループ実行モードの実行手順 | `.claude/skills/autonomous-loop/SKILL.md` | 明示指示時にしか使わないため、常時読み込みから外している。Claude Code 固有で Copilot は対象外 |
-| PR説明文・コードレビューの言語と構成 | `.github/instructions/pr.instructions.md` | Copilot Chat へはパス限定で自動適用され、Claude Code は生成時に同ファイルを読む |
+| PR説明文・コードレビューの言語と構成、本文の型・チェックリストの扱い | `.github/instructions/pr.instructions.md` | Copilot へは `.vscode/settings.json` 経由で自動適用され、Claude Code は生成時に同ファイルを読む。両エージェントで同一の規範を使うため一元化している |
+| PR本文の節構成とチェックリストの文言 | `.github/PULL_REQUEST_TEMPLATE.md` | GitHub がPR作成時に自動展開する実体。チェックリスト節はこのファイルにしか無い |
+| PR作成の実行手順（エージェント別） | `.claude/skills/pr-create/SKILL.md`（Claude Code）／`.github/prompts/pr-create.prompt.md`（Copilot） | `gh` の使い方や一時ファイルの扱いはエージェントの実行環境に依存するため、規範とは分けている |
 
 ガードレール一式の配布元は `copilot-rules` リポジトリです。更新の追従は同リポジトリの `CHANGELOG.md` を
 参照して判断します（導入・移行手順は `docs/guidelines/ADOPTION.md`）。

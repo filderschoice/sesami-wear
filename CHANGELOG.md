@@ -7,6 +7,27 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-20（PR作成手順を両エージェント共通化、`.github/prompts/` を追加）
+
+Claude Code 専用だった PR 作成手順（`.claude/skills/pr-create/`）を、GitHub Copilot からも使える
+構成へ組み替えました。規範を1か所へ集め、エージェント別ファイルは入口だけを持ちます
+（`CONTRIBUTING.md`「エージェント指示ファイルの構成規約」の方針どおり）。
+
+- **規範の正本を [.github/instructions/pr.instructions.md](.github/instructions/pr.instructions.md) へ集約**
+  しました。言語要件に加えて、本文の型（正本は `.github/PULL_REQUEST_TEMPLATE.md` であること、
+  チェックリスト節はテンプレート側にしか無いこと）、PRタイトルの規約、着手前の差分確認、
+  チェックリストは実行結果に基づいてのみチェックすること、品質ゲートの対応表、
+  PR作成が公開操作であることを追記しています。
+- **[.github/prompts/pr-create.prompt.md](.github/prompts/pr-create.prompt.md) を新設**しました。
+  Copilot Chat から `/pr-create` で呼び出す入口で、手順の順序と Copilot 固有の注意だけを持ちます。
+- `.claude/skills/pr-create/SKILL.md` は、`gh pr create` / `gh pr edit` の実行手順
+  （`--body-file` の使用、一時ファイルの置き場所）へ絞りました。
+- `.github/copilot-instructions.md` の「PR説明文・コードレビュー」の記述を実態へ合わせました。
+  `pr.instructions.md` には `applyTo` が無く、`.vscode/settings.json` の
+  `pullRequestDescriptionGeneration.instructions` / `reviewSelection.instructions` から参照されています。
+- 手順へ**「作業ブランチの push はユーザーが行うため、未 push ではPRを作成できない」**を明記しました。
+  エージェントが push を代行しない規約（共通規約「ブランチ・コミット管理」）との接続が抜けていました。
+
 ## 2026-09-20（経路表示・状態表示の実機検証、BL-172 / BL-165）
 
 BL-166〜BL-171 で追加した経路表示・状態表示を、Claude Code が adb 経由の UI 操作で検証しました
