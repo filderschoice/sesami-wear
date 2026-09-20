@@ -7,6 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-21（自律ループの終了報告からPR説明文を外す）
+
+自律ループ実行モードの終了報告で、PR説明文の案とPR作成コマンドまで出力していました。
+PRの作成手順と説明文の規範は Skill `pr-create`（および `.github/instructions/pr.instructions.md` と
+`.github/PULL_REQUEST_TEMPLATE.md`）が正本であり、ループの報告へ先回りして載せると規範が二重になります。
+ブランチへ後からコミットを積んだ場合に、その内容を反映していない本文が残る問題もあります。
+
+- **[.claude/skills/autonomous-loop/SKILL.md](.claude/skills/autonomous-loop/SKILL.md)**
+  の「終了時の報告」から、PR説明文の案とPR作成のコマンド例を削除しました。報告するのは作業ブランチ名と
+  `git push` のコマンド例までで、PRはユーザーの指示を受けてから `pr-create` で作成します。
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** の「自律ループ実行モードのブランチ・コミット規約」から
+  「エージェントはPR説明文の案までを提示します」を削除し、同じ趣旨へ書き換えました。
+
 ## 2026-09-20（検証コストの抑制を汎用スキルへ切り出し、実機検証の知見を反映）
 
 実Sesameデバイスを伴うBLEの実機検証セッション（BL-165 / BL-189 / BL-190）で、
