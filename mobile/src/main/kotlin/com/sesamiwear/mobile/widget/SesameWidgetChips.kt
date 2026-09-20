@@ -37,6 +37,10 @@ import com.sesamiwear.mobile.ui.SesameRouteIcon
  * もとは[SesameWidget]に同居していたが、サイズ別レイアウトが3段階になって1ファイルの関数数が
  * detektの上限（`TooManyFunctions`）に達したため分離した。表示内容の決定は
  * [SesameWidgetModelResolver]（Android非依存）が行い、ここはGlanceで並べるだけ。
+ *
+ * @param fillWidth 横幅いっぱいに広げるか。**`Row`の中で`defaultWeight()`と併用するときはfalse。**
+ * Glanceでは幅の指定が競合し、先頭のチップが全幅を占めて後続が押し出される（BL-183で
+ * 「▶」が描画されなくなっていた）。
  */
 @Composable
 internal fun NeutralChip(
@@ -44,11 +48,12 @@ internal fun NeutralChip(
     modifier: GlanceModifier,
     sizeSp: Int = CAPTION_SP,
     maxLines: Int = 2,
+    fillWidth: Boolean = true,
 ) {
     Box(
         modifier =
             modifier
-                .fillMaxWidth()
+                .let { if (fillWidth) it.fillMaxWidth() else it }
                 .background(ColorProvider(Color(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(CHIP_INNER_PADDING_DP.dp),

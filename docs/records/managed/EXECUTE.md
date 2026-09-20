@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 14:20
+  summary: エミュレータ検証で見つけた表示・レイアウトの不具合3件を修正する
+  details:
+    変更内容: >-
+      BL-182のエミュレータ検証（Pixel 6相当 / Android 15）で観測した3件を修正した。
+      (1) BL-183 - 2マス×1マス表示で「▶」が描画されなかった。`NeutralChip`が内部で
+      `fillMaxWidth()`を適用しており、`Row`の`defaultWeight()`と競合して先頭のチップが
+      全幅を占めていた。`fillWidth`引数を足し、順送りの2チップでは`false`を渡す。
+      (2) BL-184 - 同表示で「全デバイス」が「全デバ…」と省略されていた。左1マスを60dpから
+      72dpへ広げ、11sp×全角5文字＋チップの内側パディング（計67dp）が収まるようにした。
+      (3) BL-185 - 「操作の経路」ダイアログで行頭の文字が左端で欠けていた（●が細い弧にしか見えず、
+      折り返し最終行の「消」も半分欠けていた）。`TextButton`の中の`Column(fillMaxWidth)`をやめ、
+      Material標準の`RadioButton`＋テキストを`Row`へ並べて行全体を`selectable`にする形へ変えた。
+      ●／○の文字による選択表現も廃止した
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicyState.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion、Android 15）での再確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータで3件とも解消を確認した。
+      「◀」「▶」が並んで表示され、どちらのタップでも選択画面と同じ順で切り替わること
+      （全デバイス → Entrance → Garage、端で回り込み）、「全デバイス」が省略されないこと、
+      経路ダイアログの行頭が欠けず選択状態がラジオボタンで分かることを確認している
+    関連ID:
+      - BL-183
+      - BL-184
+      - BL-185
 - date: 2026-09-20 10:33
   summary: スマホのアプリ画面をダークテーマへ対応させる
   details:

@@ -1,9 +1,16 @@
 package com.sesamiwear.mobile.credentials
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -13,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameRoutePolicy
 import com.sesamiwear.core.display.SesameRouteLabel
@@ -47,7 +55,14 @@ internal fun rememberRoutePolicyState(): RoutePolicyState {
     }
 }
 
-/** 方針の選択肢と、それぞれを選ぶと何が変わるかを並べるダイアログ。 */
+/**
+ * 方針の選択肢と、それぞれを選ぶと何が変わるかを並べるダイアログ。
+ *
+ * 選択の表現はMaterial標準の[RadioButton]で、行全体をタップできるようにする（BL-185）。
+ * もとは`TextButton`の中へ`Column(fillMaxWidth)`を入れ、先頭へ●／○の文字を付けていたが、
+ * ボタンの内容が幅に収まらず**行頭の文字が左端で欠けていた**（2026-09-20のエミュレータ検証で観測。
+ * ●が細い弧にしか見えず、折り返し最終行の「消費しません。」の「消」も半分欠けていた）。
+ */
 @Composable
 internal fun RoutePolicyPickerDialog(
     selected: SesameRoutePolicy,
@@ -58,18 +73,16 @@ internal fun RoutePolicyPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = ROUTE_POLICY_TITLE) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 SesameRoutePolicy.entries.forEach { candidate ->
-                    val mark = if (candidate == selected) "● " else "○ "
-                    TextButton(
-                        onClick = { onSelect(candidate) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(text = mark + SesameRouteLabel.policyLabel(candidate))
-                            Text(text = SesameRouteLabel.policyDescription(candidate))
-                        }
-                    }
+                    RoutePolicyOption(
+                        candidate = candidate,
+                        isSelected = candidate == selected,
+                        onSelect = { onSelect(candidate) },
+                    )
                 }
             }
         },
@@ -77,6 +90,35 @@ internal fun RoutePolicyPickerDialog(
             TextButton(onClick = onDismiss) { Text(text = "閉じる") }
         },
     )
+}
+
+/** 選択肢1つ分。行全体がタップ対象で、選択状態は[RadioButton]で示す（BL-185）。 */
+@Composable
+private fun RoutePolicyOption(
+    candidate: SesameRoutePolicy,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = isSelected, role = Role.RadioButton, onClick = onSelect)
+                .padding(vertical = 4.dp),
+    ) {
+        RadioButton(selected = isSelected, onClick = null)
+        Column(modifier = Modifier.padding(start = 8.dp)) {
+            Text(
+                text = SesameRouteLabel.policyLabel(candidate),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = SesameRouteLabel.policyDescription(candidate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 /** 設定メニューの項目名。ダイアログの見出しと揃える。 */

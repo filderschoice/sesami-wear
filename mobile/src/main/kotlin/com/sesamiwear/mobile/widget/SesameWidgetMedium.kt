@@ -42,11 +42,14 @@ internal fun MediumLeftColumn(
         )
         Spacer(modifier = GlanceModifier.height(MEDIUM_SPACING_DP.dp))
         Row(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
+            // fillWidth = false。defaultWeight() と fillMaxWidth() を併用すると幅の指定が競合し、
+            // 先頭のチップが全幅を占めて「▶」が押し出される（BL-183）。
             NeutralChip(
                 text = CYCLE_BACKWARD_LABEL,
                 modifier = GlanceModifier.defaultWeight().fillMaxHeight().clickableOrSelf(actions.cycleBackward),
                 sizeSp = FOOTNOTE_SP,
                 maxLines = 1,
+                fillWidth = false,
             )
             Spacer(modifier = GlanceModifier.width(MEDIUM_SPACING_DP.dp))
             NeutralChip(
@@ -54,6 +57,7 @@ internal fun MediumLeftColumn(
                 modifier = GlanceModifier.defaultWeight().fillMaxHeight().clickableOrSelf(actions.cycleForward),
                 sizeSp = FOOTNOTE_SP,
                 maxLines = 1,
+                fillWidth = false,
             )
         }
     }
@@ -87,7 +91,9 @@ internal fun RowScope.MediumStatusBox(
 private const val CYCLE_BACKWARD_LABEL = "◀"
 private const val CYCLE_FORWARD_LABEL = "▶"
 
-// 左1マスの幅（BL-174）。候補サイズの110dpから外周パディング16dpを引いた94dpのうち、
-// 右の状態表示へ「施錠中」（13sp×3文字＋内側パディング）が残るよう60dpに抑える。
-private const val MEDIUM_LEFT_COLUMN_WIDTH_DP = 60
+// 左1マスの幅（BL-174 / BL-184）。本アプリが出す最長の文言「全デバイス」（11sp×全角5文字＝55dp）に
+// チップの内側パディング（6dp×2）を足した67dpが収まる値にする。60dpでは「全デバ…」と省略されていた。
+// 右1マスは残り全域（defaultWeight）で、実サイズの2マス幅（Pixel 6相当で約182dp）なら
+// 「施錠中」（13sp×3文字＋パディング＝約51dp）に足りる。
+private const val MEDIUM_LEFT_COLUMN_WIDTH_DP = 72
 private const val MEDIUM_SPACING_DP = 4
