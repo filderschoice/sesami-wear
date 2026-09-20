@@ -221,14 +221,47 @@
   secretKeyは16進数32文字までに絞り込む。日本語IMEで入力された全角英数字は見た目で半角と
   区別できないまま保存され、署名検証がAPI側で失敗する原因になるため、入力時点で混入経路を塞ぐ。
   表示名は日本語を入力する項目のため正規化しない。
+- **配色は端末のダークテーマ設定へ追随する**（BL-181、`mobile.ui.SesameTheme`）。
+  もとは`MaterialTheme`へcolorSchemeを渡さずライト固定で、暗い部屋で画面全体が白く光り、
+  ウィジェット（暗色固定）・Tile（黒背景）とも食い違っていた。
+  **Material Youの動的カラーは使わない。** 施錠状態の色（緑／赤／紫、`SesameTileContent`）が
+  壁紙由来の色と競合し、状態の読み取りを鈍らせるため。テーマは地の色だけを担う。
+  Activityのウィンドウ側は`res/values/themes.xml`と`res/values-night/themes.xml`の
+  `Theme.SesamiWear` / `Theme.SesamiWear.Dialog`（AppCompatを使わないため親はplatformの
+  `Theme.Material`系）。システムバーのアイコン色は`MainActivity.applySystemBarIcons`が
+  `isSystemInDarkTheme()`に応じて切り替える（BL-103の固定指定を置き換えたもの）。
 - `mobile.credentials.CredentialsSettingsScreen`: 複数デバイスの一覧・追加・編集・削除ができる
-  Compose画面（BL-049）。現在の構成:
+  Compose画面（BL-049）。**構成は上部バー（`TopAppBar`）＋デバイスのカード一覧＋右下の追加ボタン
+  （`ExtendedFloatingActionButton`）**（BL-177）。もとは見出し・API呼び出し回数・一覧・接続の設定・
+  入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。現在の構成:
+  - 画面全体が1つの`LazyColumn`で縦スクロールする。もとは`Column`の中に`LazyColumn`が入れ子に
+    なっており、一覧の外側（入力フォーム）はスクロールできなかった。
+  - 1台＝1枚の`Card`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のアイコンと
+    表示名、(2) 施錠状態・電池残量・角度、(3) 最後に取得した時刻（または失敗の理由）と経路、を出す。
+    **1行へ詰め込まない**（詰め込むと端末の幅に収まらず折り返される）。行の組み立ては
+    `core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
+    編集・削除はカード内のアイコンボタン（`Icons.Default.Edit` / `Icons.Default.Delete`）。
+  - **追加・編集は全画面ダイアログ**（`mobile.credentials.CredentialsEditorDialog`、BL-178）。
+    `Dialog`＋`DialogProperties(usePlatformDefaultWidth = false)`で、上部に「×」（キャンセル）と
+    「保存」を置く。`enabled = isInputValid`の制御は従来どおり（BL-024）。
+    保存の完了は`Snackbar`で「保存しました」を出す（従来は`LaunchedEffect`＋`delay`の固定表示）。
+  - **削除には確認ダイアログを挟む**（BL-179）。削除すると資格情報と残存状態（`RemovedDeviceCleaner`、
+    BL-160）がすべて消え、再登録にはSESAME BizからsecretKeyを取り直す必要があるため。
+  - 保存・削除と、それに伴う同期（ウォッチへのデバイス一覧、ウィジェットの再描画）は
+    `mobile.credentials.CredentialsScreenController`が持つ。画面のComposableへ直接書くと
+    detektの`LongMethod`（上限60行）を超えるため分離した。
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
     （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
     `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
-  - 詳細な説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`へ集約する（BL-057, BL-059）。
+  - **ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（⋮、`mobile.credentials.SettingsMenu`）へ
+    集約する**（BL-180）。3つとも「たまに開く設定」で、主画面に常時置くと情報量を押し上げるため。
+    現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、メニューを開くだけで分かるようにする。
+    Bluetoothの項目は、許可済みで求めるものが無いとき（`SesameBlePermissionPrompt.buttonLabel`がnull）は
+    押せない状態表示になる。状態と文言の決定は`mobile.credentials.RoutePolicyState` /
+    `BlePermissionState`（どちらも`remember`で状態を持つComposable関数）が担う。
+  - 詳細な説明はヘルプの`AlertDialog`へ集約する（BL-057, BL-059）。
     ヘルプは**メニュー形式**で、項目一覧（`HelpMenuDialog`）と本文（`HelpTopicDialog`、「戻る」で
     一覧へ戻る）の2段構成にする（BL-113）。文言と並び順はAndroid非依存の
     `mobile.help.HelpContent`（`HelpTopic` / `HelpLink`、ユニットテスト対象）が保持し、
@@ -257,23 +290,48 @@
     形で保持し、非ASCII文字を含まないことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
     体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
-  - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
-    `LaunchedEffect`と`delay`で2秒間表示する（BL-024）。デバイス0件時は
-    「まだSesameが登録されていません」を表示する（BL-056）。
+  - 保存ボタンは`enabled = isInputValid`で制御する（BL-024）。デバイス0件時は
+    「まだSesameが登録されていません。右下の『Sesameを追加』から登録してください。」を表示する
+    （BL-056 / BL-177）。
   - `Modifier.safeDrawingPadding()`でステータスバー等のシステムUIとの重なりを防止（BL-045）。
-  - `Column(verticalArrangement = Arrangement.spacedBy(8.dp))`で入力欄・ボタン間隔を統一し、
-    保存ボタンは`Modifier.fillMaxWidth()`で表示（BL-059）。
+  - 一覧の末尾に追加ボタンぶんの余白（72dp）を足し、最後のカードがボタンへ隠れないようにする。
   - **未確認事項**: `biz.candyhouse.co`は動的サイトのためWebFetchでの実ページ内容確認はできて
     おらず、公式ドキュメントの記述とユーザーからの実機確認報告のみを根拠にしている。
 
+### 診断ログ（スマートフォン）
+
+うまく動かないときに、利用者から内容を連携してもらって解析するための記録（BL-188）。
+上部バーの設定メニュー（BL-180）から全画面ダイアログで開く。
+
+- 記録するのは施錠・解錠・状態取得の**成功と失敗の両方**で、直近50件
+  （2026-09-20のユーザー判断。失敗だけだと「そのとき何が起きていたか」の前後関係が分からないため）。
+  1件は日時・操作・対象の表示名・経路・結果・失敗理由。
+- **uuid・apikey・secretKeyは記録しない**（2026-09-20のユーザー判断）。対象は利用者が付けた
+  表示名だけで示し、分からなければ「名前未設定」にする。そのまま貼って送っても資格情報が
+  漏れない状態を保つため（`rules/guardrails-unified.v1.md` 3.3）。同名のデバイスは区別できないが、
+  資格情報を外へ出さないことを優先する。**この性質は`SesameDiagnosticsLogTest`で固定している。**
+- 組み立てと整形はAndroid非依存の`core.diagnostics`（`SesameDiagnosticsEntry` /
+  `SesameDiagnosticsLog`）。記録の生成は`mobile.command.SesameCommandDiagnostics`が
+  `SesameDeviceCommandExecutor`の結果から行う（実行口へ直接書かないのは、同ファイルの関数数が
+  detektの上限に達しているため）。失敗の理由は、資格情報が使えないならその旨、そうでなければ
+  直前に保存された`SesameStatusFailure`の短い文言から引く。
+- 保存先は非暗号化SharedPreferences（機密を含まないため。`LockStateStore`と同方針）。
+- 画面は「コピー」と「共有」を持つ。共有はAndroidの共有シートで、**送り先は利用者が選ぶ**
+  （アプリからどこかへ自動送信はしない）。連携用の全文の先頭には、解析に要るアプリのバージョン・
+  Androidのバージョン・機種名だけを添える（端末を特定できるシリアル・広告IDは載せない）。
+- 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
+  `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
+
 ### セサミの状態一覧（スマートフォン）
 
-資格情報設定画面のデバイス一覧で、各デバイスの名前の下に状態の1行を出す（BL-169）。
-内容は「施錠中 ・ 電池85% ・ 角度42 ・ 3分前 ・ Bluetooth」の形で、分かっていない項目は出さない。
-何も分かっていなければ「未取得」だけになる。
+デバイスのカード一覧（BL-177）で、各デバイスの名前の下に状態を出す（BL-169）。
+内容は「施錠中 ・ 電池85% ・ 角度42」と「3分前 ・ Bluetooth」の**2行**で、分かっていない項目は
+出さない。何も分かっていなければ2行目の「未取得」だけになる。
 
 - 組み立ては`core.display.SesameDeviceStatusLine`（Android非依存、ユニットテスト対象）。
-  ウォッチの状態一覧（BL-170）と共用する。
+  1行版（`label`）と2行版（`lines`）があり、カードは2行版を使う（BL-177。1行へ詰め込むと
+  端末の幅に収まらず折り返されるため）。ウォッチの状態一覧（BL-170）とは`SesameStatusFreshness`・
+  `SesameRouteLabel`を共用する。
 - **経路はアイコンではなく語で書く**（「Bluetooth」「インターネット」）。この画面は表示領域に
   余裕があり、アイコンより語のほうが誤解が無いため（Tile・ウィジェットは逆にアイコン、BL-168）。
 - **角度はこの画面でだけ出す。** セサミが返す生の値で利用者が意味を読み取りにくいため、
@@ -312,28 +370,59 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
     ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
     更新は利用者のタップで行う。
-  - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
-    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
-    決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
-    しきい値は幅200dp・高さ140dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
-    状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
-    4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
+  - サイズ: 既定はTile相当（4x2）で、**横2マス×縦1マスまで**縮められる（BL-128 / BL-174）。
+    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
+    `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
+    （50x50 / 110x50 / 200x140）を提示して`LocalSize`を受け取る。
+    `FULL`のしきい値は幅200dp・高さ140dpで、どちらかを下回れば`MEDIUM`以下。幅は「左列（96dp）＋
+    間隔（6dp）＋状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・
+    操作文言の4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
     高さは当初100dpとしていたが、4x1（約128dp）でも`FULL`が選ばれて操作文言が縦に見切れたため、
     余裕を見て140dpへ引き上げた（BL-158）。既定の4x2はどの端末でも140dp以上になるため`FULL`のまま。
-    `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
-    出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
-    対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。
-    未設定時の文言は「タップして設定」ではなく「設定」にする。
-    `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
-    250x110dpのままにし、縮小の下限は`minResizeWidth`/`minResizeHeight`（50dp）で指定する。
-    **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+    `FULL`に届かない場合は幅だけで`MEDIUM`（110dp以上）と`COMPACT`（それ未満）を分ける。
+  - `MEDIUM`（2マス×1マス相当、BL-174）は、左1マス（60dp）にデバイス名チップ（タップで状態取得）と
+    「◀ ▶」（対象デバイスの順送り、BL-175）を縦に並べ、右1マスに状態アイコンと状態文言を出す。
+    最終取得時刻・電池残量・操作文言は高さが足りないため出さない。タップの挙動は`FULL`と同じ
+    （`WidgetTapAction`の判定どおり）。**高さ1マスのときだけ順送りにする**のは、選択画面を開く
+    「変更」チップを置く余地が無いため（2026-09-20、ユーザー確認済み。`FULL`は従来どおり「変更」）。
+  - `COMPACT`（1マス相当）は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・
+    操作文言は出さない。未設定時の文言は「タップして設定」ではなく「設定」にする。
+    **BL-174で縮小の下限を2マス×1マスへ上げたため、通常の操作でこの表示にはならない**が、
+    `minResizeWidth`より狭い表示領域を渡すランチャーと、BL-174より前に1マスで置かれた既存の
+    インスタンスのために保険として残している（2026-09-20、ユーザー確認済み）。
+  - **ウィジェット一覧へは「4 × 2」と「2 × 1」の2種類を並べる**（BL-186）。Androidは1つの
+    `appwidget-provider`へ初期サイズを1つしか持たせられないため、置いた直後から小さく使いたい
+    利用者のために2つ目のproviderを宣言する（`sesame_widget_small_info.xml`、
+    `targetCellWidth=2` / `targetCellHeight=1`）。表示・操作は完全に同じで、違うのは初期サイズだけ。
+    実装は`SesameWidgetSmall`（`SesameWidget`を継承しただけ）と`SesameWidgetSmallReceiver`。
+    **同じ`GlanceAppWidget`の実装クラスを2つのレシーバへ割り当ててはいけない**
+    （`GlanceAppWidgetManager`がクラスからレシーバを引く対応表を片方で上書きし、
+    `getGlanceIds`が一方を取りこぼして再描画が届かなくなる）。そのため
+    `SesameWidgetUpdater.updateAll`は両方のクラスを走査する。
+    対象デバイスの割り当ては appWidgetId ごとで、appWidgetId は provider をまたいで一意のため
+    2種類が混在しても取り違えは起きない。
+  - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
+    250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
+    による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（50dp）で
+    指定する。
+  - **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
     なり、以降の表示変更で両方を追従させる必要が出るため。
+  - 対象デバイスの順送り（BL-175）: 巡回する並びは選択画面と同じ`SesameDeviceTargets.choices`で、
+    端まで行ったら反対側へ回り込む。判定はAndroid非依存の`mobile.widget.WidgetDeviceCycle`
+    （ユニットテスト対象）が持ち、受信は`WidgetCommandReceiver`の`ACTION_CYCLE_DEVICE`。
+    割り当てを保存して当該インスタンスだけを再描画する。**Sesame Web APIは呼ばない**
+    （保存済みの状態を出すだけで、月間リクエスト回数を消費しない）。
+    割り当て済みのデバイスが選択肢から消えている場合（削除済み）は先頭の選択肢へ戻す。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
   `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
   明示して2.10.5へ引き上げている（2026-09-16にユーザー判断）。2.11系は`kotlin-stdlib`をコンパイラ
   （2.0.21）より新しい2.1.20へ上げるため採らない（BL-130と同じ基準）。Glanceの導入で既存依存の版が
   変わるのは`compose-runtime`の1.7.6→1.7.8のみ。
+- Glanceの部品は3ファイルに分かれる（BL-174）。`SesameWidget`（`GlanceAppWidget`本体と`FULL`/`COMPACT`の
+  並べ方）、`SesameWidgetMedium`（`MEDIUM`の左1マスと右1マス）、`SesameWidgetChips`（両者が共用する
+  チップ・文字スタイル・寸法の定数）。1ファイルへ置くとdetektの`TooManyFunctions`（上限11）に達するため。
+  `WidgetUnlockConfirmActivity`も同じ面の部品として`SesameWidgetChips`の色・角丸の定数を使う。
 - `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
   構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
   `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
@@ -532,6 +621,39 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   残る。`LockStateStore.remove`が本体のコードから呼ばれていない）として起票した。未確認のまま残るのは、
   Complicationの`LONG_TEXT`枠の表示（該当枠を持つ文字盤へ割り当てられなかった）と、Android 11以下での
   既定の配置サイズ（該当端末が無い）で、BL-149へ残している。
+- エミュレータ検証（BL-182 / BL-183 / BL-184 / BL-185 / BL-186、2026-09-20、
+  Androidエミュレータ `nocompanion` = Pixel 6相当 / Android 15）: BL-173〜BL-181の表示・操作を
+  Claude Codeがadb経由のUI操作で確認した。**実機ではなくエミュレータ単独**で行っている
+  （実機が手元に無いためユーザーが指定。Wear OSのシステムイメージは入っていない）。
+  実資格情報・実Sesameデバイスは使わず、ダミー資格情報2台
+  （Entrance=`aaaa1111` / Garage=`bbbb2222`）とモックAPI（BL-132、`10.0.2.2:8080`）で状態を作っている。
+  確認できたのは次のとおり。
+  (1) ウィジェットは横2マス×縦1マスまで縮められ、**それ未満へは縮まらない**
+  （右ハンドルを画面左端まで引いても2マスで止まる）。
+  (2) 2マス×1マスで左に「デバイス名」と「◀ ▶」、右にアイコンと状態文言が省略・見切れなく出る
+  （当初は「▶」が描画されずデバイス名も省略されていた。BL-183 / BL-184として修正し再確認済み）。
+  (3) 「◀」「▶」で対象が選択画面と同じ順に切り替わり、端で回り込む
+  （全デバイス → Entrance → Garage）。**切り替えでモックAPIへのリクエストは1件も発生しない。**
+  (4) 4x2（FULL）は従来どおり左列に「変更」が出て、タップで選択画面が開く。
+  (5) アプリ画面が上部バー＋カード一覧＋追加ボタンの構成になり、状態が
+  「施錠中 ・ 電池100% ・ 角度0」と「1分前 ・ 🌐 インターネット」の2行へ分かれて折り返しが無い。
+  (6) 追加・編集が全画面ダイアログで開き、入力が不正な間は「保存」が押せず、保存すると
+  一覧へ反映されて「保存しました」がSnackbarで出る。
+  (7) 削除で確認ダイアログが出て、キャンセルすると消えない。
+  (8) 上部バーの⋮メニューに「操作の経路」「Bluetoothで直接操作」「ヘルプ」が並び、
+  副題に現在の方針（自動（Bluetooth優先））と許可状況（Bluetooth：未許可（インターネット経由で動作中））が出る。
+  経路を切り替えると保存され、メニューの副題が「常にインターネット経由」へ変わる
+  （当初はダイアログの行頭の文字が左端で欠けていた。BL-185として修正し再確認済み）。
+  (9) 経路のベクターアイコン（BL-176）が、アプリ画面のカードでは語と併記、ウィジェットのFULLでは
+  「たった今 🔋100%」と同じ行の先頭に出る（**行は増えていない**）。
+  (10) 端末をダークテーマにするとアプリ画面が暗色になり、ステータスバーの時刻・電池が判読できる。
+  (11) ウィジェット一覧に「Sesami Wear（小）2 × 1」と「Sesami Wear 4 × 2」が並び、
+  小さい方を置くと最初から2マス×1マスで配置される。2種類を同時に置いても別々のデバイスを
+  対象にでき、状態取得の結果が双方へ反映される（BL-186）。
+  **未確認のまま残るのは、ウォッチ側（Tile・Complication・状態一覧）の🔗／🌐**
+  （Wear OSのシステムイメージが無く、スマートフォンとのペア設定を要するため
+  エミュレータ単独では作れない）**と、Bluetooth経由（🔗／Bluetoothアイコン）を伴う表示**
+  （実Sesameデバイスが必要。BL-165に含む）。
 - 実機検証（BL-156 / BL-157 / BL-158 / BL-159 / BL-160、2026-09-18、Pixel 8 Pro + Pixel Watch 2）:
   BL-149で起票した5件の修正を、Claude Codeがadb経由で確認した。実資格情報は使わず、ダミー資格情報2台
   （DevA=`MOCKA1` / DevB=`MOKB2`。uuidは`input text`が1文字落とした実際の値）とモックAPI（BL-132）で
@@ -554,6 +676,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   後始末として、ダミー資格情報の削除、検証用ウィジェットの撤去、BL-149の検証で残っていた
   孤立ロック状態（`MCKUD` / `MOCKUUID1` / デモ）の削除、モックサーバーの停止、ウォッチの
   `screen_off_timeout`の復元（30000）、本番URLでのデバッグ版の入れ直しを行った。
+- 以下の実機検証記録に出てくる経路アイコン📶 / ☁は**当時の表示**で、現在は🔗 / 🌐へ
+  変更されている（BL-173、2026-09-20）。記録は当時観測した内容のまま残す。
 - 実機検証（BL-172 / BL-165、2026-09-20、Pixel 8 Pro + Pixel Watch 2）: BL-166〜BL-171の経路表示・状態表示と、
   BL-153の権限表示・BL-167の経路方針を、Claude Codeがadb経由のUI操作で確認した。実資格情報・実Sesameデバイスは
   使わず、ダミー資格情報4台（Genkan=`alphadev1` / Kaisha=`bravodev2` / Souko=`charlie3` / Kura=`delta4`）と
@@ -602,13 +726,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
 - `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
   `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
-  minResizeWidth / minResizeHeight 50dpにより1マス（1x1）まで縮められる（BL-128）。
+  minResizeWidth 110dp / minResizeHeight 50dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
 ### ウィジェットの電池残量表示
 
 ホーム画面ウィジェットのFULLレイアウトで、電池残量を**最終取得時刻と同じ行**へ併記する
-（「📶3分前 🔋85%」、BL-171）。
+（「🔗3分前 🔋85%」、BL-171。アイコンはBL-176でベクターアイコンへ置き換え）。
 
 - **行は増やさない。** 高さ予算は最小サイズ140dpに対して約136dpを既に使っており（BL-158）、
   行を足すと最小サイズで操作文言が見切れる。`SesameWidgetLayout`のしきい値は変更していない。
@@ -788,7 +912,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 スタブだったが、**登録済みセサミの状態一覧**にした（BL-170）。Tileは操作のための面で表示余白が無く、
 電池残量や経路までは入らないため、その置き場にする。
 
-- 1台につき3行（デバイス名 / 「🔒施錠中 🔋85%」 / 「📶3分前」）。
+- 1台につき3行（デバイス名 / 「🔒施錠中 🔋85%」 / 「🔗3分前」）。
   円形画面では行が長いと行頭・行末が見切れるため（BL-114）、スマートフォンの1行表示
   （`core.display.SesameDeviceStatusLine`）はそのまま使わず、短い行へ分ける。
   各行が幅の目安（全角11文字相当）に収まることは`SesameStatusListContentTest`で固定している。
@@ -1411,9 +1535,25 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 
 | 面 | 見せ方 |
 | --- | --- |
-| Tile / Complication / ホーム画面ウィジェット | 「最終取得時刻」の行へ経路アイコンを**前置**する（`📶3分前`、`☁認証エラー`）。**行は増やさない** |
-| スマートフォンの画面 | アイコンではなく語で書く（「Bluetooth」「インターネット」） |
+| Tile / Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`）。**行は増やさない** |
+| ホーム画面ウィジェット | 同じ行の先頭へMaterialのベクターアイコンを置く（BL-176）。**行は増やさない** |
+| スマートフォンのアプリ画面 | ベクターアイコンと語を併記する（「Bluetooth」「インターネット」、BL-176） |
 
+- ベクターアイコンの実体は`mobile/src/main/res/drawable/ic_route_bluetooth.xml` /
+  `ic_route_internet.xml`で、Google Material Icons（Apache-2.0）の`bluetooth` / `public`。
+  出典はREADME.md「ライセンス」へ記載している（Googleは表示を義務付けていないが出典として残す）。
+  どのアイコンを使うかの対応は`mobile.ui.SesameRouteIcon`が持ち、Composeは`Icon`＋`painterResource`、
+  Glanceは`Image`＋`ImageProvider`＋`ColorFilter.tint`で描く。色は描画側で与えるため、
+  ドローアブル自体は白で塗っている。
+- ウィジェットは経路を**文言へ前置せず**`SesameWidgetModel.Configured.route`として別に持ち、
+  描画側（`SesameWidgetChips.DetailRow`）が画像と文言を横に並べる。行数は増えない。
+
+- **アイコンは🔗（Bluetooth）／🌐（インターネット）。** 当初は📶／☁だったが、📶は携帯電話の
+  電波強度として広く使われており、Bluetoothでの直接操作を表すものとして読み取れないという
+  指摘があり変更した（BL-173、2026-09-20）。Unicodeに「Bluetooth」の絵文字は存在せず
+  （ロゴはルーン文字の合字で絵文字フォントに無く、端末によっては豆腐になる）、搭載率の高い
+  Emoji 1.0の範囲から選んでいる。ウォッチ側（Tile・Complication）が絵文字のままなのは、
+  Complicationの`SHORT_TEXT`/`LONG_TEXT`がテキストしか持てず、画像を埋め込めないため。
 - 行を増やさないのは、3つの面がいずれも表示余白を使い切っており、過去に文言が収まらず省略された
   事例があるため（BL-102 / BL-104 / BL-158）。アイコンは1コードポイントに収まるものだけを使い、
   区切りの空白も入れない。この制約は`SesameRouteLabelTest`で固定している。

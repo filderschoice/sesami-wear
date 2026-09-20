@@ -28,6 +28,7 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
         private const val WIDGET_ASSIGNMENTS_PREFS_FILE_NAME = "sesami_wear_widget_assignments"
         private const val API_USAGE_PREFS_FILE_NAME = "sesami_wear_api_usage"
         private const val BLE_REACHABILITY_PREFS_FILE_NAME = "sesami_wear_ble_reachability"
+        private const val DIAGNOSTICS_PREFS_FILE_NAME = "sesami_wear_diagnostics"
 
         /** ロック状態（[LockStateStore]）用のストア。 */
         fun forLockState(context: Context): SharedPreferencesKeyValueStore = create(context, LOCK_STATE_PREFS_FILE_NAME)
@@ -45,6 +46,13 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
          */
         fun forBleReachability(context: Context): SharedPreferencesKeyValueStore =
             create(context, BLE_REACHABILITY_PREFS_FILE_NAME)
+
+        /**
+         * 診断ログ（`core.diagnostics.SesameDiagnosticsLog`、BL-188）用のストア。
+         * 表示名・操作・経路・結果だけで資格情報を含まないため非暗号化でよい。
+         */
+        fun forDiagnostics(context: Context): SharedPreferencesKeyValueStore =
+            create(context, DIAGNOSTICS_PREFS_FILE_NAME)
 
         private fun create(
             context: Context,

@@ -3,6 +3,7 @@ package com.sesamiwear.mobile.widget
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.TileDisplayStateResolver
@@ -42,6 +43,13 @@ sealed interface SesameWidgetModel {
          * 最も少ない台の値を代表値にする（失敗・鮮度と同じく、利用者が対処すべき側を出す）。
          */
         val batteryPercentage: Int? = null,
+        /**
+         * 最後に使った経路（BL-176）。ウィジェットはスマートフォン側の面のため、絵文字ではなく
+         * Material Symbolsのベクターアイコン（`mobile.ui.SesameRouteIcon`）で描く。
+         * そのため[detailLabel]へはアイコンを前置せず、経路をこの値として別に持つ。
+         * 「全デバイス」対象では全台が同じ経路のときだけ値が入る（`SesameRouteLabel.commonRoute`）。
+         */
+        val route: SesameStatusRoute? = null,
     ) : SesameWidgetModel {
         /**
          * [detailLabel]へ電池残量を併記した1行（BL-171）。**行は増やさない。**
@@ -102,6 +110,7 @@ object SesameWidgetModelResolver {
                 isAllDevices = SesameDeviceTargets.isAllDevices(uuid),
                 detailLabel = detailLabelOf(targetUuids, snapshotOf, nowEpochMillis),
                 batteryPercentage = batteryPercentageOf(targetUuids, snapshotOf),
+                route = routeOf(targetUuids, snapshotOf),
             )
         }
     }
@@ -163,6 +172,20 @@ object SesameWidgetModelResolver {
         snapshotOf: (String) -> SesameStatusSnapshot?,
     ): Int? = targetUuids.mapNotNull { snapshotOf(it)?.batteryPercentage }.minOrNull()
 
+    /**
+     * 表示する経路（BL-176）。「全デバイス」対象では全台が同じ経路のときだけ返す
+     * （混在しているのに片方を出すと、出ていない側について誤解を与えるため）。
+     */
+    private fun routeOf(
+        targetUuids: List<String>,
+        snapshotOf: (String) -> SesameStatusSnapshot?,
+    ): SesameStatusRoute? =
+        if (targetUuids.isEmpty()) {
+            null
+        } else {
+            SesameRouteLabel.commonRoute(targetUuids.map { snapshotOf(it)?.lastRoute })
+        }
+
     private fun detailLabelOf(
         targetUuids: List<String>,
         snapshotOf: (String) -> SesameStatusSnapshot?,
@@ -173,11 +196,12 @@ object SesameWidgetModelResolver {
         } else {
             val snapshots = targetUuids.map { snapshotOf(it) }
             // ウィジェットは表示領域に余裕があるため、失敗時は対処を併記する詳しい文言を使う（BL-140）。
+            // 経路は[SesameWidgetModel.Configured.route]として別に渡し、ここではアイコンを前置しない
+            // （ウィジェットはベクターアイコンで描くため、BL-176）。
             SesameStatusDetail.detailedLabel(
                 failure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure }),
                 updatedAtEpochMillis = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis }),
                 nowEpochMillis = nowEpochMillis,
-                route = SesameRouteLabel.commonRoute(snapshots.map { it?.lastRoute }),
             )
         }
 }

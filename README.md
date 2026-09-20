@@ -300,3 +300,8 @@ sesami-wear/
 
 [MIT License](LICENSE)。Sesame APIレスポンス構造・コマンド署名アルゴリズムの実装にあたり
 参考にした [pysesame3](https://github.com/mochipon/pysesame3)（MIT License）に感謝します。
+
+経路表示のアイコン（`mobile/src/main/res/drawable/ic_route_bluetooth.xml` /
+`ic_route_internet.xml`）は [Google Material Icons](https://github.com/google/material-design-icons)
+（Apache License 2.0）の `bluetooth` / `public` をベクタードローアブルへ書き起こしたものです。
+Google は表示義務を課していませんが、出典として記載します。

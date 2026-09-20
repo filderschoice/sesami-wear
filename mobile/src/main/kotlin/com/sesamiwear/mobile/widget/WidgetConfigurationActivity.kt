@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.display.SesameDeviceTargets
 import com.sesamiwear.mobile.EntryPointGuard
+import com.sesamiwear.mobile.ui.SesameTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -54,7 +55,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
         val choices = SesameDeviceTargets.choices(registeredDevices)
         val isDemoMode = SesameDemoMode.isAvailable(registeredDevices)
         setContent {
-            MaterialTheme {
+            SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WidgetDeviceSelectionScreen(
                         choices = choices,

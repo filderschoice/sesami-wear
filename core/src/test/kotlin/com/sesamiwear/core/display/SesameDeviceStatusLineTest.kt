@@ -33,6 +33,36 @@ class SesameDeviceStatusLineTest {
     }
 
     @Test
+    fun `the two line form splits the state from when it was taken`() {
+        // スマートフォンのデバイスカード（BL-177）。経路はどちらの行にも入れない（カード側で描くため）。
+        val lines =
+            SesameDeviceStatusLine.lines(
+                snapshot =
+                    SesameStatusSnapshot(
+                        isLocked = true,
+                        updatedAtEpochMillis = NOW - 3 * 60_000L,
+                        batteryPercentage = 85,
+                        position = 42,
+                        lastRoute = SesameStatusRoute.BLE,
+                    ),
+                nowEpochMillis = NOW,
+                zoneId = ZONE,
+                includePosition = true,
+            )
+
+        assertEquals("施錠中 ・ 電池85% ・ 角度42", lines.statusLine)
+        assertEquals("3分前", lines.freshnessLine)
+    }
+
+    @Test
+    fun `the two line form leaves the state line empty when nothing is known`() {
+        val lines = SesameDeviceStatusLine.lines(snapshot = null, nowEpochMillis = NOW, zoneId = ZONE)
+
+        assertEquals("", lines.statusLine)
+        assertEquals(SesameDeviceStatusLine.NEVER_FETCHED_LABEL, lines.freshnessLine)
+    }
+
+    @Test
     fun `the angle is only shown when it is asked for`() {
         val snapshot =
             SesameStatusSnapshot(

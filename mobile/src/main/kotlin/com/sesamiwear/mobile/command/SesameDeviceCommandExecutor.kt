@@ -14,6 +14,8 @@ import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.api.SesameApiOperation
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.core.diagnostics.SesameDiagnosticsOperation
+import com.sesamiwear.core.diagnostics.SesameDiagnosticsOutcome
 import com.sesamiwear.mobile.BuildConfig
 import com.sesamiwear.mobile.messaging.CommandDebouncer
 import com.sesamiwear.mobile.messaging.SesameCommandHandler
@@ -27,7 +29,7 @@ import com.sesamiwear.mobile.state.LockStateStore
  * クラスとして切り出した。資格情報の検索、[CommandDebouncer]による重複の抑止、[SesameCommandHandler]での
  * コマンド送信、成功時のロック状態の保存（[LockStateStore]）と変更通知（[LockStateNotifier]）を担う。
  *
- * [debouncer]はウォッチ経由とウィジェット経由で同じインスタンス（[sharedDebouncer]）を渡し、
+ * [guard]の`debouncer`はウォッチ経由とウィジェット経由で同じインスタンス（[sharedDebouncer]）を渡し、
  * 同一uuidへの2秒以内の重複を経路をまたいで無視する（BL-062の多重送信・多重ハプティクス防止を維持）。
  * 施錠/解錠と状態取得は別々のキーで数えるため、施錠した直後に状態を取り直すことはできる（BL-148）。
  *
@@ -35,6 +37,8 @@ import com.sesamiwear.mobile.state.LockStateStore
  * Sesame APIへもウォッチへも一切送らない（ウォッチ側のデモ状態とは同期せず、端末ごとに独立して体験する）。
  *
  * Sesame APIの呼び出し口と失敗ログの出力先は[SesameApiAccess]としてまとめて受け取る（BL-139）。
+ * 施錠/解錠・状態取得の成否は[guard]の`diagnostics`へも渡し、利用者が連携できる診断ログとして残す（BL-188）。
+ * 渡すのは表示名・操作・経路・結果・失敗理由だけで、**uuidは渡さない**。
  *
  * 施錠/解錠と状態取得は、BLEで到達できるデバイスならBLE、それ以外はWeb APIで実行する（[SesameBleAccess]、
  * BL-152）。BLEで成功した場合はWeb APIを呼ばないため、月間リクエスト上限（BL-141）を消費しない。
@@ -45,7 +49,7 @@ class SesameDeviceCommandExecutor(
     private val lockStateStore: LockStateStore,
     private val notifier: LockStateNotifier,
     private val routes: SesameRouteAccess = SesameRouteAccess(),
-    private val debouncer: CommandDebouncer = sharedDebouncer,
+    private val guard: SesameCommandGuard = SesameCommandGuard(),
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     /** 施錠/解錠の実行結果。[DEBOUNCED]は重複として無視した（APIを呼んでいない）ことを表す。 */
@@ -65,13 +69,24 @@ class SesameDeviceCommandExecutor(
         uuid: String,
         command: SesameCommand,
     ): Outcome {
-        if (!debouncer.shouldProcess(COMMAND_KEY_PREFIX + uuid)) return Outcome.DEBOUNCED
+        val operation = guard.diagnostics.operationOf(command)
+        if (!guard.debouncer.shouldProcess(COMMAND_KEY_PREFIX + uuid)) {
+            guard.diagnostics.record(uuid, operation, SesameDiagnosticsOutcome.SKIPPED)
+            return Outcome.DEBOUNCED
+        }
         val measurement =
             if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
         if (measurement != null) {
             // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
             updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
         }
+        // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
+        guard.diagnostics.record(
+            uuid = uuid,
+            operation = operation,
+            outcome = if (measurement != null) SesameDiagnosticsOutcome.SUCCESS else SesameDiagnosticsOutcome.FAILURE,
+            route = measurement?.route,
+        )
         return if (measurement != null) Outcome.SUCCESS else Outcome.FAILURE
     }
 
@@ -109,7 +124,7 @@ class SesameDeviceCommandExecutor(
                 apiClient = routes.api.clientFactory(credentials),
                 secretKey = secretKey,
                 onFailure = { e ->
-                    routes.api.logFailure(SesameApiFailureLog.describe(operationOf(command), e))
+                    routes.api.logFailure(SesameApiFailureLog.describe(apiOperationOf(command), e))
                     failure = SesameStatusFailure.of(e.httpStatusCode)
                 },
             )
@@ -128,22 +143,37 @@ class SesameDeviceCommandExecutor(
      * 施錠/解錠とは別のキーで数えるため、施錠/解錠の直後でも状態取得は抑止されない（移設前と同じ）。
      * 「全デバイス」対象のタップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なる）。
      */
-    suspend fun refreshStatus(uuid: String): Boolean? {
-        if (SesameDemoMode.isDemoDevice(uuid)) {
+    suspend fun refreshStatus(uuid: String): Boolean? =
+        when {
             // デモは取得先が無いため、保存済み（無ければ初期状態）をそのまま返し、保存・通知もしない。
-            return lockStateStore.load(uuid)?.isLocked ?: SesameDemoMode.INITIAL_IS_LOCKED
-        }
-        // 連打として無視した場合はAPIを呼ばず保存済みの状態を返す。失敗ではないため、
-        // 失敗の記録（BL-140）も残さない。
-        return if (debouncer.shouldProcess(STATUS_KEY_PREFIX + uuid)) {
-            fetchStatus(uuid)?.let { reading ->
-                updateLockState(uuid, reading.isLocked, reading.measurement)
-                reading.isLocked
+            SesameDemoMode.isDemoDevice(uuid) -> {
+                guard.diagnostics.record(uuid, STATUS_OPERATION, SesameDiagnosticsOutcome.SUCCESS)
+                lockStateStore.load(uuid)?.isLocked ?: SesameDemoMode.INITIAL_IS_LOCKED
             }
-        } else {
-            lockStateStore.load(uuid)?.isLocked
+            // 連打として無視した場合はAPIを呼ばず保存済みの状態を返す。失敗ではないため、
+            // 失敗の記録（BL-140）も残さない。
+            !guard.debouncer.shouldProcess(STATUS_KEY_PREFIX + uuid) -> {
+                guard.diagnostics.record(uuid, STATUS_OPERATION, SesameDiagnosticsOutcome.SKIPPED)
+                lockStateStore.load(uuid)?.isLocked
+            }
+            else -> {
+                val reading = fetchStatus(uuid)
+                reading?.let { updateLockState(uuid, it.isLocked, it.measurement) }
+                // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
+                guard.diagnostics.record(
+                    uuid = uuid,
+                    operation = STATUS_OPERATION,
+                    outcome =
+                        if (reading != null) {
+                            SesameDiagnosticsOutcome.SUCCESS
+                        } else {
+                            SesameDiagnosticsOutcome.FAILURE
+                        },
+                    route = reading?.measurement?.route,
+                )
+                reading?.isLocked
+            }
         }
-    }
 
     private suspend fun fetchStatus(uuid: String): SesameStatusReading? {
         val credentials = findCredentials(uuid) ?: return null
@@ -221,8 +251,23 @@ class SesameDeviceCommandExecutor(
          */
         private const val COMMAND_KEY_PREFIX = "cmd:"
         private const val STATUS_KEY_PREFIX = "status:"
+
+        /** 状態取得の診断ログ（BL-188）の操作種別。`when`の各枝から使うため定数にしている。 */
+        private val STATUS_OPERATION = SesameDiagnosticsOperation.STATUS
     }
 }
+
+/**
+ * 操作のたびに通す共通処理（BL-188）。重複の抑止（[debouncer]）と診断ログ（[diagnostics]）をまとめる。
+ *
+ * 2つを1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数をdetektの上限内へ
+ * 収めるためでもある（[SesameRouteAccess]と同じ考え方）。
+ * [debouncer]はウォッチ経由とウィジェット経由で同じインスタンスを渡し、経路をまたいだ重複を1つにする。
+ */
+class SesameCommandGuard(
+    val debouncer: CommandDebouncer = SesameDeviceCommandExecutor.sharedDebouncer,
+    val diagnostics: SesameCommandDiagnostics = SesameCommandDiagnostics(),
+)
 
 /**
  * 施錠/解錠・状態取得に使える経路の一式（BL-152）。
@@ -293,10 +338,11 @@ fun interface LockStateListener {
 }
 
 /**
- * 診断ログ（BL-139）で使う操作種別へ変換する。
+ * logcatの失敗ログ（BL-139）で使う操作種別へ変換する。
  * [SesameDeviceCommandExecutor]の関数数を増やさないようトップレベルへ置く。
+ * 画面へ出す診断ログ（BL-188）の操作種別は[SesameCommandDiagnostics.operationOf]が持つ。
  */
-private fun operationOf(command: SesameCommand): SesameApiOperation =
+private fun apiOperationOf(command: SesameCommand): SesameApiOperation =
     when (command) {
         SesameCommand.LOCK -> SesameApiOperation.LOCK
         SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK

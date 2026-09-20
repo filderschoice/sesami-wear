@@ -29,6 +29,7 @@ import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameDeviceTargets
 import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.mobile.ui.SesameTheme
 
 /**
  * ウィジェットから解錠するときの確認画面（BL-122）。wearの`SesameActionActivity`の確認画面と同じく、
@@ -49,7 +50,7 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
             return
         }
         setContent {
-            MaterialTheme {
+            SesameTheme {
                 Surface(shape = RoundedCornerShape(16.dp)) {
                     UnlockConfirmation(
                         displayName = displayName,
@@ -136,6 +137,6 @@ private fun ConfirmChip(
     }
 }
 
-private const val NEUTRAL_TEXT_ARGB = 0xFFFFFFFF.toInt()
+// NEUTRAL_TEXT_ARGB / CHIP_CORNER_RADIUS_DP はウィジェット本体と同じ値を使う
+// （SesameWidgetChips.kt。同じ面の部品のため、片方だけ変わると見た目がずれる）。
 private const val CHIP_HEIGHT_DP = 56
-private const val CHIP_CORNER_RADIUS_DP = 12

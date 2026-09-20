@@ -3,6 +3,7 @@ package com.sesamiwear.mobile.widget
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
@@ -17,6 +18,7 @@ class SesameWidgetModelResolverTest {
     private val updatedAtMillis = mutableMapOf<String, Long>()
     private val failures = mutableMapOf<String, SesameStatusFailure>()
     private val batteries = mutableMapOf<String, Int>()
+    private val routes = mutableMapOf<String, SesameStatusRoute>()
 
     private fun resolve(
         assignedUuid: String?,
@@ -39,6 +41,7 @@ class SesameWidgetModelResolverTest {
             updatedAtEpochMillis = if (isLocked == null) null else updatedAtMillis[uuid] ?: NOW,
             lastFailure = failure,
             batteryPercentage = batteries[uuid],
+            lastRoute = routes[uuid],
         )
     }
 
@@ -278,6 +281,31 @@ class SesameWidgetModelResolverTest {
         val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
 
         assertEquals(40, model.batteryPercentage)
+    }
+
+    @Test
+    fun `the route is exposed separately and is not prefixed to the detail label`() {
+        // ウィジェットは経路をベクターアイコンで描くため、文言へ絵文字を前置しない（BL-176）。
+        lockStates[front.uuid] = true
+        updatedAtMillis[front.uuid] = NOW - 3 * 60_000L
+        routes[front.uuid] = SesameStatusRoute.BLE
+
+        val model = configured(resolve(front.uuid, listOf(front)))
+
+        assertEquals(SesameStatusRoute.BLE, model.route)
+        assertEquals("3分前", model.detailLabel)
+    }
+
+    @Test
+    fun `a mixed route is not shown for all devices`() {
+        lockStates[front.uuid] = true
+        lockStates[back.uuid] = true
+        routes[front.uuid] = SesameStatusRoute.BLE
+        routes[back.uuid] = SesameStatusRoute.WEB_API
+
+        val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
+
+        assertEquals(null, model.route)
     }
 
     @Test

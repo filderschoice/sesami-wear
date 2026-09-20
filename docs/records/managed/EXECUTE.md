@@ -5,6 +5,340 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 18:14
+  summary: 診断ログの画面を追加し、Wear OSエミュレータでの検証手段を用意する
+  details:
+    変更内容: >-
+      (1) BL-188 - 施錠・解錠・状態取得の成功と失敗を直近50件だけ残す診断ログを追加し、
+      上部バーの設定メニューへ「診断ログ」を足した。組み立てと整形はAndroid非依存の
+      core.diagnostics（SesameDiagnosticsEntry / SesameDiagnosticsLog）で、
+      記録は mobile.command.SesameCommandDiagnostics が SesameDeviceCommandExecutor の
+      結果から作る。**uuid・apikey・secretKeyは記録しない**（対象は表示名だけ）。
+      画面は全画面ダイアログで「コピー」と「共有」を持ち、共有用の全文には解析に要る
+      アプリ版・Androidバージョン・機種名だけをヘッダとして添える。
+      保存先は非暗号化SharedPreferences（機密を含まないため）。
+      detektの上限に収めるため、実行口の引数は SesameCommandGuard（重複抑止＋診断ログ）へまとめ、
+      refreshStatus は when 式へ、SettingsMenu はダイアログ部分を分離した。
+      (2) BL-187 - Wear OSのシステムイメージ（android-34 / android-wear / x86_64＝Wear OS 5）を
+      導入し、AVD `wearos`（384x384・円形・データ領域2047MB）を作成した。
+      2台のエミュレータのペア設定はWear OSコンパニオンアプリがPlayストア入りイメージと
+      Googleアカウントを要するため行わず、代わりにwearのdebugビルドにだけ存在する
+      SesameWearDebugReceiver を追加して、デバイス一覧と状態のDataItemをウォッチ単体で
+      注入できるようにした（mobile側のSesameBleDebugReceiverと同じ形式）
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsEntry.kt
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameCommandDiagnostics.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogDialog.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - wear/src/debug/kotlin/com/sesamiwear/wear/debug/SesameWearDebugReceiver.kt
+      - wear/src/debug/AndroidManifest.xml
+      - docs/INSTALL.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion = Android 15、wearos = Wear OS 5）での確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータで次を確認した。
+      診断ログは設定メニューから開き、記録が新しい順に並び、コピーと共有ができる。
+      保存値（shared_prefs/sesami_wear_diagnostics.xml）にuuid・apikey・secretKeyが含まれず、
+      表示名・操作・結果・時刻だけであることを直接確認した。
+      Wear OSエミュレータでは、注入したデバイス一覧と状態がウォッチのアプリ本体の状態一覧へ反映され、
+      経路アイコン🔗（Bluetooth）と🌐（インターネット）の両方が表示された。
+      Tileでも「🔗11分前」が表示された（スマートフォン未接続のため状態自体は「スマホ未接続」）
+    関連ID:
+      - BL-187
+      - BL-188
+- date: 2026-09-20 14:35
+  summary: ウィジェットを2マス×1マスでも置けるようにする
+  details:
+    変更内容: >-
+      ウィジェット一覧へ「2 × 1」の項目を追加した（BL-186）。Androidは1つのproviderへ初期サイズを
+      1つしか持たせられないため、2マス×1マス用のprovider（sesame_widget_small_info.xml）と
+      レシーバ（SesameWidgetSmallReceiver）をもう1組宣言している。
+      表示・操作は既存と完全に同じで、SesameWidgetSmallはSesameWidgetを継承しただけ。
+      別クラスにしているのはGlanceAppWidgetManagerの都合で、同じ実装クラスを2つのレシーバへ
+      割り当てるとクラス→レシーバの対応表が片方で上書きされ、getGlanceIdsが一方を取りこぼして
+      再描画が届かなくなるため。SesameWidgetUpdater.updateAllは両方のクラスを走査するようにした。
+      対象デバイスの割り当てはappWidgetIdごとで、appWidgetIdはproviderをまたいで一意のため
+      2種類が混在しても取り違えは起きない
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetSmall.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/main/AndroidManifest.xml
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion、Android 15）での確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータでウィジェット一覧に
+      「Sesami Wear（小）2 × 1」と「Sesami Wear 4 × 2」の2種類が並ぶこと、
+      小さい方を置くと最初から2マス×1マスで配置され対象デバイスの選択画面が開くこと、
+      2種類を同時に置いても別々のデバイスを対象にでき、状態取得の結果が双方へ反映されることを
+      確認した
+    関連ID:
+      - BL-186
+- date: 2026-09-20 14:20
+  summary: エミュレータ検証で見つけた表示・レイアウトの不具合3件を修正する
+  details:
+    変更内容: >-
+      BL-182のエミュレータ検証（Pixel 6相当 / Android 15）で観測した3件を修正した。
+      (1) BL-183 - 2マス×1マス表示で「▶」が描画されなかった。`NeutralChip`が内部で
+      `fillMaxWidth()`を適用しており、`Row`の`defaultWeight()`と競合して先頭のチップが
+      全幅を占めていた。`fillWidth`引数を足し、順送りの2チップでは`false`を渡す。
+      (2) BL-184 - 同表示で「全デバイス」が「全デバ…」と省略されていた。左1マスを60dpから
+      72dpへ広げ、11sp×全角5文字＋チップの内側パディング（計67dp）が収まるようにした。
+      (3) BL-185 - 「操作の経路」ダイアログで行頭の文字が左端で欠けていた（●が細い弧にしか見えず、
+      折り返し最終行の「消」も半分欠けていた）。`TextButton`の中の`Column(fillMaxWidth)`をやめ、
+      Material標準の`RadioButton`＋テキストを`Row`へ並べて行全体を`selectable`にする形へ変えた。
+      ●／○の文字による選択表現も廃止した
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicyState.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion、Android 15）での再確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータで3件とも解消を確認した。
+      「◀」「▶」が並んで表示され、どちらのタップでも選択画面と同じ順で切り替わること
+      （全デバイス → Entrance → Garage、端で回り込み）、「全デバイス」が省略されないこと、
+      経路ダイアログの行頭が欠けず選択状態がラジオボタンで分かることを確認している
+    関連ID:
+      - BL-183
+      - BL-184
+      - BL-185
+- date: 2026-09-20 10:33
+  summary: スマホのアプリ画面をダークテーマへ対応させる
+  details:
+    変更内容: >-
+      MaterialThemeへcolorSchemeを渡していなかったためライト固定だった配色を、
+      端末の設定へ追随させた（mobile.ui.SesameTheme）。Material Youの動的カラーは採らない。
+      施錠状態の色（緑／赤／紫）が壁紙由来の色と競合し、状態の読み取りを鈍らせるため。
+      Activityのウィンドウ側は res/values/themes.xml と res/values-night/themes.xml の
+      Theme.SesamiWear / Theme.SesamiWear.Dialog へ切り出した（AppCompatを使わないため
+      親はplatformのTheme.Material系。DeviceDefaultのDayNightはAPI 29以上のみでminSdk 26に合わない）。
+      システムバーのアイコン色は MainActivity.applySystemBarIcons が isSystemInDarkTheme に応じて
+      切り替える（BL-103の固定指定を置き換え）。ウィジェットの選択画面・解錠確認画面も同じテーマを使う
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameTheme.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/res/values/themes.xml
+      - mobile/src/main/res/values-night/themes.xml
+      - mobile/src/main/AndroidManifest.xml
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機でのダークテーマ表示とシステムバーの判読性の確認は
+      BL-182として起票済み
+    関連ID:
+      - BL-181
+- date: 2026-09-20 10:29
+  summary: ヘルプと接続の設定を上部バーの設定メニューへ集約する
+  details:
+    変更内容: >-
+      ヘルプ（見出し横のボタン）と接続の設定（操作の経路・Bluetooth権限の2行）を、
+      上部バーの⋮メニュー（mobile.credentials.SettingsMenu）へまとめた。3つとも
+      たまに開く設定で、主画面へ常時置くと情報量を押し上げるため。
+      現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、開くだけで分かるようにした。
+      Bluetoothの項目は、許可済みで求めるものが無いときは押せない状態表示になる。
+      RoutePolicySection / BlePermissionSection は、状態を返すComposable関数
+      （RoutePolicyState / BlePermissionState）とダイアログへ分け、
+      detektのMatchingDeclarationNameに合わせてファイル名も変更した
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicyState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/BlePermissionState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-180
+- date: 2026-09-20 10:25
+  summary: スマホ側の経路表示をMaterialのベクターアイコンへ置き換える
+  details:
+    変更内容: >-
+      アプリ画面のデバイスカードとホーム画面ウィジェットのFULL表示で、経路を絵文字ではなく
+      ベクタードローアブルで描くようにした。res/drawableへic_route_bluetooth.xml（Material Iconsの
+      bluetooth）とic_route_internet.xml（同 public）を追加し、対応はmobile.ui.SesameRouteIconが持つ。
+      色は描画側で与えるためドローアブルは白塗りで、ComposeはIcon＋painterResource、
+      GlanceはImage＋ImageProvider＋ColorFilter.tintで描く。
+      カードはアイコンと語（Bluetooth／インターネット）を併記する。
+      ウィジェットは経路を文言へ前置せずSesameWidgetModel.Configured.routeとして別に持ち、
+      描画側（SesameWidgetChips.DetailRow）が画像と文言を横へ並べる（行数は増やさない）。
+      ウォッチ側（Tile・Complication）は絵文字🔗／🌐のまま。Complicationの
+      SHORT_TEXT/LONG_TEXTはテキストしか持てず画像を埋め込めないため、全面の統一は仕様上できない。
+      アイコンの出典（Google Material Icons、Apache-2.0）をREADME.mdのライセンス節へ記載した
+      （Googleは表示を義務付けていないが出典として残す）
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_route_bluetooth.xml
+      - mobile/src/main/res/drawable/ic_route_internet.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameRouteIcon.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。パスデータは推測せず、Googleが公開しているMaterial Iconsの
+      SVG（fonts.gstatic.com と github.com/google/material-design-icons の2系統）から取得して
+      一致を確認している。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-176
+- date: 2026-09-20 10:18
+  summary: スマホのアプリ画面を上部バー＋カード一覧＋追加ボタンの構成へ作り替える
+  details:
+    変更内容: >-
+      資格情報設定画面を、TopAppBar＋デバイスのカード一覧＋ExtendedFloatingActionButtonの構成へ
+      作り替えた（BL-177）。1台＝1枚のCardとし、(1)施錠状態のアイコンと表示名、
+      (2)施錠状態・電池・角度、(3)最終取得と経路、の3行へ分けて1行への詰め込みをやめた。
+      2行版の組み立てとして core.display.SesameDeviceStatusLine.lines を追加している
+      （既存の1行版 label はこれを組み合わせる形へ変更し、出力は従来と同一）。
+      追加・編集は全画面ダイアログ CredentialsEditorDialog へ移し（BL-178）、
+      保存完了はSnackbarで知らせる。削除には確認ダイアログを追加した（BL-179）。
+      画面全体を単一のLazyColumnにして縦スクロールできるようにした
+      （従来はColumnの中にLazyColumnが入れ子で、一覧の外側はスクロールできなかった）。
+      detektのLongMethod（上限60行）を避けるため、保存・削除と同期の呼び分けを
+      CredentialsScreenControllerへ、ヘルプのダイアログをHelpDialogsへ分離している。
+      DeviceListSection.kt は DeviceCard.kt へ置き換えた
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLineTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsScreenController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsEditorDialog.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/HelpDialogs.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListSection.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。ktlintの「A multiline expression should start on a new line」は
+      ktlintFormatで解消した。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-177
+      - BL-178
+      - BL-179
+- date: 2026-09-20 10:10
+  summary: ウィジェットの下限を2マス×1マスへ上げ、◀▶でのデバイス順送りを追加する
+  details:
+    変更内容: >-
+      ホーム画面ウィジェットの縮小の下限を1マスから横2マス×縦1マスへ引き上げ、高さ1マスのときの
+      表示（SesameWidgetLayout.MEDIUM）を新設した。左1マス（60dp）にデバイス名チップと「◀ ▶」、
+      右1マスに状態アイコンと状態文言を出す。◀▶は対象デバイスの順送りで、巡回する並びは
+      選択画面と同じ（SesameDeviceTargets.choices）、端で反対側へ回り込む。
+      判定はAndroid非依存のWidgetDeviceCycleへ置き、受信はWidgetCommandReceiverの
+      ACTION_CYCLE_DEVICEが担う（割り当てを保存して当該インスタンスだけ再描画。Sesame APIは呼ばない）。
+      FULL（高さ2マス以上）の左列は従来どおり「変更」のままにした（ユーザー指示）。
+      幅が足りない表示領域が来た場合の保険として、従来の1マス表示はCOMPACTとして残している。
+      1ファイルの関数数がdetektのTooManyFunctions（上限11）に達したため、Glanceの部品を
+      SesameWidget / SesameWidgetMedium / SesameWidgetChips の3ファイルへ分割した。
+      あわせてWidgetUnlockConfirmActivityの重複定数（NEUTRAL_TEXT_ARGB / CHIP_CORNER_RADIUS_DP）を
+      共用へ寄せた
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceCycle.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceCycleTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew testDebugUnitTest test /
+      ./gradlew lintDebug assembleDebug / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。SesameWidgetLayoutTest（3段階の判定）と
+      WidgetDeviceCycleTest（順送り・回り込み・削除済みデバイスの扱い）を追加している。
+      実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-174
+      - BL-175
+- date: 2026-09-20 09:57
+  summary: 経路アイコンを📶／☁から🔗／🌐へ変更する
+  details:
+    変更内容: >-
+      Tile・Complication・ウォッチの状態一覧・ホーム画面ウィジェットで使う経路アイコンを、
+      📶（BLE）／☁（Web API）から🔗／🌐へ変更した。📶は携帯電話の電波強度として広く使われており、
+      Bluetoothでの直接操作を表すものとして読み取れないという指摘による。
+      Unicodeに「Bluetooth」の絵文字は存在せず（ロゴはルーン文字の合字で絵文字フォントに含まれず、
+      端末によっては豆腐になる）、搭載率の高いEmoji 1.0の範囲から選んでいる。
+      文字数は従来と同じ1文字分のため、表示幅の要件（BL-102 / BL-104 / BL-158）に影響しない。
+      DESIGN.mdの実機検証記録に残る📶／☁は当時観測した表示のため書き換えず、
+      現在は変更済みである旨の注記を先頭へ足した
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew testDebugUnitTest test /
+      ./gradlew lintDebug assembleDebug / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。markdownlintは37ファイルで0 issues、
+      記録ファイル検証はBACKLOG 15件・EXECUTE 116件で OK
+    関連ID:
+      - BL-173
 - date: 2026-09-19 21:00
   summary: ホーム画面ウィジェットのFULL表示へ電池残量を併記する
   details:

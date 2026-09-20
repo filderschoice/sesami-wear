@@ -8,6 +8,7 @@ import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameApiAccess
+import com.sesamiwear.mobile.command.SesameCommandGuard
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.command.SesameRouteAccess
 import com.sesamiwear.mobile.messaging.CommandDebouncer
@@ -86,7 +87,7 @@ class WidgetCommandRunnerTest {
                             },
                         ),
                 ),
-            debouncer = debouncer,
+            guard = SesameCommandGuard(debouncer = debouncer),
             nowMillis = { 10_000L },
         )
 
@@ -194,7 +195,7 @@ class WidgetCommandRunnerTest {
                         SesameRouteAccess(
                             api = SesameApiAccess(clientFactory = { throw CancellationException("timed out") }),
                         ),
-                    debouncer = debouncer,
+                    guard = SesameCommandGuard(debouncer = debouncer),
                     nowMillis = { 10_000L },
                 )
 

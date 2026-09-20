@@ -37,7 +37,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.SesamiWear">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -57,12 +57,25 @@
                 android:resource="@xml/sesame_widget_info" />
         </receiver>
 
+        <!-- 同じウィジェットを「2 × 1」としても一覧へ出す（BL-186）。表示・操作は上と同じで初期サイズだけが違う。 -->
+        <receiver
+            android:name=".widget.SesameWidgetSmallReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sesame_widget_small_info" />
+        </receiver>
+
         <activity
             android:name=".widget.WidgetConfigurationActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.SesamiWear">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -79,7 +92,7 @@
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar" />
+            android:theme="@style/Theme.SesamiWear.Dialog" />
 
         <service
             android:name=".messaging.SesameMessageListenerService"

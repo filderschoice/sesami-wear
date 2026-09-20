@@ -254,6 +254,62 @@ adb shell pm enable com.google.android.apps.wear.companion
 [DESIGN.md](records/managed/DESIGN.md)「実機検証（BL-126、2026-09-17、Androidエミュレータ）」を
 参照してください。
 
+### 1.8 Wear OSエミュレータでウォッチ側の表示を検証する（開発者向け）
+
+ウォッチ実機が手元に無くても、Tile・コンプリケーション・状態一覧の**表示**はエミュレータで
+確認できます（BL-187）。
+
+```bash
+sdkmanager "system-images;android-34;android-wear;x86_64"
+avdmanager create avd -n wearos -k "system-images;android-34;android-wear;x86_64" -d wearos_small_round
+emulator -avd wearos -no-boot-anim -gpu swiftshader_indirect -port 5556
+```
+
+- システムイメージは **Wear OS 5（API 34）** で、Pixel Watch 2 と同じ世代です。画面は384x384。
+- AVDの既定のデータ領域は10GBで、空きが足りないと
+  `Not enough space to create userdata partition`で起動に失敗します。
+  `~/.android/avd/wearos.avd/config.ini`の`disk.dataPartition.size`を`2047M`以下へ下げてください
+  （エミュレータが受け付ける上限は2047MB）。
+- 同じファイルの`hw.lcd.circular`を`yes`にすると円形画面になり、実機と同じ見切れ方を再現できます。
+- **スマートフォンのエミュレータと同時に起動しないでください。** メモリ不足で強制終了されます。
+
+**2台のエミュレータをペア設定することはできません。** Wear OS コンパニオンアプリは Play ストア入りの
+システムイメージと Google アカウントのサインインを要するためです。代わりに、デバッグビルドにだけ
+含まれる受信口から、スマートフォンが同期するはずの DataItem を**ウォッチ自身へ**書き込みます。
+
+```bash
+W="adb -s emulator-5556"
+$W install -r wear/build/outputs/apk/debug/wear-debug.apk   # または ANDROID_SERIAL=emulator-5556 ./gradlew :wear:installDebug
+
+# 登録済みデバイス一覧（uuid:表示名 のカンマ区切り）
+$W shell am broadcast -a com.sesamiwear.wear.debug.STATE   -n com.sesamiwear.mobile.debug/com.sesamiwear.wear.debug.SesameWearDebugReceiver   --es devices "aaaa1111:Entrance,bbbb2222:Garage"
+
+# 1台分の状態（route は BLE / WEB_API、failure は AUTH_OR_QUOTA / COMMUNICATION）
+$W shell am broadcast -a com.sesamiwear.wear.debug.STATE   -n com.sesamiwear.mobile.debug/com.sesamiwear.wear.debug.SesameWearDebugReceiver   --es uuid aaaa1111 --ez locked true --ei battery 85 --ei position 0 --es route BLE
+```
+
+- 結果は`adb -s emulator-5556 logcat -s SesameWearDebug`で確認できます。
+- 注入後の`SesameDisplayUpdateRequester`の再描画要求は、タイルのホストが無い環境では
+  `SecurityException`で失敗します（注入自体は成功しています）。アプリを開き直すか、
+  タイルを追加し直すと反映されます。
+- **Tileの対象デバイスは`tileId`ごとに保存されます。** 設定画面をUIで操作するのが難しい場合は、
+  `adb shell run-as com.sesamiwear.mobile.debug`で`shared_prefs/tile_device_assignments.xml`へ
+  `tile_<tileId>`のキーを直接書けます（`tileId`は`logcat -s SesameTileService`に出ます）。
+  タイルを外して入れ直すと`tileId`が変わるため、割り当ても付け直しになります。
+- タイルの追加・削除は次のブロードキャストで行えます。
+
+  ```bash
+  $W shell am broadcast -a com.google.android.wearable.app.DEBUG_SURFACE     --es operation add-tile     --ecn component com.sesamiwear.mobile.debug/com.sesamiwear.wear.tile.SesameTileService
+  ```
+
+- **スマートフォンとペアになっていないため、Tileの状態は常に「スマホ未接続」になります。**
+  経路つきの最終取得時刻（「🔗11分前」）は表示されるため、経路アイコンの確認はできます。
+  施錠/解錠の実行そのものは、スマートフォンへコマンドを送れないため確認できません。
+
+2026-09-20に、状態一覧で🔗と🌐の両方、Tileで🔗を確認済みです。結果は
+[DESIGN.md](records/managed/DESIGN.md)「エミュレータ検証（BL-187、2026-09-20、Wear OS 5）」を
+参照してください。
+
 ## 2. テスター向け：Google Play経由のインストール
 
 限定公開（クローズドテスト）のため、**テストへ参加したGoogleアカウントでのみ**インストール

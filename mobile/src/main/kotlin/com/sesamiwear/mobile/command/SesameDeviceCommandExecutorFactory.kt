@@ -15,6 +15,7 @@ import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.LockStateStore
@@ -28,6 +29,7 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
  * ウォッチ経由・ウィジェット経由のどちらで成功しても、ウォッチのTileとウィジェットの双方が追随する。
  * 重複抑止は共有インスタンスを使う。Sesame APIの失敗はlogcatの`Log.w`へ1行だけ残し（BL-139）、
  * 呼び出し回数は[ApiUsageCounter]へ月単位で記録する（BL-147）。
+ * 施錠/解錠・状態取得の成否は診断ログ（BL-188）へも残す（`SesameCommandDiagnostics`）。
  *
  * BLE直接操作（BL-152）もここで配線する。到達実績は非暗号化のSharedPreferencesへ保存し、
  * 実行時間の上限は[BLE_TIMEOUTS]で与える。BLEが使えない（権限が無い・圏外・Bluetoothオフ）場合は
@@ -57,6 +59,16 @@ object SesameDeviceCommandExecutorFactory {
                             recordApiCall = { apiUsageCounter.record(System.currentTimeMillis()) },
                         ),
                     ble = createBleAccess(appContext),
+                ),
+            // 利用者が連携できる診断ログ（BL-188）。uuidは渡さず、表示名だけを記録する。
+            guard =
+                SesameCommandGuard(
+                    diagnostics =
+                        SesameCommandDiagnostics(
+                            loadCredentials = credentialsStore::loadAll,
+                            lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)),
+                            record = DiagnosticsLogFactory.create(appContext)::record,
+                        ),
                 ),
         )
     }
