@@ -7,6 +7,43 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-20（PR作成手順を両エージェント共通化、`.github/prompts/` を追加）
+
+Claude Code 専用だった PR 作成手順（`.claude/skills/pr-create/`）を、GitHub Copilot からも使える
+構成へ組み替えました。規範を1か所へ集め、エージェント別ファイルは入口だけを持ちます
+（`CONTRIBUTING.md`「エージェント指示ファイルの構成規約」の方針どおり）。
+
+- **規範の正本を [.github/instructions/pr.instructions.md](.github/instructions/pr.instructions.md) へ集約**
+  しました。言語要件に加えて、本文の型（正本は `.github/PULL_REQUEST_TEMPLATE.md` であること、
+  チェックリスト節はテンプレート側にしか無いこと）、PRタイトルの規約、着手前の差分確認、
+  チェックリストは実行結果に基づいてのみチェックすること、品質ゲートの対応表、
+  PR作成が公開操作であることを追記しています。
+- **[.github/prompts/pr-create.prompt.md](.github/prompts/pr-create.prompt.md) を新設**しました。
+  Copilot Chat から `/pr-create` で呼び出す入口で、手順の順序と Copilot 固有の注意だけを持ちます。
+- `.claude/skills/pr-create/SKILL.md` は、`gh pr create` / `gh pr edit` の実行手順
+  （`--body-file` の使用、一時ファイルの置き場所）へ絞りました。
+- `.github/copilot-instructions.md` の「PR説明文・コードレビュー」の記述を実態へ合わせました。
+  `pr.instructions.md` には `applyTo` が無く、`.vscode/settings.json` の
+  `pullRequestDescriptionGeneration.instructions` / `reviewSelection.instructions` から参照されています。
+- 手順へ**「作業ブランチの push はユーザーが行うため、未 push ではPRを作成できない」**を明記しました。
+  エージェントが push を代行しない規約（共通規約「ブランチ・コミット管理」）との接続が抜けていました。
+
+## 2026-09-20（経路表示・状態表示の実機検証、BL-172 / BL-165）
+
+BL-166〜BL-171 で追加した経路表示・状態表示を、Claude Code が adb 経由の UI 操作で検証しました
+（Pixel 8 Pro + Pixel Watch 2）。実資格情報・実 Sesame デバイスは使わず、ダミー資格情報4台と
+モック API（BL-132）で状態を作っています。結果は
+[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md)
+「実機検証（BL-172 / BL-165、2026-09-20）」に記録しました。
+
+- BL-172 の (1)〜(6)(8)(9) を確認し、表示の省略・見切れは1件もありませんでした（不具合の起票なし）。
+- BL-165 のうち、権限を拒否した状態の挙動（`result=PERMISSION_DENIED` と Web API への退避）と、
+  資格情報設定画面の Bluetooth 権限表示を確認しました。
+- **BLE で届かなかったときのトーストと、経路アイコン📶を伴う表示は再現できませんでした。**
+  `SesameBleAccess` は直近に BLE で到達できた実績があるデバイスにだけ BLE を試す設計のため、
+  実 Sesame デバイスが無いと到達実績を作れず、フォールバックの経路へ入らないためです。
+  BL-172 から BL-165 へ移し、どちらも `状態: 進行中` として残しています。
+
 ## 2026-09-19（経路の可視化方針を変更、BL-166〜BL-172）
 
 BLE直接操作とWeb API経由の併用が動くようになったことを受け、**「利用者は経路を意識しない」という

@@ -210,6 +210,11 @@
 - **自律ループ実行モードは対象外**: guardrails セクション12「自律ループ実行モード統制」と
   `CLAUDE.md`「自律ループ実行モード（Loop Engineering）」は Claude Code 固有の運用モードです。
   Copilot は本モードの対象外であり、git操作の例外規定も適用されません。
-- **PR説明文・コードレビュー**: `.github/instructions/pr.instructions.md` が `applyTo` によって
-  Copilot Chat へパス限定で自動適用されます。`.vscode/settings.json`（またはメンバー各自の設定）から
-  参照される状態を保ってください。
+- **PR説明文・コードレビュー**: 規約の正本は `.github/instructions/pr.instructions.md` で、Claude Code と
+  共通です。Copilot へは `.vscode/settings.json`（またはメンバー各自の設定）の
+  `github.copilot.chat.pullRequestDescriptionGeneration.instructions` と
+  `github.copilot.chat.reviewSelection.instructions` から参照され、PR説明文の生成時とレビュー時に
+  自動適用されます。この参照が外れると規約が適用されないため、設定を保ってください。
+- **PRの作成手順**: `.github/prompts/pr-create.prompt.md` を Copilot Chat で `/pr-create` として
+  呼び出します。規範は上記 `pr.instructions.md` と `.github/PULL_REQUEST_TEMPLATE.md` にあり、
+  プロンプトファイルは入口として手順の順序と Copilot 固有の注意だけを持ちます。
