@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ダークテーマ時のActivityテーマ（BL-181）。res/values/themes.xml の暗色版。
+  この修飾子が効くのは端末がダークテーマのときで、Compose側の isSystemInDarkTheme と一致する。
+-->
+<resources>
+    <style name="Theme.SesamiWear" parent="@android:style/Theme.Material.NoActionBar" />
+
+    <style name="Theme.SesamiWear.Dialog" parent="@android:style/Theme.Material.Dialog.NoActionBar" />
+</resources>

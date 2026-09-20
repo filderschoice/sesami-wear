@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  mobile側のActivityテーマ（BL-181）。
+  端末の設定がダークテーマのときは res/values-night/themes.xml の定義へ切り替わる。
+  Compose側の配色は com.sesamiwear.mobile.ui.SesameTheme が決め、ここはウィンドウの地の色と
+  システムUIの既定色（Composeが描く前の1フレームを含む）を担う。
+  親テーマを platform の Theme.Material 系にしているのは、本アプリが AppCompat を使わないため。
+-->
+<resources>
+    <style name="Theme.SesamiWear" parent="@android:style/Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.SesamiWear.Dialog" parent="@android:style/Theme.Material.Light.Dialog.NoActionBar" />
+</resources>

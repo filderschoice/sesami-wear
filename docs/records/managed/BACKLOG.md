@@ -38,26 +38,6 @@
     `SesameWidgetLayout` / `WidgetDeviceCycle` / `SesameRouteLabel` のユニットテストで検証済み
   依存: []
 
-- id: BL-181
-  区分: UX改善
-  タスク内容: >-
-    スマートフォンのアプリ画面をダークテーマへ対応させる。現在は`MaterialTheme`へcolorSchemeを
-    渡しておらず、端末の設定に関係なく常にライトで描画している（`MainActivity`のKDoc参照）。
-    端末の設定へ追随するcolorSchemeを定義し、`MainActivity.applyLightSystemBarIcons`の
-    固定指定もテーマへ連動させる。ウィジェット（暗色固定）・Tile（黒背景）との見た目の
-    整合も取る。`WidgetConfigurationActivity` / `WidgetUnlockConfirmActivity`も同じテーマを使う
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    端末のダークテーマ設定でアプリ画面・ウィジェットの選択画面・解錠確認画面が暗色になり、
-    システムバーのアイコン色が背景に応じて切り替わること。ライト時の見た目が従来から劣化しないこと
-  根拠: >-
-    2026-09-20にユーザーが対応を選択した。UI刷新（BL-177）で配色を触るため、同時期に行うほうが
-    やり直しが少ない
-  依存:
-    - BL-177
-
 - id: BL-172
   区分: 人手検証
   タスク内容: >-

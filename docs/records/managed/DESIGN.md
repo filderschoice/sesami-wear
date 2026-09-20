@@ -221,6 +221,15 @@
   secretKeyは16進数32文字までに絞り込む。日本語IMEで入力された全角英数字は見た目で半角と
   区別できないまま保存され、署名検証がAPI側で失敗する原因になるため、入力時点で混入経路を塞ぐ。
   表示名は日本語を入力する項目のため正規化しない。
+- **配色は端末のダークテーマ設定へ追随する**（BL-181、`mobile.ui.SesameTheme`）。
+  もとは`MaterialTheme`へcolorSchemeを渡さずライト固定で、暗い部屋で画面全体が白く光り、
+  ウィジェット（暗色固定）・Tile（黒背景）とも食い違っていた。
+  **Material Youの動的カラーは使わない。** 施錠状態の色（緑／赤／紫、`SesameTileContent`）が
+  壁紙由来の色と競合し、状態の読み取りを鈍らせるため。テーマは地の色だけを担う。
+  Activityのウィンドウ側は`res/values/themes.xml`と`res/values-night/themes.xml`の
+  `Theme.SesamiWear` / `Theme.SesamiWear.Dialog`（AppCompatを使わないため親はplatformの
+  `Theme.Material`系）。システムバーのアイコン色は`MainActivity.applySystemBarIcons`が
+  `isSystemInDarkTheme()`に応じて切り替える（BL-103の固定指定を置き換えたもの）。
 - `mobile.credentials.CredentialsSettingsScreen`: 複数デバイスの一覧・追加・編集・削除ができる
   Compose画面（BL-049）。**構成は上部バー（`TopAppBar`）＋デバイスのカード一覧＋右下の追加ボタン
   （`ExtendedFloatingActionButton`）**（BL-177）。もとは見出し・API呼び出し回数・一覧・接続の設定・

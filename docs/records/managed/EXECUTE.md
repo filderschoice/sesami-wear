@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 10:33
+  summary: スマホのアプリ画面をダークテーマへ対応させる
+  details:
+    変更内容: >-
+      MaterialThemeへcolorSchemeを渡していなかったためライト固定だった配色を、
+      端末の設定へ追随させた（mobile.ui.SesameTheme）。Material Youの動的カラーは採らない。
+      施錠状態の色（緑／赤／紫）が壁紙由来の色と競合し、状態の読み取りを鈍らせるため。
+      Activityのウィンドウ側は res/values/themes.xml と res/values-night/themes.xml の
+      Theme.SesamiWear / Theme.SesamiWear.Dialog へ切り出した（AppCompatを使わないため
+      親はplatformのTheme.Material系。DeviceDefaultのDayNightはAPI 29以上のみでminSdk 26に合わない）。
+      システムバーのアイコン色は MainActivity.applySystemBarIcons が isSystemInDarkTheme に応じて
+      切り替える（BL-103の固定指定を置き換え）。ウィジェットの選択画面・解錠確認画面も同じテーマを使う
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameTheme.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/res/values/themes.xml
+      - mobile/src/main/res/values-night/themes.xml
+      - mobile/src/main/AndroidManifest.xml
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機でのダークテーマ表示とシステムバーの判読性の確認は
+      BL-182として起票済み
+    関連ID:
+      - BL-181
 - date: 2026-09-20 10:29
   summary: ヘルプと接続の設定を上部バーの設定メニューへ集約する
   details:

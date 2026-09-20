@@ -29,6 +29,7 @@ import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameDeviceTargets
 import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.mobile.ui.SesameTheme
 
 /**
  * ウィジェットから解錠するときの確認画面（BL-122）。wearの`SesameActionActivity`の確認画面と同じく、
@@ -49,7 +50,7 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
             return
         }
         setContent {
-            MaterialTheme {
+            SesameTheme {
                 Surface(shape = RoundedCornerShape(16.dp)) {
                     UnlockConfirmation(
                         displayName = displayName,

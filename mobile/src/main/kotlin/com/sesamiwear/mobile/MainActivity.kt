@@ -4,15 +4,17 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.credentials.CredentialsSettingsScreen
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.ui.SesameTheme
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 import kotlinx.coroutines.launch
 
@@ -22,11 +24,12 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyLightSystemBarIcons()
         val credentialsStore =
             SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(applicationContext))
         setContent {
-            MaterialTheme {
+            val isDarkTheme = isSystemInDarkTheme()
+            LaunchedEffect(isDarkTheme) { applySystemBarIcons(isDarkTheme) }
+            SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     CredentialsSettingsScreen(credentialsStore = credentialsStore)
                 }
@@ -51,20 +54,18 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * ステータスバー・ナビゲーションバーのアイコンを暗色にする（BL-103）。
+     * ステータスバー・ナビゲーションバーのアイコン色をテーマへ追随させる（BL-103 / BL-181）。
      *
      * targetSdk 35以降はエッジツーエッジ表示が必須で、アプリの背景がシステムバーの領域まで
-     * 広がる。本画面は[MaterialTheme]の既定（ライトカラースキーム）で明るい背景を用いるため、
-     * システムバーのアイコンが白のままだと時刻・電池残量などがほとんど判読できなかった。
+     * 広がる。明るい背景のときにアイコンが白のままだと、時刻・電池残量などがほとんど判読できない。
      *
-     * ダークテーマへは対応していない（[MaterialTheme]へcolorSchemeを渡していないため、
-     * 端末の設定にかかわらず常にライト）ので、条件分岐せず常に暗色アイコンを指定する。
-     * ダークテーマへ対応する場合は、この指定もテーマに追随させる必要がある。
+     * ライトテーマでは暗色アイコン、ダークテーマでは明色アイコンにする。ダークテーマ対応（BL-181）
+     * まではライト固定だったため、常に暗色を指定していた。
      */
-    private fun applyLightSystemBarIcons() {
+    private fun applySystemBarIcons(isDarkTheme: Boolean) {
         val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.isAppearanceLightStatusBars = true
-        controller.isAppearanceLightNavigationBars = true
+        controller.isAppearanceLightStatusBars = !isDarkTheme
+        controller.isAppearanceLightNavigationBars = !isDarkTheme
     }
 
     private companion object {
