@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -33,6 +35,7 @@ import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.ui.SesameRouteIcon
 
 /**
  * デバイス一覧の1台分（BL-177）。
@@ -98,8 +101,10 @@ internal fun DeviceCard(
 
 /**
  * 最終取得（または直近の失敗の理由）と経路の行。
- * 経路は**語で書く**（「Bluetooth」「インターネット」）。この画面は表示領域に余裕があり、
- * アイコンだけより語のほうが誤解が無いため（Tile・ウィジェットは逆にアイコン、BL-168）。
+ *
+ * 経路は**アイコンと語を併記する**（BL-176）。この画面は表示領域に余裕があり、語があれば
+ * 誤解が無く（BL-168）、同時にTile・ウィジェットで見るアイコンの意味をここで覚えられる。
+ * アイコンはMaterial Symbols（[SesameRouteIcon]）。
  */
 @Composable
 private fun DetailLine(
@@ -107,13 +112,24 @@ private fun DetailLine(
     snapshot: SesameStatusSnapshot?,
 ) {
     val route = snapshot?.lastRoute
-    val text =
-        if (route == null) freshnessLine else "$freshnessLine ・ ${SesameRouteLabel.name(route)}"
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = freshnessLine, style = MaterialTheme.typography.bodySmall, color = color)
+        SesameRouteIcon.drawableResOrNull(route)?.let { iconRes ->
+            Text(text = SEPARATOR, style = MaterialTheme.typography.bodySmall, color = color)
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(ROUTE_ICON_SIZE_DP.dp),
+            )
+            Text(
+                text = SesameRouteLabel.name(route),
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+            )
+        }
+    }
 }
 
 /** 保存済みのスナップショット。画面が再開するたびに読み直す（BL-159）。 */
@@ -128,3 +144,7 @@ private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
 
 private const val EDIT_DESCRIPTION = "編集"
 private const val DELETE_DESCRIPTION = "削除"
+private const val SEPARATOR = "・"
+
+/** 経路アイコンの大きさ。本文（bodySmall）の文字と並べて浮かない程度に抑える。 */
+private const val ROUTE_ICON_SIZE_DP = 14

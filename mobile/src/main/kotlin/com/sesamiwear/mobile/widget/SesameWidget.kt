@@ -246,10 +246,10 @@ private fun LeftColumn(
 private fun StatusTexts(model: SesameWidgetModel.Configured) {
     Text(text = model.statusIcon, style = widgetTextStyle(model.textColorArgb, ICON_SP))
     Text(text = model.statusLabel, style = widgetTextStyle(model.textColorArgb, BODY_SP, bold = true))
-    // 最後に状態を取得した時刻（または直近の失敗の理由）と電池残量（BL-142 / BL-140 / BL-171）。
-    // 高さ予算が埋まっているため、電池は行を足さずこの1行へ併記する。
+    // 最後に状態を取得した時刻（または直近の失敗の理由）と電池残量（BL-142 / BL-140 / BL-171）と、
+    // 経路のアイコン（BL-176）。高さ予算が埋まっているため、いずれも行を足さずこの1行へ併記する。
     model.detailWithBatteryLabel?.let {
-        Text(text = it, style = widgetTextStyle(model.textColorArgb, FOOTNOTE_SP), maxLines = 2)
+        DetailRow(route = model.route, text = it, textColorArgb = model.textColorArgb)
     }
     model.actionLabel?.let { Text(text = it, style = widgetTextStyle(model.textColorArgb, CAPTION_SP)) }
 }

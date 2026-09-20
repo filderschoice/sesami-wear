@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 10:25
+  summary: スマホ側の経路表示をMaterialのベクターアイコンへ置き換える
+  details:
+    変更内容: >-
+      アプリ画面のデバイスカードとホーム画面ウィジェットのFULL表示で、経路を絵文字ではなく
+      ベクタードローアブルで描くようにした。res/drawableへic_route_bluetooth.xml（Material Iconsの
+      bluetooth）とic_route_internet.xml（同 public）を追加し、対応はmobile.ui.SesameRouteIconが持つ。
+      色は描画側で与えるためドローアブルは白塗りで、ComposeはIcon＋painterResource、
+      GlanceはImage＋ImageProvider＋ColorFilter.tintで描く。
+      カードはアイコンと語（Bluetooth／インターネット）を併記する。
+      ウィジェットは経路を文言へ前置せずSesameWidgetModel.Configured.routeとして別に持ち、
+      描画側（SesameWidgetChips.DetailRow）が画像と文言を横へ並べる（行数は増やさない）。
+      ウォッチ側（Tile・Complication）は絵文字🔗／🌐のまま。Complicationの
+      SHORT_TEXT/LONG_TEXTはテキストしか持てず画像を埋め込めないため、全面の統一は仕様上できない。
+      アイコンの出典（Google Material Icons、Apache-2.0）をREADME.mdのライセンス節へ記載した
+      （Googleは表示を義務付けていないが出典として残す）
+    変更ファイル:
+      - mobile/src/main/res/drawable/ic_route_bluetooth.xml
+      - mobile/src/main/res/drawable/ic_route_internet.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameRouteIcon.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。パスデータは推測せず、Googleが公開しているMaterial Iconsの
+      SVG（fonts.gstatic.com と github.com/google/material-design-icons の2系統）から取得して
+      一致を確認している。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-176
 - date: 2026-09-20 10:18
   summary: スマホのアプリ画面を上部バー＋カード一覧＋追加ボタンの構成へ作り替える
   details:

@@ -1453,8 +1453,17 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 | 面 | 見せ方 |
 | --- | --- |
 | Tile / Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`）。**行は増やさない** |
-| ホーム画面ウィジェット | 同じ行の先頭へMaterial Symbolsのベクターアイコンを置く（BL-176）。**行は増やさない** |
+| ホーム画面ウィジェット | 同じ行の先頭へMaterialのベクターアイコンを置く（BL-176）。**行は増やさない** |
 | スマートフォンのアプリ画面 | ベクターアイコンと語を併記する（「Bluetooth」「インターネット」、BL-176） |
+
+- ベクターアイコンの実体は`mobile/src/main/res/drawable/ic_route_bluetooth.xml` /
+  `ic_route_internet.xml`で、Google Material Icons（Apache-2.0）の`bluetooth` / `public`。
+  出典はREADME.md「ライセンス」へ記載している（Googleは表示を義務付けていないが出典として残す）。
+  どのアイコンを使うかの対応は`mobile.ui.SesameRouteIcon`が持ち、Composeは`Icon`＋`painterResource`、
+  Glanceは`Image`＋`ImageProvider`＋`ColorFilter.tint`で描く。色は描画側で与えるため、
+  ドローアブル自体は白で塗っている。
+- ウィジェットは経路を**文言へ前置せず**`SesameWidgetModel.Configured.route`として別に持ち、
+  描画側（`SesameWidgetChips.DetailRow`）が画像と文言を横に並べる。行数は増えない。
 
 - **アイコンは🔗（Bluetooth）／🌐（インターネット）。** 当初は📶／☁だったが、📶は携帯電話の
   電波強度として広く使われており、Bluetoothでの直接操作を表すものとして読み取れないという
