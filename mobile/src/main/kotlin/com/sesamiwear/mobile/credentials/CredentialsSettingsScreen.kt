@@ -1,25 +1,28 @@
 package com.sesamiwear.mobile.credentials
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,23 +30,158 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
-import com.sesamiwear.mobile.help.HelpContent
-import com.sesamiwear.mobile.help.HelpTopic
-import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
 import com.sesamiwear.mobile.state.ApiUsageCounter
-import com.sesamiwear.mobile.state.RemovedDeviceCleaner
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
-import com.sesamiwear.mobile.widget.SesameWidgetRepository
-import com.sesamiwear.mobile.widget.SesameWidgetUpdater
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/**
+ * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
+ *
+ * 構成は上部バー＋デバイスのカード一覧＋右下の追加ボタン（BL-177）。もとは見出し・API呼び出し回数・
+ * 一覧・接続の設定・入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。
+ * 追加・編集は全画面ダイアログ（[CredentialsEditorDialog]、BL-178）、削除は確認ダイアログ（BL-179）。
+ * 保存・削除とそれに伴う同期は[CredentialsScreenController]が持つ。
+ *
+ * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
+ * uuid/apikey/secretKeyはすべてbiz.candyhouse.co（SESAME Biz 開発者ページ）から取得する想定
+ * （BL-059、Sesameアプリの「鍵をシェア」QRコードは使わない）。secretKeyは16進数32文字（BL-058）。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CredentialsSettingsScreen(
+    credentialsStore: SesameCredentialsStore,
+    onSaved: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val controller = remember { CredentialsScreenController(context, credentialsStore, coroutineScope) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
+    var deleteTarget by remember { mutableStateOf<SesameCredentials?>(null) }
+    var showHelp by remember { mutableStateOf(false) }
+
+    if (showHelp) HelpDialog(onDismiss = { showHelp = false })
+    editorTarget?.let { target ->
+        CredentialsEditorDialog(
+            editing = target.editing,
+            onDismiss = { editorTarget = null },
+            onSave = { edited ->
+                controller.save(editingUuid = target.editing?.uuid, edited = edited)
+                editorTarget = null
+                coroutineScope.launch { snackbarHostState.showSnackbar(SAVED_MESSAGE) }
+                onSaved()
+            },
+        )
+    }
+    deleteTarget?.let { target ->
+        DeleteConfirmDialog(
+            credentials = target,
+            onDismiss = { deleteTarget = null },
+            onConfirm = {
+                controller.delete(target.uuid)
+                deleteTarget = null
+            },
+        )
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        topBar = { ScreenTopBar(onHelpClick = { showHelp = true }) },
+        floatingActionButton = { AddDeviceButton(onClick = { editorTarget = EditorTarget(editing = null) }) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
+        DeviceListContent(
+            devices = controller.devices,
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            onEdit = { editorTarget = EditorTarget(editing = it) },
+            onDelete = { deleteTarget = it },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScreenTopBar(onHelpClick: () -> Unit) {
+    TopAppBar(
+        title = { Text(text = SCREEN_TITLE) },
+        actions = { TextButton(onClick = onHelpClick) { Text(HELP_LABEL) } },
+    )
+}
+
+@Composable
+private fun AddDeviceButton(onClick: () -> Unit) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+        text = { Text(ADD_LABEL) },
+    )
+}
+
+/**
+ * 画面本体（BL-177）。今月のAPI呼び出し回数・デバイスのカード・接続の設定を縦に並べる。
+ * 画面全体が縦スクロールする（もとは`Column`の中に`LazyColumn`が入れ子になっており、
+ * 一覧の外側はスクロールできなかった）。
+ */
+@Composable
+private fun DeviceListContent(
+    devices: List<SesameCredentials>,
+    modifier: Modifier,
+    onEdit: (SesameCredentials) -> Unit,
+    onDelete: (SesameCredentials) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                text = ApiUsageCounter.label(rememberApiUsageCount()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (devices.isEmpty()) {
+            item { Text(text = EMPTY_MESSAGE, style = MaterialTheme.typography.bodyMedium) }
+        } else {
+            items(devices, key = { it.uuid }) { credentials ->
+                DeviceCard(
+                    credentials = credentials,
+                    onEdit = { onEdit(credentials) },
+                    onDelete = { onDelete(credentials) },
+                )
+            }
+        }
+        item { ConnectionSettingsSection() }
+        // 最後のカードが追加ボタンに隠れないようにする。
+        item { Spacer(modifier = Modifier.height(FAB_CLEARANCE_DP.dp)) }
+    }
+}
+
+/**
+ * 削除の確認（BL-179）。もとは確認なしで即座に消えていたが、削除すると資格情報と残存状態が
+ * すべて消え、再登録にはSESAME BizからsecretKeyを取り直す必要があるため、誤タップの損失が大きい。
+ */
+@Composable
+private fun DeleteConfirmDialog(
+    credentials: SesameCredentials,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val name = credentials.displayName.ifBlank { credentials.uuid }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "${name}を削除しますか？") },
+        text = { Text(text = DELETE_WARNING) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(DELETE_LABEL) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(CANCEL_LABEL) } },
+    )
+}
 
 /**
  * 今月のSesame Web API呼び出し回数（BL-147）。画面が再開するたび（`ON_RESUME`）に読み直す（BL-159）。
@@ -59,284 +197,19 @@ private fun rememberApiUsageCount(): Int {
     return count
 }
 
-/**
- * 複数台のSesameデバイスの資格情報（uuid/apikey/secretKey/表示名）を一覧・追加・編集・削除する画面（BL-049）。
- * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
- * 保存時のリスト更新は[CredentialsListEditor]が担う。編集は一覧内の同じ位置を保ったまま置き換え、
- * uuidを変更した場合も元の項目が重複して残らない（BL-100）。
- * uuid/apikey/secretKeyはすべてbiz.candyhouse.co（SESAME Biz 開発者ページ）から取得する想定
- * （BL-059、Sesameアプリの「鍵をシェア」QRコードは使わない）。secretKeyは16進数32文字（BL-058）。
- * 取得元の詳細説明は初期表示せず、ヘルプボタンからのダイアログへ集約して情報量を抑える（BL-059）。
- * ヘルプは値の取得方法・APIのリクエスト上限・デモの試し方・登録後の使い方を選べるメニュー形式で、
- * 文言は[com.sesamiwear.mobile.help.HelpContent]が持つ（BL-113 / BL-144）。
- * 見出しの下には今月のAPI呼び出し回数を出す（BL-147、[ApiUsageCounter]）。月間リクエスト上限
- * （BL-141）に対する消費の目安で、他経路の消費は含まない旨を文言に含める。
- * 回数は画面が再開するたび（`ON_RESUME`）に読み直す（BL-159）。ウィジェットやウォッチからの操作で
- * 増えるため、この画面を開いたまま他の操作を行って戻ってきた場合に古い値が残らないようにする。
- * 削除時は資格情報だけでなく、そのデバイスの残存状態も消す（[RemovedDeviceCleaner]、BL-160）。
- */
-@Composable
-fun CredentialsSettingsScreen(
-    credentialsStore: SesameCredentialsStore,
-    onSaved: () -> Unit = {},
-) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var credentialsList by remember { mutableStateOf(credentialsStore.loadAll()) }
-    val formState = rememberCredentialsFormState()
-    var showSavedMessage by remember { mutableStateOf(false) }
-    var showHelp by remember { mutableStateOf(false) }
-    val apiUsageCount = rememberApiUsageCount()
+/** 追加・編集ダイアログの対象。[editing]がnullなら新規追加。 */
+private data class EditorTarget(val editing: SesameCredentials?)
 
-    if (showSavedMessage) {
-        LaunchedEffect(Unit) {
-            delay(SAVED_MESSAGE_DURATION_MS)
-            showSavedMessage = false
-        }
-    }
+private const val SCREEN_TITLE = "Sesami Wear"
+private const val HELP_LABEL = "ヘルプ"
+private const val ADD_LABEL = "Sesameを追加"
+private const val SAVED_MESSAGE = "保存しました"
+private const val EMPTY_MESSAGE = "まだSesameが登録されていません。右下の「Sesameを追加」から登録してください。"
+private const val DELETE_WARNING =
+    "登録した資格情報と、このセサミの状態が端末から消えます。" +
+        "登録し直すにはSESAME Bizからapikey・secretKeyを取り直す必要があります。"
+private const val DELETE_LABEL = "削除"
+private const val CANCEL_LABEL = "キャンセル"
 
-    // wear側は資格情報を持たない設計方針のため、Tile Configuration Activityでの
-    // デバイス選択肢表示用にuuid/displayNameのみの一覧をDataClient経由で同期する（BL-052）。
-    // ホーム画面ウィジェットは表示名・対象デバイスの有無が変わるため、あわせて再描画を要求する（BL-121）。
-    // 1台以上の登録になった場合は、デモを割り当てていたウィジェットを未設定へ戻す（BL-123）。
-    fun syncDeviceList(list: List<SesameCredentials>) {
-        SesameWidgetRepository.assignmentStore(context).onRegisteredDevicesChanged(list.size)
-        // ウォッチ同期が失敗してもウィジェットの再描画が飛ばないよう、2つを独立したコルーチンで実行する（BL-134）。
-        coroutineScope.launch { SesameWidgetUpdater.updateAll(context) }
-        coroutineScope.launch { SesameDeviceListSyncer(context).sync(list) }
-    }
-
-    if (showHelp) {
-        HelpDialog(onDismiss = { showHelp = false })
-    }
-
-    Column(modifier = Modifier.safeDrawingPadding().padding(16.dp)) {
-        ScreenHeader(
-            deviceCount = credentialsList.size,
-            apiUsageCount = apiUsageCount,
-            onHelpClick = { showHelp = true },
-        )
-        DeviceList(
-            credentialsList = credentialsList,
-            onEdit = formState::startEditing,
-            onDelete = { credentials ->
-                credentialsStore.remove(credentials.uuid)
-                RemovedDeviceCleaner.clean(context, credentials.uuid, coroutineScope)
-                credentialsList = credentialsStore.loadAll()
-                syncDeviceList(credentialsList)
-                if (formState.editingUuid == credentials.uuid) formState.startEditing(null)
-            },
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        ConnectionSettingsSection()
-
-        Spacer(modifier = Modifier.height(16.dp))
-        CredentialsForm(
-            formState = formState,
-            onSave = {
-                val updatedList =
-                    CredentialsListEditor.upsert(
-                        credentialsList = credentialsList,
-                        editingUuid = formState.editingUuid,
-                        edited = formState.toCredentials(),
-                    )
-                credentialsStore.saveAll(updatedList)
-                credentialsList = updatedList
-                syncDeviceList(updatedList)
-                showSavedMessage = true
-                formState.startEditing(null)
-                onSaved()
-            },
-        )
-        if (showSavedMessage) {
-            Text(text = "保存しました")
-        }
-    }
-}
-
-/**
- * ヘルプボタンから開くダイアログ（BL-059/BL-113）。初期表示では出さず、ヘルプボタンからのみ開く。
- * 項目を選ぶ[HelpMenuDialog]と、選んだ項目の本文を出す[HelpTopicDialog]の2段構成にしている。
- * 値の取得方法だけの単一ダイアログでは、資格情報が未登録でもウォッチ側でデモ（BL-109）を
- * 操作できることに気づく導線が無かったため（BL-113）。
- */
-@Composable
-private fun HelpDialog(onDismiss: () -> Unit) {
-    var selectedTopic by remember { mutableStateOf<HelpTopic?>(null) }
-    val topic = selectedTopic
-    if (topic == null) {
-        HelpMenuDialog(onTopicSelected = { selectedTopic = it }, onDismiss = onDismiss)
-    } else {
-        HelpTopicDialog(topic = topic, onBack = { selectedTopic = null }, onDismiss = onDismiss)
-    }
-}
-
-/** ヘルプの項目一覧（BL-113）。文言と並び順は[HelpContent]が持つ。 */
-@Composable
-private fun HelpMenuDialog(
-    onTopicSelected: (HelpTopic) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(HelpContent.MENU_TITLE) },
-        text = {
-            Column {
-                HelpContent.topics.forEach { topic ->
-                    TextButton(
-                        onClick = { onTopicSelected(topic) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(text = topic.title, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("閉じる") }
-        },
-    )
-}
-
-/**
- * ヘルプ1項目の本文（BL-113）。本文が画面の高さを超える項目があるためスクロール可能にし、
- * 外部ページへのリンクを持つ項目ではブラウザを開くボタンを添える（1項目に複数可、BL-144）。
- */
-@Composable
-private fun HelpTopicDialog(
-    topic: HelpTopic,
-    onBack: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(topic.title) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                topic.paragraphs.forEach { paragraph -> Text(paragraph) }
-                topic.links.forEach { link ->
-                    TextButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
-                    }) {
-                        Text(link.label)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("閉じる") }
-        },
-        dismissButton = {
-            TextButton(onClick = onBack) { Text("戻る") }
-        },
-    )
-}
-
-/**
- * 画面の見出し（登録台数とヘルプボタン）と、今月のAPI呼び出し回数（BL-147）。
- * 呼び出し回数は月間リクエスト上限（BL-141）に対する消費の目安で、他経路の消費は含まない。
- * 画面を開いた時点の値を出し、開いている間の更新は行わない（設定画面は操作の場ではないため）。
- */
-@Composable
-private fun ScreenHeader(
-    deviceCount: Int,
-    apiUsageCount: Int,
-    onHelpClick: () -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Sesame API設定（${deviceCount}台登録済み）", modifier = Modifier.weight(1f))
-        TextButton(onClick = onHelpClick) { Text("ヘルプ") }
-    }
-    Text(text = ApiUsageCounter.label(apiUsageCount))
-}
-
-@Composable
-private fun CredentialsForm(
-    formState: CredentialsFormState,
-    onSave: () -> Unit,
-) {
-    val isInputValid = CredentialsInputValidator.isValid(formState.uuid, formState.apiKey, formState.secretKeyHex)
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = if (formState.editingUuid == null) "新しいSesameを追加" else "Sesameを編集")
-        OutlinedTextField(
-            value = formState.displayName,
-            onValueChange = { formState.displayName = it },
-            label = { Text("表示名（任意）") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        // uuid/apikey/secretKeyはいずれもASCII文字のみで構成される。日本語IMEで全角文字が
-        // 入力されると見た目では半角と区別できないまま保存され、署名検証がAPI側で失敗する
-        // 原因になるため、ASCIIキーボードを既定にしたうえで入力値を都度正規化する（BL-112）。
-        OutlinedTextField(
-            value = formState.uuid,
-            onValueChange = { formState.uuid = CredentialsInputSanitizer.sanitizeUuid(it) },
-            label = { Text("uuid") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = formState.apiKey,
-            onValueChange = { formState.apiKey = CredentialsInputSanitizer.sanitizeApiKey(it) },
-            label = { Text("apikey") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = formState.secretKeyHex,
-            onValueChange = { formState.secretKeyHex = CredentialsInputSanitizer.sanitizeSecretKeyHex(it) },
-            label = { Text("secretKey (16進数32文字)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            enabled = isInputValid,
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (formState.editingUuid == null) "追加" else "更新")
-        }
-        if (formState.editingUuid != null) {
-            TextButton(
-                onClick = { formState.startEditing(null) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("キャンセル")
-            }
-        }
-    }
-}
-
-private class CredentialsFormState {
-    var editingUuid by mutableStateOf<String?>(null)
-    var uuid by mutableStateOf("")
-    var apiKey by mutableStateOf("")
-    var secretKeyHex by mutableStateOf("")
-    var displayName by mutableStateOf("")
-
-    fun startEditing(credentials: SesameCredentials?) {
-        editingUuid = credentials?.uuid
-        uuid = credentials?.uuid.orEmpty()
-        apiKey = credentials?.apiKey.orEmpty()
-        secretKeyHex = credentials?.secretKeyHex.orEmpty()
-        displayName = credentials?.displayName.orEmpty()
-    }
-
-    fun toCredentials(): SesameCredentials =
-        SesameCredentials(uuid = uuid, apiKey = apiKey, secretKeyHex = secretKeyHex, displayName = displayName)
-}
-
-@Composable
-private fun rememberCredentialsFormState(): CredentialsFormState = remember { CredentialsFormState() }
-
-private const val SAVED_MESSAGE_DURATION_MS = 2000L
+/** 一覧の末尾に足す余白。追加ボタン（FAB）の高さ＋余白ぶん。 */
+private const val FAB_CLEARANCE_DP = 72

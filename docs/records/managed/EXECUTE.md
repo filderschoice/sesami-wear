@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 10:18
+  summary: スマホのアプリ画面を上部バー＋カード一覧＋追加ボタンの構成へ作り替える
+  details:
+    変更内容: >-
+      資格情報設定画面を、TopAppBar＋デバイスのカード一覧＋ExtendedFloatingActionButtonの構成へ
+      作り替えた（BL-177）。1台＝1枚のCardとし、(1)施錠状態のアイコンと表示名、
+      (2)施錠状態・電池・角度、(3)最終取得と経路、の3行へ分けて1行への詰め込みをやめた。
+      2行版の組み立てとして core.display.SesameDeviceStatusLine.lines を追加している
+      （既存の1行版 label はこれを組み合わせる形へ変更し、出力は従来と同一）。
+      追加・編集は全画面ダイアログ CredentialsEditorDialog へ移し（BL-178）、
+      保存完了はSnackbarで知らせる。削除には確認ダイアログを追加した（BL-179）。
+      画面全体を単一のLazyColumnにして縦スクロールできるようにした
+      （従来はColumnの中にLazyColumnが入れ子で、一覧の外側はスクロールできなかった）。
+      detektのLongMethod（上限60行）を避けるため、保存・削除と同期の呼び分けを
+      CredentialsScreenControllerへ、ヘルプのダイアログをHelpDialogsへ分離している。
+      DeviceListSection.kt は DeviceCard.kt へ置き換えた
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLineTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsScreenController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsEditorDialog.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/HelpDialogs.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListSection.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。ktlintの「A multiline expression should start on a new line」は
+      ktlintFormatで解消した。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-177
+      - BL-178
+      - BL-179
 - date: 2026-09-20 10:10
   summary: ウィジェットの下限を2マス×1マスへ上げ、◀▶でのデバイス順送りを追加する
   details:

@@ -222,7 +222,25 @@
   区別できないまま保存され、署名検証がAPI側で失敗する原因になるため、入力時点で混入経路を塞ぐ。
   表示名は日本語を入力する項目のため正規化しない。
 - `mobile.credentials.CredentialsSettingsScreen`: 複数デバイスの一覧・追加・編集・削除ができる
-  Compose画面（BL-049）。現在の構成:
+  Compose画面（BL-049）。**構成は上部バー（`TopAppBar`）＋デバイスのカード一覧＋右下の追加ボタン
+  （`ExtendedFloatingActionButton`）**（BL-177）。もとは見出し・API呼び出し回数・一覧・接続の設定・
+  入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。現在の構成:
+  - 画面全体が1つの`LazyColumn`で縦スクロールする。もとは`Column`の中に`LazyColumn`が入れ子に
+    なっており、一覧の外側（入力フォーム）はスクロールできなかった。
+  - 1台＝1枚の`Card`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のアイコンと
+    表示名、(2) 施錠状態・電池残量・角度、(3) 最後に取得した時刻（または失敗の理由）と経路、を出す。
+    **1行へ詰め込まない**（詰め込むと端末の幅に収まらず折り返される）。行の組み立ては
+    `core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
+    編集・削除はカード内のアイコンボタン（`Icons.Default.Edit` / `Icons.Default.Delete`）。
+  - **追加・編集は全画面ダイアログ**（`mobile.credentials.CredentialsEditorDialog`、BL-178）。
+    `Dialog`＋`DialogProperties(usePlatformDefaultWidth = false)`で、上部に「×」（キャンセル）と
+    「保存」を置く。`enabled = isInputValid`の制御は従来どおり（BL-024）。
+    保存の完了は`Snackbar`で「保存しました」を出す（従来は`LaunchedEffect`＋`delay`の固定表示）。
+  - **削除には確認ダイアログを挟む**（BL-179）。削除すると資格情報と残存状態（`RemovedDeviceCleaner`、
+    BL-160）がすべて消え、再登録にはSESAME BizからsecretKeyを取り直す必要があるため。
+  - 保存・削除と、それに伴う同期（ウォッチへのデバイス一覧、ウィジェットの再描画）は
+    `mobile.credentials.CredentialsScreenController`が持つ。画面のComposableへ直接書くと
+    detektの`LongMethod`（上限60行）を超えるため分離した。
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
@@ -257,23 +275,24 @@
     形で保持し、非ASCII文字を含まないことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
     体験できることに気づけなかったため、(2)を追加してmobile側からの導線とした（BL-113）。
-  - 保存ボタンは`enabled = isInputValid`で制御し、保存成功時は「保存しました」を
-    `LaunchedEffect`と`delay`で2秒間表示する（BL-024）。デバイス0件時は
-    「まだSesameが登録されていません」を表示する（BL-056）。
+  - 保存ボタンは`enabled = isInputValid`で制御する（BL-024）。デバイス0件時は
+    「まだSesameが登録されていません。右下の『Sesameを追加』から登録してください。」を表示する
+    （BL-056 / BL-177）。
   - `Modifier.safeDrawingPadding()`でステータスバー等のシステムUIとの重なりを防止（BL-045）。
-  - `Column(verticalArrangement = Arrangement.spacedBy(8.dp))`で入力欄・ボタン間隔を統一し、
-    保存ボタンは`Modifier.fillMaxWidth()`で表示（BL-059）。
+  - 一覧の末尾に追加ボタンぶんの余白（72dp）を足し、最後のカードがボタンへ隠れないようにする。
   - **未確認事項**: `biz.candyhouse.co`は動的サイトのためWebFetchでの実ページ内容確認はできて
     おらず、公式ドキュメントの記述とユーザーからの実機確認報告のみを根拠にしている。
 
 ### セサミの状態一覧（スマートフォン）
 
-資格情報設定画面のデバイス一覧で、各デバイスの名前の下に状態の1行を出す（BL-169）。
-内容は「施錠中 ・ 電池85% ・ 角度42 ・ 3分前 ・ Bluetooth」の形で、分かっていない項目は出さない。
-何も分かっていなければ「未取得」だけになる。
+デバイスのカード一覧（BL-177）で、各デバイスの名前の下に状態を出す（BL-169）。
+内容は「施錠中 ・ 電池85% ・ 角度42」と「3分前 ・ Bluetooth」の**2行**で、分かっていない項目は
+出さない。何も分かっていなければ2行目の「未取得」だけになる。
 
 - 組み立ては`core.display.SesameDeviceStatusLine`（Android非依存、ユニットテスト対象）。
-  ウォッチの状態一覧（BL-170）と共用する。
+  1行版（`label`）と2行版（`lines`）があり、カードは2行版を使う（BL-177。1行へ詰め込むと
+  端末の幅に収まらず折り返されるため）。ウォッチの状態一覧（BL-170）とは`SesameStatusFreshness`・
+  `SesameRouteLabel`を共用する。
 - **経路はアイコンではなく語で書く**（「Bluetooth」「インターネット」）。この画面は表示領域に
   余裕があり、アイコンより語のほうが誤解が無いため（Tile・ウィジェットは逆にアイコン、BL-168）。
 - **角度はこの画面でだけ出す。** セサミが返す生の値で利用者が意味を読み取りにくいため、
