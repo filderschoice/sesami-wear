@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.ble
 
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.core.display.SesameBleConnectionLabel.State
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -24,10 +25,11 @@ import kotlinx.serialization.json.put
  * 既定値の根拠:
  * - [REACHABLE_TTL_MILLIS]（30分）: 自宅にいる間は圏内であり続ける一方、外出後にいつまでもBLEを
  *   先に試すと毎回の操作が遅くなる。外出しても最初の1回だけ無駄になる長さとして30分を選んだ。
- * - [PROBE_INTERVAL_MILLIS]（15分）: 帰宅してからBLE経路が復活するまでの遅れの上限。
+ * - [PROBE_INTERVAL_MILLIS]（5分）: 帰宅してからBLE経路が復活するまでの遅れの上限。
  *   スキャンはWeb APIの通信と並行して行うため、利用者から見た所要時間はほぼ変わらない。
- *
- * どちらも実測に基づく値ではないため、BL-165（人手検証）の所要時間の実測で見直す。
+ *   当初は15分だったが、2026-09-20の実機検証（BL-165）で到達確認自体がしばしば失敗すると
+ *   分かったため、失敗しても取り返しやすいよう5分へ縮めた（BL-189）。
+ *   スキャンは操作の契機でしか行わないため、常駐の電力消費は増えない。
  */
 class SesameBleReachability(
     private val store: SesameKeyValueStore = NoOpKeyValueStore,
@@ -104,6 +106,32 @@ class SesameBleReachability(
         if (uuid in entries) save(entries - uuid)
     }
 
+    /**
+     * 画面へ出すための到達状況（BL-190）。
+     *
+     * 経路選択の内部状態を利用者から見えるようにするためのもので、判定は[preferBle]と同じ基準を使う
+     * （表示と実際の挙動を食い違わせないため）。確認した実績そのものが無い場合は[State.UNKNOWN]で、
+     * 「届かなかった」とは書き分ける。
+     */
+    fun status(
+        uuid: String,
+        nowMillis: Long,
+    ): Status {
+        val entry = load()[uuid]
+        return when {
+            preferBle(uuid, nowMillis) -> Status(State.IN_RANGE, entry?.reachableAtEpochMillis)
+            entry?.probedAtEpochMillis != null -> Status(State.OUT_OF_RANGE, entry.probedAtEpochMillis)
+            else -> Status(State.UNKNOWN, null)
+        }
+    }
+
+    /** [status]の結果。 */
+    data class Status(
+        val state: State,
+        /** 最後に到達確認を行った時刻。[State.UNKNOWN]ではnull。 */
+        val lastCheckedAtEpochMillis: Long?,
+    )
+
     private data class Entry(
         val reachableAtEpochMillis: Long?,
         val probedAtEpochMillis: Long?,
@@ -146,7 +174,7 @@ class SesameBleReachability(
         const val REACHABLE_TTL_MILLIS = 30L * 60 * 1000
 
         /** 到達確認のスキャンを行う間隔の下限（ミリ秒）。 */
-        const val PROBE_INTERVAL_MILLIS = 15L * 60 * 1000
+        const val PROBE_INTERVAL_MILLIS = 5L * 60 * 1000
 
         private const val KEY_REACHABILITY = "ble_reachability"
         private const val FIELD_REACHABLE_AT = "reachableAtEpochMillis"

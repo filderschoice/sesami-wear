@@ -194,9 +194,15 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
 - スクリーンショットは**切り出し・縮小してから読む**（フル解像度のまま読まない）
 - 保存値・ログ・`dumpsys`で確認できることは**テキストで確認する**（画像の1/10以下で済む）
+- `logcat` は**必ず `-s <TAG>` で絞る**。`dumpsys` は `grep` のうえ `cut -c1-200` で桁を切る
+  （`dumpsys connectivity` は1行で1,000トークンを超える）
+- スマートフォンは**USB接続を最初に依頼する**。Wi-Fiデバッグの切断1回は、再接続ではなく
+  ユーザーとの往復1回ぶんのコストになる
 - 実装と検証は**セッションを分ける**（検証を始める前に `/clear`）
 
-具体的な手順とコマンドは Skill `realmachine-verification` 第8節が正本です。
+手順の正本は Skill `verification-cost-control`（対象プロジェクトを問わない汎用）で、
+本リポジトリ固有の要点は Skill `realmachine-verification` 第8節にあります。
+**検証に着手する前に前者を読んでください。**
 
 ## 記録ファイルの権限設定（MUST）
 

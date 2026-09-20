@@ -5,6 +5,84 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 20:52
+  summary: BLE経路を実測に合わせて粘るようにし、経路の変化と到達状況を利用者へ見せる（BL-189 / BL-190）
+  details:
+    変更内容: >-
+      実機検証（BL-165）で判明した2件へ対応した。
+      (1) BL-189 - BLE1往復の実測が2.0〜3.5秒あり、経路選択の上限（合計1,800ms / 探索900ms /
+      到達確認1,500ms）では毎回打ち切られてインターネット経由へ倒れていた。支配的なのは探索
+      （スキャン）のため、見つけたBLEアドレスをuuidごとに覚える SesameBleAddressCache を追加し、
+      接続手順を SesameBleConnector へ切り出して**保存済みアドレスへの直接接続を先に試す**形にした。
+      探索は、Web APIの通信と並行して走る到達確認（SesameBleClient.probeReachable）へ寄せて
+      そこでアドレスを保存する。上限は合計1,800→2,600ms、到達確認1,500→4,000ms、
+      到達確認の間隔は15→5分、ウィジェットの受信上限は8→9秒（BLEが倒れたときの最悪値
+      2.6+6.0=8.6秒に合わせる。BroadcastReceiverの約10秒制限までは1秒残る）。
+      アドレスはログへ出さない。
+      (2) BL-190 - フォールバックのトーストが、通知の無効な端末では背景から出せず
+      （NotificationService が「Suppressing toast ... by user request」で抑止）、
+      ウィジェット操作・ウォッチ操作では一度も出ていなかった。通知
+      （mobile.notification.SesameRouteNotifier、POST_NOTIFICATIONS を追加）へ置き換え、
+      SesameRouteChangeTracker で**経路が変わった瞬間だけ**出すようにした。
+      通知のオン・オフは⋮メニューから選べる（SesameRouteNotificationStore、既定はオン）。
+      あわせて、アプリのデバイスカードへBluetoothの到達状況の行を足した
+      （core.display.SesameBleConnectionLabel、SesameBleReachability.status）。
+      トーストは前景でのみ機能する補助として残している。
+      実機検証の途中で、既定のオンのまま通知が未許可の端末から許可へ進む導線が無いことが分かり、
+      ダイアログの確定ボタンを「オンにする」／「通知を許可する」／「オフにする」の3通りへ変えた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameBleConnectionLabel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameBleConnectionLabelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCache.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleReachability.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameRouteChangeTracker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameRouteNotificationStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RouteNotificationState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/notification/SesameRouteNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCacheTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleReachabilityTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameRouteChangeTrackerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameRouteNotificationStoreTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      実機（Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5）での確認
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。実機で次を確認した。
+      BLE経路が実際に選ばれて成功し（`route=BLE op=STATUS detail=SUCCESS` / `result=OK`）、
+      その操作では「今月のAPI呼び出し回数」が増えない（56→56）。上限調整後の成功率は3回中2回で、
+      残り1回は`NOT_FOUND`でインターネット経由へフォールバックし操作自体は成功する。
+      経路が変わったときの通知は両方向とも表示される（「Bluetoothで届かないため、インターネット経由で
+      操作します」「Bluetoothで直接操作できるようになりました」）。
+      デバイスカードは「Bluetooth：圏内（11分前に確認）」「Bluetooth：未確認」を表示する。
+      ウォッチの状態一覧とTileに🔗（Bluetooth）と🌐（インターネット）が出る。
+      通知をオフにすると出なくなること、同じ経路が続く間は出ないこと、デバイスカードの
+      「Bluetooth：圏内／圏外／未確認」、機内モード（Wi-Fiも切り`Active default network: none`）での
+      `op=unlock`の成功（API呼び出し回数は増えない）も確認した。BL-190は完了。
+      **未確認**: ウィジェットのタップが打ち切られないこと、同じ経路が続く間は通知が出ないこと
+      （ユニットテストでは検証済み）、Complicationの経路アイコン。
+      BL-189 / BL-190 / BL-165 / BL-182へ残している。
+    関連ID:
+      - BL-189
+      - BL-190
+      - BL-165
+      - BL-182
+
 - date: 2026-09-20 18:14
   summary: 診断ログの画面を追加し、Wear OSエミュレータでの検証手段を用意する
   details:

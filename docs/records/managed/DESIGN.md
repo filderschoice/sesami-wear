@@ -715,6 +715,62 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   後始末として、ダミー資格情報4台の削除、経路の方針の「自動」への復帰、Bluetooth権限の取り消し、
   検証用ウィジェットとTileの撤去、モックサーバーの停止、ウォッチの`screen_off_timeout`の復元（30000）、
   本番URLでのデバッグ版の入れ直しを行った。
+- 実機検証（BL-165 / BL-182、2026-09-20夜、Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5 2台）:
+  実Sesameデバイスと実資格情報を要する範囲を、Claude Codeがadb経由で検証した（資格情報の入力は
+  利用者本人が行い、エージェントは値を扱っていない）。デバッグ版は本番URLのまま（モック差し替えなし）。
+  (1) BLE直接操作は成功する。`SesameBleDebugReceiver`経由で`op=status`が`result=SUCCESS`を返し、
+  `isInLockRange=true` / `position=-180` / `batteryPercentage=100`を取得した。`op=unlock`（3,918ms）で
+  `position=-270`（解錠域）、`op=lock`（2,689ms）で`position=-180`（施錠域）へ実際に動いた。
+  (2) 所要時間の実測は、状態取得が2,437 / 2,992 / 3,140ms（間隔15秒）。**連続実行すると
+  `CONNECTION_FAILED` / `NOT_FOUND`になる**ため、計測は間隔を空けて行う必要がある。
+  (3) **設計値（BL-152）は実測に対して短すぎ、BLE経路は実運用で一度も選ばれていなかった。**
+  到達確認（1,500ms）はSesameの真横でも6回中2回しか成功せず、成立しても本番の操作は1,800msで
+  打ち切られて`route=BLE op=STATUS result=NG`となり、毎回Web APIへ倒れる。見直しはBL-189で実施した。
+  (4) BLE経路はAPI呼び出し回数を消費しない。BLEの操作4回の前後でカウントは52のまま変化せず、
+  実装上も`recordApiCall`はWeb API経路（`SesameApiAccess`）にだけ配線されている。
+  (5) BL-153の権限UIは、説明ダイアログからの許可まで確認できた（`BLUETOOTH_SCAN` /
+  `BLUETOOTH_CONNECT`が`granted=true, USER_SET`。前回は`pm grant`で代替していた部分）。
+  (6) **BL-168のトーストは表示されない。** フォールバック自体は起きているが
+  （`route=BLE op=STATUS result=NG`）、`NotificationService`が「Suppressing toast from package ...
+  by user request.」として抑止する。アプリを前景にすると表示される（`Creating surface for consumer
+  VRI[Toast]`）ため、原因は通知が無効な端末での背景トーストの抑止である。対応はBL-190。
+  (7) BL-182の(5)のうち🌐は確認できた。Tileの右チップが「施錠中 / 🌐6分前 / タップで解錠」、
+  ウォッチのアプリ本体の状態一覧が2台とも「🔒施錠中 🔋100%」「🌐n分前」で、いずれも省略・見切れは無い。
+  未確認のまま残るのは、Complicationの経路アイコンと🔗（BLE経由）の表示、BL-165の(3)（機内モード）と
+  (6)〜(9)（経路の切り替えとウィジェットの打ち切り）で、いずれもBL-189の修正を入れた実機での
+  再検証が必要である。BL-165の(1)の「公式アプリの表示と一致すること」（電池残量100%・施錠中）も
+  突き合わせが未実施。
+- 実機検証（BL-189 / BL-190、2026-09-20夜、Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5 2台）:
+  BL-189 / BL-190の修正を入れた実機で再検証した。
+  (1) BLE経路が実際に選ばれて成功する（`route=BLE op=STATUS detail=SUCCESS` / `result=OK`）。
+  この操作では「今月のAPI呼び出し回数」が増えない（56→56）。到達確認（4,000ms）は1回目で成功し、
+  保存したアドレスへの直接接続で探索を飛ばせている。
+  (2) 経路アイコンは、ウォッチの状態一覧が「玄関上＝🔗たった今」「玄関下＝🌐1時間前」、Tileの
+  右チップが「施錠中 / 🔗たった今 / タップで解錠」で、いずれも省略・見切れが無い（BL-182(5)）。
+  (3) 通知は両方向とも出る。経路を「常にインターネット経由」へ変えた操作で
+  「操作の経路が変わりました」「玄関上：Bluetoothで届かないため、インターネット経由で操作します」、
+  「自動」へ戻した操作で「玄関上：Bluetoothで直接操作できるようになりました」。
+  チャネルは`route_change`（`importance=2`＝LOW、無音）、`AUTO_CANCEL`、通知IDは1001の上書き。
+  (4) デバイスカードは「Bluetooth：圏内（11分前に確認）」「Bluetooth：未確認」を表示し、
+  経路の行（「11分前 ・ Bluetooth」）と別の行に収まる。
+  (5) ⋮メニューの副題は「オン（端末の設定で通知が許可されていません）」で、ダイアログの確定ボタンが
+  「通知を許可する」になる。**検証中に、既定のオンのまま未許可の端末から許可へ進む導線が無いことが
+  分かり**、確定ボタンを「オンにする」／「通知を許可する」／「オフにする」の3通りへ直した。
+  (6) 通知をオフにすると出なくなる。オフの状態で経路がインターネット経由からBLEへ変わる操作を
+  行っても通知は1件も出ない。同じ経路が続く間も出ない（Web API経由の操作を続けても、
+  「今月のAPI呼び出し回数」だけが増えて通知は増えない）。デバイスカードは「Bluetooth：圏内」
+  「Bluetooth：圏外（3分前に確認）」「Bluetooth：未確認」の3通りを実機で確認した。
+  **BL-190の完了条件はすべて満たしたため、BACKLOGからは削除している。**
+  (7) BL-165(3)の機内モードも確認した。**機内モードをオンにしてもWi-Fiは残る**ため、あわせて
+  Wi-Fiも切り（`Active default network: none`、`ping`も到達不可）、その状態で`op=unlock`が
+  `result=SUCCESS`となり、API呼び出し回数は67のまま増えなかった。施錠して戻した状態
+  （`isInLockRange=true` / `position=-181`）も確認している。
+  検証中に、**短時間にBLEスキャンを繰り返すとAndroidのスキャン制限に当たり`NOT_FOUND`が続く**
+  ことも観測した（数分にわたり`lock result=NOT_FOUND`が返り、1分ほど間隔を空けると復帰した）。
+  到達確認の回数設計に影響するためBL-191へ記録している。
+  未確認のまま残るのは、ウィジェットのタップが打ち切られないこと（BL-189）、
+  同じ経路が続く間は通知が出ないこと（`SesameRouteChangeTrackerTest`では検証済み）、
+  Complicationの経路アイコン。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・
@@ -1480,19 +1536,63 @@ BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化
 4. デモ用デバイスはBLE経路に一切触れない（`execute`が先に分岐するため）。
 5. 資格情報を削除したデバイスの到達実績は`RemovedDeviceCleaner`が消す。
 
-実行時間の設計値（`SesameDeviceCommandExecutorFactory.BLE_TIMEOUTS`）:
+実行時間の設計値（`SesameDeviceCommandExecutorFactory.BLE_TIMEOUTS`、BL-189で実測へ合わせ直した）:
 
 | 段階 | 上限 | 根拠 |
 | --- | --- | --- |
-| 全体 | 1,800ms | ウィジェットのタップは`WidgetCommandReceiver`の8秒で打ち切られ、Web APIだけで最大6秒（`SesameApiClient`のcallTimeout）かかる。BLEを試してから倒れても8秒に収める |
-| スキャン | 900ms | 到達実績があるデバイスのみを対象にするため、通常は数百msで見つかる想定 |
-| 接続 | 700ms | スキャンとあわせて「探索・接続は合計2秒程度」（上記「経路の優先順位と切り替え条件」）に収まる |
-| ログイン | 700ms | `INITIAL`通知の受信・`LOGIN`の応答まで |
-| コマンド | 600ms | 暗号化コマンドの応答まで |
-| 到達確認のスキャン | 1,500ms | Web APIの通信と並行して走るため、全体の所要時間には影響しない |
+| 全体 | 3,000ms | ウィジェットのタップは`WidgetCommandReceiver`の9秒で打ち切られ、Web APIだけで最大6秒（`SesameApiClient`のcallTimeout）かかる。BLEを試してから倒れても 3.0 + 6.0 = 9.0秒に収まる |
+| スキャン | 1,200ms | 保存済みアドレスが無い・使えないときの保険。通常はこの経路を通らない |
+| 接続 | 1,600ms | 保存済みアドレスへ直接つなぐ。探索を挟まないぶんをここへ回している |
+| ログイン | 1,200ms | `INITIAL`通知の受信・`LOGIN`の応答まで |
+| コマンド | 800ms | 暗号化コマンドの応答まで |
+| 到達確認のスキャン | 4,000ms | Web APIの通信（最大6秒）と並行して走るため、利用者から見た所要時間には影響しない |
 
-**これらはいずれも実測に基づく値ではない。** BL-165（人手検証）でスキャンから応答までの所要時間を
-実測し、その結果で見直す。`REACHABLE_TTL_MILLIS` / `PROBE_INTERVAL_MILLIS`も同様。
+旧値（全体1,800ms / スキャン900ms / 到達確認1,500ms）は実測に基づかない見積もりで、
+2026-09-20の実機検証（BL-165）で**実運用ではBLE経路が一度も選ばれていない**ことが判明した。
+実測は次のとおり（Pixel 8 Pro + Sesame 5、デバッグビルドの`SesameBleDebugReceiver`経由）。
+
+- BLE1往復（探索＋接続＋ログイン＋応答）: 状態取得 2,437 / 2,992 / 3,140ms（間隔15秒）、
+  施錠 2,689ms、解錠 3,918ms。**連続実行すると`CONNECTION_FAILED` / `NOT_FOUND`になる**
+  （直前の接続が残っている間は繋ぎ直せないため、間隔を空ける必要がある）
+- 到達確認（1,500ms）は、Sesameの真横でも6回中2回しか成功しない
+- 到達実績が立っても、本番の操作は1,800msで打ち切られて`route=BLE op=STATUS result=NG`となり、
+  毎回Web APIへ倒れる
+
+**もう1つの原因は、保存済みアドレスへの直接接続が成立しないことだった**（BL-189の再検証で判明）。
+Sesame 5のBLEアドレス（例 `E9:38:...`）は先頭オクテットの上位2ビットが`11`の
+**static random address**で、`BluetoothAdapter.getRemoteDevice(address)`は公開アドレスとして扱うため、
+接続要求が相手に届かない。`getRemoteLeDevice(address, BluetoothDevice.ADDRESS_TYPE_RANDOM)`
+（API 33以上）へ差し替えて解決した。API 33未満では種別を指定できないため、保存済みアドレスを使わず
+探索へ倒す（誤った種別で繋ぎにいくより確実）。種別の判定は先頭オクテットの上位2ビットで行う
+（11＝static random。01＝resolvableは接続のたびに変わるため保存しても探索へ戻るだけで実害は無い）。
+
+支配的なのは探索（スキャン）だったため、BL-189で**利用者を待たせる経路から探索を外した**。
+
+- `mobile.ble.SesameBleAddressCache`が、見つけたBLEアドレスをuuidごとに覚える
+- `mobile.ble.SesameBleConnector`が、保存済みアドレスへの直接接続を先に試し、駄目なときだけ探索する。
+  直接接続に失敗した保存値は捨てる（アドレスが変わったか圏外かのどちらか）
+- アドレスを見つける役は、Web APIの通信と並行して走る到達確認（`SesameBleClient.probeReachable`）が担う。
+  待たせる相手が居ないため上限を4,000msまで広げられる
+- `PROBE_INTERVAL_MILLIS`は15分→5分（到達確認が失敗しても取り返しやすくする）。
+  `REACHABLE_TTL_MILLIS`（30分）は変えていない
+- BLEアドレスは端末を識別しうる値のため**ログへ出さない**
+
+修正後の実測（2026-09-20夜、同じ構成）:
+
+- 到達確認（4,000ms）は1回目で成功し、アドレスが保存される
+- 次の操作は探索を飛ばして直接接続し、`route=BLE op=STATUS detail=SUCCESS` / `result=OK`となる。
+  このとき**「今月のAPI呼び出し回数」は増えない**（56→56。BL-165(6)が初めて成立した）
+- 上限を2,600msにした段階では`CONNECTION_FAILED` / `LOGIN_FAILED`が出たため、3,000msへ広げた。
+  広げた後の成功率は3回中2回（残り1回は`NOT_FOUND`でインターネット経由へフォールバックし、
+  操作自体は成功する）
+- どの段階で失敗したかは診断ログの`detail=`（`SUCCESS` / `NOT_FOUND` / `CONNECTION_FAILED` /
+  `LOGIN_FAILED`）で切り分けられる。`route=...`の成否だけでは分からなかったため追加した
+
+**BLEの失敗が1回あると、次の到達確認まで（最短5分）BLEを試さなくなる。** `recordAttempt`が
+失敗時に到達実績を消すためで、圏外（`NOT_FOUND`）ではなく繋げなかっただけ（`CONNECTION_FAILED` /
+`LOGIN_FAILED`）の場合も同じ扱いになる。見直しはBL-191として残している。
+
+ウィジェットのタップが打ち切られないことの確認は未実施で、BL-189へ「進行中・実機確認待ち」として残す。
 
 状態の自動取得（BL-142で廃止した鮮度ベースの取得）は、BL-152の完了後も**再開しない**。
 BLEで到達できる間は上限を消費しないが、再開の可否は実測（BL-165）と運用実績を見てから判断する。
@@ -1570,9 +1670,47 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 - 判定は`mobile.command.SesameBleAccess`が行い、表示は
   `SesameDeviceCommandExecutorFactory`がメインスレッドへ渡し直して行う。ウィジェットのタップも
   ウォッチからのコマンドもバックグラウンドのコンポーネントで動くため。
-- **通知（Notification）ではなくトーストにしている。** Android 13以降で`POST_NOTIFICATIONS`権限の
-  要求がBluetooth権限に加えて必要になり、データセーフティ申告（BL-154）も増えるため。
-  トーストは追加の権限が要らず、ウィジェット・ウォッチ発の操作でも表示できる。
+
+#### 経路の変化と到達状況の通知（BL-190、2026-09-20）
+
+**BL-168のトーストは、設計意図の場面では表示されない。** 2026-09-20の実機検証で、
+背景から出したトーストがシステムに抑止されることを確認した。
+
+```text
+NotificationService: Suppressing toast from package com.sesamiwear.mobile.debug by user request.
+```
+
+Android 12以降は、**通知が無効なアプリの背景からのトーストを抑止する**。本アプリは
+`POST_NOTIFICATIONS`を宣言していなかったため（トーストを選んだ理由がまさにそれだった）、
+Android 13以降では通知が既定で無効＝トーストも出ない、という関係になっていた。
+アプリを前景にして同じ操作をすると表示されるため、抑止が原因であることは切り分け済み。
+
+置き換えの構成:
+
+| クラス | 役割 |
+| --- | --- |
+| `mobile.notification.SesameRouteNotifier` | 通知の組み立てと送信。チャネルは`route_change`（`IMPORTANCE_LOW`、音を鳴らさない）。複数台の一括操作で積み上がらないよう**1つの通知を上書き**する |
+| `mobile.ble.SesameRouteChangeTracker` | uuidごとに前回の経路を覚え、**変わった瞬間だけ**知らせる。記録が無い初回は知らせない |
+| `mobile.ble.SesameRouteNotificationStore` | 通知のオン・オフ（既定はオン）。⋮メニューの「経路が変わったときの通知」から切り替える |
+| `mobile.credentials.RouteNotificationState` | 上記の設定UI。オンにする操作の中で`POST_NOTIFICATIONS`を要求し、端末側で通知が切られている場合は副題でその旨を示す |
+
+- `POST_NOTIFICATIONS`をマニフェストへ追加した。**許可されなくてもアプリは従来どおり動く**
+  （通知が出ないだけ）。データセーフティ申告・権限の用途説明の更新はBL-154に含める。
+- トーストは**前景でのみ機能する補助**として残す。前景で操作しているときの即時性のため。
+- 経路が変わったかどうかの判定は`SesameBleAccess`が実際に使った経路（`onRouteUsed`）を起点にする。
+  「BLEを試して失敗した瞬間」だけを表す`onFallbackToWebApi`（トースト用）とは別物で、
+  BLEを試していない場合も含めた結果を表す。
+
+**BLEで届いているかどうかは、アプリのデバイスカードへ常時出す。**
+
+- 1行を足して「Bluetooth：圏内（3分前に確認）」「Bluetooth：圏外（5分前に確認）」
+  「Bluetooth：未確認」を出す（`core.display.SesameBleConnectionLabel`、
+  状態の判定は`SesameBleReachability.status`）。
+- 経路（「最後にどちらで動いたか」）と到達状況（「次にBLEを使えそうか」）は別物で、
+  圏内でもまだ一度もBLEを使っていなければ経路はインターネットのままになる。
+- 方針が「常にインターネット経由」または権限が無い場合は、到達確認そのものを行わないため
+  「Bluetooth：使用しない設定」を出す（「未確認」と書くと、待てば変わるように読めてしまう）。
+- 判定基準は経路選択（`preferBle`）と同じものを使う。表示と実際の挙動を食い違わせないため。
 
 #### 段階的移行案
 

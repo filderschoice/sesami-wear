@@ -1,6 +1,8 @@
 package com.sesamiwear.mobile.ble
 
+import com.sesamiwear.core.display.SesameBleConnectionLabel.State
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -89,6 +91,24 @@ class SesameBleReachabilityTest {
         store.putString("ble_reachability", "{ this is not json")
         assertFalse(reachability.preferBle(UUID, NOW))
         assertTrue(reachability.shouldProbe(UUID, NOW))
+    }
+
+    @Test
+    fun `the status shown to the user follows the same rule as the route selection`() {
+        assertEquals(State.UNKNOWN, reachability.status(UUID, NOW).state)
+        reachability.recordProbe(UUID, NOW, reachable = false)
+        assertEquals(State.OUT_OF_RANGE, reachability.status(UUID, NOW).state)
+        reachability.record(UUID, NOW, reachable = true)
+        val inRange = reachability.status(UUID, NOW)
+        assertEquals(State.IN_RANGE, inRange.state)
+        assertEquals(NOW, inRange.lastCheckedAtEpochMillis)
+    }
+
+    @Test
+    fun `an expired reachability reads as out of range rather than in range`() {
+        reachability.recordProbe(UUID, NOW, reachable = true)
+        val expired = NOW + SesameBleReachability.REACHABLE_TTL_MILLIS + 1
+        assertEquals(State.OUT_OF_RANGE, reachability.status(UUID, expired).state)
     }
 
     @Test

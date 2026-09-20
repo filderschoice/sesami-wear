@@ -104,6 +104,24 @@ object SesameRouteLabel {
      */
     const val FALLBACK_MESSAGE = "Bluetoothで届かないため、インターネット経由で操作します"
 
+    /**
+     * インターネット経由から、Bluetoothでの直接操作へ戻ったときの文言（BL-190）。
+     *
+     * 利用者の関心は「回数を消費しない経路へ戻ったか」なので、戻ったことも伝える。
+     * 切り替わった瞬間だけ出す（毎回の操作では出さない。`SesameRouteChangeTracker`）。
+     */
+    const val RECOVERED_MESSAGE = "Bluetoothで直接操作できるようになりました"
+
+    /** 経路の切り替わりを知らせる通知の見出し（BL-190）。 */
+    const val ROUTE_CHANGE_TITLE = "操作の経路が変わりました"
+
+    /** [route]へ切り替わったことを知らせる本文。 */
+    fun routeChangeMessage(route: SesameStatusRoute): String =
+        when (route) {
+            SesameStatusRoute.BLE -> RECOVERED_MESSAGE
+            SesameStatusRoute.WEB_API -> FALLBACK_MESSAGE
+        }
+
     /** 経路が分からないときの呼び名。 */
     const val UNKNOWN_ROUTE_NAME = "未取得"
 }
