@@ -246,7 +246,13 @@
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
     （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
     `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
-  - 詳細な説明はヘルプボタン（`TextButton`）タップで開く`AlertDialog`へ集約する（BL-057, BL-059）。
+  - **ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（⋮、`mobile.credentials.SettingsMenu`）へ
+    集約する**（BL-180）。3つとも「たまに開く設定」で、主画面に常時置くと情報量を押し上げるため。
+    現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、メニューを開くだけで分かるようにする。
+    Bluetoothの項目は、許可済みで求めるものが無いとき（`SesameBlePermissionPrompt.buttonLabel`がnull）は
+    押せない状態表示になる。状態と文言の決定は`mobile.credentials.RoutePolicyState` /
+    `BlePermissionState`（どちらも`remember`で状態を持つComposable関数）が担う。
+  - 詳細な説明はヘルプの`AlertDialog`へ集約する（BL-057, BL-059）。
     ヘルプは**メニュー形式**で、項目一覧（`HelpMenuDialog`）と本文（`HelpTopicDialog`、「戻る」で
     一覧へ戻る）の2段構成にする（BL-113）。文言と並び順はAndroid非依存の
     `mobile.help.HelpContent`（`HelpTopic` / `HelpLink`、ユニットテスト対象）が保持し、

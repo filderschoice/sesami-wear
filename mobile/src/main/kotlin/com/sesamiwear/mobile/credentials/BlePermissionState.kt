@@ -6,8 +6,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -26,31 +23,40 @@ import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 
 /**
- * BLE直接操作の権限を任意で求めるセクション（BL-153）。
+ * BLE直接操作の権限を任意で求めるための状態（BL-153 / BL-180）。
  *
- * **権限は必須ではない。** 許可されていなくてもアプリは従来どおりWeb API経由で動き、
- * 現在どちらで動いているかを1行で常時表示する。
+ * **権限は必須ではない。** 許可されていなくてもアプリは従来どおりWeb API経由で動く。
+ * 現在どちらで動いているかは、上部バーの設定メニュー（[SettingsMenu]）の項目の副題に出る
+ * （もとは画面本体へ1行を常時置いていたが、主画面の情報量を抑えるため移した）。
  *
- * 資格情報設定画面は縦スクロールしないため、長い説明は常時表示せず、
- * 権限を求める直前に出す説明ダイアログ（Androidが推奨するrationaleの形）へ回す。
- * 位置情報の許可が必要になるAndroid 11以前では、近くのSesameを探すためだけに使い
- * 収集も送信もしないことを同じダイアログに明示する（BL-153の完了条件）。
+ * 長い説明は、権限を求める直前に出す説明ダイアログ（Androidが推奨するrationaleの形、
+ * [BlePermissionRationaleDialog]）へ回す。位置情報の許可が必要になるAndroid 11以前では、
+ * 近くのSesameを探すためだけに使い収集も送信もしないことを同じダイアログに明示する。
  *
  * 一度拒否された権限は再要求してもダイアログが出ないことがあるため、要求済みの場合は
  * 端末のアプリ設定画面を開く導線へ切り替える（[SesameBlePermissionPrompt.requestsPermission]）。
  * 画面が再開するたび（`ON_RESUME`）に許可状況を読み直し、設定画面で許可して戻ったときに追随させる
- * （`rememberApiUsageCount`と同じ理由、BL-159）。
+ * （BL-159と同じ理由）。
  *
  * Compose画面のためユニットテスト対象外（文言と状態の決定は`SesameBlePermissionPromptTest`で検証済み）。
  */
+internal class BlePermissionState(
+    val state: SesameBlePermissionPrompt.State,
+    /** 設定メニューの副題に出す1行（「Bluetooth：未許可（インターネット経由で動作中）」など）。 */
+    val shortStatus: String,
+    /** 説明ダイアログの確定ボタンの文言。nullなら求めるものが無い（許可済み）。 */
+    val buttonLabel: String?,
+    /** 説明ダイアログで確定したときの処理（権限要求、または端末の設定画面を開く）。 */
+    val confirm: () -> Unit,
+)
+
 @Composable
-internal fun BlePermissionSection() {
+internal fun rememberBlePermissionState(): BlePermissionState {
     val context = LocalContext.current
     val askedStore =
         remember { SesameBlePermissionAskedStore(SharedPreferencesKeyValueStore.forBleReachability(context)) }
     var missing by remember { mutableStateOf(SesameBlePermissions.missing(context)) }
     var asked by remember { mutableStateOf(askedStore.wasAsked()) }
-    var showRationale by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { missing = SesameBlePermissions.missing(context) }
 
     val launcher =
@@ -59,32 +65,20 @@ internal fun BlePermissionSection() {
         }
 
     val state = SesameBlePermissionPrompt.state(missing, asked)
-
-    if (showRationale) {
-        BlePermissionRationaleDialog(
-            state = state,
-            onConfirm = {
-                showRationale = false
-                if (SesameBlePermissionPrompt.requestsPermission(state)) {
-                    askedStore.markAsked()
-                    asked = true
-                    launcher.launch(missing.toTypedArray())
-                } else {
-                    context.startActivity(appSettingsIntent(context.packageName))
-                }
-            },
-            onDismiss = { showRationale = false },
-        )
-    }
-
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = SesameBlePermissionPrompt.shortStatus(state), modifier = Modifier.weight(1f))
-        if (SesameBlePermissionPrompt.buttonLabel(state) != null) {
-            TextButton(onClick = { showRationale = true }) {
-                Text(text = "設定")
+    return BlePermissionState(
+        state = state,
+        shortStatus = SesameBlePermissionPrompt.shortStatus(state),
+        buttonLabel = SesameBlePermissionPrompt.buttonLabel(state),
+        confirm = {
+            if (SesameBlePermissionPrompt.requestsPermission(state)) {
+                askedStore.markAsked()
+                asked = true
+                launcher.launch(missing.toTypedArray())
+            } else {
+                context.startActivity(appSettingsIntent(context.packageName))
             }
-        }
-    }
+        },
+    )
 }
 
 /**
@@ -92,17 +86,17 @@ internal fun BlePermissionSection() {
  * （Android 11以前では）位置情報を収集・送信しないことをここで伝える。
  */
 @Composable
-private fun BlePermissionRationaleDialog(
-    state: SesameBlePermissionPrompt.State,
+internal fun BlePermissionRationaleDialog(
+    permission: BlePermissionState,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = SesameBlePermissionPrompt.TITLE) },
-        text = { Text(text = SesameBlePermissionPrompt.summary(state, Build.VERSION.SDK_INT)) },
+        text = { Text(text = SesameBlePermissionPrompt.summary(permission.state, Build.VERSION.SDK_INT)) },
         confirmButton = {
-            SesameBlePermissionPrompt.buttonLabel(state)?.let { label ->
+            permission.buttonLabel?.let { label ->
                 TextButton(onClick = onConfirm) { Text(text = label) }
             }
         },
@@ -116,3 +110,6 @@ private fun BlePermissionRationaleDialog(
 private fun appSettingsIntent(packageName: String): Intent =
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+/** 設定メニューの項目名。 */
+internal const val BLE_PERMISSION_MENU_TITLE = "Bluetoothで直接操作"

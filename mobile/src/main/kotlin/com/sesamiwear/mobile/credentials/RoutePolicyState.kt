@@ -1,7 +1,6 @@
 package com.sesamiwear.mobile.credentials
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -21,66 +20,43 @@ import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 
 /**
- * 通信まわりの設定をまとめたセクション（BL-153 / BL-167）。
+ * 経路の方針（[SesameRoutePolicy]）の現在値と、選び直す手段（BL-167 / BL-180）。
  *
- * 経路の方針（[RoutePolicySection]）と、BLE直接操作の権限（[BlePermissionSection]）は
- * どちらも「どうやってセサミへつなぐか」の設定のため、画面上でも隣り合わせに置く。
- * 呼び出し側（資格情報設定画面）の行数を増やさないために1つにまとめている。
- */
-@Composable
-internal fun ConnectionSettingsSection() {
-    RoutePolicySection()
-    BlePermissionSection()
-}
-
-/**
- * 経路の方針（[SesameRoutePolicy]）を選ぶセクション（BL-167）。
+ * もとは画面本体へ1行（現在の方針と「変更」）を常時置いていたが、主画面の情報量を抑えるため
+ * 上部バーの設定メニュー（[SettingsMenu]）へ移した。現在の方針はメニュー項目の副題に出るため、
+ * メニューを開くだけで分かる。
  *
- * 常時出すのは現在の方針の1行と「変更」だけ。資格情報設定画面は縦スクロールしないため、
- * 選択肢とその説明はダイアログへ回す（`BlePermissionSection`と同じ考え方）。
- *
- * 選んだ値はその場で保存し、次の操作から効く（[SesameDeviceCommandExecutorFactory]は
+ * 選んだ値はその場で保存し、次の操作から効く（`SesameDeviceCommandExecutorFactory`は
  * 操作のたびに読み直す）。
  *
  * Compose画面のためユニットテスト対象外（文言は`SesameRouteLabelTest`で検証済み）。
  */
+internal class RoutePolicyState(
+    val policy: SesameRoutePolicy,
+    val select: (SesameRoutePolicy) -> Unit,
+)
+
 @Composable
-internal fun RoutePolicySection() {
+internal fun rememberRoutePolicyState(): RoutePolicyState {
     val context = LocalContext.current
     val store = remember { SesameRoutePolicyStore(SharedPreferencesKeyValueStore.forBleReachability(context)) }
     var policy by remember { mutableStateOf(store.load()) }
-    var showPicker by remember { mutableStateOf(false) }
-
-    if (showPicker) {
-        RoutePolicyPickerDialog(
-            selected = policy,
-            onSelect = {
-                store.save(it)
-                policy = it
-                showPicker = false
-            },
-            onDismiss = { showPicker = false },
-        )
-    }
-
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "操作の経路：${SesameRouteLabel.policyLabel(policy)}", modifier = Modifier.weight(1f))
-        TextButton(onClick = { showPicker = true }) {
-            Text(text = "変更")
-        }
+    return RoutePolicyState(policy) { selected ->
+        store.save(selected)
+        policy = selected
     }
 }
 
 /** 方針の選択肢と、それぞれを選ぶと何が変わるかを並べるダイアログ。 */
 @Composable
-private fun RoutePolicyPickerDialog(
+internal fun RoutePolicyPickerDialog(
     selected: SesameRoutePolicy,
     onSelect: (SesameRoutePolicy) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "操作の経路") },
+        title = { Text(text = ROUTE_POLICY_TITLE) },
         text = {
             Column {
                 SesameRoutePolicy.entries.forEach { candidate ->
@@ -102,3 +78,6 @@ private fun RoutePolicyPickerDialog(
         },
     )
 }
+
+/** 設定メニューの項目名。ダイアログの見出しと揃える。 */
+internal const val ROUTE_POLICY_TITLE = "操作の経路"

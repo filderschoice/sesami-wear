@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
  * 構成は上部バー＋デバイスのカード一覧＋右下の追加ボタン（BL-177）。もとは見出し・API呼び出し回数・
  * 一覧・接続の設定・入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。
  * 追加・編集は全画面ダイアログ（[CredentialsEditorDialog]、BL-178）、削除は確認ダイアログ（BL-179）。
+ * ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（[SettingsMenu]）へ集約した（BL-180）。
  * 保存・削除とそれに伴う同期は[CredentialsScreenController]が持つ。
  *
  * uuidをデバイスの一意キーとして扱い、既存uuidでの保存は上書き、新規uuidでの保存は追加になる。
@@ -63,9 +64,7 @@ fun CredentialsSettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
     var deleteTarget by remember { mutableStateOf<SesameCredentials?>(null) }
-    var showHelp by remember { mutableStateOf(false) }
 
-    if (showHelp) HelpDialog(onDismiss = { showHelp = false })
     editorTarget?.let { target ->
         CredentialsEditorDialog(
             editing = target.editing,
@@ -91,7 +90,7 @@ fun CredentialsSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        topBar = { ScreenTopBar(onHelpClick = { showHelp = true }) },
+        topBar = { ScreenTopBar() },
         floatingActionButton = { AddDeviceButton(onClick = { editorTarget = EditorTarget(editing = null) }) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -106,10 +105,11 @@ fun CredentialsSettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScreenTopBar(onHelpClick: () -> Unit) {
+private fun ScreenTopBar() {
     TopAppBar(
         title = { Text(text = SCREEN_TITLE) },
-        actions = { TextButton(onClick = onHelpClick) { Text(HELP_LABEL) } },
+        // ヘルプ・操作の経路・Bluetooth権限は、まとめて設定メニューへ入れる（BL-180）。
+        actions = { SettingsMenu() },
     )
 }
 
@@ -123,9 +123,9 @@ private fun AddDeviceButton(onClick: () -> Unit) {
 }
 
 /**
- * 画面本体（BL-177）。今月のAPI呼び出し回数・デバイスのカード・接続の設定を縦に並べる。
+ * 画面本体（BL-177）。今月のAPI呼び出し回数とデバイスのカードを縦に並べる。
  * 画面全体が縦スクロールする（もとは`Column`の中に`LazyColumn`が入れ子になっており、
- * 一覧の外側はスクロールできなかった）。
+ * 一覧の外側はスクロールできなかった）。接続の設定は設定メニューへ移した（BL-180）。
  */
 @Composable
 private fun DeviceListContent(
@@ -157,7 +157,6 @@ private fun DeviceListContent(
                 )
             }
         }
-        item { ConnectionSettingsSection() }
         // 最後のカードが追加ボタンに隠れないようにする。
         item { Spacer(modifier = Modifier.height(FAB_CLEARANCE_DP.dp)) }
     }
@@ -201,7 +200,6 @@ private fun rememberApiUsageCount(): Int {
 private data class EditorTarget(val editing: SesameCredentials?)
 
 private const val SCREEN_TITLE = "Sesami Wear"
-private const val HELP_LABEL = "ヘルプ"
 private const val ADD_LABEL = "Sesameを追加"
 private const val SAVED_MESSAGE = "保存しました"
 private const val EMPTY_MESSAGE = "まだSesameが登録されていません。右下の「Sesameを追加」から登録してください。"

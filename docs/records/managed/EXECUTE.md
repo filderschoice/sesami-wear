@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 10:29
+  summary: ヘルプと接続の設定を上部バーの設定メニューへ集約する
+  details:
+    変更内容: >-
+      ヘルプ（見出し横のボタン）と接続の設定（操作の経路・Bluetooth権限の2行）を、
+      上部バーの⋮メニュー（mobile.credentials.SettingsMenu）へまとめた。3つとも
+      たまに開く設定で、主画面へ常時置くと情報量を押し上げるため。
+      現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、開くだけで分かるようにした。
+      Bluetoothの項目は、許可済みで求めるものが無いときは押せない状態表示になる。
+      RoutePolicySection / BlePermissionSection は、状態を返すComposable関数
+      （RoutePolicyState / BlePermissionState）とダイアログへ分け、
+      detektのMatchingDeclarationNameに合わせてファイル名も変更した
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RoutePolicyState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/BlePermissionState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-180
 - date: 2026-09-20 10:25
   summary: スマホ側の経路表示をMaterialのベクターアイコンへ置き換える
   details:
