@@ -81,7 +81,7 @@ class SesameDeviceCommandExecutorTest {
                     ),
                 ble = bleAccess,
             ),
-        debouncer = debouncer,
+        guard = SesameCommandGuard(debouncer = debouncer),
         nowMillis = { now },
     )
 

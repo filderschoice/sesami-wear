@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!--
+            ウォッチ単独で表示を検証するための入口（BL-187）。デバッグビルドにだけマージされ、
+            リリースビルド（およびGoogle Playへ配信するAAB）には含まれない。
+            adbからDataItemを注入できるため、src/main へ移してはならない。
+        -->
+        <receiver
+            android:name=".debug.SesameWearDebugReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
+    </application>
+
+</manifest>

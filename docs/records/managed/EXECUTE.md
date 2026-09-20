@@ -5,6 +5,61 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 18:14
+  summary: 診断ログの画面を追加し、Wear OSエミュレータでの検証手段を用意する
+  details:
+    変更内容: >-
+      (1) BL-188 - 施錠・解錠・状態取得の成功と失敗を直近50件だけ残す診断ログを追加し、
+      上部バーの設定メニューへ「診断ログ」を足した。組み立てと整形はAndroid非依存の
+      core.diagnostics（SesameDiagnosticsEntry / SesameDiagnosticsLog）で、
+      記録は mobile.command.SesameCommandDiagnostics が SesameDeviceCommandExecutor の
+      結果から作る。**uuid・apikey・secretKeyは記録しない**（対象は表示名だけ）。
+      画面は全画面ダイアログで「コピー」と「共有」を持ち、共有用の全文には解析に要る
+      アプリ版・Androidバージョン・機種名だけをヘッダとして添える。
+      保存先は非暗号化SharedPreferences（機密を含まないため）。
+      detektの上限に収めるため、実行口の引数は SesameCommandGuard（重複抑止＋診断ログ）へまとめ、
+      refreshStatus は when 式へ、SettingsMenu はダイアログ部分を分離した。
+      (2) BL-187 - Wear OSのシステムイメージ（android-34 / android-wear / x86_64＝Wear OS 5）を
+      導入し、AVD `wearos`（384x384・円形・データ領域2047MB）を作成した。
+      2台のエミュレータのペア設定はWear OSコンパニオンアプリがPlayストア入りイメージと
+      Googleアカウントを要するため行わず、代わりにwearのdebugビルドにだけ存在する
+      SesameWearDebugReceiver を追加して、デバイス一覧と状態のDataItemをウォッチ単体で
+      注入できるようにした（mobile側のSesameBleDebugReceiverと同じ形式）
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsEntry.kt
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameCommandDiagnostics.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogDialog.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunnerTest.kt
+      - wear/src/debug/kotlin/com/sesamiwear/wear/debug/SesameWearDebugReceiver.kt
+      - wear/src/debug/AndroidManifest.xml
+      - docs/INSTALL.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion = Android 15、wearos = Wear OS 5）での確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータで次を確認した。
+      診断ログは設定メニューから開き、記録が新しい順に並び、コピーと共有ができる。
+      保存値（shared_prefs/sesami_wear_diagnostics.xml）にuuid・apikey・secretKeyが含まれず、
+      表示名・操作・結果・時刻だけであることを直接確認した。
+      Wear OSエミュレータでは、注入したデバイス一覧と状態がウォッチのアプリ本体の状態一覧へ反映され、
+      経路アイコン🔗（Bluetooth）と🌐（インターネット）の両方が表示された。
+      Tileでも「🔗11分前」が表示された（スマートフォン未接続のため状態自体は「スマホ未接続」）
+    関連ID:
+      - BL-187
+      - BL-188
 - date: 2026-09-20 14:35
   summary: ウィジェットを2マス×1マスでも置けるようにする
   details:
