@@ -1,7 +1,7 @@
 package com.sesamiwear.mobile.widget
 
 /**
- * ホーム画面ウィジェットの表示バリエーション（BL-128）。
+ * ホーム画面ウィジェットの表示バリエーション（BL-128 / BL-174）。
  *
  * 第1段階（BL-121）はTile相当の1サイズ固定だったが、ホーム画面の1マスへ置きたい場合に大きすぎた。
  * 利用者がウィジェットをリサイズしたときに、入る情報量へ応じて出し分ける。
@@ -9,8 +9,20 @@ package com.sesamiwear.mobile.widget
  * 出るため採らない（2026-09-18、ユーザー確認済み）。
  */
 enum class SesameWidgetLayout {
-    /** 1マス（1x1）相当。状態アイコンと短い状態文言だけを出し、タップの挙動は[FULL]と同じ。 */
+    /**
+     * 1マス（1x1）相当。状態アイコンと短い状態文言だけを出し、タップの挙動は[FULL]と同じ。
+     *
+     * 縮小の下限は2マス×1マス（[MEDIUM]）へ引き上げたため（BL-174）、通常の操作でこの表示に
+     * なることはない。**保険として残している**。`minResizeWidth`より狭い表示領域を渡す
+     * ランチャーや、BL-174より前に1マスで置かれた既存のインスタンスが該当しうる。
+     */
     COMPACT,
+
+    /**
+     * 2マス×1マス相当（BL-174）。左1マスにデバイス名と「◀ ▶」（対象デバイスの順送り、BL-175）、
+     * 右1マスに状態アイコンと状態文言を出す。最終取得時刻・操作文言は高さが足りないため出さない。
+     */
+    MEDIUM,
 
     /** Tile相当（4x2）。デバイス名・「変更」・状態・操作文言・最終取得時刻をすべて出す。 */
     FULL,
@@ -20,10 +32,10 @@ enum class SesameWidgetLayout {
         /**
          * ウィジェットの表示領域（dp）から使うレイアウトを決める。
          *
-         * しきい値は「左列（デバイス名と『変更』のチップ、[SesameWidget]の`LEFT_COLUMN_WIDTH_DP`=96dp）と
-         * 状態表示を横に並べて成立する幅があるか」で決める。左列96dp＋間隔6dp＋状態表示に最低でも
-         * 同程度の幅が要るため、200dpを境にする。高さは、状態アイコン・状態文言・最終取得時刻・
-         * 操作文言の4行が入る必要があるため140dpを境にする。どちらかを下回れば[COMPACT]。
+         * [FULL]のしきい値は「左列（デバイス名と『変更』のチップ、[SesameWidget]の
+         * `LEFT_COLUMN_WIDTH_DP`=96dp）と状態表示を横に並べて成立する幅があるか」で決める。
+         * 左列96dp＋間隔6dp＋状態表示に最低でも同程度の幅が要るため、200dpを境にする。
+         * 高さは、状態アイコン・状態文言・最終取得時刻・操作文言の4行が入る必要があるため140dpを境にする。
          *
          * 高さの内訳（[SesameWidget]の定数と対応、行の高さは文字サイズの約1.35倍で見積もる）は、
          * 外周パディング8dp×2＝16dp、状態表示の内側パディング6dp×2＝12dp、
@@ -32,13 +44,27 @@ enum class SesameWidgetLayout {
          * 4マス×1マス（Pixel 8 Pro + Nova Launcherで約128dp）でも[FULL]が選ばれ、
          * 操作文言が縦に見切れていた（BL-158）。余裕を見て140dpへ引き上げる。
          * 既定の配置（4x2）はどの端末でも140dp以上になるため[FULL]のままになる。
+         *
+         * [FULL]に届かない場合は幅だけで[MEDIUM]と[COMPACT]を分ける（BL-174）。
+         * [MEDIUM_MIN_WIDTH_DP]はAndroidが定める「2マス分の最小幅」（70dp×2−30dp＝110dp）で、
+         * `sesame_widget_info.xml`の`minResizeWidth`と同じ値にしている。
+         * 高さは下限（`minResizeHeight`＝50dp）に達していればデバイス名・「◀ ▶」の2段が入るため、
+         * ここでは見ない。
          */
         fun of(
             widthDp: Int,
             heightDp: Int,
-        ): SesameWidgetLayout = if (widthDp >= FULL_MIN_WIDTH_DP && heightDp >= FULL_MIN_HEIGHT_DP) FULL else COMPACT
+        ): SesameWidgetLayout =
+            when {
+                widthDp >= FULL_MIN_WIDTH_DP && heightDp >= FULL_MIN_HEIGHT_DP -> FULL
+                widthDp >= MEDIUM_MIN_WIDTH_DP -> MEDIUM
+                else -> COMPACT
+            }
 
         const val FULL_MIN_WIDTH_DP = 200
         const val FULL_MIN_HEIGHT_DP = 140
+
+        /** 2マス分の最小幅（Androidの算出式 70dp×マス数−30dp）。`minResizeWidth`と同じ値。 */
+        const val MEDIUM_MIN_WIDTH_DP = 110
     }
 }

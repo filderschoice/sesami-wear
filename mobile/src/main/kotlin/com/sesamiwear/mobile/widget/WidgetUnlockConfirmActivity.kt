@@ -136,6 +136,6 @@ private fun ConfirmChip(
     }
 }
 
-private const val NEUTRAL_TEXT_ARGB = 0xFFFFFFFF.toInt()
+// NEUTRAL_TEXT_ARGB / CHIP_CORNER_RADIUS_DP はウィジェット本体と同じ値を使う
+// （SesameWidgetChips.kt。同じ面の部品のため、片方だけ変わると見た目がずれる）。
 private const val CHIP_HEIGHT_DP = 56
-private const val CHIP_CORNER_RADIUS_DP = 12

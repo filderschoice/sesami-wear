@@ -312,28 +312,48 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
     ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
     更新は利用者のタップで行う。
-  - サイズ: 既定はTile相当（4x2）で、ホーム画面の1マス（1x1）まで縮められる（BL-128）。
-    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から`FULL`/`COMPACT`を
-    決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズを提示して`LocalSize`を受け取る。
-    しきい値は幅200dp・高さ140dpで、どちらかを下回れば`COMPACT`。幅は「左列（96dp）＋間隔（6dp）＋
-    状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・操作文言の
-    4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
+  - サイズ: 既定はTile相当（4x2）で、**横2マス×縦1マスまで**縮められる（BL-128 / BL-174）。
+    `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
+    `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
+    （50x50 / 110x50 / 200x140）を提示して`LocalSize`を受け取る。
+    `FULL`のしきい値は幅200dp・高さ140dpで、どちらかを下回れば`MEDIUM`以下。幅は「左列（96dp）＋
+    間隔（6dp）＋状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・
+    操作文言の4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
     高さは当初100dpとしていたが、4x1（約128dp）でも`FULL`が選ばれて操作文言が縦に見切れたため、
     余裕を見て140dpへ引き上げた（BL-158）。既定の4x2はどの端末でも140dp以上になるため`FULL`のまま。
-    `COMPACT`は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・操作文言は
-    出さない（1マスに入らないため）。タップの挙動は`FULL`と同じ（`WidgetTapAction`の判定どおり）で、
-    対象デバイスの変更はウィジェットの長押しメニュー（`widgetFeatures="reconfigurable"`）から行う。
-    未設定時の文言は「タップして設定」ではなく「設定」にする。
-    `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
-    250x110dpのままにし、縮小の下限は`minResizeWidth`/`minResizeHeight`（50dp）で指定する。
-    **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
+    `FULL`に届かない場合は幅だけで`MEDIUM`（110dp以上）と`COMPACT`（それ未満）を分ける。
+  - `MEDIUM`（2マス×1マス相当、BL-174）は、左1マス（60dp）にデバイス名チップ（タップで状態取得）と
+    「◀ ▶」（対象デバイスの順送り、BL-175）を縦に並べ、右1マスに状態アイコンと状態文言を出す。
+    最終取得時刻・電池残量・操作文言は高さが足りないため出さない。タップの挙動は`FULL`と同じ
+    （`WidgetTapAction`の判定どおり）。**高さ1マスのときだけ順送りにする**のは、選択画面を開く
+    「変更」チップを置く余地が無いため（2026-09-20、ユーザー確認済み。`FULL`は従来どおり「変更」）。
+  - `COMPACT`（1マス相当）は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・
+    操作文言は出さない。未設定時の文言は「タップして設定」ではなく「設定」にする。
+    **BL-174で縮小の下限を2マス×1マスへ上げたため、通常の操作でこの表示にはならない**が、
+    `minResizeWidth`より狭い表示領域を渡すランチャーと、BL-174より前に1マスで置かれた既存の
+    インスタンスのために保険として残している（2026-09-20、ユーザー確認済み）。
+  - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
+    250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
+    による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（50dp）で
+    指定する。
+  - **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
     なり、以降の表示変更で両方を追従させる必要が出るため。
+  - 対象デバイスの順送り（BL-175）: 巡回する並びは選択画面と同じ`SesameDeviceTargets.choices`で、
+    端まで行ったら反対側へ回り込む。判定はAndroid非依存の`mobile.widget.WidgetDeviceCycle`
+    （ユニットテスト対象）が持ち、受信は`WidgetCommandReceiver`の`ACTION_CYCLE_DEVICE`。
+    割り当てを保存して当該インスタンスだけを再描画する。**Sesame Web APIは呼ばない**
+    （保存済みの状態を出すだけで、月間リクエスト回数を消費しない）。
+    割り当て済みのデバイスが選択肢から消えている場合（削除済み）は先頭の選択肢へ戻す。
 
 - 実装方式はJetpack Glance（`androidx.glance:glance-appwidget` 1.2.0）。Glanceは推移的に
   `work-runtime` 2.7.1（`room-runtime` 2.2.5・`sqlite` 2.1.0を伴う）を持ち込むため、`work-runtime`を
   明示して2.10.5へ引き上げている（2026-09-16にユーザー判断）。2.11系は`kotlin-stdlib`をコンパイラ
   （2.0.21）より新しい2.1.20へ上げるため採らない（BL-130と同じ基準）。Glanceの導入で既存依存の版が
   変わるのは`compose-runtime`の1.7.6→1.7.8のみ。
+- Glanceの部品は3ファイルに分かれる（BL-174）。`SesameWidget`（`GlanceAppWidget`本体と`FULL`/`COMPACT`の
+  並べ方）、`SesameWidgetMedium`（`MEDIUM`の左1マスと右1マス）、`SesameWidgetChips`（両者が共用する
+  チップ・文字スタイル・寸法の定数）。1ファイルへ置くとdetektの`TooManyFunctions`（上限11）に達するため。
+  `WidgetUnlockConfirmActivity`も同じ面の部品として`SesameWidgetChips`の色・角丸の定数を使う。
 - `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
   構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
   `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
@@ -604,7 +624,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
 - `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
   `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
-  minResizeWidth / minResizeHeight 50dpにより1マス（1x1）まで縮められる（BL-128）。
+  minResizeWidth 110dp / minResizeHeight 50dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
 ### ウィジェットの電池残量表示

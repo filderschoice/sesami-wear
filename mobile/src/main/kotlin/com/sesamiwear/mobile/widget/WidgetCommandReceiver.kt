@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -52,14 +53,7 @@ class WidgetCommandReceiver : BroadcastReceiver() {
                 EntryPointGuard.run(onFailure = { Log.w(TAG, "command failed: $it") }) {
                     val finished =
                         withTimeoutOrNull(WORK_TIMEOUT_MILLIS) {
-                            val runner = createRunner(appContext)
-                            when (action) {
-                                ACTION_RUN_COMMAND ->
-                                    command?.let { playHaptic(appContext, runner.runCommand(deviceUuid, it)) }
-                                // 状態取得は結果を振動で伝えない（wear側のFire-and-forgetと揃える、BL-129）。
-                                ACTION_REFRESH_STATUS -> runner.refreshStatus(deviceUuid)
-                                else -> Log.w(TAG, "unknown action")
-                            }
+                            dispatch(appContext, intent, action, deviceUuid, command)
                             true
                         }
                     if (finished == null) Log.w(TAG, "command timed out before the broadcast deadline")
@@ -68,6 +62,54 @@ class WidgetCommandReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    private suspend fun dispatch(
+        appContext: Context,
+        intent: Intent,
+        action: String?,
+        deviceUuid: String,
+        command: SesameCommand?,
+    ) {
+        when (action) {
+            ACTION_RUN_COMMAND -> {
+                val outcomes = createRunner(appContext).runCommand(deviceUuid, requireNotNull(command))
+                playHaptic(appContext, outcomes)
+            }
+            // 状態取得は結果を振動で伝えない（wear側のFire-and-forgetと揃える、BL-129）。
+            ACTION_REFRESH_STATUS -> createRunner(appContext).refreshStatus(deviceUuid)
+            // 対象デバイスの順送り（BL-175）。Sesame APIは呼ばず、割り当てを書き換えて再描画するだけ。
+            ACTION_CYCLE_DEVICE ->
+                cycleDevice(
+                    context = appContext,
+                    appWidgetId = intent.getIntExtra(EXTRA_APP_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID),
+                    currentUuid = deviceUuid,
+                    step = intent.getIntExtra(EXTRA_STEP, WidgetDeviceCycle.FORWARD),
+                )
+            else -> Log.w(TAG, "unknown action")
+        }
+    }
+
+    /**
+     * 「◀ ▶」での対象デバイスの切り替え（BL-175）。選択画面と同じ並びで前後へ1つ動かし、
+     * 割り当てを保存して再描画を要求する。切り替え先が無い（選択肢が空・変化なし）場合は何もしない。
+     */
+    private suspend fun cycleDevice(
+        context: Context,
+        appWidgetId: Int,
+        currentUuid: String,
+        step: Int,
+    ) {
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        val next =
+            WidgetDeviceCycle.next(
+                currentUuid = currentUuid,
+                registeredDevices = SesameWidgetRepository.loadRegisteredDevices(context),
+                step = step,
+            )
+        if (next == null || next == currentUuid) return
+        SesameWidgetRepository.assignmentStore(context).assign(appWidgetId, next)
+        SesameWidgetUpdater.update(context, appWidgetId)
     }
 
     /**
@@ -95,8 +137,11 @@ class WidgetCommandReceiver : BroadcastReceiver() {
         private const val WORK_TIMEOUT_MILLIS = 8_000L
         private const val ACTION_RUN_COMMAND = "com.sesamiwear.mobile.widget.RUN_COMMAND"
         private const val ACTION_REFRESH_STATUS = "com.sesamiwear.mobile.widget.REFRESH_STATUS"
+        private const val ACTION_CYCLE_DEVICE = "com.sesamiwear.mobile.widget.CYCLE_DEVICE"
         private const val EXTRA_DEVICE_UUID = "device_uuid"
         private const val EXTRA_COMMAND = "command"
+        private const val EXTRA_APP_WIDGET_ID = "app_widget_id"
+        private const val EXTRA_STEP = "step"
 
         /** Intentで受け取ったコマンド名を、施錠・解錠のいずれかに限って解釈する（それ以外はnull）。 */
         fun parseCommand(value: String?): SesameCommand? = SesameCommand.entries.find { it.name == value }
@@ -116,6 +161,20 @@ class WidgetCommandReceiver : BroadcastReceiver() {
             deviceUuid: String,
         ): Intent = baseIntent(context, ACTION_REFRESH_STATUS, appWidgetId, deviceUuid)
 
+        /**
+         * 対象デバイスを順送りするIntent（BL-175）。[step]は[WidgetDeviceCycle.FORWARD]（▶）か
+         * [WidgetDeviceCycle.BACKWARD]（◀）。方向ごとにPendingIntentを分けるため、dataへも含める。
+         */
+        fun cycleDeviceIntent(
+            context: Context,
+            appWidgetId: Int,
+            deviceUuid: String,
+            step: Int,
+        ): Intent =
+            baseIntent(context, ACTION_CYCLE_DEVICE, appWidgetId, deviceUuid)
+                .putExtra(EXTRA_STEP, step)
+                .setData(Uri.parse("sesamiwear://widget/$ACTION_CYCLE_DEVICE/$appWidgetId/$step"))
+
         private fun baseIntent(
             context: Context,
             action: String,
@@ -125,6 +184,7 @@ class WidgetCommandReceiver : BroadcastReceiver() {
             Intent(context, WidgetCommandReceiver::class.java)
                 .setAction(action)
                 .putExtra(EXTRA_DEVICE_UUID, deviceUuid)
+                .putExtra(EXTRA_APP_WIDGET_ID, appWidgetId)
                 // PendingIntentがインスタンス・操作の種類をまたいで共有されないよう、dataで区別する。
                 .setData(Uri.parse("sesamiwear://widget/$action/$appWidgetId"))
 

@@ -5,6 +5,48 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 10:10
+  summary: ウィジェットの下限を2マス×1マスへ上げ、◀▶でのデバイス順送りを追加する
+  details:
+    変更内容: >-
+      ホーム画面ウィジェットの縮小の下限を1マスから横2マス×縦1マスへ引き上げ、高さ1マスのときの
+      表示（SesameWidgetLayout.MEDIUM）を新設した。左1マス（60dp）にデバイス名チップと「◀ ▶」、
+      右1マスに状態アイコンと状態文言を出す。◀▶は対象デバイスの順送りで、巡回する並びは
+      選択画面と同じ（SesameDeviceTargets.choices）、端で反対側へ回り込む。
+      判定はAndroid非依存のWidgetDeviceCycleへ置き、受信はWidgetCommandReceiverの
+      ACTION_CYCLE_DEVICEが担う（割り当てを保存して当該インスタンスだけ再描画。Sesame APIは呼ばない）。
+      FULL（高さ2マス以上）の左列は従来どおり「変更」のままにした（ユーザー指示）。
+      幅が足りない表示領域が来た場合の保険として、従来の1マス表示はCOMPACTとして残している。
+      1ファイルの関数数がdetektのTooManyFunctions（上限11）に達したため、Glanceの部品を
+      SesameWidget / SesameWidgetMedium / SesameWidgetChips の3ファイルへ分割した。
+      あわせてWidgetUnlockConfirmActivityの重複定数（NEUTRAL_TEXT_ARGB / CHIP_CORNER_RADIUS_DP）を
+      共用へ寄せた
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceCycle.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetDeviceCycleTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew testDebugUnitTest test /
+      ./gradlew lintDebug assembleDebug / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。SesameWidgetLayoutTest（3段階の判定）と
+      WidgetDeviceCycleTest（順送り・回り込み・削除済みデバイスの扱い）を追加している。
+      実機での表示確認はBL-182として起票済み
+    関連ID:
+      - BL-174
+      - BL-175
 - date: 2026-09-20 09:57
   summary: 経路アイコンを📶／☁から🔗／🌐へ変更する
   details:
