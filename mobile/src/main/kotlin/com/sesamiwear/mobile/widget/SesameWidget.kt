@@ -54,8 +54,11 @@ import kotlinx.coroutines.withContext
  * 表示の更新は[SesameWidgetUpdater]がウィジェットの状態へ更新トークン（[REFRESH_TOKEN_KEY]）を書き込んで
  * 再描画を要求し、描画側はトークンの変化を契機に保存済みの割り当て・資格情報・ロック状態を読み直す。
  * Glanceのセッションが生きている間は[provideGlance]が再実行されないため、この仕組みで最新値を反映する。
+ *
+ * ウィジェット一覧へ「2 × 1」としても並べるため、初期サイズだけが違う変種[SesameWidgetSmall]が
+ * このクラスを継承している（BL-186）。表示・操作の実装はすべてここにある。
  */
-class SesameWidget : GlanceAppWidget() {
+open class SesameWidget : GlanceAppWidget() {
     /**
      * サイズ別レイアウト（BL-128 / BL-174）。提示した候補のうち、実際の表示領域に収まる最大のものが
      * [LocalSize]として渡される。候補は「1マス（1x1）相当」「2マス×1マス相当」「Tile相当（4x2）」の3つ。

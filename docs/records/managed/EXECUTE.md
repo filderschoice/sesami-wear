@@ -5,6 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 14:35
+  summary: ウィジェットを2マス×1マスでも置けるようにする
+  details:
+    変更内容: >-
+      ウィジェット一覧へ「2 × 1」の項目を追加した（BL-186）。Androidは1つのproviderへ初期サイズを
+      1つしか持たせられないため、2マス×1マス用のprovider（sesame_widget_small_info.xml）と
+      レシーバ（SesameWidgetSmallReceiver）をもう1組宣言している。
+      表示・操作は既存と完全に同じで、SesameWidgetSmallはSesameWidgetを継承しただけ。
+      別クラスにしているのはGlanceAppWidgetManagerの都合で、同じ実装クラスを2つのレシーバへ
+      割り当てるとクラス→レシーバの対応表が片方で上書きされ、getGlanceIdsが一方を取りこぼして
+      再描画が届かなくなるため。SesameWidgetUpdater.updateAllは両方のクラスを走査するようにした。
+      対象デバイスの割り当てはappWidgetIdごとで、appWidgetIdはproviderをまたいで一意のため
+      2種類が混在しても取り違えは起きない
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetSmall.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/main/AndroidManifest.xml
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt testDebugUnitTest test lintDebug assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      エミュレータ（nocompanion、Android 15）での確認
+    検証結果: >-
+      成功 - すべて終了コード0。エミュレータでウィジェット一覧に
+      「Sesami Wear（小）2 × 1」と「Sesami Wear 4 × 2」の2種類が並ぶこと、
+      小さい方を置くと最初から2マス×1マスで配置され対象デバイスの選択画面が開くこと、
+      2種類を同時に置いても別々のデバイスを対象にでき、状態取得の結果が双方へ反映されることを
+      確認した
+    関連ID:
+      - BL-186
 - date: 2026-09-20 14:20
   summary: エミュレータ検証で見つけた表示・レイアウトの不具合3件を修正する
   details:

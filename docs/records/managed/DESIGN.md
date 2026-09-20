@@ -366,6 +366,17 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     **BL-174で縮小の下限を2マス×1マスへ上げたため、通常の操作でこの表示にはならない**が、
     `minResizeWidth`より狭い表示領域を渡すランチャーと、BL-174より前に1マスで置かれた既存の
     インスタンスのために保険として残している（2026-09-20、ユーザー確認済み）。
+  - **ウィジェット一覧へは「4 × 2」と「2 × 1」の2種類を並べる**（BL-186）。Androidは1つの
+    `appwidget-provider`へ初期サイズを1つしか持たせられないため、置いた直後から小さく使いたい
+    利用者のために2つ目のproviderを宣言する（`sesame_widget_small_info.xml`、
+    `targetCellWidth=2` / `targetCellHeight=1`）。表示・操作は完全に同じで、違うのは初期サイズだけ。
+    実装は`SesameWidgetSmall`（`SesameWidget`を継承しただけ）と`SesameWidgetSmallReceiver`。
+    **同じ`GlanceAppWidget`の実装クラスを2つのレシーバへ割り当ててはいけない**
+    （`GlanceAppWidgetManager`がクラスからレシーバを引く対応表を片方で上書きし、
+    `getGlanceIds`が一方を取りこぼして再描画が届かなくなる）。そのため
+    `SesameWidgetUpdater.updateAll`は両方のクラスを走査する。
+    対象デバイスの割り当ては appWidgetId ごとで、appWidgetId は provider をまたいで一意のため
+    2種類が混在しても取り違えは起きない。
   - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
     250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
     による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（50dp）で
