@@ -30,7 +30,7 @@ class SesameStatusListContentTest {
 
         assertEquals("玄関", rows.single().displayName)
         assertEquals("🔒施錠中 🔋85%", rows.single().statusLine)
-        assertEquals("📶3分前", rows.single().detailLine)
+        assertEquals("🔗3分前", rows.single().detailLine)
     }
 
     @Test
@@ -38,7 +38,7 @@ class SesameStatusListContentTest {
         val rows = rowsOf(SesameStatusSnapshot(false, NOW, lastRoute = SesameStatusRoute.WEB_API))
 
         assertEquals("🔓解錠中", rows.single().statusLine)
-        assertEquals("☁たった今", rows.single().detailLine)
+        assertEquals("🌐たった今", rows.single().detailLine)
     }
 
     @Test
@@ -61,7 +61,7 @@ class SesameStatusListContentTest {
                 ),
             )
 
-        assertEquals("☁認証エラー", rows.single().detailLine)
+        assertEquals("🌐認証エラー", rows.single().detailLine)
     }
 
     @Test

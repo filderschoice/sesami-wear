@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-20 09:57
+  summary: 経路アイコンを📶／☁から🔗／🌐へ変更する
+  details:
+    変更内容: >-
+      Tile・Complication・ウォッチの状態一覧・ホーム画面ウィジェットで使う経路アイコンを、
+      📶（BLE）／☁（Web API）から🔗／🌐へ変更した。📶は携帯電話の電波強度として広く使われており、
+      Bluetoothでの直接操作を表すものとして読み取れないという指摘による。
+      Unicodeに「Bluetooth」の絵文字は存在せず（ロゴはルーン文字の合字で絵文字フォントに含まれず、
+      端末によっては豆腐になる）、搭載率の高いEmoji 1.0の範囲から選んでいる。
+      文字数は従来と同じ1文字分のため、表示幅の要件（BL-102 / BL-104 / BL-158）に影響しない。
+      DESIGN.mdの実機検証記録に残る📶／☁は当時観測した表示のため書き換えず、
+      現在は変更済みである旨の注記を先頭へ足した
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameDeviceStatusLine.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt / ./gradlew testDebugUnitTest test /
+      ./gradlew lintDebug assembleDebug / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。markdownlintは37ファイルで0 issues、
+      記録ファイル検証はBACKLOG 15件・EXECUTE 116件で OK
+    関連ID:
+      - BL-173
 - date: 2026-09-19 21:00
   summary: ホーム画面ウィジェットのFULL表示へ電池残量を併記する
   details:

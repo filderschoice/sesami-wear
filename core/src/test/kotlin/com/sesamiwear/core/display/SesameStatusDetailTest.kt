@@ -54,7 +54,7 @@ class SesameStatusDetailTest {
     @Test
     fun `the route icon is prefixed to the compact label`() {
         assertEquals(
-            "📶3分前",
+            "🔗3分前",
             SesameStatusDetail.compactLabel(
                 failure = null,
                 updatedAtEpochMillis = NOW - 3 * 60 * 1000,
@@ -67,7 +67,7 @@ class SesameStatusDetailTest {
     @Test
     fun `the route icon is prefixed to a failure label too`() {
         assertEquals(
-            "☁認証エラー",
+            "🌐認証エラー",
             SesameStatusDetail.compactLabel(
                 failure = SesameStatusFailure.AUTH_OR_QUOTA,
                 updatedAtEpochMillis = NOW,
@@ -93,7 +93,7 @@ class SesameStatusDetailTest {
     @Test
     fun `the detailed label also carries the route icon`() {
         assertEquals(
-            "📶たった今",
+            "🔗たった今",
             SesameStatusDetail.detailedLabel(
                 failure = null,
                 updatedAtEpochMillis = NOW,

@@ -28,8 +28,8 @@ class SesameRouteLabelTest {
 
     @Test
     fun `the icon is prefixed without a separator to save width`() {
-        assertEquals("📶3分前", SesameRouteLabel.withIcon(SesameStatusRoute.BLE, "3分前"))
-        assertEquals("☁認証エラー", SesameRouteLabel.withIcon(SesameStatusRoute.WEB_API, "認証エラー"))
+        assertEquals("🔗3分前", SesameRouteLabel.withIcon(SesameStatusRoute.BLE, "3分前"))
+        assertEquals("🌐認証エラー", SesameRouteLabel.withIcon(SesameStatusRoute.WEB_API, "認証エラー"))
     }
 
     @Test
