@@ -7,6 +7,27 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-20（検証コストの抑制をスキルとルールへ反映）
+
+実機・エミュレータでの検証が、エージェントの利用量（トークン）の最大要因になっていることが
+2026-09-20のセッションで分かりました。約60枚のスクリーンショットを読み、うち20枚はフル解像度で、
+**画像は会話の履歴に残って以降のすべてのやり取りで再送される**ため、1枚の重さが後続ターンぶん
+積み上がっていました。次いで、1セッションを長時間続けたこと、成果の出ないUI操作の試行錯誤
+（Wearのタイル位置探しで約10枚）、大きなファイルの全文読み込みが続きます。
+
+- **[.claude/skills/realmachine-verification/SKILL.md](.claude/skills/realmachine-verification/SKILL.md)**
+  へ第8節「利用量を抑える」を追加しました。スクリーンショットの切り出し・縮小、
+  保存値やログをテキストで確認するための対応表（`run-as cat` / `dumpsys appwidget` / `logcat`）、
+  当たらないUI操作を繰り返さないこと、エミュレータを1台ずつ起動すること、
+  実装と検証のセッションを分けることを定めています。「やってはいけないこと」にも3項目を追加しました。
+- **[.claude/skills/store-screenshot-capture/SKILL.md](.claude/skills/store-screenshot-capture/SKILL.md)**
+  へ、確認のために読む画像は縮小版で足りることを追記しました（掲載用に保存する画像はフル解像度のまま）。
+- **[.claude/skills/autonomous-loop/SKILL.md](.claude/skills/autonomous-loop/SKILL.md)**
+  へ「利用量を抑える」を追加し、検証はループとセッションを分けること、
+  ファイルは必要範囲だけ読むことを定めました。
+- **[CLAUDE.md](CLAUDE.md)** へ「検証コストの抑制（MUST）」を追加し、3原則だけを置いて
+  具体的な手順は `realmachine-verification` 第8節へ委ねています。
+
 ## 2026-09-20（PR作成手順を両エージェント共通化、`.github/prompts/` を追加）
 
 Claude Code 専用だった PR 作成手順（`.claude/skills/pr-create/`）を、GitHub Copilot からも使える
