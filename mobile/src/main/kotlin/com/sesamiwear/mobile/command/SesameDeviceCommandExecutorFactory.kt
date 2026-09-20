@@ -16,6 +16,7 @@ import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRouteChangeTracker
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
+import com.sesamiwear.mobile.ble.toAttempt
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
@@ -95,29 +96,32 @@ object SesameDeviceCommandExecutorFactory {
                         // 探索で見つからないのか繋げないのかを切り分けられないため、理由も1行残す（BL-189）。
                         Log.w(SesameApiFailureLog.TAG, "route=BLE op=${command.name} detail=${outcome.result}")
                         // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
-                        outcome.status
-                            ?.takeIf { outcome.result == SesameBleClient.Result.SUCCESS }
-                            ?.let {
+                        // 失敗したときは理由を圏内／圏外へ落として渡す（BL-191）。
+                        outcome.result.toAttempt(
+                            outcome.status?.let {
                                 SesameStatusMeasurement(
                                     batteryPercentage = it.batteryPercentage,
                                     route = SesameStatusRoute.BLE,
                                 )
-                            }
+                            },
+                        )
                     },
                     fetchStatus = { credentials ->
                         val statusResult = client.fetchStatus(credentials)
                         Log.w(SesameApiFailureLog.TAG, "route=BLE op=STATUS detail=${statusResult.result}")
-                        statusResult.status?.let {
-                            SesameStatusReading(
-                                isLocked = it.isInLockRange,
-                                measurement =
-                                    SesameStatusMeasurement(
-                                        batteryPercentage = it.batteryPercentage,
-                                        position = it.position,
-                                        route = SesameStatusRoute.BLE,
-                                    ),
-                            )
-                        }
+                        statusResult.result.toAttempt(
+                            statusResult.status?.let {
+                                SesameStatusReading(
+                                    isLocked = it.isInLockRange,
+                                    measurement =
+                                        SesameStatusMeasurement(
+                                            batteryPercentage = it.batteryPercentage,
+                                            position = it.position,
+                                            route = SesameStatusRoute.BLE,
+                                        ),
+                                )
+                            },
+                        )
                     },
                     probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
                 ),
