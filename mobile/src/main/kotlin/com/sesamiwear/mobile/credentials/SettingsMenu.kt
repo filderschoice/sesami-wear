@@ -23,7 +23,7 @@ import com.sesamiwear.mobile.diagnostics.DiagnosticsLogDialog
  * もとはヘルプが見出し横のボタン、経路の方針とBluetooth権限が画面本体の2行に常時置かれており、
  * 主画面の情報量を押し上げていた。3つとも「たまに開く設定」なので、⋮のメニューへまとめ、
  * 実際の操作はそれぞれのダイアログで行う（2026-09-20、ユーザー指示）。
- * 同じ理由で、診断ログ（BL-188）もこのメニューから開く。
+ * 同じ理由で、診断ログ（BL-188）と、経路が変わったときの通知の設定（BL-190）もこのメニューから開く。
  *
  * **現在の状態はメニュー項目の副題に出す。** 設定を開かなくても、メニューを開いた時点で
  * 経路の方針とBluetoothの許可状況が分かるようにするため。
@@ -37,8 +37,14 @@ internal fun SettingsMenu() {
     val dialogs = remember { SettingsDialogState() }
     val routePolicy = rememberRoutePolicyState()
     val blePermission = rememberBlePermissionState()
+    val routeNotification = rememberRouteNotificationState()
 
-    SettingsDialogs(dialogs = dialogs, routePolicy = routePolicy, blePermission = blePermission)
+    SettingsDialogs(
+        dialogs = dialogs,
+        routePolicy = routePolicy,
+        blePermission = blePermission,
+        routeNotification = routeNotification,
+    )
 
     IconButton(onClick = { expanded = true }) {
         Icon(imageVector = Icons.Default.MoreVert, contentDescription = MENU_DESCRIPTION)
@@ -60,6 +66,11 @@ internal fun SettingsMenu() {
             onClick = { open { dialogs.bleRationale = true } },
         )
         SettingsMenuItem(
+            title = ROUTE_NOTIFICATION_TITLE,
+            subtitle = routeNotification.shortStatus,
+            onClick = { open { dialogs.routeNotification = true } },
+        )
+        SettingsMenuItem(
             title = HELP_MENU_TITLE,
             subtitle = null,
             onClick = { open { dialogs.help = true } },
@@ -72,12 +83,13 @@ internal fun SettingsMenu() {
     }
 }
 
-/** メニューから開く4つのダイアログ。どれを出しているかは[SettingsDialogState]が持つ。 */
+/** メニューから開く5つのダイアログ。どれを出しているかは[SettingsDialogState]が持つ。 */
 @Composable
 private fun SettingsDialogs(
     dialogs: SettingsDialogState,
     routePolicy: RoutePolicyState,
     blePermission: BlePermissionState,
+    routeNotification: RouteNotificationState,
 ) {
     if (dialogs.routePicker) {
         RoutePolicyPickerDialog(
@@ -98,6 +110,9 @@ private fun SettingsDialogs(
             },
             onDismiss = { dialogs.bleRationale = false },
         )
+    }
+    if (dialogs.routeNotification) {
+        RouteNotificationDialog(state = routeNotification, onDismiss = { dialogs.routeNotification = false })
     }
     if (dialogs.help) HelpDialog(onDismiss = { dialogs.help = false })
     if (dialogs.diagnostics) DiagnosticsLogDialog(onDismiss = { dialogs.diagnostics = false })
@@ -133,6 +148,7 @@ private fun SettingsMenuItem(
 private class SettingsDialogState {
     var routePicker by mutableStateOf(false)
     var bleRationale by mutableStateOf(false)
+    var routeNotification by mutableStateOf(false)
     var help by mutableStateOf(false)
     var diagnostics by mutableStateOf(false)
 }

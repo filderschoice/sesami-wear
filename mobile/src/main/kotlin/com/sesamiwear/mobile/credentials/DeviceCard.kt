@@ -30,9 +30,13 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.TileDisplayStateResolver
+import com.sesamiwear.core.display.SesameBleConnectionLabel
 import com.sesamiwear.core.display.SesameDeviceStatusLine
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.mobile.ble.SesameBlePermissions
+import com.sesamiwear.mobile.ble.SesameBleReachability
+import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.ui.SesameRouteIcon
@@ -42,7 +46,8 @@ import com.sesamiwear.mobile.ui.SesameRouteIcon
  *
  * もとは1行のテキストと「編集」「削除」の文字ボタンだったが、施錠状態・電池・角度・最終取得・経路を
  * 1行へ詰め込むと端末の幅に収まらず折り返されていた。カードにして、
- * (1) 状態アイコンと名前、(2) 施錠状態・電池・角度、(3) 最終取得と経路、へ行を分ける。
+ * (1) 状態アイコンと名前、(2) 施錠状態・電池・角度、(3) 最終取得と経路、(4) Bluetoothの到達状況
+ * （BL-190）、へ行を分ける。
  * 行の組み立ては`core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
  *
  * **この表示のために状態取得のリクエストは送らない。** 最後に分かった値をそのまま出すだけで、
@@ -88,6 +93,11 @@ internal fun DeviceCard(
                     Text(text = lines.statusLine, style = MaterialTheme.typography.bodyMedium)
                 }
                 DetailLine(freshnessLine = lines.freshnessLine, snapshot = snapshot)
+                Text(
+                    text = rememberBleConnectionLine(credentials.uuid),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             IconButton(onClick = onEdit) {
                 Icon(imageVector = Icons.Default.Edit, contentDescription = EDIT_DESCRIPTION)
@@ -130,6 +140,37 @@ private fun DetailLine(
             )
         }
     }
+}
+
+/**
+ * Bluetoothの到達状況の1行（BL-190）。
+ *
+ * 経路（[DetailLine]）が「最後にどちらで動いたか」を表すのに対し、こちらは「次にBLEを使えそうか」を
+ * 表す。2026-09-20の実機検証（BL-165）で、内部状態としては圏外判定でもそれが画面のどこにも
+ * 出ていないため、利用者が「なぜBluetoothにならないのか」を確認できないと分かったため追加した。
+ *
+ * 方針が「常にインターネット経由」または権限が無い場合は、到達確認そのものを行わないため
+ * [SesameBleConnectionLabel.UNAVAILABLE_LABEL]を出す（「未確認」と書くと確認を待てば変わるように
+ * 読めてしまう）。スナップショットと同じく画面が再開するたびに読み直す。
+ */
+@Composable
+private fun rememberBleConnectionLine(uuid: String): String {
+    val context = LocalContext.current
+    val store = remember { SharedPreferencesKeyValueStore.forBleReachability(context) }
+    val reachability = remember { SesameBleReachability(store) }
+    val policyStore = remember { SesameRoutePolicyStore(store) }
+
+    fun read(): String =
+        if (!policyStore.load().allowsBle || SesameBlePermissions.missing(context).isNotEmpty()) {
+            SesameBleConnectionLabel.UNAVAILABLE_LABEL
+        } else {
+            val now = System.currentTimeMillis()
+            val status = reachability.status(uuid, now)
+            SesameBleConnectionLabel.label(status.state, status.lastCheckedAtEpochMillis, now)
+        }
+    var line by remember { mutableStateOf(read()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { line = read() }
+    return line
 }
 
 /** 保存済みのスナップショット。画面が再開するたびに読み直す（BL-159）。 */

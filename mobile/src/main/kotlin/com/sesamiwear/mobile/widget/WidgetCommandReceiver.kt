@@ -133,8 +133,11 @@ class WidgetCommandReceiver : BroadcastReceiver() {
          * 強制終了されると`WidgetCommandRunner`の解除と再描画が行われず「通信中...」が固着するため、
          * 制限より手前で自分から打ち切る。打ち切りは取り消し（キャンセル）として伝わり、
          * `WidgetCommandRunner`の`NonCancellable`な再描画が状態を戻す。
+         *
+         * BLEの上限を実測へ合わせた際（BL-189）、BLEを試して倒れたときの最悪値が
+         * 2.6 + 6.0 = 8.6秒になったため、8秒から9秒へ広げた。約10秒の制限までは1秒残る。
          */
-        private const val WORK_TIMEOUT_MILLIS = 8_000L
+        private const val WORK_TIMEOUT_MILLIS = 9_000L
         private const val ACTION_RUN_COMMAND = "com.sesamiwear.mobile.widget.RUN_COMMAND"
         private const val ACTION_REFRESH_STATUS = "com.sesamiwear.mobile.widget.REFRESH_STATUS"
         private const val ACTION_CYCLE_DEVICE = "com.sesamiwear.mobile.widget.CYCLE_DEVICE"

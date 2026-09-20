@@ -24,7 +24,13 @@ class SesameBleClient(
     private val context: Context,
     private val scanner: SesameBleScanner = SesameBleScanner(context),
     private val timeouts: Timeouts = Timeouts(),
+    /**
+     * 見つけたBLEアドレスの保存先（BL-189）。nullなら毎回探索する（既定。単体検証向け）。
+     */
+    private val addressCache: SesameBleAddressCache? = null,
 ) {
+    private val connector = SesameBleConnector(context, scanner, addressCache)
+
     /**
      * 各段階の上限時間（ミリ秒）。BL-152の経路選択では合計2秒程度へ絞る必要があるため、
      * 呼び出し側が用途に応じて差し替えられるようにする（既定値は単体検証向けの緩い値）。
@@ -95,9 +101,14 @@ class SesameBleClient(
      * [deviceUuid]のデバイスが電波圏内にいるかだけを、スキャンだけで確かめる（BL-152）。
      * 接続もログインもしないため短時間で済み、Web APIの通信と並行して呼ぶ用途を想定している。
      */
-    suspend fun probeReachable(deviceUuid: String): Boolean =
-        SesameBlePermissions.hasAll(context) &&
-            scanner.findDevice(deviceUuid, timeouts.probeMillis) != null
+    suspend fun probeReachable(deviceUuid: String): Boolean {
+        if (!SesameBlePermissions.hasAll(context)) return false
+        val device = scanner.findDevice(deviceUuid, timeouts.probeMillis)
+        // 見つけたアドレスをここで覚える。利用者を待たせない経路（Web APIと並行）で探索を済ませ、
+        // 実際の操作では直接接続だけを行うための仕込み（BL-189）。
+        device?.address?.let { addressCache?.save(deviceUuid, it) }
+        return device != null
+    }
 
     /**
      * [withSession]を全体の上限[Timeouts.totalMillis]で囲む。打ち切られた場合は
@@ -121,14 +132,16 @@ class SesameBleClient(
     ): Pair<Result, SesameBleMechStatus?> {
         val secretKey = credentials.secretKeyBytesOrNull
         val blocked = preflight(secretKey)
-        if (blocked != null) return blocked to null
-        val device = scanner.findDevice(credentials.uuid, timeouts.scanMillis)
-        val connection =
-            device?.let { withTimeoutOrNull(timeouts.connectMillis) { SesameBleConnection.open(context, it) } }
-        return when {
-            device == null -> Result.NOT_FOUND to null
-            connection == null -> Result.CONNECTION_FAILED to null
-            else -> runSession(connection, secretKey!!, block)
+        return if (blocked != null) {
+            blocked to null
+        } else {
+            val attempt = connector.connect(credentials.uuid, timeouts.scanMillis, timeouts.connectMillis)
+            val connection = attempt.connection
+            if (connection == null) {
+                (attempt.failure ?: Result.CONNECTION_FAILED) to null
+            } else {
+                runSession(connection, secretKey!!, block)
+            }
         }
     }
 

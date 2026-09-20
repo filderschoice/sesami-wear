@@ -4,6 +4,7 @@ import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameRoutePolicy
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusReading
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import kotlinx.coroutines.async
@@ -33,6 +34,10 @@ import kotlinx.coroutines.coroutineScope
  * **BLEを試したのに届かずWeb APIへ倒れた場合は[onFallbackToWebApi]を呼ぶ**（BL-168）。
  * 利用者が切り替えに気づけるようにするためで、そもそもBLEを試していない場合
  * （到達実績が無い・権限が無い・方針が「常にインターネット経由」）は呼ばない。
+ *
+ * これとは別に、**実際に使った経路を[onRouteUsed]へ毎回渡す**（BL-190）。呼び出し側は前回と
+ * 比べて変わったときだけ利用者へ知らせる（`SesameRouteChangeTracker`）。[onFallbackToWebApi]が
+ * 「BLEを試して駄目だった瞬間」だけを表すのに対し、こちらは試していない場合も含めた結果を表す。
  */
 class SesameBleAccess(
     val reachability: SesameBleReachability = SesameBleReachability(),
@@ -40,6 +45,7 @@ class SesameBleAccess(
     private val operations: SesameBleOperations = SesameBleOperations(),
     private val logRoute: (String) -> Unit = {},
     private val onFallbackToWebApi: () -> Unit = {},
+    private val onRouteUsed: (SesameCredentials, SesameStatusRoute) -> Unit = { _, _ -> },
 ) {
     /**
      * BLEで[command]を実行できたら、そのとき分かった実測値（電池残量と経路、BL-166）を返す。
@@ -53,7 +59,7 @@ class SesameBleAccess(
     ): SesameStatusMeasurement? {
         if (!allowsBle(credentials.uuid, nowMillis)) return null
         val measurement = operations.execute(credentials, command)
-        recordAttempt(credentials.uuid, nowMillis, command.name, measurement != null)
+        recordAttempt(credentials, nowMillis, command.name, measurement != null)
         return measurement
     }
 
@@ -67,7 +73,7 @@ class SesameBleAccess(
     ): SesameStatusReading? {
         if (!allowsBle(credentials.uuid, nowMillis)) return null
         val reading = operations.fetchStatus(credentials)
-        recordAttempt(credentials.uuid, nowMillis, "STATUS", reading != null)
+        recordAttempt(credentials, nowMillis, "STATUS", reading != null)
         return reading
     }
 
@@ -79,8 +85,10 @@ class SesameBleAccess(
         credentials: SesameCredentials,
         nowMillis: Long,
         block: suspend () -> T,
-    ): T =
-        if (!routePolicy().allowsBle || !reachability.shouldProbe(credentials.uuid, nowMillis)) {
+    ): T {
+        // ここへ来た時点でWeb APIを使うことが決まっている（BLEを試していない、または失敗した後）。
+        onRouteUsed(credentials, SesameStatusRoute.WEB_API)
+        return if (!routePolicy().allowsBle || !reachability.shouldProbe(credentials.uuid, nowMillis)) {
             block()
         } else {
             coroutineScope {
@@ -92,20 +100,25 @@ class SesameBleAccess(
                 }
             }
         }
+    }
 
     /**
      * BLEを試した結果を、到達実績・診断ログ・利用者への通知へ反映する。
      * 通知は**実際に試して失敗したときだけ**行う（試していない場合は呼ばれない）。
      */
     private fun recordAttempt(
-        uuid: String,
+        credentials: SesameCredentials,
         nowMillis: Long,
         operation: String,
         succeeded: Boolean,
     ) {
-        reachability.record(uuid, nowMillis, succeeded)
-        logRoute(describe(operation, uuid, succeeded))
-        if (!succeeded) onFallbackToWebApi()
+        reachability.record(credentials.uuid, nowMillis, succeeded)
+        logRoute(describe(operation, credentials.uuid, succeeded))
+        if (succeeded) {
+            onRouteUsed(credentials, SesameStatusRoute.BLE)
+        } else {
+            onFallbackToWebApi()
+        }
     }
 
     /** 方針が許し、かつ直近に到達できた実績がある場合だけBLEを試す。 */

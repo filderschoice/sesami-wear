@@ -11,12 +11,15 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.mobile.ble.SesameBleAddressCache
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBleReachability
+import com.sesamiwear.mobile.ble.SesameRouteChangeTracker
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
+import com.sesamiwear.mobile.notification.SesameRouteNotifier
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -74,16 +77,23 @@ object SesameDeviceCommandExecutorFactory {
     }
 
     private fun createBleAccess(appContext: Context): SesameBleAccess {
-        val client = SesameBleClient(appContext, timeouts = BLE_TIMEOUTS)
-        val policyStore = SesameRoutePolicyStore(SharedPreferencesKeyValueStore.forBleReachability(appContext))
+        val bleStore = SharedPreferencesKeyValueStore.forBleReachability(appContext)
+        val client =
+            SesameBleClient(appContext, timeouts = BLE_TIMEOUTS, addressCache = SesameBleAddressCache(bleStore))
+        val policyStore = SesameRoutePolicyStore(bleStore)
+        val routeChanges = SesameRouteChangeTracker(bleStore)
+        val notifier = SesameRouteNotifier(appContext)
         return SesameBleAccess(
-            reachability = SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)),
+            reachability = SesameBleReachability(bleStore),
             // 設定は操作のたびに読み直す（設定画面で変えた直後から効かせるため）。
             routePolicy = policyStore::load,
             operations =
                 SesameBleOperations(
                     execute = { credentials, command ->
                         val outcome = client.execute(credentials, command)
+                        // どの段階で駄目だったかはBLEの結果にしか出ない。経路の成否（route=...）だけでは
+                        // 探索で見つからないのか繋げないのかを切り分けられないため、理由も1行残す（BL-189）。
+                        Log.w(SesameApiFailureLog.TAG, "route=BLE op=${command.name} detail=${outcome.result}")
                         // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
                         outcome.status
                             ?.takeIf { outcome.result == SesameBleClient.Result.SUCCESS }
@@ -95,7 +105,9 @@ object SesameDeviceCommandExecutorFactory {
                             }
                     },
                     fetchStatus = { credentials ->
-                        client.fetchStatus(credentials).status?.let {
+                        val statusResult = client.fetchStatus(credentials)
+                        Log.w(SesameApiFailureLog.TAG, "route=BLE op=STATUS detail=${statusResult.result}")
+                        statusResult.status?.let {
                             SesameStatusReading(
                                 isLocked = it.isInLockRange,
                                 measurement =
@@ -110,7 +122,14 @@ object SesameDeviceCommandExecutorFactory {
                     probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
                 ),
             logRoute = { message -> Log.w(SesameApiFailureLog.TAG, message) },
+            // トーストは前景でしか出ない（背景からのトーストは通知が無効な端末で抑止される、BL-190）。
+            // 前景で操作しているときの即時性のために残し、本命の通知は[onRouteUsed]で出す。
             onFallbackToWebApi = { showToast(appContext, SesameRouteLabel.FALLBACK_MESSAGE) },
+            onRouteUsed = { credentials, route ->
+                if (routeChanges.onRouteUsed(credentials.uuid, route)) {
+                    notifier.notifyRouteChange(credentials.displayName.ifBlank { UNNAMED_DEVICE }, route)
+                }
+            },
         )
     }
 
@@ -132,22 +151,38 @@ object SesameDeviceCommandExecutorFactory {
     }
 
     /**
-     * BLEの各段階に与える上限（BL-152）。
+     * BLEの各段階に与える上限（BL-152 / BL-189）。
      *
-     * ウィジェットのタップは`WidgetCommandReceiver`の8秒で打ち切られ、Web APIの呼び出しだけで
-     * 最大6秒かかる（`SesameApiClient`のcallTimeout）。BLEを試してから倒れても8秒に収まるよう、
-     * BLE側の合計を約1.8秒に抑える。DESIGN.mdの「探索・接続に与える上限は合計2秒程度」を満たす。
+     * 2026-09-20の実機検証（BL-165、Pixel 8 Pro + Sesame 5）の実測で見直した。
+     * 旧値（合計1,800ms / 探索900ms / 到達確認1,500ms）は実測に基づかない見積もりで、
+     * **BLE1往復の実測2.0〜3.5秒に対して短すぎ、毎回打ち切られていた**
+     * （`route=BLE op=STATUS result=NG`。到達確認もSesameの真横で6回中2回しか成功しなかった）。
+     *
+     * 支配的なのは探索（スキャン）なので、時間の与え方を作り直す。
+     *
+     * - 利用者を待たせる経路では**探索しない**。[SesameBleAddressCache]が覚えたアドレスへ
+     *   直接接続するだけにし、接続・ログイン・コマンドへ合計2.6秒を与える。
+     * - 探索は、Web APIの通信と並行して走る到達確認（[probeMillis]）が担う。並行して待つ相手が
+     *   最大6秒（`SesameApiClient`のcallTimeout）あるため、4秒まで伸ばしても利用者の待ちは増えない。
+     * - [scanMillis]は、保存済みアドレスが無い・古い場合の保険として残す（通常は到達確認が先に
+     *   アドレスを用意するため、この経路は通らない）。
+     *
+     * ウィジェットのタップは`WidgetCommandReceiver`の上限（9秒、BroadcastReceiverの約10秒より内側）で
+     * 打ち切られる。BLEを試して倒れても 3.0 + 6.0 = 9.0秒で、上限と同じところに収まる。
+     * 2,600msでは接続・ログインが間に合わない試行があった（`detail=CONNECTION_FAILED` /
+     * `detail=LOGIN_FAILED`、2026-09-20の再検証）ため、余裕をこちらへ寄せている。
      * 各段階の上限の合計は全体より大きいが、拘束力を持つのは全体の[SesameBleClient.Timeouts.totalMillis]。
-     * BLEを先に試すのは直近に到達できたデバイスだけのため、通常はこの上限に達しない。
-     * 実測に基づく値ではないため、BL-165（人手検証）の所要時間の実測で見直す。
      */
     private val BLE_TIMEOUTS =
         SesameBleClient.Timeouts(
-            totalMillis = 1_800,
-            scanMillis = 900,
-            connectMillis = 700,
-            loginMillis = 700,
-            commandMillis = 600,
-            probeMillis = 1_500,
+            totalMillis = 3_000,
+            scanMillis = 1_200,
+            connectMillis = 1_600,
+            loginMillis = 1_200,
+            commandMillis = 800,
+            probeMillis = 4_000,
         )
+
+    /** 表示名が空のデバイスを通知で指すときの呼び名。 */
+    private const val UNNAMED_DEVICE = "セサミ"
 }

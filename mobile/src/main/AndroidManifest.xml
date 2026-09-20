@@ -5,6 +5,16 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!--
+        操作の経路（Bluetooth直結／インターネット経由）が切り替わったことを知らせる（BL-190）。
+        当初はトーストで伝えていたが（BL-168）、2026-09-20の実機検証で、通知が無効な端末では
+        背景から出したトーストがシステムに抑止されると判明した。ウィジェット操作もウォッチからの
+        操作も背景で動くため、設計意図の場面では一度も出ていなかった。
+        許可されなくてもアプリは従来どおり動く（必須にしない）。通知そのものは設定メニューから
+        オフにできる（SesameRouteNotificationStore）。
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
         BLE直接操作（BL-153）。スマートフォンがSesameの電波圏内にあるときだけ使う追加の経路で、
         許可されなくてもアプリは従来どおりWeb API経由で動く（必須にしない）。
 

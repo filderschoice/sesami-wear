@@ -68,4 +68,10 @@ class SesameRouteLabelTest {
         val description = SesameRouteLabel.policyDescription(SesameRoutePolicy.WEB_API_ONLY)
         assertTrue(description.contains("リクエスト回数を消費"))
     }
+
+    @Test
+    fun `the route change message names what the user gains or loses`() {
+        assertEquals(SesameRouteLabel.RECOVERED_MESSAGE, SesameRouteLabel.routeChangeMessage(SesameStatusRoute.BLE))
+        assertEquals(SesameRouteLabel.FALLBACK_MESSAGE, SesameRouteLabel.routeChangeMessage(SesameStatusRoute.WEB_API))
+    }
 }
