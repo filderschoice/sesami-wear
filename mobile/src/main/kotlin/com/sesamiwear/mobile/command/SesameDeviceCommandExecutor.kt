@@ -125,7 +125,7 @@ class SesameDeviceCommandExecutor(
                 secretKey = secretKey,
                 onFailure = { e ->
                     routes.api.logFailure(SesameApiFailureLog.describe(apiOperationOf(command), e))
-                    failure = SesameStatusFailure.of(e.httpStatusCode)
+                    failure = routes.api.classifyFailure(e)
                 },
             )
         val succeeded = handler.execute(command) == SesameCommandResult.SUCCESS
@@ -203,7 +203,7 @@ class SesameDeviceCommandExecutor(
             // 呼び出し元（ウォッチ・ウィジェット）へは「取得できなかった」ことだけを伝える。
             // 切り分けに必要な情報はlogcatへ残し（BL-139）、失敗の分類は表示のため保存する（BL-140）。
             routes.api.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
-            recordFailure(credentials.uuid, SesameStatusFailure.of(e.httpStatusCode))
+            recordFailure(credentials.uuid, routes.api.classifyFailure(e))
             null
         }
     }
@@ -292,11 +292,17 @@ class SesameRouteAccess(
  * （BL-141）に対する消費量を利用者へ示すためのカウンタで、成否によらず数える（上限は成功・失敗を
  * 問わず消費されるため）。デモ用デバイス・重複として無視した操作・資格情報が無い場合はAPIを
  * 呼ばないため数えない。既定では何もしない。
+ *
+ * [backgroundDataRestricted]は、端末の「バックグラウンドデータの制限」でOSが従量制回線の通信を
+ * 止めているかを返す（BL-192。実装は`mobile.network.BackgroundDataRestriction`）。
+ * 失敗の文言を「電波状況を確認」から「端末の設定を確認」へ寄せる判断にだけ使う。
+ * 既定では常にfalseのため、配線していない呼び出し元の分類は従来どおり。
  */
 class SesameApiAccess(
     val clientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
     val logFailure: (String) -> Unit = {},
     val recordApiCall: () -> Unit = {},
+    val backgroundDataRestricted: () -> Boolean = { false },
 ) {
     companion object {
         /**
@@ -317,6 +323,19 @@ class SesameApiAccess(
             }
     }
 }
+
+/**
+ * Sesame APIの失敗を表示用の分類へ落とす（BL-140 / BL-192）。
+ *
+ * 応答を1度も受け取れていない失敗は、圏外とは限らず端末の「バックグラウンドデータの制限」で
+ * OSに止められている場合があるため、そのときだけ文言を端末設定側へ寄せる
+ * （判定は[SesameApiAccess.backgroundDataRestricted]。既定では常にfalse）。
+ *
+ * [SesameDeviceCommandExecutor]の外に置いているのは、同クラスの関数数をdetektの上限内へ
+ * 収めるためで、呼び出し元は施錠/解錠と状態取得の2か所だけである。
+ */
+private fun SesameApiAccess.classifyFailure(e: SesameApiException): SesameStatusFailure =
+    SesameStatusFailure.of(e.httpStatusCode, backgroundDataRestricted())
 
 /**
  * ロック状態が変わった（施錠/解錠の成功、状態取得の成功）ことの通知先（BL-120 / BL-123）。

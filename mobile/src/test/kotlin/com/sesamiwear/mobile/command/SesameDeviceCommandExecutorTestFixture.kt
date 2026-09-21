@@ -39,6 +39,9 @@ abstract class SesameDeviceCommandExecutorTestFixture {
     protected var probes = 0
     protected var fallbackNotices = 0
 
+    /** 端末の「バックグラウンドデータの制限」が掛かっているとして扱うか（BL-192）。 */
+    protected var backgroundDataRestricted = false
+
     @Before
     fun setUp() {
         server = MockWebServer()
@@ -76,6 +79,7 @@ abstract class SesameDeviceCommandExecutorTestFixture {
                         },
                         logFailure = { message -> failureLogs += message },
                         recordApiCall = { apiCalls++ },
+                        backgroundDataRestricted = { backgroundDataRestricted },
                     ),
                 ble = bleAccess,
             ),
@@ -142,6 +146,7 @@ abstract class SesameDeviceCommandExecutorTestFixture {
         const val DEVICE_UUID = "test-uuid"
         const val HTTP_OK = 200
         const val HTTP_FORBIDDEN = 403
+        const val HTTP_SERVER_ERROR = 500
         const val BLE_BATTERY_PERCENTAGE = 85
         const val BLE_POSITION = 42
 

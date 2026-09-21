@@ -5,6 +5,193 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 12:55
+  summary: 到達確認がどの手段で成立したかをログへ残し、BL-193・BL-194を実機検証する
+  details:
+    変更内容: >-
+      BL-193の実機検証で、到達確認（`SesameBleConnector.probeReachable`）が探索で当たったのか
+      予備のアドレスへの直接接続で拾えたのかを切り分けられなかった。どちらの経路でも
+      `SesameBleAddressCache.save`で同じ保存値になるため、保存値の差分からは区別できない。
+      `route=BLE op=PROBE detail=SCAN|LAST_KNOWN|MISS`の1行を追加した。既存の
+      `route=BLE op=<コマンド> detail=<結果>`と同じタグ（`SesameApiFailureLog.TAG`）を使い、
+      BLEアドレスは出さない（rules/guardrails-unified.v1.md 3.3）。到達確認の挙動そのものは
+      変えていない（`scanner.findDevice`の結果をローカル変数へ受けただけ）。
+      この1行により、BL-193の実装（探索が外れたときに予備のアドレスへ直接つなぐ）が実際に
+      使われたかを実機で判定できるようになった。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      実機（Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5 2台）での状態取得
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。実機ではBL-193の完了条件
+      （保存済みアドレスを失った状態からBLE経路へ復帰できること）と、BL-194の完了条件
+      （バックグラウンドデータの制限でウィジェットに「通信エラー（端末の設定を確認）」が出ること・
+      制限の解除で成功すること）をどちらも満たした。内訳はDESIGN.md
+      「実機検証（BL-193 / BL-194、2026-09-21 12時台）」に記録した。
+      予備のアドレスへ直接つなぐ分岐（`detail=LAST_KNOWN`）の成功は今回観測できておらず、
+      BLEが数分単位で届かなくなる事象をBL-195として起票した。
+    関連ID:
+      - BL-193
+      - BL-194
+      - BL-195
+- date: 2026-09-21 15:10
+  summary: 最後に成功したBLEアドレスを残し、到達確認の探索が外れても直接接続で復帰できるようにする
+  details:
+    変更内容: >-
+      2026-09-21のBL-191の実機検証で、同じ端末・同じ位置で**保存済みアドレスへの直接接続は成功する
+      一方、到達確認の探索は3回とも当たらない**と観測した。`SesameBleConnector.connect`は直接接続に
+      失敗すると保存値を捨てるため、`NOT_FOUND`が一度出ると「アドレス無し → 探索が当たらない →
+      到達実績が付かない → BLEを試さない」から戻れなくなっていた。
+      (1) `SesameBleAddressCache`を2段構えにした。現用（`load`、`ble_addresses`）と、最後に成功した
+      アドレス（`loadLastKnown`、`ble_last_addresses`）を同じSharedPreferencesの別キーで持ち、
+      `save`は両方へ書き、`remove`は現用だけを消す。既存の保存値はキー名も形式も変えていないため
+      そのまま読める。
+      (2) 到達確認を`SesameBleClient.probeReachable`から`SesameBleConnector.probeReachable`へ移し、
+      探索が外れたときに予備のアドレスへ直接つないで圏内かを確かめるようにした。つながった接続は
+      すぐ閉じ、現用の記録として書き戻して次の操作で探索を飛ばせるようにする。
+      移設先を`SesameBleConnector`にしたのは、`SesameBleClient`の関数数がdetektの`TooManyFunctions`
+      の上限（11）に達していて増やせないため。
+      (3) `SesameBleClient.Timeouts`へ`probeConnectMillis`を追加した（実配線は1,500ms）。
+      予備のアドレスがある場合はこのぶんだけ探索を短くし、**到達確認全体の4,000msは変えない**。
+      到達確認はWeb APIと並行するが`withReachabilityProbe`が完了を待つため、伸ばすと利用者の
+      待ちもそのぶん伸びるためである。
+      現用を捨てる挙動そのものは変えていない（古いアドレスへ毎回接続を試みて利用者を待たせないため）。
+      予備のアドレスが古いままでも捨てる契機は設けない。探索が当たれば`save`が両方を上書きして
+      自然に直り、外れたときの損は到達確認の中の1,500ms（最短5分に1回、Web APIと並行）で頭打ちになる。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCache.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCacheTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。現用を捨てても予備が残ること、
+      新しく見つけたアドレスが予備も上書きすること、一度も到達していないデバイスには予備が
+      無いことを`SesameBleAddressCacheTest`で固定した。
+      到達確認そのものはAndroidのBLEスキャン・GATT接続に依存するためJVM上では再現できず、
+      実機での復帰確認はBL-193へ人手検証として残す（区分を`性能`から`人手検証`へ変更）。
+    関連ID:
+      - BL-193
+- date: 2026-09-21 14:20
+  summary: バックグラウンドデータの制限による失敗を「端末の設定を確認」として区別し、対処を案内する
+  details:
+    変更内容: >-
+      2026-09-21の実機検証で、端末の「バックグラウンドデータの制限」が本アプリに掛かっていると、
+      モバイル回線が既定の経路のときにウィジェット・タイルからの操作が約0.4秒で名前解決の失敗に
+      なることを確認した（Pixel 8 Proの`cmd netpolicy list restrict-background-blacklist`に
+      Play版・デバッグ版の両方のUIDが含まれていた）。アプリを前面にしている間とWi-Fiでは成功する
+      ため、利用者からは「モバイル回線のときだけ、たまに通信エラーになる」としか見えず、
+      従来の文言「通信エラー（電波状況を確認）」では端末側の設定へ辿り着けなかった。
+      (1) `core.SesameStatusFailure`へ`BACKGROUND_RESTRICTED`を追加し、`of`へ
+      `backgroundDataRestricted`引数を足した。**応答を1度も受け取れていない**（`httpStatusCode`が
+      null）失敗で、かつ制限が掛かっているときだけこの分類にする（応答が返っている時点でOSの制限は
+      掛かっていないため、ステータスコードを持つ失敗を端末設定のせいにしない）。`shortLabel`は
+      `COMMUNICATION`と同じ「通信エラー」（Tileの5文字では書き分けられず、書き分けても利用者の
+      次の行動が変わらないため）、`detailedLabel`だけ「通信エラー（端末の設定を確認）」とした。
+      `worstOf`は宣言順（`AUTH_OR_QUOTA` → `BACKGROUND_RESTRICTED` → `COMMUNICATION`）で
+      優先する実装へ整理した。
+      (2) 判定は`mobile.network.BackgroundDataRestriction`が
+      `ConnectivityManager.getRestrictBackgroundStatus()`で行う。データセーバーとアプリごとの制限
+      （`POLICY_REJECT_METERED_BACKGROUND`）のどちらも`RESTRICT_BACKGROUND_STATUS_ENABLED`として
+      表れ、非従量制の回線では`DISABLED`になるため、「従量制の回線でバックグラウンド通信が
+      止められている」ことを1つの値で判定できる。
+      (3) `SesameApiAccess`へ`backgroundDataRestricted`を追加して
+      `SesameDeviceCommandExecutorFactory`から配線した。既定は常にfalseのため、配線していない
+      呼び出し元（テスト・BLEを使わない構成）の分類は従来どおり。分類の呼び出しは
+      `SesameDeviceCommandExecutor`の外のトップレベル拡張関数へ置いた（同クラスの関数数が
+      detektの`TooManyFunctions`の上限11に達していたため）。
+      (4) `mobile.help.HelpContent`へ「モバイル回線のときだけ失敗する」を追加し、確認先
+      （アプリごとのバックグラウンドデータとデータセーバーの除外）と、Bluetoothが届く範囲では
+      影響を受けないことを説明した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/network/BackgroundDataRestriction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - wear/src/debug/kotlin/com/sesamiwear/wear/debug/SesameWearDebugReceiver.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。分類の条件（応答なし＋制限ありのときだけ
+      `BACKGROUND_RESTRICTED`、応答があれば`COMMUNICATION`、集約の優先順位）と、ヘルプ本文が
+      ウィジェットの表示文言と一致することをユニットテストで固定した。
+      実機での表示確認（制限を掛けたモバイル回線での操作）はBL-194として人手検証に残す。
+    関連ID:
+      - BL-192
+- date: 2026-09-21 10:35
+  summary: BLEで届かないときの対処（セサミ公式アプリの終了）を通知とヘルプで案内する
+  details:
+    変更内容: >-
+      2026-09-21の実機検証で、**セサミ公式アプリを前面で開いている間はSesameが本アプリの探索から
+      見つからなくなることがある**と分かった（約10分にわたり`detail=NOT_FOUND`が続き、
+      `am force-stop`で公式アプリを止めた直後から見つかるようになり、以降9回連続でBLE経路が成立した）。
+      Sesameは同時に1台としかBLEでつながれないため、公式アプリが接続を掴んでいる間は広告が
+      届かなくなることによる。利用者からは「近くにいるのにインターネット経由のまま」としか見えず、
+      自力で切り分けられないため、対処を2か所で案内するようにした。
+      (1) `core.display.SesameRouteLabel`へ`OFFICIAL_APP_HINT`を追加し、
+      `mobile.notification.SesameRouteNotifier`が経路をインターネット経由へ切り替えた通知の
+      **展開時の本文**（`BigTextStyle`）へ2行目として足す。折りたたみ時の1行は従来のまま
+      （短い行に詰め込まないため）。
+      (2) `mobile.help.HelpContent`へ「Bluetoothで届かないとき」を追加し、同じ`OFFICIAL_APP_HINT`を
+      本文として使う（通知とヘルプで文言が食い違わないよう定数を共有する）。権限・経路の方針・
+      Androidのスキャン回数制限も切り分け手順として並べた。
+      文言は実測に合わせて「必ず妨げる」ではなく「妨げることがある」とした
+      （公式アプリを前面で開いたままでも成功する場合があり、同日の確認では3回中2回が成功した）。
+      (3) あわせて、スマートフォンのデバイスカードの経路の行が折り返る不具合を直した。
+      失敗の理由が長いとき（「通信エラー（電波状況を確認）」）に経路の語だけが押し出され、
+      「Bluet／ooth」と途中で改行されていた。理由側の`Text`へ`weight(1f, fill = false)`と
+      `maxLines = 1` / `TextOverflow.Ellipsis`を、経路の語へ`softWrap = false`を与え、
+      **経路（アイコン＋語）は必ず1行に収まり、収まらないときは理由側の末尾が省略される**ようにした
+      （BL-172(4)の「1行で出る」を維持するため、行を増やす方向では直さない）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/notification/SesameRouteNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      実機（Pixel 8 Pro、デバッグ版）でのヘルプ表示と通知本文の確認
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。実機では、ヘルプの「Bluetoothで届かないとき」が
+      4段落とも省略・見切れなく表示され、経路を「常にインターネット経由」へ切り替えた操作で出た通知の
+      `android.bigText`が「玄関上：Bluetoothで届かないため、インターネット経由で操作します」に続けて
+      公式アプリの案内を含むことを`dumpsys notification`で確認した。
+      デバイスカードの経路の行も、修正後は「通信エラー（電波状況を確認）」を伴う状態で
+      折り返さないことを実機で確認した。
+    関連ID:
+      - BL-165
+      - BL-189
 - date: 2026-09-21 01:55
   summary: BLEの失敗理由で到達実績を消すかどうかを分け、圏内なら次の操作で再試行する（BL-191）
   details:

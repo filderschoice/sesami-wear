@@ -42,9 +42,34 @@ class SesameBleAddressCacheTest {
     }
 
     @Test
+    fun `the last known address survives dropping the current one`() {
+        cache.save(UUID, ADDRESS)
+        cache.remove(UUID)
+        // 現用は消えるため、次の操作は探索からやり直す。
+        assertNull(cache.load(UUID))
+        // 到達確認の予備としては残り、ここへ直接つないで圏内かどうかを確かめられる（BL-193）。
+        assertEquals(ADDRESS, cache.loadLastKnown(UUID))
+    }
+
+    @Test
+    fun `a newly found address replaces the last known one`() {
+        cache.save(UUID, ADDRESS)
+        cache.remove(UUID)
+        cache.save(UUID, OTHER_ADDRESS)
+        assertEquals(OTHER_ADDRESS, cache.load(UUID))
+        assertEquals(OTHER_ADDRESS, cache.loadLastKnown(UUID))
+    }
+
+    @Test
+    fun `a device that was never reached has no last known address`() {
+        assertNull(cache.loadLastKnown(UUID))
+    }
+
+    @Test
     fun `a blank address is not stored`() {
         cache.save(UUID, " ")
         assertNull(cache.load(UUID))
+        assertNull(cache.loadLastKnown(UUID))
     }
 
     @Test

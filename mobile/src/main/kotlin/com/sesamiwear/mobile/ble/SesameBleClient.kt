@@ -45,6 +45,7 @@ class SesameBleClient(
         val loginMillis: Long = 3_000,
         val commandMillis: Long = 3_000,
         val probeMillis: Long = 2_000,
+        val probeConnectMillis: Long = 1_000,
     )
 
     /** BLE操作の結果。失敗の理由は診断ログ（BL-139）と呼び出し側の分岐に使う。 */
@@ -98,16 +99,17 @@ class SesameBleClient(
     }
 
     /**
-     * [deviceUuid]のデバイスが電波圏内にいるかだけを、スキャンだけで確かめる（BL-152）。
-     * 接続もログインもしないため短時間で済み、Web APIの通信と並行して呼ぶ用途を想定している。
+     * [deviceUuid]のデバイスが電波圏内にいるかだけを確かめる（BL-152）。ログインまでは行わないため
+     * 短時間で済み、Web APIの通信と並行して呼ぶ用途を想定している。
+     *
+     * 見つけたアドレスはここで覚える。利用者を待たせない経路（Web APIと並行）で探索を済ませ、
+     * 実際の操作では直接接続だけを行うための仕込み（BL-189）。探索が外れたときに
+     * 最後に成功したアドレスへ直接つないで確かめる手順は[SesameBleConnector.probeReachable]が持つ
+     * （BL-193）。
      */
     suspend fun probeReachable(deviceUuid: String): Boolean {
         if (!SesameBlePermissions.hasAll(context)) return false
-        val device = scanner.findDevice(deviceUuid, timeouts.probeMillis)
-        // 見つけたアドレスをここで覚える。利用者を待たせない経路（Web APIと並行）で探索を済ませ、
-        // 実際の操作では直接接続だけを行うための仕込み（BL-189）。
-        device?.address?.let { addressCache?.save(deviceUuid, it) }
-        return device != null
+        return connector.probeReachable(deviceUuid, timeouts.probeMillis, timeouts.probeConnectMillis)
     }
 
     /**

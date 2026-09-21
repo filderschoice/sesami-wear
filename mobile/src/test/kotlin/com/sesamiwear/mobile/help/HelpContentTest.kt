@@ -1,5 +1,7 @@
 package com.sesamiwear.mobile.help
 
+import com.sesamiwear.core.SesameStatusFailure
+import com.sesamiwear.core.display.SesameRouteLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,9 +10,26 @@ class HelpContentTest {
     @Test
     fun `menu offers the topics in a fixed order`() {
         assertEquals(
-            listOf("credentials", "api-limit", "demo", "after-registration", "widget"),
+            listOf("credentials", "api-limit", "demo", "after-registration", "widget", "bluetooth", "mobile-data"),
             HelpContent.topics.map { it.id },
         )
+    }
+
+    @Test
+    fun `bluetooth topic tells the user to close the official app`() {
+        val paragraphs = HelpContent.bluetooth.paragraphs
+        assertTrue(paragraphs.contains(SesameRouteLabel.OFFICIAL_APP_HINT))
+        assertTrue(paragraphs.any { it.contains("操作の経路") })
+    }
+
+    @Test
+    fun `mobile data topic points at the background data setting, not at the signal`() {
+        val body = HelpContent.mobileData.paragraphs.joinToString(separator = "")
+        assertTrue(body.contains("バックグラウンドデータ"))
+        assertTrue(body.contains("データセーバー"))
+        // ウィジェットの表示文言（core.SesameStatusFailure）と同じ言葉で書き、利用者が結び付けられるようにする。
+        assertTrue(body.contains(SesameStatusFailure.BACKGROUND_RESTRICTED.detailedLabel))
+        assertTrue(body.contains(SesameStatusFailure.COMMUNICATION.detailedLabel))
     }
 
     @Test

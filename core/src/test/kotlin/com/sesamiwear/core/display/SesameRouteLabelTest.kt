@@ -70,6 +70,12 @@ class SesameRouteLabelTest {
     }
 
     @Test
+    fun `the official app hint names the app and the action to take`() {
+        assertTrue(SesameRouteLabel.OFFICIAL_APP_HINT.contains("公式アプリ"))
+        assertTrue(SesameRouteLabel.OFFICIAL_APP_HINT.contains("終了"))
+    }
+
+    @Test
     fun `the route change message names what the user gains or loses`() {
         assertEquals(SesameRouteLabel.RECOVERED_MESSAGE, SesameRouteLabel.routeChangeMessage(SesameStatusRoute.BLE))
         assertEquals(SesameRouteLabel.FALLBACK_MESSAGE, SesameRouteLabel.routeChangeMessage(SesameStatusRoute.WEB_API))

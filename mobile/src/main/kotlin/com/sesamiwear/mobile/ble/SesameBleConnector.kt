@@ -3,6 +3,8 @@ package com.sesamiwear.mobile.ble
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.util.Log
+import com.sesamiwear.core.api.SesameApiFailureLog
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -54,6 +56,59 @@ internal class SesameBleConnector(
                     else -> SesameBleClient.Result.CONNECTION_FAILED
                 },
         )
+    }
+
+    /**
+     * [uuid]のデバイスが圏内にいるかだけを確かめる（BL-152 / BL-193）。接続もログインもする前の
+     * 判断材料にするだけなので、つながった接続はすぐ閉じる。Web APIの通信と並行して呼ばれる。
+     *
+     * **探索が外れたときは、最後に成功したアドレス（[SesameBleAddressCache.loadLastKnown]）へ
+     * 直接つないで確かめる。** 2026-09-21のBL-191の実機検証で、同じ端末・同じ位置で直接接続は
+     * 成功するのに探索は3回とも当たらなかったため、探索だけに頼ると保存済みアドレスを一度失った
+     * 時点でBLE経路へ復帰できなくなっていた。
+     *
+     * 予備のアドレスがある場合は、その接続ぶん（[connectMillis]）だけ探索を短くし、
+     * **到達確認全体に掛かる時間（[probeMillis]）は変えない**。並行して待つWeb APIの上限（6秒）を
+     * 超えると、利用者から見た所要時間がそのぶん伸びるため。
+     *
+     * @param probeMillis 到達確認全体に与える上限。
+     * @param connectMillis 予備のアドレスへの直接接続に与える上限。
+     */
+    suspend fun probeReachable(
+        uuid: String,
+        probeMillis: Long,
+        connectMillis: Long,
+    ): Boolean {
+        val lastKnown = addressCache?.loadLastKnown(uuid)
+        val scanMillis = if (lastKnown == null) probeMillis else (probeMillis - connectMillis).coerceAtLeast(0)
+        // 探索で見つかればそのアドレス、外れたら予備のアドレスへ直接つないで確かめる。
+        // つながった以上は圏内なので、次の操作で探索を飛ばせるよう現用の記録として残す。
+        val scanned = scanner.findDevice(uuid, scanMillis)?.address
+        val reachedAddress = scanned ?: lastKnown?.takeIf { connects(it, connectMillis) }
+        // 探索で当たったのか予備のアドレスで拾えたのかは、保存値の差分からは区別できない
+        // （どちらも[SesameBleAddressCache.save]で同じ記録になる）。実機検証でBL-193の効果を
+        // 切り分けられるよう、到達をどちらの手段で確かめたかだけを1行残す（アドレスは出さない）。
+        Log.w(
+            SesameApiFailureLog.TAG,
+            "route=BLE op=PROBE detail=" +
+                when {
+                    scanned != null -> "SCAN"
+                    reachedAddress != null -> "LAST_KNOWN"
+                    else -> "MISS"
+                },
+        )
+        reachedAddress?.let { addressCache?.save(uuid, it) }
+        return reachedAddress != null
+    }
+
+    /** [address]へ直接つないで、圏内にいることだけを確かめる。つないだ接続はすぐ閉じる。 */
+    private suspend fun connects(
+        address: String,
+        connectMillis: Long,
+    ): Boolean {
+        val connection = scanner.remoteDevice(address)?.let { open(it, connectMillis) } ?: return false
+        connection.close()
+        return true
     }
 
     private suspend fun open(
