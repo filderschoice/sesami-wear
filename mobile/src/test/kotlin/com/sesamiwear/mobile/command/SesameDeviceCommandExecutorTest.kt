@@ -223,6 +223,32 @@ class SesameDeviceCommandExecutorTest : SesameDeviceCommandExecutorTestFixture()
         }
 
     @Test
+    fun `background data restriction is reported as a device setting problem`() =
+        runTest {
+            // OSが従量制回線のバックグラウンド通信を止めていると、応答を1度も受け取れずに失敗する。
+            backgroundDataRestricted = true
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+
+            assertNull(createExecutor().refreshStatus(DEVICE_UUID))
+
+            assertEquals(
+                SesameStatusFailure.BACKGROUND_RESTRICTED,
+                lockStateStore.load(DEVICE_UUID)?.lastFailure,
+            )
+        }
+
+    @Test
+    fun `a response from the server is never blamed on the device setting`() =
+        runTest {
+            backgroundDataRestricted = true
+            server.enqueue(MockResponse().setBody("{}").setResponseCode(HTTP_SERVER_ERROR))
+
+            assertNull(createExecutor().refreshStatus(DEVICE_UUID))
+
+            assertEquals(SesameStatusFailure.COMMUNICATION, lockStateStore.load(DEVICE_UUID)?.lastFailure)
+        }
+
+    @Test
     fun `a later success clears the recorded failure`() =
         runTest {
             server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))

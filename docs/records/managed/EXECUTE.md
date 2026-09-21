@@ -5,6 +5,63 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 14:20
+  summary: バックグラウンドデータの制限による失敗を「端末の設定を確認」として区別し、対処を案内する
+  details:
+    変更内容: >-
+      2026-09-21の実機検証で、端末の「バックグラウンドデータの制限」が本アプリに掛かっていると、
+      モバイル回線が既定の経路のときにウィジェット・タイルからの操作が約0.4秒で名前解決の失敗に
+      なることを確認した（Pixel 8 Proの`cmd netpolicy list restrict-background-blacklist`に
+      Play版・デバッグ版の両方のUIDが含まれていた）。アプリを前面にしている間とWi-Fiでは成功する
+      ため、利用者からは「モバイル回線のときだけ、たまに通信エラーになる」としか見えず、
+      従来の文言「通信エラー（電波状況を確認）」では端末側の設定へ辿り着けなかった。
+      (1) `core.SesameStatusFailure`へ`BACKGROUND_RESTRICTED`を追加し、`of`へ
+      `backgroundDataRestricted`引数を足した。**応答を1度も受け取れていない**（`httpStatusCode`が
+      null）失敗で、かつ制限が掛かっているときだけこの分類にする（応答が返っている時点でOSの制限は
+      掛かっていないため、ステータスコードを持つ失敗を端末設定のせいにしない）。`shortLabel`は
+      `COMMUNICATION`と同じ「通信エラー」（Tileの5文字では書き分けられず、書き分けても利用者の
+      次の行動が変わらないため）、`detailedLabel`だけ「通信エラー（端末の設定を確認）」とした。
+      `worstOf`は宣言順（`AUTH_OR_QUOTA` → `BACKGROUND_RESTRICTED` → `COMMUNICATION`）で
+      優先する実装へ整理した。
+      (2) 判定は`mobile.network.BackgroundDataRestriction`が
+      `ConnectivityManager.getRestrictBackgroundStatus()`で行う。データセーバーとアプリごとの制限
+      （`POLICY_REJECT_METERED_BACKGROUND`）のどちらも`RESTRICT_BACKGROUND_STATUS_ENABLED`として
+      表れ、非従量制の回線では`DISABLED`になるため、「従量制の回線でバックグラウンド通信が
+      止められている」ことを1つの値で判定できる。
+      (3) `SesameApiAccess`へ`backgroundDataRestricted`を追加して
+      `SesameDeviceCommandExecutorFactory`から配線した。既定は常にfalseのため、配線していない
+      呼び出し元（テスト・BLEを使わない構成）の分類は従来どおり。分類の呼び出しは
+      `SesameDeviceCommandExecutor`の外のトップレベル拡張関数へ置いた（同クラスの関数数が
+      detektの`TooManyFunctions`の上限11に達していたため）。
+      (4) `mobile.help.HelpContent`へ「モバイル回線のときだけ失敗する」を追加し、確認先
+      （アプリごとのバックグラウンドデータとデータセーバーの除外）と、Bluetoothが届く範囲では
+      影響を受けないことを説明した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/network/BackgroundDataRestriction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - wear/src/debug/kotlin/com/sesamiwear/wear/debug/SesameWearDebugReceiver.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。分類の条件（応答なし＋制限ありのときだけ
+      `BACKGROUND_RESTRICTED`、応答があれば`COMMUNICATION`、集約の優先順位）と、ヘルプ本文が
+      ウィジェットの表示文言と一致することをユニットテストで固定した。
+      実機での表示確認（制限を掛けたモバイル回線での操作）はBL-194として人手検証に残す。
+    関連ID:
+      - BL-192
 - date: 2026-09-21 10:35
   summary: BLEで届かないときの対処（セサミ公式アプリの終了）を通知とヘルプで案内する
   details:

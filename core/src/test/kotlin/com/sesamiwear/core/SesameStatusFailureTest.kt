@@ -25,6 +25,29 @@ class SesameStatusFailureTest {
     }
 
     @Test
+    fun `background restriction is only used when no response was received`() {
+        assertEquals(
+            SesameStatusFailure.BACKGROUND_RESTRICTED,
+            SesameStatusFailure.of(null, backgroundDataRestricted = true),
+        )
+        // 応答が返っている時点でOSの制限は掛かっていないため、端末設定のせいにしない。
+        assertEquals(
+            SesameStatusFailure.COMMUNICATION,
+            SesameStatusFailure.of(HTTP_SERVER_ERROR, backgroundDataRestricted = true),
+        )
+        // 資格情報・上限の失敗は、制限の有無に関わらず利用者の対処先が変わらない。
+        assertEquals(
+            SesameStatusFailure.AUTH_OR_QUOTA,
+            SesameStatusFailure.of(HTTP_FORBIDDEN, backgroundDataRestricted = true),
+        )
+        // 制限が掛かっていなければ従来どおり。
+        assertEquals(
+            SesameStatusFailure.COMMUNICATION,
+            SesameStatusFailure.of(null, backgroundDataRestricted = false),
+        )
+    }
+
+    @Test
     fun `labels are short enough for the tile and carry guidance on the widget`() {
         SesameStatusFailure.entries.forEach { failure ->
             assertEquals(failure.name, MAX_SHORT_LABEL_LENGTH, failure.shortLabel.length)
@@ -51,6 +74,19 @@ class SesameStatusFailureTest {
         assertEquals(
             SesameStatusFailure.COMMUNICATION,
             SesameStatusFailure.worstOf(listOf(null, SesameStatusFailure.COMMUNICATION)),
+        )
+        // 端末設定の制限は利用者が対処できるため、ただの通信エラーより優先して見せる（BL-192）。
+        assertEquals(
+            SesameStatusFailure.BACKGROUND_RESTRICTED,
+            SesameStatusFailure.worstOf(
+                listOf(SesameStatusFailure.COMMUNICATION, SesameStatusFailure.BACKGROUND_RESTRICTED),
+            ),
+        )
+        assertEquals(
+            SesameStatusFailure.AUTH_OR_QUOTA,
+            SesameStatusFailure.worstOf(
+                listOf(SesameStatusFailure.BACKGROUND_RESTRICTED, SesameStatusFailure.AUTH_OR_QUOTA),
+            ),
         )
         assertNull(SesameStatusFailure.worstOf(listOf(null, null)))
         assertNull(SesameStatusFailure.worstOf(emptyList()))

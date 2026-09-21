@@ -20,6 +20,7 @@ import com.sesamiwear.mobile.ble.toAttempt
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
+import com.sesamiwear.mobile.network.BackgroundDataRestriction
 import com.sesamiwear.mobile.notification.SesameRouteNotifier
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.LockStateStore
@@ -61,6 +62,8 @@ object SesameDeviceCommandExecutorFactory {
                             // リリースビルドでも残る`Log.w`へ出す（`Log.d` / `Log.v`は除去される、BL-083 / BL-139）。
                             logFailure = { message -> Log.w(SesameApiFailureLog.TAG, message) },
                             recordApiCall = { apiUsageCounter.record(System.currentTimeMillis()) },
+                            // 失敗の文言を端末設定側へ寄せるかの判断に使う（BL-192）。操作のたびに読む。
+                            backgroundDataRestricted = { BackgroundDataRestriction.isRestricted(appContext) },
                         ),
                     ble = createBleAccess(appContext),
                 ),

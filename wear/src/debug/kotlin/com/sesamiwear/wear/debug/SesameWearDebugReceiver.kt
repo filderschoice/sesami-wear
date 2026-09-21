@@ -37,7 +37,7 @@ import kotlinx.serialization.json.Json
  *   -n com.sesamiwear.mobile.debug/com.sesamiwear.wear.debug.SesameWearDebugReceiver \
  *   --es devices "aaaa1111:Entrance,bbbb2222:Garage"
  *
- * # 1台の状態を注入する（route は BLE / WEB_API、failure は AUTH_OR_QUOTA / COMMUNICATION）
+ * # 1台の状態を注入する（route は BLE / WEB_API、failure は AUTH_OR_QUOTA / BACKGROUND_RESTRICTED / COMMUNICATION）
  * adb shell am broadcast -a com.sesamiwear.wear.debug.STATE \
  *   -n com.sesamiwear.mobile.debug/com.sesamiwear.wear.debug.SesameWearDebugReceiver \
  *   --es uuid aaaa1111 --ez locked true --ei battery 85 --ei position 0 --es route BLE

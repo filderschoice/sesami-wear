@@ -177,18 +177,30 @@
   非常に少ないため対象外）。wearのTileとmobileのウィジェットで文言を食い違わせないよう、
   文言の決定はcoreに置く（`SesameTileContent`と同方針、BL-119）。
 - `core.SesameStatusFailure`（Android非依存、ユニットテスト対象）: 直近の失敗の分類（BL-140）。
-  利用者が自分で対処できるかどうかで2つに分ける。`AUTH_OR_QUOTA`（HTTP 401 / 403 / 429。資格情報が
-  拒否された、またはAPIの月間リクエスト上限に達した）と`COMMUNICATION`（それ以外のすべて。圏外・
-  タイムアウト・名前解決失敗・想定外の応答）。分類は`core.api.SesameApiException.httpStatusCode`
-  （BL-139）から決める。
+  利用者が自分で対処できるかどうかで3つに分ける。`AUTH_OR_QUOTA`（HTTP 401 / 403 / 429。資格情報が
+  拒否された、またはAPIの月間リクエスト上限に達した）、`BACKGROUND_RESTRICTED`（端末の
+  「バックグラウンドデータの制限」でOSが従量制回線の通信を止めている、BL-192）、
+  `COMMUNICATION`（それ以外のすべて。圏外・タイムアウト・名前解決失敗・想定外の応答）。
+  分類は`core.api.SesameApiException.httpStatusCode`（BL-139）から決める。
   - `AUTH_OR_QUOTA`をさらに「資格情報の誤り」と「上限到達」へ分けることはできない。Sesame APIは
     どちらもHTTP 403（本文も同一）で返すためで、429が返るかどうかもCANDY HOUSE側の実装次第で未確認
     （BL-141）。そのため文言も両方を含む案内にする。
   - 文言は`shortLabel`（Tile・Complication向け、「認証エラー」「通信エラー」の5文字。過去に7文字の
     文言がタイル幅に収まらず末尾省略された事例があるため、BL-102 / BL-104）と`detailedLabel`
     （ウィジェット向け、「認証エラー（設定を確認）」「通信エラー（電波状況を確認）」）の2つを持つ。
-  - 「全デバイス」対象では`worstOf`が集約する。1台でも`AUTH_OR_QUOTA`があればそれを優先し、次に
-    `COMMUNICATION`。利用者が対処できる失敗を、対処できない失敗に埋もれさせないため。
+  - `BACKGROUND_RESTRICTED`は、**応答を1度も受け取れていない**（`httpStatusCode`がnull）失敗のうち、
+    `mobile.network.BackgroundDataRestriction`が「制限あり」を返したものだけに付ける（BL-192）。
+    サーバから応答が返っている時点でOSの制限は掛かっていないため、ステータスコードを持つ失敗を
+    端末設定のせいにしないための条件である。判定は`ConnectivityManager.getRestrictBackgroundStatus()`
+    が`RESTRICT_BACKGROUND_STATUS_ENABLED`かどうかで、データセーバーとアプリごとの制限
+    （`POLICY_REJECT_METERED_BACKGROUND`）のどちらもこの値で表れ、非従量制の回線では`DISABLED`に
+    なる。前面にいるかどうかは含まれないが、前面なら通信が成功して分類自体を通らないため足りる。
+    `shortLabel`は`COMMUNICATION`と同じ「通信エラー」にする（5文字では書き分けられず、
+    書き分けても利用者が次に取る行動が変わらないため）。違いが出るのは`detailedLabel`
+    （「通信エラー（端末の設定を確認）」）だけでよい。
+  - 「全デバイス」対象では`worstOf`が集約する。宣言の早い順（`AUTH_OR_QUOTA` →
+    `BACKGROUND_RESTRICTED` → `COMMUNICATION`）に優先する。利用者が対処できる失敗を、
+    対処できない失敗に埋もれさせないため。
 - **失敗しても表示している施錠状態は「状態不明」へ戻さない**（BL-140、ユーザー確認済み）。
   最後に分かった状態を残し、下の1行だけを失敗の理由へ差し替える。BL-142で「最後に分かった状態を
   出し続ける」設計にしたことと揃えるためで、分かっていた情報を捨てず、Tileからの施錠/解錠操作も
@@ -274,7 +286,13 @@
     (4)「登録後のウォッチでの使い方」、(5)「ホーム画面ウィジェットの使い方」（BL-124）、
     (6)「Bluetoothで届かないとき」（BL-192。セサミ公式アプリを終了する・Bluetoothの許可・
     経路の方針・Androidのスキャン回数の制限の4点を切り分けの順に並べる。公式アプリの案内は
-    通知と同じ`SesameRouteLabel.OFFICIAL_APP_HINT`を共有する）の6項目を持つ。
+    通知と同じ`SesameRouteLabel.OFFICIAL_APP_HINT`を共有する）、
+    (7)「モバイル回線のときだけ失敗する」（BL-192。端末の「バックグラウンドデータの制限」が
+    掛かっているとモバイル回線のバックグラウンド通信だけが失敗することと、その確認先。
+    ウィジェットの表示文言`SesameStatusFailure.BACKGROUND_RESTRICTED.detailedLabel`と
+    `COMMUNICATION.detailedLabel`の両方を本文へ含めることをユニットテストで固定し、
+    利用者が表示と説明を結び付けられるようにする）の7項目を持つ。
+    通信の困りごと（(6) と (7)）は末尾へまとめる。
     ウィジェットの説明はウィジェットの表示文言（「変更」「全デバイス」「通信中...」「タップして設定」）を
     含むことをユニットテストで固定する。
   - `HelpTopic`の外部リンクは`links: List<HelpLink>`（0個以上）。「値の取得方法」がSESAME Bizと
