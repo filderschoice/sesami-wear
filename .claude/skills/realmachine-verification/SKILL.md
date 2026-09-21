@@ -109,6 +109,33 @@ Pixel 8 Pro では作れない（無効化は「未導入」と同一ではな�
 - 握りつぶしの証跡は `SesameStatusSyncer: syncLocked skipped: statusCode=17` と
   `SesameDeviceListSyncer: sync skipped: statusCode=17`（17＝`API_UNAVAILABLE`）。
 
+## 3.6 BLEの失敗分岐は保存値の細工で作る
+
+BLEの失敗は電波状況しだいで、狙って起こせない（2026-09-21の検証では9回連続で成功し、
+`CONNECTION_FAILED`を1回も作れなかった）。経路選択が見るのは保存値だけなので、
+**デバッグ版の非暗号化の`shared_prefs/sesami_wear_ble_reachability.xml`を書き換えて分岐を作る**。
+資格情報は暗号化されており、ここには含まれない（uuid・BLEアドレス・時刻のみ）。
+
+```bash
+# プロセスを止めてから書き換える（SharedPreferencesはメモリ上にキャッシュを持つ）
+adb -s <スマホ> shell am force-stop com.sesamiwear.mobile.debug
+adb -s <スマホ> shell "run-as com.sesamiwear.mobile.debug sed -i 's|旧|新|' shared_prefs/sesami_wear_ble_reachability.xml"
+```
+
+- **`NOT_FOUND`（圏外）を作る**: `ble_addresses`の対象uuidのアドレスを存在しない値
+  （`02:00:00:00:00:01`）へ差し替える。直接接続が失敗し、短い探索でも見つからずこの結果になる。
+- **`CONNECTION_FAILED`（見つかるが繋げない）を作る**: アドレスは正しい値のままにして、
+  セサミ公式アプリを起動して接続を掴ませ、`am force-stop co.candyhouse.sesame2`の**直後**に操作する。
+- **BLEを先に試させる**: `ble_reachability`の対象uuidへ`reachableAtEpochMillis`を現在時刻で入れる
+  （実績が無いとBLEを試さずインターネット経由になる）。
+- 検証の操作は**状態取得（ウィジェットのデバイス名タップ）で行う**。施錠/解錠を使う必要は無く、
+  鍵も動かない。
+- **`am force-stop`の直後の1回目のタップは、ウィジェットの復帰に消費されて操作が走らない。**
+  ログが1行も出ないときは、もう一度タップする（プロセスIDが付いた時点で操作が通る）。
+- 細工した保存値は次の到達確認（`recordProbe`）で取り直されるため、後始末は不要。
+- ファイルごとの置き換え（`cat > shared_prefs/...`）は権限の判定に阻まれることがある。
+  `sed -i`での部分置換を使う。
+
 ## 4. ウォッチ側の準備
 
 ### Tile をカルーセルへ追加する

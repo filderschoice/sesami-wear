@@ -7,6 +7,24 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-21（BL-191の実機検証を実施し、BLE失敗分岐の再現手順をスキルへ追加）
+
+BLEの失敗理由で到達実績を消すかどうかを分ける挙動（BL-191）を Pixel 8 Pro で検証しました。
+**BLEの失敗は実環境では狙って起こせない**（同日10時台の検証では9回連続で成功した）ため、
+デバッグ版の非暗号化の保存値（`sesami_wear_ble_reachability.xml`）へ細工して各分岐を再現しています。
+実資格情報は扱わず、操作はすべて状態取得で行い、施錠/解錠はしていません。
+
+- **[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md)** へ実機検証の記録を追加し、
+  「実機での再確認は未実施」としていた記述を実測の結果へ置き換えました。
+  `CONNECTION_FAILED`の直後の操作でもBLEを試すこと、`NOT_FOUND`ではBLEを試さずインターネット経由へ
+  切り替わることを確認しています。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** から、完了条件を満たした
+  BL-191 を削除しました。あわせて、検証中に観測した「到達確認のスキャンがほとんど成功せず、
+  保存済みBLEアドレスを失うとBLE経路へ自力で復帰できない」件を BL-193 として起票しました。
+- **[.claude/skills/realmachine-verification/SKILL.md](.claude/skills/realmachine-verification/SKILL.md)**
+  へ、保存値へ細工してBLEの失敗分岐（`NOT_FOUND` / `CONNECTION_FAILED`）を再現する手順と、
+  ウィジェットのタップが `am force-stop` 直後の1回は反応しないことを追加しました。
+
 ## 2026-09-21（自律ループの終了報告からPR説明文を外す）
 
 自律ループ実行モードの終了報告で、PR説明文の案とPR作成コマンドまで出力していました。
