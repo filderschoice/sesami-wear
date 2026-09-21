@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 12:55
+  summary: 到達確認がどの手段で成立したかをログへ残し、BL-193・BL-194を実機検証する
+  details:
+    変更内容: >-
+      BL-193の実機検証で、到達確認（`SesameBleConnector.probeReachable`）が探索で当たったのか
+      予備のアドレスへの直接接続で拾えたのかを切り分けられなかった。どちらの経路でも
+      `SesameBleAddressCache.save`で同じ保存値になるため、保存値の差分からは区別できない。
+      `route=BLE op=PROBE detail=SCAN|LAST_KNOWN|MISS`の1行を追加した。既存の
+      `route=BLE op=<コマンド> detail=<結果>`と同じタグ（`SesameApiFailureLog.TAG`）を使い、
+      BLEアドレスは出さない（rules/guardrails-unified.v1.md 3.3）。到達確認の挙動そのものは
+      変えていない（`scanner.findDevice`の結果をローカル変数へ受けただけ）。
+      この1行により、BL-193の実装（探索が外れたときに予備のアドレスへ直接つなぐ）が実際に
+      使われたかを実機で判定できるようになった。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      実機（Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5 2台）での状態取得
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。実機ではBL-193の完了条件
+      （保存済みアドレスを失った状態からBLE経路へ復帰できること）と、BL-194の完了条件
+      （バックグラウンドデータの制限でウィジェットに「通信エラー（端末の設定を確認）」が出ること・
+      制限の解除で成功すること）をどちらも満たした。内訳はDESIGN.md
+      「実機検証（BL-193 / BL-194、2026-09-21 12時台）」に記録した。
+      予備のアドレスへ直接つなぐ分岐（`detail=LAST_KNOWN`）の成功は今回観測できておらず、
+      BLEが数分単位で届かなくなる事象をBL-195として起票した。
+    関連ID:
+      - BL-193
+      - BL-194
+      - BL-195
 - date: 2026-09-21 15:10
   summary: 最後に成功したBLEアドレスを残し、到達確認の探索が外れても直接接続で復帰できるようにする
   details:

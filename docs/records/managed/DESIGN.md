@@ -842,6 +842,40 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   実績が消えるため実機では再現しておらず、ユニットテストでの検証にとどまる。
   (4) 検証中、インターネット経由の状態取得が`GaiException`で失敗する事象が再現した（BL-192、
   端末の「バックグラウンドデータの制限」による）。BLE側の判定には影響しない。
+- 実機検証（BL-193 / BL-194、2026-09-21 12時台、Pixel 8 Pro + Pixel Watch 2 +
+  登録済みのSesame 5 2台）: BLE経路の復帰性（BL-193）とバックグラウンドデータ制限の表示（BL-194）を
+  確認した。実資格情報を用いる操作は**状態取得（ウィジェットのデバイス名タップ）だけ**に限り、
+  施錠/解錠は一度も行っていない。分岐の再現には、デバッグ版の非暗号化の保存値
+  （`sesami_wear_ble_reachability.xml`）と`cmd netpolicy`を使った。
+  (1) **保存済みBLEアドレスを失った状態からBLE経路へ復帰できる**（BL-193の完了条件）。
+  現用のアドレス（`ble_addresses`）と到達実績だけを消し、予備（`ble_last_addresses`）を残した
+  状態で状態取得を行うと、到達確認が成功して`reachableAtEpochMillis`が付き、現用のアドレスが
+  復元された（12:43:43・12:47:47の2回）。直後の操作では`route=BLE op=STATUS`のログが出て、
+  BLEを先に試すようになることも確認した。
+  (2) **失敗で現用のアドレスを捨てても予備は残る**（2段構えの実装）。12:44:09の
+  `route=BLE op=STATUS detail=NOT_FOUND`の直後、`ble_addresses`から対象uuidが消える一方で
+  `ble_last_addresses`には残っていた。
+  (3) **予備のアドレスへ直接つなぐ分岐（`detail=LAST_KNOWN`）の成功は観測できていない。**
+  今回成功した到達確認3回はすべて探索（`detail=SCAN`）で、探索が外れたとき（12:40:04・12:42:33・
+  12:45:05）は予備のアドレスへの直接接続も失敗した（`detail=MISS`）。BL-191で観測した
+  「直接接続は成功するのに探索だけ当たらない」状況は、同じ端末・同じ位置でも今回は再現しなかった。
+  (4) **BLEが数分単位で届かなくなる時間帯がある**（BL-195として起票）。12:34:08の
+  `detail=SUCCESS`の直後から12:42まで探索も直接接続も通らず、12:43:43に復帰し、12:44:09は
+  `detail=NOT_FOUND`、12:47:47にまた復帰した。スマートフォンの位置は動かしていない。
+  (5) **「通信エラー（端末の設定を確認）」はバックグラウンドデータの制限で実際に出る**（BL-194）。
+  `cmd netpolicy add restrict-background-blacklist <UID>`でデバッグ版を制限し、Wi-Fiを切って
+  モバイル回線（5G）だけにした状態で状態取得を行うと`status failed: GaiException`となり、
+  保存値の`lastFailure`が`BACKGROUND_RESTRICTED`になった。ホーム画面ウィジェット（4x2）には
+  「通信エラー（端末の設定を確認）」が1行で省略・見切れなく表示された。BLEで成功してしまうのを
+  避けるため、経路設定を`WEB_API_ONLY`へ固定しても同じ結果になることを確認している。
+  (6) **制限を解除すると同じ操作が成功する**（BL-194の完了条件）。
+  `cmd netpolicy remove restrict-background-blacklist <UID>`の直後のタップで、
+  `lastRoute=WEB_API`のまま成功し`lastFailure`が消えた（12:39:04）。
+  (7) タイルは同じ失敗を「通信エラー」（5文字）と表示し、省略・見切れは無かった
+  （ウォッチにはBL-192を含むデバッグ版を入れ直してから確認した。古いウォッチ側アプリは
+  `BACKGROUND_RESTRICTED`を知らないため失敗なしとして扱う）。ヘルプの
+  「モバイル回線のときだけ失敗する」も全文が折り返して表示された。Complicationの`LONG_TEXT`枠は
+  利用者の文字盤に該当枠が無いため今回も未確認（BL-149と同じ理由）。
 - 利用者向けドキュメント（BL-124）: `docs/USER_GUIDE.md`「ホーム画面ウィジェットで操作する」、
   `docs/CLOSED_TEST.md`（ウォッチ無しでも参加・試用できること）、`README.md`の主な機能、
   `docs/RELEASE_NOTES.md`の0.11.0（未リリース）、`docs/store/STORE_LISTING.md`（短い説明・詳細な説明・

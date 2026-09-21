@@ -3,6 +3,8 @@ package com.sesamiwear.mobile.ble
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.util.Log
+import com.sesamiwear.core.api.SesameApiFailureLog
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -81,9 +83,20 @@ internal class SesameBleConnector(
         val scanMillis = if (lastKnown == null) probeMillis else (probeMillis - connectMillis).coerceAtLeast(0)
         // 探索で見つかればそのアドレス、外れたら予備のアドレスへ直接つないで確かめる。
         // つながった以上は圏内なので、次の操作で探索を飛ばせるよう現用の記録として残す。
-        val reachedAddress =
-            scanner.findDevice(uuid, scanMillis)?.address
-                ?: lastKnown?.takeIf { connects(it, connectMillis) }
+        val scanned = scanner.findDevice(uuid, scanMillis)?.address
+        val reachedAddress = scanned ?: lastKnown?.takeIf { connects(it, connectMillis) }
+        // 探索で当たったのか予備のアドレスで拾えたのかは、保存値の差分からは区別できない
+        // （どちらも[SesameBleAddressCache.save]で同じ記録になる）。実機検証でBL-193の効果を
+        // 切り分けられるよう、到達をどちらの手段で確かめたかだけを1行残す（アドレスは出さない）。
+        Log.w(
+            SesameApiFailureLog.TAG,
+            "route=BLE op=PROBE detail=" +
+                when {
+                    scanned != null -> "SCAN"
+                    reachedAddress != null -> "LAST_KNOWN"
+                    else -> "MISS"
+                },
+        )
         reachedAddress?.let { addressCache?.save(uuid, it) }
         return reachedAddress != null
     }
