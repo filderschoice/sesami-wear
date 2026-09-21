@@ -41,6 +41,61 @@ class SesameBleReachabilityTest {
     }
 
     @Test
+    fun `a failure with the device in range keeps ble preferred for the next operation`() {
+        // 接続・ログインだけが失敗した場合は圏内にいる証拠があるため、到達実績を残す（BL-191）。
+        reachability.record(UUID, NOW, reachable = true)
+        reachability.record(UUID, NOW + 1, reachable = false, foundInRange = true)
+        assertTrue(reachability.preferBle(UUID, NOW + 2))
+    }
+
+    @Test
+    fun `ble is given up after consecutive failures even with the device in range`() {
+        reachability.record(UUID, NOW, reachable = true)
+        repeat(SesameBleReachability.MAX_CONSECUTIVE_FAILURES - 1) { index ->
+            reachability.record(UUID, NOW + index + 1, reachable = false, foundInRange = true)
+            assertTrue(reachability.preferBle(UUID, NOW + index + 1))
+        }
+        val giveUpAt = NOW + SesameBleReachability.MAX_CONSECUTIVE_FAILURES
+        reachability.record(UUID, giveUpAt, reachable = false, foundInRange = true)
+        assertFalse(reachability.preferBle(UUID, giveUpAt))
+    }
+
+    @Test
+    fun `a success resets the consecutive failures`() {
+        reachability.record(UUID, NOW, reachable = true)
+        repeat(SesameBleReachability.MAX_CONSECUTIVE_FAILURES - 1) {
+            reachability.record(UUID, NOW + 1, reachable = false, foundInRange = true)
+        }
+        reachability.record(UUID, NOW + 2, reachable = true)
+        repeat(SesameBleReachability.MAX_CONSECUTIVE_FAILURES - 1) {
+            reachability.record(UUID, NOW + 3, reachable = false, foundInRange = true)
+        }
+        assertTrue(reachability.preferBle(UUID, NOW + 3))
+    }
+
+    @Test
+    fun `a successful probe resets the consecutive failures`() {
+        reachability.record(UUID, NOW, reachable = true)
+        repeat(SesameBleReachability.MAX_CONSECUTIVE_FAILURES - 1) {
+            reachability.record(UUID, NOW + 1, reachable = false, foundInRange = true)
+        }
+        reachability.recordProbe(UUID, NOW + 2, reachable = true)
+        repeat(SesameBleReachability.MAX_CONSECUTIVE_FAILURES - 1) {
+            reachability.record(UUID, NOW + 3, reachable = false, foundInRange = true)
+        }
+        assertTrue(reachability.preferBle(UUID, NOW + 3))
+    }
+
+    @Test
+    fun `a failure with the device in range does not extend the ttl`() {
+        // 実績の時刻は成功したときだけ更新する。圏内の失敗で延命すると、圏外になっても気づけなくなる。
+        reachability.record(UUID, NOW, reachable = true)
+        reachability.record(UUID, NOW + 1, reachable = false, foundInRange = true)
+        val expired = NOW + SesameBleReachability.REACHABLE_TTL_MILLIS + 1
+        assertFalse(reachability.preferBle(UUID, expired))
+    }
+
+    @Test
     fun `history is kept per device`() {
         reachability.record(UUID, NOW, reachable = true)
         assertTrue(reachability.preferBle(UUID, NOW))

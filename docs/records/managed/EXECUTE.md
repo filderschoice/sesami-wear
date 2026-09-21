@@ -5,6 +5,57 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 01:55
+  summary: BLEの失敗理由で到達実績を消すかどうかを分け、圏内なら次の操作で再試行する（BL-191）
+  details:
+    変更内容: >-
+      BLEが1回失敗しただけで、次の到達確認まで（最短5分）BLEを試さなくなる挙動を見直した。
+      `SesameBleAccess.recordAttempt`は失敗時に常に`SesameBleReachability.record`へ
+      `reachable=false`を渡して到達実績を消していたため、圏外（`NOT_FOUND`）ではなく
+      繋げなかっただけ（`CONNECTION_FAILED` / `LOGIN_FAILED`）の場合も同じ扱いになっていた。
+      2026-09-20の実機検証では、Sesameの目の前でも後者が起きている。
+      (1) `mobile.ble.SesameBleAttempt` / `SesameBleFailure`を追加し、BLEの結果を経路選択が使う
+      2値（`NOT_REACHED` / `REACHED_BUT_FAILED`）へ落とす。`SesameBleClient.Result`は6種類あるが、
+      経路選択が知りたいのは「圏内にいた証拠があるか」だけのため。`SesameBleAccess`は
+      Android非依存のユニットテスト対象なので、Android依存の`SesameBleClient`へ直接は依存させない。
+      (2) `SesameBleOperations`の`execute` / `fetchStatus`の戻り値をnullableから
+      `SesameBleAttempt`へ変え、失敗理由を`SesameBleAccess`まで運ぶ。
+      (3) `SesameBleReachability.record`へ`foundInRange`を足し、圏内の失敗では到達実績を残して
+      次の操作でもBLEを試す。連続失敗が`MAX_CONSECUTIVE_FAILURES`（3回）に達したら打ち切って
+      実績を消し、毎回BLEの上限（3,000ms）を払い続けないようにする。連続失敗の回数は保存値へ
+      持ち（`consecutiveFailures`）、成功と到達確認の記録で数え直す。
+      実績の時刻は成功時のみ更新するため、`REACHABLE_TTL_MILLIS`（30分）は最後の成功から数える。
+      (4) `SesameDeviceCommandExecutorTest`がdetektの`LargeClass`上限に達したため、
+      共通の土台を`SesameDeviceCommandExecutorTestFixture`へ切り出し、BLE経路のテストを
+      `SesameDeviceCommandExecutorBleRouteTest`へ分割した（振る舞いの変更は無い）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAttempt.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleReachability.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAttemptTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleReachabilityTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorBleRouteTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      すべて成功（終了コード0、markdownlintはSummary 0 issues、validate-recordsはOK）。
+      追加したユニットテストは、圏内の失敗で到達実績が残ること・連続3回で打ち切ること・
+      成功と到達確認で数え直すこと・実績の時刻が延命されないこと（SesameBleReachabilityTest）、
+      `SesameBleClient.Result`から2値への写像（SesameBleAttemptTest）、
+      圏内の失敗の直後もBLEを再試行し圏外では倒れること（SesameDeviceCommandExecutorBleRouteTest）。
+      実機（Pixel 8 Pro + 実Sesame 5）での再確認は未実施（未確認）で、BL-191へ
+      「進行中・実機確認待ち」として残している。
+    関連ID:
+      - BL-191
+
 - date: 2026-09-20 20:52
   summary: BLE経路を実測に合わせて粘るようにし、経路の変化と到達状況を利用者へ見せる（BL-189 / BL-190）
   details:
