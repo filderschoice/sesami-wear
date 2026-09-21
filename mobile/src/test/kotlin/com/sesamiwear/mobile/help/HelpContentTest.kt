@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.help
 
+import com.sesamiwear.core.display.SesameRouteLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,9 +9,16 @@ class HelpContentTest {
     @Test
     fun `menu offers the topics in a fixed order`() {
         assertEquals(
-            listOf("credentials", "api-limit", "demo", "after-registration", "widget"),
+            listOf("credentials", "api-limit", "demo", "after-registration", "widget", "bluetooth"),
             HelpContent.topics.map { it.id },
         )
+    }
+
+    @Test
+    fun `bluetooth topic tells the user to close the official app`() {
+        val paragraphs = HelpContent.bluetooth.paragraphs
+        assertTrue(paragraphs.contains(SesameRouteLabel.OFFICIAL_APP_HINT))
+        assertTrue(paragraphs.any { it.contains("操作の経路") })
     }
 
     @Test

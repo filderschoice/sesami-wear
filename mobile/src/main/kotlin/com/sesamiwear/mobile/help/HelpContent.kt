@@ -1,5 +1,7 @@
 package com.sesamiwear.mobile.help
 
+import com.sesamiwear.core.display.SesameRouteLabel
+
 /**
  * ヘルプ内の外部リンク。[label]をタップすると[url]をブラウザで開く。
  */
@@ -147,9 +149,34 @@ object HelpContent {
         )
 
     /**
+     * Bluetoothで届かないときの対処（BL-192）。
+     *
+     * 2026-09-21の実機検証で、**セサミ公式アプリが起動していると広告が止まり探索から見えなくなる**
+     * ことが分かった。利用者には「急に回数を消費するようになった」としか見えないため、
+     * 通知（[com.sesamiwear.core.display.SesameRouteLabel.OFFICIAL_APP_HINT]）と同じ対処をここへも置く。
+     */
+    val bluetooth =
+        HelpTopic(
+            id = "bluetooth",
+            title = "Bluetoothで届かないとき",
+            paragraphs =
+                listOf(
+                    "スマートフォンがSesameの近くにあるときはBluetoothで直接操作し、" +
+                        "APIのリクエスト回数を消費しません。届かないときは自動でインターネット経由へ切り替わり、" +
+                        "「操作の経路が変わりました」という通知でお知らせします。",
+                    SesameRouteLabel.OFFICIAL_APP_HINT,
+                    "それでも届かないときは、Bluetoothがオンになっているか、" +
+                        "アプリのBluetooth権限が許可されているか（資格情報の画面に「Bluetooth：未許可」と出ます）、" +
+                        "「⋮」→「操作の経路」が「常にインターネット経由」になっていないかを確認してください。",
+                    "立て続けに操作すると、Android側のスキャン回数の制限でしばらく見つからなくなることがあります。" +
+                        "1分ほど間を空けると元に戻ります。",
+                ),
+        )
+
+    /**
      * メニューへ並べる順。資格情報を用意する前の利用者が迷わないよう、取得方法・デモ・使い方の順にし、
      * 使い方はウォッチ・ホーム画面ウィジェットの順に並べる。
      * APIのリクエスト上限は値の取得方法と同じ「資格情報まわり」の話のため、その直後へ置く（BL-144）。
      */
-    val topics: List<HelpTopic> = listOf(credentials, apiLimit, demo, afterRegistration, widget)
+    val topics: List<HelpTopic> = listOf(credentials, apiLimit, demo, afterRegistration, widget, bluetooth)
 }

@@ -5,6 +5,57 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 10:35
+  summary: BLEで届かないときの対処（セサミ公式アプリの終了）を通知とヘルプで案内する
+  details:
+    変更内容: >-
+      2026-09-21の実機検証で、**セサミ公式アプリを前面で開いている間はSesameが本アプリの探索から
+      見つからなくなることがある**と分かった（約10分にわたり`detail=NOT_FOUND`が続き、
+      `am force-stop`で公式アプリを止めた直後から見つかるようになり、以降9回連続でBLE経路が成立した）。
+      Sesameは同時に1台としかBLEでつながれないため、公式アプリが接続を掴んでいる間は広告が
+      届かなくなることによる。利用者からは「近くにいるのにインターネット経由のまま」としか見えず、
+      自力で切り分けられないため、対処を2か所で案内するようにした。
+      (1) `core.display.SesameRouteLabel`へ`OFFICIAL_APP_HINT`を追加し、
+      `mobile.notification.SesameRouteNotifier`が経路をインターネット経由へ切り替えた通知の
+      **展開時の本文**（`BigTextStyle`）へ2行目として足す。折りたたみ時の1行は従来のまま
+      （短い行に詰め込まないため）。
+      (2) `mobile.help.HelpContent`へ「Bluetoothで届かないとき」を追加し、同じ`OFFICIAL_APP_HINT`を
+      本文として使う（通知とヘルプで文言が食い違わないよう定数を共有する）。権限・経路の方針・
+      Androidのスキャン回数制限も切り分け手順として並べた。
+      文言は実測に合わせて「必ず妨げる」ではなく「妨げることがある」とした
+      （公式アプリを前面で開いたままでも成功する場合があり、同日の確認では3回中2回が成功した）。
+      (3) あわせて、スマートフォンのデバイスカードの経路の行が折り返る不具合を直した。
+      失敗の理由が長いとき（「通信エラー（電波状況を確認）」）に経路の語だけが押し出され、
+      「Bluet／ooth」と途中で改行されていた。理由側の`Text`へ`weight(1f, fill = false)`と
+      `maxLines = 1` / `TextOverflow.Ellipsis`を、経路の語へ`softWrap = false`を与え、
+      **経路（アイコン＋語）は必ず1行に収まり、収まらないときは理由側の末尾が省略される**ようにした
+      （BL-172(4)の「1行で出る」を維持するため、行を増やす方向では直さない）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameRouteLabelTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/notification/SesameRouteNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py /
+      実機（Pixel 8 Pro、デバッグ版）でのヘルプ表示と通知本文の確認
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。実機では、ヘルプの「Bluetoothで届かないとき」が
+      4段落とも省略・見切れなく表示され、経路を「常にインターネット経由」へ切り替えた操作で出た通知の
+      `android.bigText`が「玄関上：Bluetoothで届かないため、インターネット経由で操作します」に続けて
+      公式アプリの案内を含むことを`dumpsys notification`で確認した。
+      デバイスカードの経路の行も、修正後は「通信エラー（電波状況を確認）」を伴う状態で
+      折り返さないことを実機で確認した。
+    関連ID:
+      - BL-165
+      - BL-189
 - date: 2026-09-21 01:55
   summary: BLEの失敗理由で到達実績を消すかどうかを分け、圏内なら次の操作で再試行する（BL-191）
   details:

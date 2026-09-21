@@ -54,16 +54,24 @@ class SesameRouteNotifier(private val context: Context) {
     ) {
         if (!settings.isEnabled() || !canNotify()) return
         ensureChannel()
+        val summary = "$deviceName：${SesameRouteLabel.routeChangeMessage(route)}"
+        // 折りたたみ時は1行しか読めないため、対処（BL-192）は展開時の本文にだけ足す。
+        val detail =
+            if (route == SesameStatusRoute.WEB_API) {
+                summary + "\n" + SesameRouteLabel.OFFICIAL_APP_HINT
+            } else {
+                summary
+            }
         val notification =
             NotificationCompat
                 .Builder(context, CHANNEL_ID)
                 .setSmallIcon(SesameRouteIcon.drawableResOrNull(route) ?: return)
                 .setContentTitle(SesameRouteLabel.ROUTE_CHANGE_TITLE)
-                .setContentText("$deviceName：${SesameRouteLabel.routeChangeMessage(route)}")
+                .setContentText(summary)
                 .setStyle(
                     NotificationCompat
                         .BigTextStyle()
-                        .bigText("$deviceName：${SesameRouteLabel.routeChangeMessage(route)}"),
+                        .bigText(detail),
                 )
                 // 操作のたびに音が鳴ると煩わしい。表示だけで足りる知らせのため既定より低くする。
                 .setPriority(NotificationCompat.PRIORITY_LOW)

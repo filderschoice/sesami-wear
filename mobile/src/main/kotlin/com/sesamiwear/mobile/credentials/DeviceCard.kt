@@ -124,7 +124,17 @@ private fun DetailLine(
     val route = snapshot?.lastRoute
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(text = freshnessLine, style = MaterialTheme.typography.bodySmall, color = color)
+        // 失敗の理由（「通信エラー（電波状況を確認）」など）が長いと、経路の語だけが
+        // 押し出されて「Bluet／ooth」のように途中で折り返っていた（2026-09-21の実機検証）。理由側を
+        // 縮めて末尾を省略し、経路（アイコン＋語）は必ず1行に収める。
+        Text(
+            text = freshnessLine,
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
         SesameRouteIcon.drawableResOrNull(route)?.let { iconRes ->
             Text(text = SEPARATOR, style = MaterialTheme.typography.bodySmall, color = color)
             Icon(
@@ -137,6 +147,8 @@ private fun DetailLine(
                 text = SesameRouteLabel.name(route),
                 style = MaterialTheme.typography.bodySmall,
                 color = color,
+                maxLines = 1,
+                softWrap = false,
             )
         }
     }
