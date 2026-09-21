@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-196
+  区分: 人手検証
+  タスク内容: >-
+    0.13.0（`versionCode 8` / `wear 1006`）の署名付きAAB×2を、Play Consoleのクローズドテストの
+    両トラック（電話・タブレット系トラックとWear OS専用トラック）へアップロードして公開する。
+    成果物は`mobile/build/outputs/bundle/release/mobile-release.aab`と
+    `wear/build/outputs/bundle/release/wear-release.aab`で、2026-09-21に
+    `scripts/release-build.bat -VersionName 0.13.0`でビルド済み。
+    「このリリースの新機能」欄へは`docs/RELEASE_NOTES.md`の0.13.0「ストア掲載用の要約」
+    （491/500文字）をそのまま転記する。本バージョンはBLE（`BLUETOOTH_SCAN` /
+    `BLUETOOTH_CONNECT` / `ACCESS_FINE_LOCATION`）と通知（`POST_NOTIFICATIONS`）の権限が
+    増えるため、**アップロードの前にBL-154のデータセーフティ申告と権限の用途説明を更新する**。
+    転記元は`docs/store/STORE_LISTING.md`「アプリが使う権限」（2026-09-21に追記済み）。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    両トラックで0.13.0が「公開中」になり、テスターの端末へ配信されていること
+  根拠: >-
+    Play Consoleの操作はブラウザ専用でエージェントが実行できない
+    （rules/guardrails-unified.v1.md セクション12.2）。0.12.0の配信（BL-155）と同じ手順で、
+    現在地は`docs/store/PLAY_CONSOLE_STEPS.local.md`が持つ
+  依存:
+    - BL-154
+
 - id: BL-195
   区分: 人手検証
   タスク内容: >-
@@ -36,8 +61,10 @@
     （API 31以上）とACCESS_FINE_LOCATION（`android:maxSdkVersion="30"`で旧端末限定）。
     位置情報権限は旧端末限定でも申告の対象になりうるため、Play Consoleの質問に沿って
     「位置情報を収集・共有しない（BLEスキャンのためだけに宣言している）」ことを説明する。
-    docs/USER_GUIDE.md と docs/RELEASE_NOTES.md への記載は2026-09-19に完了済みのため、
-    残りは Play Console 上の操作と docs/store/STORE_LISTING.md の更新。
+    docs/USER_GUIDE.md と docs/RELEASE_NOTES.md への記載は2026-09-19に完了済みで、
+    docs/store/STORE_LISTING.md への権限の用途説明の追記も2026-09-21に完了した
+    （「アプリが使う権限」節。Play Consoleの権限申告・データセーフティ欄への転記元になる）。
+    残りは Play Console 上の操作だけ。
     2026-09-20のBL-190で POST_NOTIFICATIONS も追加したため、こちらも申告・説明の対象に含める
     （経路が切り替わったことを知らせる通知にだけ使い、収集・共有は行わない）。
   優先度: P3
