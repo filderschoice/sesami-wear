@@ -171,6 +171,9 @@ object SesameDeviceCommandExecutorFactory {
      *   直接接続するだけにし、接続・ログイン・コマンドへ合計2.6秒を与える。
      * - 探索は、Web APIの通信と並行して走る到達確認（[probeMillis]）が担う。並行して待つ相手が
      *   最大6秒（`SesameApiClient`のcallTimeout）あるため、4秒まで伸ばしても利用者の待ちは増えない。
+     * - 到達確認は、探索が外れたときに最後に成功したアドレスへ直接つないで確かめる（BL-193）。
+     *   その接続ぶん（[probeConnectMillis]）は探索から差し引き、到達確認全体は4秒のままにする
+     *   （到達確認はWeb APIと並行するが完了を待つため、伸ばすと利用者の待ちも伸びる）。
      * - [scanMillis]は、保存済みアドレスが無い・古い場合の保険として残す（通常は到達確認が先に
      *   アドレスを用意するため、この経路は通らない）。
      *
@@ -188,6 +191,7 @@ object SesameDeviceCommandExecutorFactory {
             loginMillis = 1_200,
             commandMillis = 800,
             probeMillis = 4_000,
+            probeConnectMillis = 1_500,
         )
 
     /** 表示名が空のデバイスを通知で指すときの呼び名。 */

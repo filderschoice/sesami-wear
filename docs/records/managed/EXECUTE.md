@@ -5,6 +5,51 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-21 15:10
+  summary: 最後に成功したBLEアドレスを残し、到達確認の探索が外れても直接接続で復帰できるようにする
+  details:
+    変更内容: >-
+      2026-09-21のBL-191の実機検証で、同じ端末・同じ位置で**保存済みアドレスへの直接接続は成功する
+      一方、到達確認の探索は3回とも当たらない**と観測した。`SesameBleConnector.connect`は直接接続に
+      失敗すると保存値を捨てるため、`NOT_FOUND`が一度出ると「アドレス無し → 探索が当たらない →
+      到達実績が付かない → BLEを試さない」から戻れなくなっていた。
+      (1) `SesameBleAddressCache`を2段構えにした。現用（`load`、`ble_addresses`）と、最後に成功した
+      アドレス（`loadLastKnown`、`ble_last_addresses`）を同じSharedPreferencesの別キーで持ち、
+      `save`は両方へ書き、`remove`は現用だけを消す。既存の保存値はキー名も形式も変えていないため
+      そのまま読める。
+      (2) 到達確認を`SesameBleClient.probeReachable`から`SesameBleConnector.probeReachable`へ移し、
+      探索が外れたときに予備のアドレスへ直接つないで圏内かを確かめるようにした。つながった接続は
+      すぐ閉じ、現用の記録として書き戻して次の操作で探索を飛ばせるようにする。
+      移設先を`SesameBleConnector`にしたのは、`SesameBleClient`の関数数がdetektの`TooManyFunctions`
+      の上限（11）に達していて増やせないため。
+      (3) `SesameBleClient.Timeouts`へ`probeConnectMillis`を追加した（実配線は1,500ms）。
+      予備のアドレスがある場合はこのぶんだけ探索を短くし、**到達確認全体の4,000msは変えない**。
+      到達確認はWeb APIと並行するが`withReachabilityProbe`が完了を待つため、伸ばすと利用者の
+      待ちもそのぶん伸びるためである。
+      現用を捨てる挙動そのものは変えていない（古いアドレスへ毎回接続を試みて利用者を待たせないため）。
+      予備のアドレスが古いままでも捨てる契機は設けない。探索が当たれば`save`が両方を上書きして
+      自然に直り、外れたときの損は到達確認の中の1,500ms（最短5分に1回、Web APIと並行）で頭打ちになる。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCache.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/SesameBleAddressCacheTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck / ./gradlew detekt / ./gradlew lintDebug /
+      ./gradlew testDebugUnitTest test / ./gradlew assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 自動の品質ゲートはすべて終了コード0。現用を捨てても予備が残ること、
+      新しく見つけたアドレスが予備も上書きすること、一度も到達していないデバイスには予備が
+      無いことを`SesameBleAddressCacheTest`で固定した。
+      到達確認そのものはAndroidのBLEスキャン・GATT接続に依存するためJVM上では再現できず、
+      実機での復帰確認はBL-193へ人手検証として残す（区分を`性能`から`人手検証`へ変更）。
+    関連ID:
+      - BL-193
 - date: 2026-09-21 14:20
   summary: バックグラウンドデータの制限による失敗を「端末の設定を確認」として区別し、対処を案内する
   details:
