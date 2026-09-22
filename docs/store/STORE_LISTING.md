@@ -127,6 +127,8 @@ Markdownを解釈しないため、転記時は見出し・箇条書きの記法
 
 ## スクリーンショット
 
-スマートフォン用6枚（Androidエミュレータ、2026-09-18撮影）とWear OS用6枚（Pixel Watch 2実機、
-2026-09-06撮影）を [images/screenshots/](images/screenshots/) に用意済みです。内訳と加工内容は
-[README.md](README.md)「ファイル一覧」を参照してください。
+スマートフォン用7枚（Androidエミュレータ、2026-09-21撮影）とWear OS用6枚（Pixel Watch 2実機）を
+[images/screenshots/](images/screenshots/) に用意済みです。内訳と加工内容は
+[README.md](README.md)「ファイル一覧」を参照してください。スマートフォン用は0.13.0の画面へ全点を
+撮り直しています。Wear OS用はタイルの2枚を2026-09-21に撮り直し（経路の印と最終取得時刻を反映）、
+残る3枚は2026-09-06撮影のままです（BL-198）。

@@ -7,6 +7,37 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-21（0.13.0の配信完了と掲載スクリーンショットの撮り直し）
+
+0.13.0 がクローズドテストの両トラックで公開中になりました。あわせて、スマートフォン用の掲載
+スクリーンショットを 0.13.0 の画面へ全点撮り直しています。
+
+- **BL-196（完了）**: 0.13.0（mobile の `versionCode 8` / wear の `versionCode 1006`）を両トラックへ
+  アップロードし、公開中になりました。
+- **BL-154（完了）**: データセーフティの収集項目は 0.12.0 から変更がなく（`apikey` と `uuid` の2点）、
+  0.13.0 で増えた権限（`BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` / `ACCESS_FINE_LOCATION` /
+  `POST_NOTIFICATIONS`）について Play Console から用途の説明を求められることはありませんでした。
+  申告の転記元は `docs/store/STORE_LISTING.md`「アプリが使う権限」として残しています。
+- **`docs/store/images/screenshots/`**: スマートフォン用を Android エミュレータで7枚撮り直しました
+  （`phone_1_widget_locked` / `phone_2_widget_unlock_confirm` / `phone_3_widget_unlocked` /
+  `phone_4_device_list` / `phone_5_menu` / `phone_6_device_edit` / `phone_7_help`）。
+  旧構成の `phone_4_widget_config` / `phone_5_credentials` / `phone_6_help` は削除しています。
+  `phone_4_device_list` の「Bluetooth：圏内」と経路「Bluetooth」は、エミュレータの近くに実 Sesame が
+  無いため保存値へ圏内・経路BLEの値を書き込んで再現しました（施錠状態をモック API で作るのと同じ扱いで、
+  Sesame の電波圏内にいる利用者が実際に見る表示です）。
+- **Wear OS 用はタイルの2枚を Pixel Watch 2 実機で撮り直しました。**
+  `wear_2_tile_locked` と `wear_3_tile_unlocked` に、0.13.0 で加わった経路の印と最終取得時刻が
+  写っています。撮影はデバッグ版のタイルから実際に施錠・解錠して行い（ユーザーの判断）、
+  終了後に全デバイスの施錠を確認し、追加したタイルと画面消灯時間、タイルの対象割り当てを
+  すべて元へ戻しています。`wear_5_unlock_confirm` は撮り直した画像が既存とバイト単位で一致した
+  ため差し替えていません（0.13.0 でも表示が変わっていない）。
+  コンプリケーション・一部解錠・デバイス選択の3点は未実施で、**BL-198** に残しています。
+  Wear OS エミュレータ（AVD `wearos`）でも試しましたが、2台のエミュレータをペア設定できず
+  タイルが常に「スマホ未接続」表示になるため使えませんでした。
+- **[docs/store/README.md](docs/store/README.md)** と
+  **[docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md)** の内訳表・撮影環境・枚数を更新し、
+  Play Console への掲載情報の差し替え作業を **BL-197** として起票しました。
+
 ## 2026-09-21（0.13.0のリリース準備 — リリースノートの確定とストア掲載情報の権限説明）
 
 BLE直接操作を中心とした 0.13.0 を Google Play のクローズドテストへ配信するための準備を行いました。
