@@ -12,6 +12,7 @@
   "markdownlint.run": "onSave",
   "chat.tools.terminal.autoApprove": {
     "npx markdownlint-cli2": true,
-    "gh": true
+    "gh": true,
+    "git remote": true
   }
 }

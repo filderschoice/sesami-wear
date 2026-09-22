@@ -7,6 +7,57 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-21（0.13.0の配信完了と掲載スクリーンショットの撮り直し）
+
+0.13.0 がクローズドテストの両トラックで公開中になりました。あわせて、スマートフォン用の掲載
+スクリーンショットを 0.13.0 の画面へ全点撮り直しています。
+
+- **BL-196（完了）**: 0.13.0（mobile の `versionCode 8` / wear の `versionCode 1006`）を両トラックへ
+  アップロードし、公開中になりました。
+- **BL-154（完了）**: データセーフティの収集項目は 0.12.0 から変更がなく（`apikey` と `uuid` の2点）、
+  0.13.0 で増えた権限（`BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` / `ACCESS_FINE_LOCATION` /
+  `POST_NOTIFICATIONS`）について Play Console から用途の説明を求められることはありませんでした。
+  申告の転記元は `docs/store/STORE_LISTING.md`「アプリが使う権限」として残しています。
+- **`docs/store/images/screenshots/`**: スマートフォン用を Android エミュレータで7枚撮り直しました
+  （`phone_1_widget_locked` / `phone_2_widget_unlock_confirm` / `phone_3_widget_unlocked` /
+  `phone_4_device_list` / `phone_5_menu` / `phone_6_device_edit` / `phone_7_help`）。
+  旧構成の `phone_4_widget_config` / `phone_5_credentials` / `phone_6_help` は削除しています。
+  `phone_4_device_list` の「Bluetooth：圏内」と経路「Bluetooth」は、エミュレータの近くに実 Sesame が
+  無いため保存値へ圏内・経路BLEの値を書き込んで再現しました（施錠状態をモック API で作るのと同じ扱いで、
+  Sesame の電波圏内にいる利用者が実際に見る表示です）。
+- **Wear OS 用はタイルの2枚を Pixel Watch 2 実機で撮り直しました。**
+  `wear_2_tile_locked` と `wear_3_tile_unlocked` に、0.13.0 で加わった経路の印と最終取得時刻が
+  写っています。撮影はデバッグ版のタイルから実際に施錠・解錠して行い（ユーザーの判断）、
+  終了後に全デバイスの施錠を確認し、追加したタイルと画面消灯時間、タイルの対象割り当てを
+  すべて元へ戻しています。`wear_5_unlock_confirm` は撮り直した画像が既存とバイト単位で一致した
+  ため差し替えていません（0.13.0 でも表示が変わっていない）。
+  コンプリケーション・一部解錠・デバイス選択の3点は未実施で、**BL-198** に残しています。
+  Wear OS エミュレータ（AVD `wearos`）でも試しましたが、2台のエミュレータをペア設定できず
+  タイルが常に「スマホ未接続」表示になるため使えませんでした。
+- **[docs/store/README.md](docs/store/README.md)** と
+  **[docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md)** の内訳表・撮影環境・枚数を更新し、
+  Play Console への掲載情報の差し替え作業を **BL-197** として起票しました。
+
+## 2026-09-21（0.13.0のリリース準備 — リリースノートの確定とストア掲載情報の権限説明）
+
+BLE直接操作を中心とした 0.13.0 を Google Play のクローズドテストへ配信するための準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.13.0 を「未リリース」から
+  「2026-09-21」へ確定し、Play Consoleの「このリリースの新機能」欄へ転記する
+  「ストア掲載用の要約」（491/500文字）を追加しました。既知の問題の「本バージョンの動作は実機での
+  確認が完了していません」は、2026-09-21のBL-193 / BL-194の実機検証で主要な経路を確認できたため
+  削除し、代わりにBL-195で観測した「時間帯によってBluetoothがつながらないことがある」を
+  利用者向けの表現で記載しています。
+- **[docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md)** へ「アプリが使う権限」節を追加し、
+  0.13.0 で増える権限（`BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` / `ACCESS_FINE_LOCATION` /
+  `POST_NOTIFICATIONS`）の用途と、位置情報・スキャン結果を収集しないことを明記しました。
+  Play Consoleの権限申告・データセーフティ欄への転記元になります（BL-154）。あわせて「主な機能」へ
+  BLE経由の操作・経路の表示・電池残量・診断ログを追加し、文字数の実測値を更新しました。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ 0.13.0 の配信作業を
+  BL-196 として起票し、BL-154 の残作業を「Play Console上の操作だけ」へ更新しました。
+- **`scripts/version.properties`** を `versionCode 8` / `wear 1006` / `versionName 0.13.0` へ
+  更新し、署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.13.0`）。
+
 ## 2026-09-21（BL-191の実機検証を実施し、BLE失敗分岐の再現手順をスキルへ追加）
 
 BLEの失敗理由で到達実績を消すかどうかを分ける挙動（BL-191）を Pixel 8 Pro で検証しました。

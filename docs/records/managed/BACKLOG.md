@@ -5,6 +5,62 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-198
+  区分: 人手検証
+  タスク内容: >-
+    Wear OS用の掲載スクリーンショット6枚（`docs/store/images/screenshots/wear_1`〜`wear_6`）を
+    0.13.0の表示へ撮り直す。現行は2026-09-06撮影で、0.13.0でタイルに加わった経路の印
+    （🔗＝Bluetooth / 🌐＝インターネット）と最終取得時刻が写っていない。
+    2026-09-21にWear OSエミュレータ（AVD `wearos`、Wear OS 5 / 384x384）で撮影を試み、
+    `SesameWearDebugReceiver`でデバイス一覧と状態（`route BLE`）を注入してタイルを表示するところ
+    までは成功したが、**タイルの右チップが常に「スマホ未接続」表示になるため掲載には使えない**
+    （2台のエミュレータはペア設定できない。`docs/INSTALL.md`「1.8」）。
+    Pixel Watch 2実機をadb接続して撮り直す。撮影手順はSkill `realmachine-verification`第4節、
+    加工と保存先はSkill `store-screenshot-capture`。
+    2026-09-21に実機で`wear_2_tile_locked.png`（全施錠中）と`wear_3_tile_unlocked.png`（全解錠中）を
+    撮り直し済み。どちらも経路の印（🌐）と「たった今」が写っている。`wear_5_unlock_confirm.png`は
+    撮り直した画像が既存とバイト単位で一致したため差し替え不要（0.13.0でも表示が変わっていない）。
+    **残りは`wear_1_complication.png`（文字盤の編集が必要）、`wear_4_tile_mixed.png`
+    （1台だけ解錠した状態を作る必要があり、タイルの対象切り替えの反映が不安定で断念）、
+    `wear_6_device_select.png`（実デバイス名が写るためモザイクか、ダミーのデバイス一覧が必要）の3点。**
+    ダミーのデバイス一覧は`SesameWearDebugReceiver`の`--es devices`で注入できるが、
+    2026-09-21の実機では`devices injected: count=2`まで成功しながらタイルの表示名がuuidのままで、
+    名前が反映されなかった（個別の状態注入は反映される）。ここを解決すれば実鍵を動かさずに
+    残り3点を作れる。
+  優先度: P3
+  状態: 進行中
+  担当: ユーザー
+  完了条件: >-
+    タイルの各状態・解錠確認・デバイス選択・コンプリケーションが0.13.0の表示で撮り直され、
+    `docs/store/images/screenshots/` と Play ConsoleのWear OS用の枠へ反映されていること。
+    2026-09-21にタイルの施錠中・解錠中の2点を反映済みで、コンプリケーション・一部解錠・
+    デバイス選択の3点が未実施
+  根拠: >-
+    Wear OS実機を要するため人手検証とする。エミュレータで代替できないことは2026-09-21に確認済み
+  依存: []
+
+- id: BL-197
+  区分: 人手検証
+  タスク内容: >-
+    0.13.0の配信（2026-09-21に両トラックで公開中）を受けて、Play Consoleのストア掲載情報を
+    差し替える。スマートフォン用スクリーンショットは2026-09-21に7枚へ撮り直し済み
+    （`docs/store/images/screenshots/phone_1_widget_locked.png`〜`phone_7_help.png`）。
+    Play Console側の旧6枚を削除してから新しい7枚をこの番号順に投入する
+    （旧`phone_4_widget_config` / `phone_5_credentials` / `phone_6_help`はリポジトリから削除済み）。
+    「詳細な説明」は`docs/store/STORE_LISTING.md`の更新版（BLE経由の操作・経路の表示・電池残量・
+    診断ログ・「アプリが使う権限」を追記済み、2548/4000文字）を転記する。
+    **リリースの審査とは別の送信で行う**（掲載情報の差し戻しでアプリ更新の配信まで止めないため）。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    Play Consoleの掲載ページに、新しいスマートフォン用7枚と更新後の「詳細な説明」が反映されていること
+  根拠: >-
+    Play Consoleの操作はブラウザ専用でエージェントが実行できない
+    （rules/guardrails-unified.v1.md セクション12.2）。手順の現在地は
+    `docs/store/PLAY_CONSOLE_STEPS.local.md`「ストア掲載情報の変更手順」が持つ
+  依存: []
+
 - id: BL-195
   区分: 人手検証
   タスク内容: >-
@@ -26,34 +82,6 @@
   根拠: >-
     2026-09-21のBL-193の実機検証で観測した。Sesame実機とHub 3を含む電波環境が要り、
     JVM上の単体テストでは再現できないため人手検証とする
-  依存: []
-
-- id: BL-154
-  区分: 人手検証
-  タスク内容: >-
-    BLE直接操作（BL-152）の配信にあたり、Google Playのデータセーフティ申告・権限の用途説明・
-    ストア掲載情報を更新する。追加される権限はBLUETOOTH_SCAN / BLUETOOTH_CONNECT
-    （API 31以上）とACCESS_FINE_LOCATION（`android:maxSdkVersion="30"`で旧端末限定）。
-    位置情報権限は旧端末限定でも申告の対象になりうるため、Play Consoleの質問に沿って
-    「位置情報を収集・共有しない（BLEスキャンのためだけに宣言している）」ことを説明する。
-    docs/USER_GUIDE.md と docs/RELEASE_NOTES.md への記載は2026-09-19に完了済みのため、
-    残りは Play Console 上の操作と docs/store/STORE_LISTING.md の更新。
-    2026-09-20のBL-190で POST_NOTIFICATIONS も追加したため、こちらも申告・説明の対象に含める
-    （経路が切り替わったことを知らせる通知にだけ使い、収集・共有は行わない）。
-  優先度: P3
-  状態: 未着手
-  担当: ユーザー
-  完了条件: >-
-    データセーフティ申告と権限の用途説明が更新され、審査を通過して配信されていること。
-    利用者向けドキュメントにBLE経由で動作する条件（スマートフォンがSesameの電波圏内にあること）が
-    記載されていること。
-    後者は`docs/USER_GUIDE.md`「近くにあるときはBluetoothで操作する」で満たしている
-    （2026-09-21確認）。残るのはPlay Consoleの操作だけ
-  根拠: >-
-    Play Consoleの操作を伴うため自律ループ実行モードでは実行できない
-    （rules/guardrails-unified.v1.md セクション12.2）。DESIGN.md「BLE直接操作の併用方針」の
-    段階5に対応する。BL-152・BL-153の実装は2026-09-19に完了しており、依存は解消している
-    （申告の対象となる権限は mobile/src/main/AndroidManifest.xml で確定済み）。
   依存: []
 
 - id: BL-149
