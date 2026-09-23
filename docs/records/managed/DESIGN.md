@@ -371,14 +371,15 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 （BL-119）。
 
 - **wearのTileと揃えている点**:
-  - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右側だけに使う構成
-    （左にデバイス名と「変更」、右に状態）。
+  - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右下だけに使う構成
+    （左に「更新」と「変更」、右上にデバイス名と経路アイコンの帯、右下に状態。BL-205 / BL-206）。
   - 操作ルール（`core.display.SesameTileActions`）: 施錠中→解錠、解錠中→施錠、一部解錠→全施錠、通信中・状態不明→操作なし。
   - 確認画面: 解錠のみ（`SesameCommandConfirmation`）、左＝キャンセル・右＝解錠／全解錠の並びと配色。
   - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
     全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
   - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
-  - 左側のデバイス名タップは状態取得のみ、同一uuidへの2秒以内の重複は1回（`CommandDebouncer`を経路間で共有）。
+  - 「更新」（とデバイス名の帯）のタップは状態取得のみで、到達実績によらずBLEを試す（BL-204）。
+    同一uuidへの2秒以内の重複は1回（`CommandDebouncer`を経路間で共有）。
 - **意図的に揃えていない点**:
   - 追加時の設定: ウィジェットは`appwidget-provider`の`android:configure`で追加直後に選択画面を開ける（Tilesには
     同等の標準機構が無く、Tileは「タップして設定」から誘導する）。選べる内容は同じ。
@@ -394,12 +395,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - サイズ: 既定はTile相当（4x2）で、**横2マス×縦1マスまで**縮められる（BL-128 / BL-174）。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
     `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
-    （50x50 / 110x50 / 200x140）を提示して`LocalSize`を受け取る。
-    `FULL`のしきい値は幅200dp・高さ140dpで、どちらかを下回れば`MEDIUM`以下。幅は「左列（96dp）＋
+    （50x50 / 110x50 / 200x172）を提示して`LocalSize`を受け取る。
+    `FULL`のしきい値は幅200dp・高さ172dpで、どちらかを下回れば`MEDIUM`以下。幅は「左列（96dp）＋
     間隔（6dp）＋状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・
-    操作文言の4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）から決めた。
+    操作文言の4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）に、
+    デバイス名の帯（約26dp）と間隔（6dp）を足した約168dpから決めた（BL-205）。
     高さは当初100dpとしていたが、4x1（約128dp）でも`FULL`が選ばれて操作文言が縦に見切れたため、
-    余裕を見て140dpへ引き上げた（BL-158）。既定の4x2はどの端末でも140dp以上になるため`FULL`のまま。
+    余裕を見て140dpへ引き上げ（BL-158）、BL-205で帯のぶん172dpへ引き上げた。既定の4x2は一般的な端末で
+    約250dpになるため`FULL`のまま。
     `FULL`に届かない場合は幅だけで`MEDIUM`（110dp以上）と`COMPACT`（それ未満）を分ける。
   - `MEDIUM`（2マス×1マス相当、BL-174）は、左1マス（60dp）にデバイス名チップ（タップで状態取得）と
     「◀ ▶」（対象デバイスの順送り、BL-175）を縦に並べ、右1マスに状態アイコンと状態文言を出す。
@@ -445,16 +448,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   チップ・文字スタイル・寸法の定数）。1ファイルへ置くとdetektの`TooManyFunctions`（上限11）に達するため。
   `WidgetUnlockConfirmActivity`も同じ面の部品として`SesameWidgetChips`の色・角丸の定数を使う。
 - `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
-  構成はTileと揃え、左列（幅96dp）にデバイス名チップと「変更」チップ（中立色
-  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の残り全域に状態アイコン・状態文言・操作文言を
-  中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は右側にだけ使う。
+  構成はTileと揃え、左列（幅96dp）に「更新」チップと「変更」チップ（中立色
+  `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の上にデバイス名の帯（`SesameWidgetChips.NameHeader`、
+  中立色、デバイス名と経路のベクターアイコンを横に並べる。BL-205）、その下の残り全域に状態アイコン・
+  状態文言・操作文言を中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は
+  右下の状態表示にだけ使う。BL-205より前は左上がデバイス名チップ（タップで状態取得）だった。
+  デバイス名の帯のタップも「更新」と同じ状態取得にしている（従来の操作を引き継ぐため）。
   背景は暗色（0xFF121212）で角丸16dp。未設定時は「タップして設定」のみを表示し、全面タップで選択画面を開く。
   `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
   dataへ操作名とappWidgetIdを入れる。
 - タップ操作（BL-122）: 右側は`mobile.widget.WidgetTapAction.forModel`（Android非依存）で決める。
   提示コマンドは`core.display.SesameTileActions`、確認の要否は`SesameCommandConfirmation`（Tileと同じ）で、
   施錠中→解錠確認画面、解錠中→即施錠、一部解錠→即全施錠、通信中・状態不明→操作なし、未設定→選択画面。
-  左側のデバイス名は状態取得（GET）のみ、「変更」は選択画面を開く。
+  左側の「更新」（`MEDIUM`ではデバイス名）は状態取得（GET）のみ、「変更」は選択画面を開く。
 - `mobile.widget.WidgetCommandReceiver`（`exported="false"`のBroadcastReceiver）: 施錠の即時実行・状態取得・
   解錠確認画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
   `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
@@ -894,10 +900,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 ### ウィジェットの電池残量表示
 
 ホーム画面ウィジェットのFULLレイアウトで、電池残量を**最終取得時刻と同じ行**へ併記する
-（「🔗3分前 🔋85%」、BL-171。アイコンはBL-176でベクターアイコンへ置き換え）。
+（「3分前 🔋85%」、BL-171）。経路アイコンはBL-176でこの行の先頭へ置いたが、BL-205で
+デバイス名の帯へ移した（下記「経路の可視化」）。
 
-- **行は増やさない。** 高さ予算は最小サイズ140dpに対して約136dpを既に使っており（BL-158）、
-  行を足すと最小サイズで操作文言が見切れる。`SesameWidgetLayout`のしきい値は変更していない。
+- **行は増やさない。** 高さ予算はほぼ使い切っており（BL-158。BL-205以降は最小サイズ172dpに対して
+  約168dp）、行を足すと最小サイズで操作文言が見切れる。
 - COMPACT（1マス相当）では出さない。アイコンと状態文言だけに絞るという目的が崩れるため。
 - 「全デバイス」対象では**最も少ない台の値**を代表値にする。失敗（最悪を出す）・鮮度（最も古い値を
   出す）と同じく、利用者が対処すべき側を見せる。1台も分かっていなければ出さない。
@@ -1792,7 +1799,7 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 | 面 | 見せ方 |
 | --- | --- |
 | Tile / Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`）。**行は増やさない** |
-| ホーム画面ウィジェット | 同じ行の先頭へMaterialのベクターアイコンを置く（BL-176）。**行は増やさない** |
+| ホーム画面ウィジェット（4x2） | 右上のデバイス名の帯（中立色）へ、名前と並べてMaterialのベクターアイコンを置く（BL-205。BL-176では最終取得時刻の行の先頭だった） |
 | スマートフォンのアプリ画面 | ベクターアイコンと語を併記する（「Bluetooth」「インターネット」、BL-176） |
 
 - アプリ画面のカードでは、**経路（アイコン＋語）を必ず1行に収める**。理由の文言が長いとき
@@ -1807,7 +1814,13 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
   Glanceは`Image`＋`ImageProvider`＋`ColorFilter.tint`で描く。色は描画側で与えるため、
   ドローアブル自体は白で塗っている。
 - ウィジェットは経路を**文言へ前置せず**`SesameWidgetModel.Configured.route`として別に持ち、
-  描画側（`SesameWidgetChips.DetailRow`）が画像と文言を横に並べる。行数は増えない。
+  描画側（`SesameWidgetChips.NameHeader`）がデバイス名と画像を横に並べる。
+- **経路アイコンは状態色の上に置かない**（BL-205 / BL-206、2026-09-23）。BL-176では最終取得時刻の行
+  （状態色の背景）に置いていたが、施錠中＝緑・解錠中＝赤の上では白いアイコンが背景に埋もれ、
+  BluetoothとインターネットのどちらかがUI上で判別できなかった（ユーザー指摘）。状態によって色の
+  変わらない中立色（`CHIP_NEUTRAL_COLOR_ARGB`）のデバイス名の帯へ移し、白で描く。
+  改善方法は、(1) 中立色の帯へ移す、(2) 今の位置で暗い丸のバッジを敷く、(3) 語を添える、の3案から
+  ユーザーが(1)を選んだ。2x1（`MEDIUM`）の右1マスには従来どおり経路を出さない（面積が足りない）。
 
 - **アイコンは🔗（Bluetooth）／🌐（インターネット）。** 当初は📶／☁だったが、📶は携帯電話の
   電波強度として広く使われており、Bluetoothでの直接操作を表すものとして読み取れないという

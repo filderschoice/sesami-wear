@@ -31,11 +31,12 @@ import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
-import androidx.glance.layout.RowScope
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
@@ -45,8 +46,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * mobileのホーム画面ウィジェット（BL-121）。wearのTileと同じく、左側にデバイス名と「変更」、右側の大きな
- * 領域に状態アイコン・状態文言・操作文言を置き、状態色は右側にだけ使う。表示内容の決定は
+ * mobileのホーム画面ウィジェット（BL-121）。wearのTileと同じく、左側に「更新」と「変更」、右側の上に
+ * デバイス名と経路アイコンの帯（BL-205）、その下の大きな領域に状態アイコン・状態文言・操作文言を置き、
+ * 状態色は右下の状態表示にだけ使う。表示内容の決定は
  * [SesameWidgetModelResolver]（Android非依存）が行い、ここはGlanceで並べるだけにしている。
  * 表示領域に応じて、2マス×1マス相当（BL-174）・1マス相当（BL-128、保険）の表示へ切り替える。
  * どれを使うかの判定は[SesameWidgetLayout]（Android非依存）が持つ。
@@ -119,7 +121,9 @@ open class SesameWidget : GlanceAppWidget() {
 /**
  * ウィジェット上のタップ操作（BL-122）。右側は[WidgetTapAction]の判定どおり、施錠は[WidgetCommandReceiver]で
  * 即時実行、解錠は[WidgetUnlockConfirmActivity]を開き、操作できない状態（通信中・状態不明）では何もしない。
- * 左側のデバイス名は状態取得のみ、「変更」は選択画面を開く。
+ * 左側の「更新」（2x1ではデバイス名）は状態取得のみ（到達実績によらずBLEを試す、BL-204）、
+ * 「変更」は選択画面を開く。4x2の右上のデバイス名の帯も「更新」と同じ状態取得にする
+ * （BL-205より前はデバイス名のタップが状態取得だったため、その操作を引き継ぐ）。
  */
 internal class WidgetActions(
     context: Context,
@@ -204,9 +208,13 @@ private fun SesameWidgetContent(
                     }
                 SesameWidgetLayout.FULL ->
                     Row(modifier = containerModifier) {
-                        LeftColumn(displayName = model.displayName, actions = actions)
+                        LeftColumn(actions = actions)
                         Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
-                        StatusBox(model = model, onClick = actions.status)
+                        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+                            NameHeader(displayName = model.displayName, route = model.route, onClick = actions.refresh)
+                            Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
+                            StatusBox(model = model, onClick = actions.status)
+                        }
                     }
             }
     }
@@ -232,14 +240,14 @@ private fun CompactStatusBox(
     }
 }
 
-/** 左列。上がデバイス名（タップで状態取得）、下が「変更」（選択画面を開く）。いずれも中立色。 */
+/**
+ * 左列。上が「更新」（タップで状態取得、BL-204 / BL-205）、下が「変更」（選択画面を開く）。いずれも中立色。
+ * BL-205より前は上がデバイス名だったが、デバイス名は右上の帯（[NameHeader]）へ移した。
+ */
 @Composable
-private fun LeftColumn(
-    displayName: String,
-    actions: WidgetActions,
-) {
+private fun LeftColumn(actions: WidgetActions) {
     Column(modifier = GlanceModifier.width(LEFT_COLUMN_WIDTH_DP.dp).fillMaxHeight()) {
-        NeutralChip(text = displayName, modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh))
+        NeutralChip(text = REFRESH_LABEL, modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh))
         Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
         NeutralChip(text = CHANGE_LABEL, modifier = GlanceModifier.defaultWeight().clickable(actions.configure))
     }
@@ -249,17 +257,18 @@ private fun LeftColumn(
 private fun StatusTexts(model: SesameWidgetModel.Configured) {
     Text(text = model.statusIcon, style = widgetTextStyle(model.textColorArgb, ICON_SP))
     Text(text = model.statusLabel, style = widgetTextStyle(model.textColorArgb, BODY_SP, bold = true))
-    // 最後に状態を取得した時刻（または直近の失敗の理由）と電池残量（BL-142 / BL-140 / BL-171）と、
-    // 経路のアイコン（BL-176）。高さ予算が埋まっているため、いずれも行を足さずこの1行へ併記する。
+    // 最後に状態を取得した時刻（または直近の失敗の理由）と電池残量（BL-142 / BL-140 / BL-171）。
+    // 高さ予算が埋まっているため、行を足さずこの1行へ併記する。経路のアイコン（BL-176）は、
+    // 緑・赤の状態色の上では見分けにくかったため、中立色の[NameHeader]へ移した（BL-205）。
     model.detailWithBatteryLabel?.let {
-        DetailRow(route = model.route, text = it, textColorArgb = model.textColorArgb)
+        Text(text = it, style = widgetTextStyle(model.textColorArgb, FOOTNOTE_SP), maxLines = 2)
     }
     model.actionLabel?.let { Text(text = it, style = widgetTextStyle(model.textColorArgb, CAPTION_SP)) }
 }
 
-/** 右側の状態表示。状態色の背景に、アイコン・状態文言・操作文言を中央寄せで並べる。 */
+/** 右下の状態表示。状態色の背景に、アイコン・状態文言・操作文言を中央寄せで並べる。 */
 @Composable
-private fun RowScope.StatusBox(
+private fun ColumnScope.StatusBox(
     model: SesameWidgetModel.Configured,
     onClick: Action?,
 ) {
@@ -268,7 +277,7 @@ private fun RowScope.StatusBox(
             GlanceModifier
                 .defaultWeight()
                 .clickableOrSelf(onClick)
-                .fillMaxHeight()
+                .fillMaxWidth()
                 .background(ColorProvider(Color(model.backgroundColorArgb)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(CHIP_INNER_PADDING_DP.dp),
@@ -280,6 +289,9 @@ private fun RowScope.StatusBox(
 }
 
 private const val CHANGE_LABEL = "変更"
+
+/** 状態取得のチップ（BL-205）。到達実績によらずBLEを試し、届かなければインターネット経由で取る（BL-204）。 */
+private const val REFRESH_LABEL = "更新"
 
 /** 1マス表示で「タップして設定」の代わりに出す文言（BL-128）。 */
 private const val COMPACT_UNCONFIGURED_MESSAGE = "設定"

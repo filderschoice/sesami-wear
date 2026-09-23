@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 11:20
+  summary: ウィジェット（4x2）のデバイス名を状態の上の帯へ移し、左上を「更新」、経路アイコンを中立色の帯へ移す
+  details:
+    変更内容: >-
+      `SesameWidget`のFULL表示を、左列＝「更新」「変更」、右上＝デバイス名の帯（`SesameWidgetChips.NameHeader`、
+      中立色でデバイス名と経路のベクターアイコンを横に並べる）、右下＝状態表示へ組み替えた。経路アイコンは
+      状態色（緑・赤）の上で見分けにくかったため、最終取得時刻の行（旧`DetailRow`）から帯へ移し白で描く。
+      帯のタップも「更新」と同じ状態取得にした（旧来のデバイス名タップを引き継ぐ）。帯のぶん高さが増えるため
+      `SesameWidgetLayout.FULL_MIN_HEIGHT_DP`を140dpから172dpへ引き上げた。2x1・1x1は変更していない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。`SesameWidgetLayoutTest`はしきい値の定数を参照しており、172dpでも成功する。
+      実機での表示確認はBL-208へ残す。
+    関連ID:
+      - BL-205
 - date: 2026-09-23 10:30
   summary: 状態の「更新」で到達実績によらずBLEを試し、届かなければWeb APIへフォールバックする
   details:
