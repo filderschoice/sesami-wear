@@ -1,6 +1,6 @@
 ---
 name: pr-create
-description: 本リポジトリでPull Requestを作成・更新するときのClaude Code側の実行手順。規範の正本は`.github/instructions/pr.instructions.md`と`.github/PULL_REQUEST_TEMPLATE.md`で、本スキルはそれをghコマンドで確実に反映する手順だけを扱う。作業ブランチが未pushならPRを作れないこと（pushはユーザーが実行する）、PowerShellでバッククォートを含む本文を`--body`へ直接渡すと引数分割が壊れる事故と回避策（一時ファイル＋`--body-file`）、実行していない品質ゲートをチェックリストで成功扱いにしないことを含む。「PRを作成して」「PRの説明文を作って」「テンプレに沿ってPRを直して」「プルリクを出して」等の依頼で参照する。
+description: Pull Requestを作成・更新するときのClaude Code側の実行手順。規範の正本（.github/instructions/pr.instructions.md と PULL_REQUEST_TEMPLATE.md）をghで反映する手順だけを扱う。未pushのブランチではPRを作れないこと（pushはユーザーが実行）、PowerShellで`--body`へ本文を渡すと引数分割が壊れる事故と`--body-file`での回避、未実行の品質ゲートをチェックしないことを含む。「PRを作成して」「PRの説明文を作って」「テンプレに沿ってPRを直して」「プルリクを出して」等の依頼で参照する。
 ---
 
 # PR作成手順（Claude Code 用）
@@ -9,7 +9,7 @@ description: 本リポジトリでPull Requestを作成・更新するときのC
 
 | 読む順 | ファイル | 何が書いてあるか |
 | --- | --- | --- |
-| 1 | [`.github/instructions/pr.instructions.md`](../../../.github/instructions/pr.instructions.md) | 言語要件、本文の型、タイトル規約、チェックリストの扱い、品質ゲート対応表、PR作成の前提 |
+| 1 | [`.github/instructions/pr.instructions.md`](../../../.github/instructions/pr.instructions.md) | 言語要件、本文の型、タイトル規約、チェックリストの扱い、PR作成の前提 |
 | 2 | [`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md) | **実際に使う本文の型**（チェックリスト節はこちらにしかない） |
 
 **Claude Code には `.github/instructions/` を自動適用する機構が無いため、毎回この2ファイルを読んでから
@@ -45,7 +45,8 @@ git diff main...HEAD
 
 ## 3. 品質ゲートを実行してから記載する（MUST）
 
-変更の種類ごとの対応表は pr.instructions.md「チェックリストの扱い」が正本です。
+実行するゲートの正本は `CLAUDE.md`「本リポジトリの品質ゲート定義」、チェックの付け方は
+pr.instructions.md「チェックリストの扱い」です。
 **実行して確認できた項目だけをチェックし、対象外の項目は理由を添えて未チェックのまま残します。**
 
 ## 4. `gh pr create` / `gh pr edit` で反映する（MUST）
@@ -81,7 +82,7 @@ gh pr view <PR番号> --json url,title,body -q .url
 
 - **テンプレートを読まずに `pr.instructions.md` の節名だけで本文を作り、チェックリスト節が丸ごと抜ける。**
   → 第0節の2ファイルを必ず読む。
-- **チェックリストを全部 `[x]` にする。** 実行していないゲート（コード変更が無いのに `assembleDebug` など）
+- **チェックリストを全部 `[x]` にする。** 実行していないゲート（コード変更が無いのにビルドやテストなど）
   まで成功扱いにすると、レビュアーへ誤った保証を与える。→ 対象外の理由を書いて未チェックで残す。
 - **未 push のブランチでPRを作ろうとして失敗する／その場で push を代行してしまう。**
   → push はユーザーの作業。本文案を提示して待つ（第1節）。

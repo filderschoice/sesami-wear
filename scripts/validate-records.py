@@ -1,4 +1,4 @@
-"""記録ファイルのYAML検証（品質ゲート、BL-163）。
+"""記録ファイルのYAML検証（品質ゲート）。
 
 `docs/records/managed/BACKLOG.md` と `docs/records/managed/EXECUTE.md` の
 `COPILOT_RECORDS:BEGIN` 〜 `COPILOT_RECORDS:END` の間を抽出し、YAMLとして読み込めることを

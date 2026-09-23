@@ -91,6 +91,7 @@ Pull Requestをいただいても、内容を確認せずにクローズする�
 ./gradlew testDebugUnitTest test
 ./gradlew assembleDebug
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 python scripts/validate-records.py
 ```
 
@@ -111,8 +112,8 @@ ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビル
 体制を拡大した場合は本セクションを更新します。
 
 - すべての変更は、規定ブランチへマージする前にメンテナーのレビューを必須とします。
-- `rules/guardrails-unified.v1.md` の変更は、セキュリティ観点・プライバシー観点の双方をレビューで
-  確認します（担当を分離できる体制になった場合は、それぞれ1名以上を必須とします）。
+- `rules/` 配下（`guardrails-unified.v1.md` / `guardrails-app.v1.md`）の変更は、セキュリティ観点・
+  プライバシー観点の双方をレビューで確認します（担当を分離できる体制になった場合は、それぞれ1名以上を必須とします）。
 - 互換性に影響する変更は、移行方針の提示とメンテナーの承認を必須とします。
 - 本リポジトリの実装はClaude CodeによるAI実装を主体としています。AIエージェント（Claude Code /
   GitHub Copilot）が作成した変更にも、人手による変更と同じレビュー要件を適用します。
@@ -178,7 +179,7 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | ファイル | 役割 | 編集する変更 |
 | --- | --- | --- |
 | `.github/copilot-instructions.md` | **全エージェント共通の実行ルールの正本** | セキュリティ要件、開発プロセス要件、品質・信頼性要件、ドキュメント管理要件、出力要件、例外と保守 |
-| 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用 |
+| 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用、`/pr-create` の入口 |
 | `CLAUDE.md` | Claude Code 固有の差分と本リポジトリ固有の情報 | 共通規約への上書き表、アーキテクチャ概要、本リポジトリの品質ゲート定義、記録ファイルの権限設定、自律ループ実行モードの適用条件 |
 | `.github/instructions/*.instructions.md` | **特定の作業に限った共通規約の正本** | PR説明文・コードレビューの言語と構成。Copilot へは `.vscode/settings.json` から自動適用され、Claude Code はスキル経由で読む |
 | `.github/prompts/*.prompt.md` | Copilot のオンデマンド手順（`/名前` で呼び出す） | Copilot 固有の実行手順。規範は `.github/instructions/` 側に置き、ここへは複製しない |
@@ -212,10 +213,12 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体を
 置いていません）。Markdownlintも後述のGradle品質ゲートもCIでは自動実行されないため、
 プルリクエスト作成前に以下のコマンドをローカル実行し、指摘を事前に解消してください。
-設定ファイルは `.markdownlint-cli2.yaml` で、`**/*.md` を検査します。
+設定ファイルは `.markdownlint-cli2.yaml` です。`**/*.md` はドット始まりのディレクトリ（`.claude/` `.github/`）を
+拾わず、1コマンドに並べるとドット配下が検査から落ちるため、2回に分けて実行します。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 ```
 
 - `.markdownlint-cli2.yaml` に定義された設定（`config:` フィールド）はカレントディレクトリから自動的に読み込まれます。設定ファイルを明示指定する場合は以下のようにします。

@@ -30,7 +30,7 @@ AIエージェント（GitHub Copilot・Claude Code など。以下「エージ�
 - `.github/copilot-instructions.md` — 全エージェント共通の実行ルール・ドキュメント管理要件（正本）
 - `CLAUDE.md` — Claude Code 固有の差分と追加規約
 - `docs/guidelines/RULE.md` — エージェント運用ルール・汎用フレームワーク
-- `rules/guardrails-unified.v1.md` — セキュリティ・プライバシー・ガバナンス統制
+- `rules/guardrails-unified.v1.md` — セキュリティ・ガバナンス統制（生成AIアプリ運用統制は `rules/guardrails-app.v1.md`）
 
 ---
 

@@ -1,29 +1,21 @@
 # CLAUDE.md
 
-Claude Code が本リポジトリで作業するときの実行ルールです。リポジトリルートに置かれているため、
-セッション開始時に自動読み込みされます。
-
-**共通規約の正本は [`.github/copilot-instructions.md`](.github/copilot-instructions.md) です。**
-ファイル名は GitHub の規約で固定されていますが、内容は全AIエージェント共通の実行ルールで、
-下記の `@import` により本ファイルと同時に自動読み込みされます。
-本ファイルには Claude Code 固有の差分と、本リポジトリ固有の情報（アーキテクチャ概要・品質ゲート定義）
-のみを定義します。共通規約と矛盾する場合は本ファイルを優先します。
+Claude Code 固有の差分と、本リポジトリ固有の情報（アーキテクチャ概要・品質ゲート定義）です。
+全エージェント共通規約の正本（[`.github/copilot-instructions.md`](.github/copilot-instructions.md)）と
+ガードレールは下記の `@import` で同時に読み込まれます。共通規約と矛盾する場合は本ファイルを優先します。
+その他の参照先と読むタイミングは、共通規約「参照するドキュメント」を参照してください。
 
 @rules/guardrails-unified.v1.md
 @.github/copilot-instructions.md
 
-`@import` で自動展開するのは上記2ファイルだけです。その他の参照先と読むタイミングは、共通規約
-「参照するドキュメント」の表を参照してください。
-
 ## 共通規約に対する Claude Code 固有の差分（MUST）
 
-| 項目 | 共通規約 | Claude Code での差分 |
-| --- | --- | --- |
-| git操作 | エージェントは実行せず、コマンド例のみ提示する | 同左。ただし「自律ループ実行モード」中の作業ブランチへの `git add` / `git commit` のみ例外。`git push` はモードを問わず常にユーザーが実行する |
-| 1ブランチ1目的の例外 | `BACKLOG.md` の複数項目の一括対応のみ | 上記に加えて「自律ループ実行モード」も例外。いずれも対象タスクの `id` をブランチ名・コミット本文・PR説明へ列挙する |
-| 指示参照の優先順位 1位 | エージェントのシステム指示 | Claude Code ハーネスのシステムプロンプト |
-| PR説明文・コードレビュー | `.github/instructions/pr.instructions.md` に従う | Claude Code には同ファイルを自動適用する機構が無いため、生成時に**明示的に同ファイルを読んでから**従う。PR作成の実行手順は Skill `pr-create` が正本 |
-| 記録ファイルの編集権限 | 規定なし | `.claude/settings.json` の `permissions.allow` により権限プロンプトなしで反映される（下記「記録ファイルの権限設定」） |
+| 項目 | Claude Code での差分 |
+| --- | --- |
+| git操作 | 自律ループ実行モード中の作業ブランチへの `git add` / `git commit` のみ実行してよい。`git push` はモードを問わず常にユーザーが実行する |
+| 指示参照の優先順位 1位 | Claude Code ハーネスのシステムプロンプト |
+| PR説明文・コードレビュー・PR作成 | `.github/instructions/pr.instructions.md` を自動適用する機構が無いため、Skill `pr-create` の手順で同ファイルを**明示的に読んでから**従う |
+| 記録ファイルの編集権限 | `.claude/settings.json` の `permissions.allow` により権限プロンプトなしで反映される（下記） |
 
 ## リポジトリの現状とアーキテクチャ概要
 
@@ -168,12 +160,16 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 | Android Lint | `./gradlew lintDebug` | 終了コード0 |
 | 単体テスト | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
 | ビルド | `./gradlew assembleDebug` | 終了コード0 |
-| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` | 終了コード0（`Summary: 0 issues`） |
-| 記録ファイルのYAML検証 | `python scripts/validate-records.py` | 終了コード0（マーカー内がYAMLとして読み込め、`BACKLOG.md` の必須キー・許容値が揃っていること。手順の正本は `docs/records/spec/FORMAT.md`「YAMLとしての体裁」） |
+| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` と `npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"` | 両方で `Summary: 0 issues`（`**` はドット始まりのディレクトリを拾わない。1コマンドに並べるとドット配下が検査から落ちるため分けて実行する） |
+| 記録ファイルのYAML検証 | `python scripts/validate-records.py`（PyYAMLが必要） | 終了コード0（検査内容はスクリプトのdocstring、体裁の正本は `docs/records/spec/FORMAT.md`） |
 | 脆弱性チェック | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
 
 - 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する
   （定義とドキュメントの乖離を禁止）
+- 変更の種類ごとの適用（PRのチェックリストで実行済みとしてよい範囲）: Gradle系の5ゲート（ktlint〜ビルド）は
+  `core` / `mobile` / `wear` 配下またはGradle設定を変更した場合、Markdown静的解析は `.md` を変更した場合、
+  記録ファイルのYAML検証は `docs/records/managed/` を変更した場合に実行する。自律ループ実行モードでは
+  変更の種類によらず全ゲートを実行する
 - ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
 - 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
   （経緯は `CONTRIBUTING.md`「Markdownlintのローカル実行」参照）
@@ -206,41 +202,24 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
 ## 記録ファイルの権限設定（MUST）
 
-`docs/records/managed/` 配下の3ファイルの編集は、`.claude/settings.json`（プロジェクト設定、リポジトリ管理下）の
-`permissions.allow` により権限プロンプトなしで反映されます。記録ファイルは共通規約により人手編集を前提とせず、
-内容の妥当性はコミット前の差分確認と `FORMAT.md` 準拠で担保するため、更新のたびに確認を挟む意味が無いことに
-よります。
-
-ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md`）・`.github/` 配下・
-`docs/records/spec/FORMAT.md` の編集は、従来どおり確認を挟みます（記述仕様そのものの変更は人の判断が必要）。
-
-自律ループ実行モードでは、個別の指示がなくても各イテレーションの完了を記録ファイルの更新契機とします。
+`docs/records/managed/` 配下の3ファイルは、`.claude/settings.json` の `permissions.allow` により権限プロンプト
+なしで編集できます（人手編集を前提とせず、妥当性はコミット前の差分確認と `FORMAT.md` 準拠で担保するため）。
+ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md`）・`.github/` 配下・`docs/records/spec/FORMAT.md` の
+編集は確認を挟みます。自律ループ実行モードでは、各イテレーションの完了を記録ファイルの更新契機とします。
 
 ## 自律ループ実行モード（Loop Engineering）
 
-ユーザーの明示指示により、人の応答を待たずに複数イテレーションを連続実行する運用モードです。
-**Claude Code 固有であり Copilot は対象外です**（Copilot は常に git 操作を実行しません）。
+人の応答を待たずに複数イテレーションを連続実行する、Claude Code 固有の運用モードです（Copilot は対象外）。
 
-### 適用条件（MUST）
-
-- ユーザーが本モードの開始を明示的に指示していること
-- 指示されたスコープ内でのみ有効で、ループ終了と同時に通常の対話モードへ戻る
-- 適用条件を満たさない場合、`git add` / `git commit` を実行してはならない
-
-### 起動方法（MUST）
-
-適用条件を満たしたら、**Skill `autonomous-loop` を起動し、その手順に従ってください**。
-開始手順・イテレーション手順・タスク選択規則・確認質問の代替・出力要件の読み替え・完了条件・終了時の
-報告は同スキルが正本です。手順を記憶や推測で代用せず、必ずスキルを読んでから開始します。
-
-手順をスキルへ分離しているのは、本モードが明示指示時にしか使われないためです。統制要件
-（許可・禁止される操作、停止条件、確認事項の非同期化、秘密情報の取り扱い、監査）は
-`rules/guardrails-unified.v1.md` セクション12として常時読み込みされており、スキルを読み込んでいない
-状態でも禁止事項は有効です。ブランチ・コミット規約は `CONTRIBUTING.md` の同名節が正本です。
+- **適用条件（MUST）**: ユーザーが開始を明示的に指示していること。指示されたスコープ内でのみ有効で、
+  ループ終了と同時に通常の対話モードへ戻る。満たさない場合は `git add` / `git commit` を実行してはならない
+- **起動方法（MUST）**: Skill `autonomous-loop` を起動し、その手順に従う。手順を記憶や推測で代用しない
+- 統制要件（禁止操作・停止条件・秘密情報の取り扱い）は常時読み込みの `rules/guardrails-unified.v1.md`
+  セクション12、ブランチ・コミット規約は `CONTRIBUTING.md` の同名節が正本
 
 ## 保守
 
 共通規約の変更は `.github/copilot-instructions.md` へ、Claude Code 固有の変更と本リポジトリ固有の情報は
 本ファイルへ反映します（役割分担の正本は `CONTRIBUTING.md`「エージェント指示ファイルの構成規約」）。
-ガードレール一式の配布元は `C:\Dev\repo\copilot-rules` で、追従判断は同リポジトリの `CHANGELOG.md` を
+ガードレール一式の配布元は `C:\Dev\repo\play\copilot-rules` で、追従判断は同リポジトリの `CHANGELOG.md` を
 参照します。
