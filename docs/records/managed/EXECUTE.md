@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 12:10
+  summary: Tileのデバイス名を状態の上の帯へ移し、左上を「更新」、経路をベクターアイコンで帯へ出す
+  details:
+    変更内容: >-
+      `SesameTileService`を、左列＝「更新」「変更」、右列上＝デバイス名の帯（`buildNameHeader`、中立色で
+      デバイス名と経路のベクターアイコンを並べる）、右列下＝状態チップへ組み替えた。経路アイコンは
+      スマホと同じMaterialのドローアブルをwearへ複製し、`onTileResourcesRequest`で登録（`RESOURCES_VERSION`を
+      "2"へ）して白で着色する。状態チップの最終取得時刻の行からは経路の絵文字を外し、
+      `SesameTileStatus`へ`route`と、Complication向けの`detailLabelWithRouteIcon`（絵文字を前置）を追加した。
+      帯のぶん高さが減るため状態アイコンの書体を`DISPLAY1`から`DISPLAY2`へ下げた。Complicationの表示は従来どおり。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/res/drawable/ic_route_bluetooth.xml
+      - wear/src/main/res/drawable/ic_route_internet.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0（初回はdetektの`LongMethod`で失敗し、経路アイコンの生成を`buildRouteIcon`へ
+      切り出して解消）。TileServiceはAndroid Tiles API依存のため単体テスト対象外で、円形画面での見切れの
+      有無とベクターアイコンの描画はBL-208で実機確認する。
+    関連ID:
+      - BL-206
 - date: 2026-09-23 11:20
   summary: ウィジェット（4x2）のデバイス名を状態の上の帯へ移し、左上を「更新」、経路アイコンを中立色の帯へ移す
   details:

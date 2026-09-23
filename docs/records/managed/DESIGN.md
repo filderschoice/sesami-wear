@@ -1100,13 +1100,22 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 ### Tile
 
 - `wear.tile.SesameTileService`（`androidx.wear.tiles.TileService`実装）: 現在のレイアウトは
-  タイル端から`CONTAINER_PADDING_DP`（16dp）内側へ寄せた`Row`（左列＋右チップ）構成。
-  - 左列（`LEFT_COLUMN_WIDTH_DP`=76dp固定、高さいっぱい）: デバイス名チップ（タップで
-    `SesameStatusRefreshActivity`を起動し状態更新をリクエスト）とデバイス変更チップ（タップで
-    `TileConfigurationActivity`を起動）を`weight(1f)`で均等分割、間に`CHIP_SPACING_DP`（6dp）の
-    Spacer。
-  - 右チップ（残り全域）: 状態アイコン・状態文言・操作ラベルを中央寄せで表示し、タップで施錠/解錠
-    コマンド（またはMIXED時は「全施錠」）を実行する。
+  タイル端から`CONTAINER_PADDING_DP`（16dp）内側へ寄せた`Row`（左列＋右列）構成。
+  - 左列（`LEFT_COLUMN_WIDTH_DP`=76dp固定、高さいっぱい）: 「更新」チップ（タップで
+    `SesameStatusRefreshActivity`を起動し状態更新をリクエスト。スマホ側は到達実績によらずBLEを試す、BL-204）と
+    デバイス変更チップ（タップで`TileConfigurationActivity`を起動）を`weight(1f)`で均等分割、間に
+    `CHIP_SPACING_DP`（6dp）のSpacer。BL-206より前は「更新」の位置がデバイス名チップだった。
+  - 右列上（BL-206）: デバイス名の帯（トップレベル関数`buildNameHeader`）。中立色の背景に、デバイス名
+    （`CAPTION2`・1行・末尾省略）と経路のベクターアイコン（12dp、白）を横に並べる。上下の余白は3dpに詰め、
+    帯の高さは約22dp。タップは「更新」と同じ状態取得（従来のデバイス名タップを引き継ぐ）。
+    経路アイコンはスマホのウィジェットと同じ`ic_route_bluetooth` / `ic_route_internet`（Material Icons、
+    wearの`res/drawable`へ複製）を`onTileResourcesRequest`で登録し（`RESOURCES_VERSION`を"2"へ）、
+    `LayoutElementBuilders.ColorFilter`で白に着色する。経路が分からなければアイコンは出さない。
+  - 右列下（残り全域、`weight(1f)`）: 状態チップ。状態アイコン・状態文言・最終取得時刻・操作ラベルを
+    中央寄せで表示し、タップで施錠/解錠コマンド（またはMIXED時は「全施錠」）を実行する。
+    帯のぶん高さが減るため、状態アイコンの書体を`DISPLAY1`から`DISPLAY2`へ一段下げた（BL-206）。
+    最終取得時刻の行には経路の絵文字を付けない（`SesameTileStatus.detailLabel`は経路を含まず、
+    経路は`SesameTileStatus.route`で別に持つ）。
   - 各チップは共通ヘルパー`buildChipModifiers`で角丸背景（`ModifiersBuilders.Corner`、半径
     `CHIP_CORNER_RADIUS_DP`=12dp）・内側パディング（`CHIP_INNER_PADDING_DP`=6dp）を持つ。
   - 状態色（`SesameTileContent.backgroundColorArgb`: 施錠中=緑/解錠中=赤/通信中=黄/MIXED=紫/
@@ -1798,7 +1807,8 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 
 | 面 | 見せ方 |
 | --- | --- |
-| Tile / Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`）。**行は増やさない** |
+| Tile | 右上のデバイス名の帯（中立色）へ、名前と並べてMaterialのベクターアイコンを置く（BL-206。BL-168では最終取得時刻の行へ絵文字を前置していた） |
+| Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`、`SesameTileStatus.detailLabelWithRouteIcon`）。**行は増やさない** |
 | ホーム画面ウィジェット（4x2） | 右上のデバイス名の帯（中立色）へ、名前と並べてMaterialのベクターアイコンを置く（BL-205。BL-176では最終取得時刻の行の先頭だった） |
 | スマートフォンのアプリ画面 | ベクターアイコンと語を併記する（「Bluetooth」「インターネット」、BL-176） |
 
@@ -1821,13 +1831,15 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
   変わらない中立色（`CHIP_NEUTRAL_COLOR_ARGB`）のデバイス名の帯へ移し、白で描く。
   改善方法は、(1) 中立色の帯へ移す、(2) 今の位置で暗い丸のバッジを敷く、(3) 語を添える、の3案から
   ユーザーが(1)を選んだ。2x1（`MEDIUM`）の右1マスには従来どおり経路を出さない（面積が足りない）。
+  Tileの右列は約78dpで、帯の中はデバイス名＋アイコンで埋まるため、名前が長いと末尾が省略される。
 
 - **アイコンは🔗（Bluetooth）／🌐（インターネット）。** 当初は📶／☁だったが、📶は携帯電話の
   電波強度として広く使われており、Bluetoothでの直接操作を表すものとして読み取れないという
   指摘があり変更した（BL-173、2026-09-20）。Unicodeに「Bluetooth」の絵文字は存在せず
   （ロゴはルーン文字の合字で絵文字フォントに無く、端末によっては豆腐になる）、搭載率の高い
-  Emoji 1.0の範囲から選んでいる。ウォッチ側（Tile・Complication）が絵文字のままなのは、
-  Complicationの`SHORT_TEXT`/`LONG_TEXT`がテキストしか持てず、画像を埋め込めないため。
+  Emoji 1.0の範囲から選んでいる。Complicationが絵文字のままなのは、`SHORT_TEXT`/`LONG_TEXT`が
+  テキストしか持てず、画像を埋め込めないため。TileはBL-206でベクターアイコンへ移した
+  （絵文字は🔗がグレー、🌐が青で描かれ、緑・赤の背景では見分けにくかった）。
 - 行を増やさないのは、3つの面がいずれも表示余白を使い切っており、過去に文言が収まらず省略された
   事例があるため（BL-102 / BL-104 / BL-158）。アイコンは1コードポイントに収まるものだけを使い、
   区切りの空白も入れない。この制約は`SesameRouteLabelTest`で固定している。
