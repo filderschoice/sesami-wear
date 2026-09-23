@@ -122,8 +122,8 @@ open class SesameWidget : GlanceAppWidget() {
  * ウィジェット上のタップ操作（BL-122）。右側は[WidgetTapAction]の判定どおり、施錠は[WidgetCommandReceiver]で
  * 即時実行、解錠は[WidgetUnlockConfirmActivity]を開き、操作できない状態（通信中・状態不明）では何もしない。
  * 左側の「更新」（2x1ではデバイス名）は状態取得のみ（到達実績によらずBLEを試す、BL-204）、
- * 「変更」は選択画面を開く。4x2の右上のデバイス名の帯も「更新」と同じ状態取得にする
- * （BL-205より前はデバイス名のタップが状態取得だったため、その操作を引き継ぐ）。
+ * 「変更」は選択画面を開く。4x2の右上のデバイス名の帯は表示専用でタップを受けない（BL-210。
+ * BL-205〜BL-209の間は「更新」と同じ状態取得だった）。
  */
 internal class WidgetActions(
     context: Context,
@@ -211,7 +211,7 @@ private fun SesameWidgetContent(
                         LeftColumn(actions = actions)
                         Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
                         Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
-                            NameHeader(displayName = model.displayName, route = model.route, onClick = actions.refresh)
+                            NameHeader(displayName = model.displayName, route = model.route)
                             Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
                             StatusBox(model = model, onClick = actions.status)
                         }

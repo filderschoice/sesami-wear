@@ -3,9 +3,18 @@ package com.sesamiwear.core.display
 import com.sesamiwear.core.TileDisplayState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SesameTileContentTest {
+    @Test
+    fun `name header is darker than tappable neutral chips`() {
+        // BL-210: 表示専用の帯がボタン（中立色のチップ）と同じ見た目にならないこと。
+        val headerGray = SesameTileContent.NAME_HEADER_COLOR_ARGB and 0xFF
+        val chipGray = SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB and 0xFF
+        assertTrue(headerGray < chipGray)
+    }
+
     @Test
     fun `status label is defined for every state`() {
         TileDisplayState.entries.forEach { state ->

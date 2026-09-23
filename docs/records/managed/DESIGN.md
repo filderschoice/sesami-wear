@@ -378,7 +378,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
     全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
   - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
-  - 「更新」（とデバイス名の帯）のタップは状態取得のみで、到達実績によらずBLEを試す（BL-204）。
+  - 「更新」のタップは状態取得のみで、到達実績によらずBLEを試す（BL-204）。デバイス名の帯は表示専用（BL-210）。
     同一uuidへの2秒以内の重複は1回（`CommandDebouncer`を経路間で共有）。
 - **意図的に揃えていない点**:
   - 追加時の設定: ウィジェットは`appwidget-provider`の`android:configure`で追加直後に選択画面を開ける（Tilesには
@@ -453,7 +453,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   中立色、経路のベクターアイコンとデバイス名をこの順に横に並べる。BL-205 / BL-209）、その下の残り全域に状態アイコン・
   状態文言・操作文言を中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は
   右下の状態表示にだけ使う。BL-205より前は左上がデバイス名チップ（タップで状態取得）だった。
-  デバイス名の帯のタップも「更新」と同じ状態取得にしている（従来の操作を引き継ぐため）。
+  デバイス名の帯は表示専用でタップを受けず、背景を押せるチップより暗い`SesameTileContent.NAME_HEADER_COLOR_ARGB`
+  （0xFF262626）にしてボタンと区別する（BL-210。BL-205〜BL-209の間は「更新」と同じ状態取得で、
+  チップと同じ中立色だったためボタンに見えた）。
   背景は暗色（0xFF121212）で角丸16dp。未設定時は「タップして設定」のみを表示し、全面タップで選択画面を開く。
   `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
   dataへ操作名とappWidgetIdを入れる。
@@ -1106,11 +1108,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     `SesameStatusRefreshActivity`を起動し状態更新をリクエスト。スマホ側は到達実績によらずBLEを試す、BL-204）と
     デバイス変更チップ（タップで`TileConfigurationActivity`を起動）を`weight(1f)`で均等分割、間に
     `CHIP_SPACING_DP`（6dp）のSpacer。BL-206より前は「更新」の位置がデバイス名チップだった。
-  - 右列上（BL-206）: デバイス名の帯（トップレベル関数`buildNameHeader`）。中立色の背景に、経路の
+  - 右列上（BL-206）: デバイス名の帯（トップレベル関数`buildNameHeader`）。暗色の背景
+    （`SesameTileContent.NAME_HEADER_COLOR_ARGB`=0xFF262626、押せるチップの0xFF424242より暗い。BL-210）に、経路の
     ベクターアイコン（12dp、白）とデバイス名（`CAPTION2`・1行・末尾省略）をこの順に横に並べる。
     アイコンを名前の前に置くのは、`Row`が子を先頭から順に測り後ろの子へ残り幅しか渡さないため
     （名前が先だと長い名前でアイコンが右端から見切れた。BL-209）。上下の余白は3dpに詰め、
-    帯の高さは約22dp。タップは「更新」と同じ状態取得（従来のデバイス名タップを引き継ぐ）。
+    帯の高さは約22dp。表示専用でタップは受けない（BL-210。BL-206〜BL-209の間は「更新」と同じ状態取得だったが、
+    ボタンに見えたうえ「更新」と機能が重複していたため、ユーザーの選択で外した）。
     経路アイコンはスマホのウィジェットと同じ`ic_route_bluetooth` / `ic_route_internet`（Material Icons、
     wearの`res/drawable`へ複製）を`onTileResourcesRequest`で登録し（`RESOURCES_VERSION`を"2"へ）、
     `LayoutElementBuilders.ColorFilter`で白に着色する。経路が分からなければアイコンは出さない。
@@ -1810,9 +1814,9 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 
 | 面 | 見せ方 |
 | --- | --- |
-| Tile | 右上のデバイス名の帯（中立色）へ、名前と並べてMaterialのベクターアイコンを置く（BL-206。BL-168では最終取得時刻の行へ絵文字を前置していた） |
+| Tile | 右上のデバイス名の帯（暗色、BL-210）へ、名前と並べてMaterialのベクターアイコンを置く（BL-206。BL-168では最終取得時刻の行へ絵文字を前置していた） |
 | Complication | 「最終取得時刻」の行へ経路アイコンを**前置**する（`🔗3分前`、`🌐認証エラー`、`SesameTileStatus.detailLabelWithRouteIcon`）。**行は増やさない** |
-| ホーム画面ウィジェット（4x2） | 右上のデバイス名の帯（中立色）へ、名前と並べてMaterialのベクターアイコンを置く（BL-205。BL-176では最終取得時刻の行の先頭だった） |
+| ホーム画面ウィジェット（4x2） | 右上のデバイス名の帯（暗色、BL-210）へ、名前と並べてMaterialのベクターアイコンを置く（BL-205。BL-176では最終取得時刻の行の先頭だった） |
 | スマートフォンのアプリ画面 | ベクターアイコンと語を併記する（「Bluetooth」「インターネット」、BL-176） |
 
 - アプリ画面のカードでは、**経路（アイコン＋語）を必ず1行に収める**。理由の文言が長いとき
@@ -1831,7 +1835,8 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
 - **経路アイコンは状態色の上に置かない**（BL-205 / BL-206、2026-09-23）。BL-176では最終取得時刻の行
   （状態色の背景）に置いていたが、施錠中＝緑・解錠中＝赤の上では白いアイコンが背景に埋もれ、
   BluetoothとインターネットのどちらかがUI上で判別できなかった（ユーザー指摘）。状態によって色の
-  変わらない中立色（`CHIP_NEUTRAL_COLOR_ARGB`）のデバイス名の帯へ移し、白で描く。
+  変わらない中立色（`CHIP_NEUTRAL_COLOR_ARGB`）のデバイス名の帯へ移し、白で描く（BL-210で帯をボタンと
+  区別するため、さらに暗い`NAME_HEADER_COLOR_ARGB`へ変えた。白とのコントラストは上がる）。
   改善方法は、(1) 中立色の帯へ移す、(2) 今の位置で暗い丸のバッジを敷く、(3) 語を添える、の3案から
   ユーザーが(1)を選んだ。2x1（`MEDIUM`）の右1マスには従来どおり経路を出さない（面積が足りない）。
   Tileの右列は約98dp（BL-209で左列を狭める前は約78dp）で、名前が長いと名前の末尾が省略される。

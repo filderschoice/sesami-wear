@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 14:30
+  summary: Tile・ウィジェットのデバイス名の帯を押せるチップより暗い色の表示専用にし、タップを外す
+  details:
+    変更内容: >-
+      `core.display.SesameTileContent`へ帯の背景色`NAME_HEADER_COLOR_ARGB`（0xFF262626、押せるチップの
+      0xFF424242より暗い）を追加し、Tileの`buildNameHeader`とウィジェットの`SesameWidgetChips.NameHeader`で使う。
+      両方から帯のクリック（状態取得）を外した（ユーザーの選択。「更新」と機能が重複していた）。
+      帯の色がチップより暗いことを`SesameTileContentTest`へ追加した。利用者向けの`docs/USER_GUIDE.md`・
+      `docs/RELEASE_NOTES.md`（0.14.0）を追随させた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機での見た目とタップが効かないことはBL-211（人手検証）で確認する。
+    関連ID:
+      - BL-210
 - date: 2026-09-23 14:00
   summary: Tileのデバイス名の帯で経路マークを名前の前へ移して見切れを防ぎ、左列を狭めて右列へ幅を回す
   details:

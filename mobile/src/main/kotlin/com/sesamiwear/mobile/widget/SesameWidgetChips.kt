@@ -83,25 +83,27 @@ internal fun StatusIconAndLabel(model: SesameWidgetModel.Configured) {
 
 /**
  * 4x2表示の右上に置くデバイス名の帯（BL-205）。中立色の背景に、経路のベクターアイコン（BL-176）と
- * デバイス名を横に並べる（BL-209でアイコンを名前の前へ移した）。タップは「更新」と同じ状態取得。
+ * デバイス名を横に並べる（BL-209でアイコンを名前の前へ移した）。
+ *
+ * 表示専用でタップは受けない（BL-210）。BL-205〜BL-209の間は「更新」と同じ状態取得だったが、
+ * 押せるチップと同じ中立色だったためボタンに見え、「更新」と機能も重複していた。背景を押せるチップより
+ * 暗い[SesameTileContent.NAME_HEADER_COLOR_ARGB]にして、ボタンと区別する。
  *
  * 経路アイコンは、BL-176では状態表示の最終取得時刻の行へ置いていたが、状態色（施錠中＝緑・
  * 解錠中＝赤）の上では背景に埋もれて見分けにくかった（2026-09-23のユーザー指摘）。
- * 状態によって色の変わらない中立色の帯へ移し、常に同じコントラストで見えるようにしている。
+ * 状態によって色の変わらない暗色の帯へ移し、常に同じコントラストで見えるようにしている。
  * 経路が分からない場合はアイコンを出さず、デバイス名だけを出す。
  */
 @Composable
 internal fun NameHeader(
     displayName: String,
     route: SesameStatusRoute?,
-    onClick: Action?,
 ) {
     Row(
         modifier =
             GlanceModifier
                 .fillMaxWidth()
-                .clickableOrSelf(onClick)
-                .background(ColorProvider(Color(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)))
+                .background(ColorProvider(Color(SesameTileContent.NAME_HEADER_COLOR_ARGB)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(horizontal = CHIP_INNER_PADDING_DP.dp, vertical = NAME_HEADER_VERTICAL_PADDING_DP.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -87,7 +87,7 @@ class SesameTileService : TileService() {
                 .setWidth(DimensionBuilders.expand())
                 .setHeight(DimensionBuilders.expand())
                 .addContent(
-                    buildNameHeader(this, displayName, status.route, buildRefreshClickable(packageName, deviceUuid)),
+                    buildNameHeader(this, displayName, status.route),
                 )
                 .addContent(
                     LayoutElementBuilders.Spacer.Builder().setHeight(DimensionBuilders.dp(CHIP_SPACING_DP)).build(),
@@ -473,13 +473,15 @@ private fun buildStatusColumn(
 }
 
 /**
- * 右上のデバイス名の帯（BL-206）。中立色の背景に、経路のベクターアイコンとデバイス名を横に並べる
+ * 右上のデバイス名の帯（BL-206）。暗色の背景に、経路のベクターアイコンとデバイス名を横に並べる
  * （BL-209でアイコンを名前の前へ移した）。
- * タップは左上の「更新」と同じ状態取得（BL-206より前のデバイス名タップを引き継ぐ）。
+ * 表示専用でタップは受けない（BL-210）。BL-206〜BL-209の間は左上の「更新」と同じ状態取得だったが、
+ * 押せるチップと同じ中立色だったためボタンに見え、「更新」と機能も重複していた。背景を押せるチップより
+ * 暗い[SesameTileContent.NAME_HEADER_COLOR_ARGB]にして、ボタンと区別する。
  *
  * 経路アイコンは、BL-168 / BL-173では状態チップの最終取得時刻の行へ絵文字（🔗 / 🌐）で前置していたが、
  * 施錠中＝緑・解錠中＝赤の背景の上では見分けにくかった（2026-09-23のユーザー指摘）。状態によって色の
- * 変わらない中立色の帯へ移し、スマホのウィジェットと同じMaterialのアイコンを白で描く。
+ * 変わらない暗色の帯へ移し、スマホのウィジェットと同じMaterialのアイコンを白で描く。
  * 経路が分からない場合はアイコンを出さず、デバイス名だけを出す。
  *
  * クラス内のメソッド数がdetektの`TooManyFunctions`閾値に近いため、トップレベル関数にしている。
@@ -488,7 +490,6 @@ private fun buildNameHeader(
     context: Context,
     displayName: String,
     route: SesameStatusRoute?,
-    clickable: ModifiersBuilders.Clickable,
 ): LayoutElementBuilders.LayoutElement {
     // 経路アイコンは名前の前に置く（BL-209）。Rowは子を先頭から順に測り、後ろの子には残りの幅しか
     // 渡さないため、名前を先に置くと長い名前が幅を使い切り、後ろのアイコンが右端で見切れていた。
@@ -520,7 +521,7 @@ private fun buildNameHeader(
             ModifiersBuilders.Modifiers.Builder()
                 .setBackground(
                     ModifiersBuilders.Background.Builder()
-                        .setColor(ColorBuilders.argb(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB))
+                        .setColor(ColorBuilders.argb(SesameTileContent.NAME_HEADER_COLOR_ARGB))
                         .setCorner(
                             ModifiersBuilders.Corner.Builder()
                                 .setRadius(DimensionBuilders.dp(NAME_HEADER_CORNER_RADIUS_DP))
@@ -536,7 +537,6 @@ private fun buildNameHeader(
                         .setBottom(DimensionBuilders.dp(NAME_HEADER_VERTICAL_PADDING_DP))
                         .build(),
                 )
-                .setClickable(clickable)
                 .setSemantics(
                     ModifiersBuilders.Semantics.Builder().setContentDescription(description).build(),
                 )
@@ -547,8 +547,8 @@ private fun buildNameHeader(
 }
 
 /**
- * 状態取得（[SesameStatusRefreshActivity]の起動）のクリック（BL-206）。左上の「更新」と右上の
- * デバイス名の帯で共用する。クラス内のメソッド数を増やさないためトップレベルに置く。
+ * 状態取得（[SesameStatusRefreshActivity]の起動）のクリック（BL-206）。左上の「更新」が使う
+ * （BL-210までは右上のデバイス名の帯と共用していた）。クラス内のメソッド数を増やさないためトップレベルに置く。
  */
 private fun buildRefreshClickable(
     packageName: String,
