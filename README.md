@@ -120,12 +120,13 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ```
 
 上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
-次の2つを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
+次のコマンドを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
 [CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
 [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 python scripts/validate-records.py
 ```
 

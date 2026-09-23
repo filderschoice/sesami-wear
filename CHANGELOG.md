@@ -36,6 +36,33 @@ v0.26.0 を取り込みました。v0.26.0 の大半は本リポジトリから�
     構成規約表も同じ表現へ揃えました。
   - `.github/PULL_REQUEST_TEMPLATE.md` は本リポジトリ版（Gradleのコマンド・資格情報の種類を明記した
     チェックリスト）を維持しています。
+- **常時読み込みコンテキストの最適化（BL-201）**: 配布元で行われた重複削除・圧縮を、本リポジトリ固有の
+  情報を残したまま取り込みました。
+  - `CLAUDE.md`: 冒頭説明を1段落へ圧縮。固有差分表から「共通規約」列を削除し差分だけを残した。
+    「1ブランチ1目的の例外」行は、共通規約が `CONTRIBUTING.md`「1ブランチ1目的の原則と例外」
+    （自律ループ実行モードを含む両方の例外を定義）の参照になっているため削除。権限設定の理由と
+    自律ループ節（適用条件・起動方法の小見出し）を箇条書きへ集約。配布元の所在を `play\copilot-rules` へ更新。
+    アーキテクチャ概要・参照先マップ・よく使うコマンド・検証コストの抑制は維持しています。
+  - Markdown静的解析ゲートへ `.claude/` `.github/` 配下を追加しました。配布元は
+    `"**/*.md" ".claude/**/*.md" ".github/**/*.md"` を1コマンドに並べていますが、本リポジトリで実行すると
+    検査対象が38件のままでドット配下が落ちる（単独指定では10件検査される）ことを確認したため、
+    2コマンドに分けています。`CONTRIBUTING.md`「品質ゲート」「Markdownlintのローカル実行」と
+    `README.md` の同じコマンドも追随させました。
+  - `.github/copilot-instructions.md`: 冒頭説明を1段落へ圧縮（プロジェクトの一文紹介は Copilot が
+    `CLAUDE.md` を自動では読まないため維持）、guardrails セクション11欠番の注記を削除（guardrails 本文に記載あり）、
+    記録対象のパス重複と `EXECUTE.md` の必須キー列挙を `FORMAT.md` 参照へ。本リポジトリ固有のセキュリティ補足
+    （実資格情報を使わない）と、記録対象の `docs/RELEASE_NOTES.md`・利用者向けドキュメントは維持しています。
+  - 配布元と共有するスキルの description（`autonomous-loop` / `docs-consistency-review`）を配布元版へ。
+    `autonomous-loop` の本文は本リポジトリ固有の記述（人手検証の3類型、`RELEASE_NOTES.md`、利用量の抑制）が
+    あるため維持しています。`scripts/validate-records.py` はdocstringの `BL-163` 表記のみ配布元版へ。
+  - `docs/records/managed/DESIGN.md` 末尾の陳腐化した参照（`CLAUDE.md`「出力要件の読み替え」。2026-09-12の
+    再編で出力要件は共通規約へ、読み替え表はスキルへ移っていた）を修正しました。
+  - 計測値（Claude Code のセッション開始時に常時読み込むルールファイル＋skill description）:
+    **51,747 → 45,606 bytes（-11.9%）**
+    - `CLAUDE.md`: 20,486 → 19,129 bytes
+    - `.github/copilot-instructions.md`: 13,736 → 12,675 bytes（Copilot の常時読み込みも同値で -7.7%）
+    - `rules/guardrails-unified.v1.md`: 11,083 → 8,358 bytes（分離した `guardrails-app.v1.md` 3,715 bytes は必要時のみ読む）
+    - skill description 計: 6,442 → 5,444 bytes
 
 ## 2026-09-22（人手検証項目の棚卸し）
 

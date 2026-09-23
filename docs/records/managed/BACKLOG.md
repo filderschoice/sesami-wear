@@ -5,20 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-201
-  区分: 品質ゲート
-  タスク内容: >-
-    配布元 v0.26.0 の常時読み込みコンテキスト最適化を取り込む。`CLAUDE.md` の固有差分表の圧縮、
-    `.github/copilot-instructions.md` の冒頭・記録対象の圧縮（本リポジトリ固有の補足は維持）、
-    配布元と共有するスキル（`autonomous-loop` / `docs-consistency-review`）のdescription圧縮、
-    Markdown静的解析ゲートへのドット配下（`.claude/` `.github/`）の追加、`validate-records.py` のdocstring。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    常時読み込み合計が取り込み前（51,747 bytes）以下であり、本リポジトリ固有の規範が失われていないこと。
-  依存:
-    - BL-200
 - id: BL-202
   区分: 品質ゲート
   タスク内容: >-

@@ -1,21 +1,16 @@
 # AIエージェント共通 実行ルール
 
-**本ファイルは、GitHub Copilot・Claude Code など本リポジトリで作業する全AIエージェントに共通する実行ルールの
-正本です。** ファイル名が `copilot-instructions.md` なのは GitHub が自動読み込みするパスとして規約で固定されて
-いるためで、内容の適用範囲は Copilot に限りません。
-
-- Copilot はこのファイルを自動読み込みします。末尾の「Copilot 固有の差分」もあわせて適用してください。
-- Claude Code は [`CLAUDE.md`](../CLAUDE.md) がこのファイルを `@import` して自動読み込みします。
-  Claude Code 固有の差分と追加規約は `CLAUDE.md` 側に定義されています。
-- 共通規約と各エージェント固有規約が矛盾する場合は、**エージェント固有規約を優先**します。
+**GitHub Copilot・Claude Code など全AIエージェントに共通する実行ルールの正本です。** ファイル名は GitHub が
+自動読み込みするパスとして固定されているだけで、適用範囲は Copilot に限りません。Copilot は本ファイルを
+自動読み込みし、末尾「Copilot 固有の差分」もあわせて適用します。Claude Code は [`CLAUDE.md`](../CLAUDE.md) の
+`@import` で読み込み、固有の差分は同ファイルにあります。矛盾する場合は**エージェント固有規約を優先**します。
 
 本リポジトリは、Pixel Watch から CANDY HOUSE Sesame 5（+ Hub 3）を操作する Android / Wear OS アプリ
-「Sesami Wear」の開発リポジトリです。アプリの構成・実装状況は `CLAUDE.md` と `README.md` を参照してください。
+「Sesami Wear」の開発リポジトリです。
 
 ## 参照するドキュメント
 
-常時読み込みはコンテキストを消費し続けるため、以下は必要になった時点で読んでください
-（Claude Code では `rules/guardrails-unified.v1.md` と本ファイルのみが `@import` で自動読み込みされます）。
+常時読み込みはコンテキストを消費し続けるため、以下は必要になった時点で読んでください。
 
 | ドキュメント | 内容 | 読むタイミング |
 | --- | --- | --- |
@@ -37,9 +32,6 @@
 5. ユーザー入力
 
 矛盾した場合は、常に上位を優先します。
-
-なお guardrails のセクション11「開発プロセス統制」は欠番です。開発プロセス・ブランチ管理は
-`CONTRIBUTING.md` が正本です。
 
 ## セキュリティ要件（MUST）
 
@@ -131,7 +123,7 @@
 ### records自動更新規約（MUST）
 
 - 記述仕様の唯一の参照元は `docs/records/spec/FORMAT.md`。定義されていないキーを独自追加しない
-- 更新対象は `docs/records/managed/` 配下の `BACKLOG.md` / `DESIGN.md` / `EXECUTE.md`
+- 更新対象は `docs/records/managed/` 配下の3ファイル（記録対象は下記）
 - 各ファイルは `COPILOT_RECORDS:BEGIN` と `COPILOT_RECORDS:END` の間のみ更新する
   （マーカー名は Copilot 導入時の命名を継続利用しており、全エージェント共通です）
 - `BACKLOG.md` / `EXECUTE.md` は YAML の配列要素（`- key: value` 形式）を1件単位で追記・更新・削除し、
@@ -141,9 +133,9 @@
 
 ### 記録対象（MUST）
 
-- `docs/records/managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
-- `docs/records/managed/EXECUTE.md`: コード修正を伴う変更のみ記録（実施済み内容のみ）
-- `docs/records/managed/BACKLOG.md`: 未対応事項、課題、次ステップ
+- `DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）
+- `EXECUTE.md`: コード修正を伴う変更のみ記録（実施済み内容のみ）
+- `BACKLOG.md`: 未対応事項、課題、次ステップ
 - `CHANGELOG.md`: リポジトリの運用ルール・ドキュメント・ガードレールの変更履歴
 - `docs/RELEASE_NOTES.md`: アプリ利用者向けのバージョンごとの変更点。利用者に影響する変更
   （機能追加、UIの変更、不具合修正）を行った場合に追記する（内部リファクタリング・ドキュメントのみの
@@ -153,7 +145,7 @@
 
 ### 記録の書き分け（MUST / SHOULD）
 
-- MUST: `EXECUTE.md` は日時（`YYYY-MM-DD HH:mm`）、変更概要、変更ファイル、検証コマンドと成否を含め、
+- MUST: `EXECUTE.md` は `FORMAT.md` の必須キー（日時・変更概要・変更ファイル・検証コマンドと成否）を含め、
   新しい記録を先頭に追加する。既存ログは削除しない
 - MUST: `BACKLOG.md` は完了した項目を削除する。完了がコード修正を伴う場合のみ `EXECUTE.md` へ記録する
 - SHOULD: `DESIGN.md` のみ、または `BACKLOG.md` のみの変更では `EXECUTE.md` を更新しない
@@ -204,7 +196,7 @@
 
 ## Copilot 固有の差分
 
-ここから下は GitHub Copilot にのみ適用されます。Claude Code 固有の差分と追加規約は `CLAUDE.md` を参照してください。
+ここから下は GitHub Copilot にのみ適用されます。
 
 - **git操作**: Copilot は `git add` / `git commit` / `git push` を**いかなる場合も実行しません**（例外なし）。
   必要時はコマンド例のみ提示します。

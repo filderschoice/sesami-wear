@@ -2060,7 +2060,7 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
 
 ## Copilot実装指示
 
-- 初回実装時の出力要件・追加実装時の出力要件・要件トレーサビリティ要件は `CLAUDE.md` の
+- 初回実装時の出力要件・追加実装時の出力要件・要件トレーサビリティ要件は `.github/copilot-instructions.md` の
   該当セクション（「開発プロセス要件」「出力要件」）に従う。自律ループ実行モードでは
-  `CLAUDE.md`「出力要件の読み替え」に従い、本文書とEXECUTE.md/BACKLOG.mdの更新をもって充足する。
+  Skill `autonomous-loop`「出力要件の読み替え」に従い、本文書とEXECUTE.md/BACKLOG.mdの更新をもって充足する。
 <!-- COPILOT_RECORDS:END -->

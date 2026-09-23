@@ -91,6 +91,7 @@ Pull Requestをいただいても、内容を確認せずにクローズする�
 ./gradlew testDebugUnitTest test
 ./gradlew assembleDebug
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 python scripts/validate-records.py
 ```
 
@@ -212,10 +213,12 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体を
 置いていません）。Markdownlintも後述のGradle品質ゲートもCIでは自動実行されないため、
 プルリクエスト作成前に以下のコマンドをローカル実行し、指摘を事前に解消してください。
-設定ファイルは `.markdownlint-cli2.yaml` で、`**/*.md` を検査します。
+設定ファイルは `.markdownlint-cli2.yaml` です。`**/*.md` はドット始まりのディレクトリ（`.claude/` `.github/`）を
+拾わず、1コマンドに並べるとドット配下が検査から落ちるため、2回に分けて実行します。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 ```
 
 - `.markdownlint-cli2.yaml` に定義された設定（`config:` フィールド）はカレントディレクトリから自動的に読み込まれます。設定ファイルを明示指定する場合は以下のようにします。
