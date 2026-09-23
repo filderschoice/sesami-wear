@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 14:00
+  summary: Tileのデバイス名の帯で経路マークを名前の前へ移して見切れを防ぎ、左列を狭めて右列へ幅を回す
+  details:
+    変更内容: >-
+      `SesameTileService.buildNameHeader`で経路アイコンを名前の前へ移した（`Row`は子を先頭から順に測り、
+      後ろの子へ残り幅しか渡さないため、長い名前で後ろのアイコンが見切れていた）。名前は残り幅で末尾省略される。
+      左列`LEFT_COLUMN_WIDTH_DP`を76dpから56dpへ狭め、右列（帯と状態チップ）を約78dpから約98dpへ広げた。
+      ウィジェット（4x2）の`SesameWidgetChips.NameHeader`も同じ順へ揃えた（左列96dpは据え置き、ユーザー選択）。
+      利用者向けの`docs/USER_GUIDE.md`・`docs/RELEASE_NOTES.md`（0.14.0）を追随させた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0（初回はktlintの`spacing-between-declarations-with-comments`で失敗し、
+      定数の前へ空行を入れて解消）。TileService・Glance描画は単体テスト対象外のため、実機での見た目は
+      BL-211（人手検証）で確認する。
+    関連ID:
+      - BL-209
 - date: 2026-09-23 12:10
   summary: Tileのデバイス名を状態の上の帯へ移し、左上を「更新」、経路をベクターアイコンで帯へ出す
   details:

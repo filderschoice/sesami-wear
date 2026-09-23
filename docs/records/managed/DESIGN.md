@@ -450,7 +450,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `mobile.widget.SesameWidget`（`GlanceAppWidget`）/ `SesameWidgetReceiver`（`GlanceAppWidgetReceiver`）:
   構成はTileと揃え、左列（幅96dp）に「更新」チップと「変更」チップ（中立色
   `SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB`）、右側の上にデバイス名の帯（`SesameWidgetChips.NameHeader`、
-  中立色、デバイス名と経路のベクターアイコンを横に並べる。BL-205）、その下の残り全域に状態アイコン・
+  中立色、経路のベクターアイコンとデバイス名をこの順に横に並べる。BL-205 / BL-209）、その下の残り全域に状態アイコン・
   状態文言・操作文言を中央寄せで置き、状態色（`SesameTileContent.backgroundColorArgb`/`statusTextColorArgb`）は
   右下の状態表示にだけ使う。BL-205より前は左上がデバイス名チップ（タップで状態取得）だった。
   デバイス名の帯のタップも「更新」と同じ状態取得にしている（従来の操作を引き継ぐため）。
@@ -1101,12 +1101,15 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 
 - `wear.tile.SesameTileService`（`androidx.wear.tiles.TileService`実装）: 現在のレイアウトは
   タイル端から`CONTAINER_PADDING_DP`（16dp）内側へ寄せた`Row`（左列＋右列）構成。
-  - 左列（`LEFT_COLUMN_WIDTH_DP`=76dp固定、高さいっぱい）: 「更新」チップ（タップで
+  - 左列（`LEFT_COLUMN_WIDTH_DP`=56dp固定、高さいっぱい。中身が2文字だけになったためBL-209で76dpから狭め、
+    右列へ幅を回した）: 「更新」チップ（タップで
     `SesameStatusRefreshActivity`を起動し状態更新をリクエスト。スマホ側は到達実績によらずBLEを試す、BL-204）と
     デバイス変更チップ（タップで`TileConfigurationActivity`を起動）を`weight(1f)`で均等分割、間に
     `CHIP_SPACING_DP`（6dp）のSpacer。BL-206より前は「更新」の位置がデバイス名チップだった。
-  - 右列上（BL-206）: デバイス名の帯（トップレベル関数`buildNameHeader`）。中立色の背景に、デバイス名
-    （`CAPTION2`・1行・末尾省略）と経路のベクターアイコン（12dp、白）を横に並べる。上下の余白は3dpに詰め、
+  - 右列上（BL-206）: デバイス名の帯（トップレベル関数`buildNameHeader`）。中立色の背景に、経路の
+    ベクターアイコン（12dp、白）とデバイス名（`CAPTION2`・1行・末尾省略）をこの順に横に並べる。
+    アイコンを名前の前に置くのは、`Row`が子を先頭から順に測り後ろの子へ残り幅しか渡さないため
+    （名前が先だと長い名前でアイコンが右端から見切れた。BL-209）。上下の余白は3dpに詰め、
     帯の高さは約22dp。タップは「更新」と同じ状態取得（従来のデバイス名タップを引き継ぐ）。
     経路アイコンはスマホのウィジェットと同じ`ic_route_bluetooth` / `ic_route_internet`（Material Icons、
     wearの`res/drawable`へ複製）を`onTileResourcesRequest`で登録し（`RESOURCES_VERSION`を"2"へ）、
@@ -1824,14 +1827,15 @@ UIは資格情報設定画面（`mobile.credentials.BlePermissionSection`）へ�
   Glanceは`Image`＋`ImageProvider`＋`ColorFilter.tint`で描く。色は描画側で与えるため、
   ドローアブル自体は白で塗っている。
 - ウィジェットは経路を**文言へ前置せず**`SesameWidgetModel.Configured.route`として別に持ち、
-  描画側（`SesameWidgetChips.NameHeader`）がデバイス名と画像を横に並べる。
+  描画側（`SesameWidgetChips.NameHeader`）が画像とデバイス名を横に並べる（Tileと揃えて画像が先。BL-209）。
 - **経路アイコンは状態色の上に置かない**（BL-205 / BL-206、2026-09-23）。BL-176では最終取得時刻の行
   （状態色の背景）に置いていたが、施錠中＝緑・解錠中＝赤の上では白いアイコンが背景に埋もれ、
   BluetoothとインターネットのどちらかがUI上で判別できなかった（ユーザー指摘）。状態によって色の
   変わらない中立色（`CHIP_NEUTRAL_COLOR_ARGB`）のデバイス名の帯へ移し、白で描く。
   改善方法は、(1) 中立色の帯へ移す、(2) 今の位置で暗い丸のバッジを敷く、(3) 語を添える、の3案から
   ユーザーが(1)を選んだ。2x1（`MEDIUM`）の右1マスには従来どおり経路を出さない（面積が足りない）。
-  Tileの右列は約78dpで、帯の中はデバイス名＋アイコンで埋まるため、名前が長いと末尾が省略される。
+  Tileの右列は約98dp（BL-209で左列を狭める前は約78dp）で、名前が長いと名前の末尾が省略される。
+  アイコンは名前の前に置くため常に表示される（BL-209。名前が先だった間はアイコンが右端で見切れた）。
 
 - **アイコンは🔗（Bluetooth）／🌐（インターネット）。** 当初は📶／☁だったが、📶は携帯電話の
   電波強度として広く使われており、Bluetoothでの直接操作を表すものとして読み取れないという

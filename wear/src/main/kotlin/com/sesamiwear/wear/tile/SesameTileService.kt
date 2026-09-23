@@ -387,7 +387,11 @@ class SesameTileService : TileService() {
         const val CHIP_SPACING_DP = 6f
         const val CHIP_CORNER_RADIUS_DP = 12f
         const val CHIP_INNER_PADDING_DP = 6f
-        const val LEFT_COLUMN_WIDTH_DP = 76f
+
+        // 左列の幅。BL-206で中身が「更新」「変更」の2文字だけになったため、BL-209で76dpから狭め、
+        // 右列（デバイス名の帯と状態チップ）へ幅を回した。2文字（CAPTION2で約26dp）＋左右の内側余白
+        // （6dp×2）に余裕を持たせた値。
+        const val LEFT_COLUMN_WIDTH_DP = 56f
 
         // 左側2チップの中立色（ダークグレー）に対してコントラストを確保する白系テキスト色。
         const val CHIP_NEUTRAL_TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()
@@ -469,7 +473,8 @@ private fun buildStatusColumn(
 }
 
 /**
- * 右上のデバイス名の帯（BL-206）。中立色の背景に、デバイス名と経路のベクターアイコンを横に並べる。
+ * 右上のデバイス名の帯（BL-206）。中立色の背景に、経路のベクターアイコンとデバイス名を横に並べる
+ * （BL-209でアイコンを名前の前へ移した）。
  * タップは左上の「更新」と同じ状態取得（BL-206より前のデバイス名タップを引き継ぐ）。
  *
  * 経路アイコンは、BL-168 / BL-173では状態チップの最終取得時刻の行へ絵文字（🔗 / 🌐）で前置していたが、
@@ -485,23 +490,26 @@ private fun buildNameHeader(
     route: SesameStatusRoute?,
     clickable: ModifiersBuilders.Clickable,
 ): LayoutElementBuilders.LayoutElement {
+    // 経路アイコンは名前の前に置く（BL-209）。Rowは子を先頭から順に測り、後ろの子には残りの幅しか
+    // 渡さないため、名前を先に置くと長い名前が幅を使い切り、後ろのアイコンが右端で見切れていた。
+    // アイコンを先に確保すれば、名前は残りの幅で末尾省略される。
     val row =
         LayoutElementBuilders.Row.Builder()
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .addContent(
-                Text.Builder(context, displayName)
-                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
-                    .setColor(ColorBuilders.argb(NAME_HEADER_TEXT_COLOR_ARGB))
-                    .setMaxLines(1)
-                    .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
-                    .build(),
-            )
     routeIconIdOf(route)?.let { iconId ->
+        row.addContent(buildRouteIcon(iconId))
         row.addContent(
             LayoutElementBuilders.Spacer.Builder().setWidth(DimensionBuilders.dp(NAME_HEADER_ICON_GAP_DP)).build(),
         )
-        row.addContent(buildRouteIcon(iconId))
     }
+    row.addContent(
+        Text.Builder(context, displayName)
+            .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+            .setColor(ColorBuilders.argb(NAME_HEADER_TEXT_COLOR_ARGB))
+            .setMaxLines(1)
+            .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+            .build(),
+    )
     val description =
         if (route == null) displayName else "$displayName 経路 ${SesameRouteLabel.name(route)}"
     return LayoutElementBuilders.Box.Builder()

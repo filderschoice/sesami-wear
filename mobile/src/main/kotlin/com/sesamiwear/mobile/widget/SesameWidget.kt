@@ -299,7 +299,8 @@ private const val COMPACT_UNCONFIGURED_MESSAGE = "設定"
 // ウィジェット全体の背景（wearのTileの黒背景に相当する暗色）と、左側チップの文字色。
 private const val WIDGET_BACKGROUND_ARGB = 0xFF121212.toInt()
 
-// 寸法はwearのTile（左列76dp・チップ角丸12dp・間隔6dp）を、スマホのホーム画面の広さに合わせて広げたもの。
+// 寸法はwearのTile（当時の左列76dp・チップ角丸12dp・間隔6dp）を、スマホのホーム画面の広さに合わせて広げたもの。
+// Tileの左列はBL-209で56dpへ狭めたが、ウィジェットは見切れの指摘が無いため据え置いている。
 private const val LEFT_COLUMN_WIDTH_DP = 96
 private const val CONTAINER_PADDING_DP = 8
 private const val SPACING_DP = 6

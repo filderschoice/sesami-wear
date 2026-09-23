@@ -82,8 +82,8 @@ internal fun StatusIconAndLabel(model: SesameWidgetModel.Configured) {
 }
 
 /**
- * 4x2表示の右上に置くデバイス名の帯（BL-205）。中立色の背景に、デバイス名と経路のベクターアイコン
- * （BL-176）を横に並べる。タップは「更新」と同じ状態取得。
+ * 4x2表示の右上に置くデバイス名の帯（BL-205）。中立色の背景に、経路のベクターアイコン（BL-176）と
+ * デバイス名を横に並べる（BL-209でアイコンを名前の前へ移した）。タップは「更新」と同じ状態取得。
  *
  * 経路アイコンは、BL-176では状態表示の最終取得時刻の行へ置いていたが、状態色（施錠中＝緑・
  * 解錠中＝赤）の上では背景に埋もれて見分けにくかった（2026-09-23のユーザー指摘）。
@@ -107,16 +107,18 @@ internal fun NameHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = displayName, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, CAPTION_SP), maxLines = 1)
+        // 経路アイコンは名前の前に置く（BL-209、Tileと揃える）。Rowは子を先頭から順に測り、後ろの子には
+        // 残りの幅しか渡さないため、名前を先に置くと長い名前でアイコンが右端から押し出される。
         SesameRouteIcon.drawableResOrNull(route)?.let { iconRes ->
-            Spacer(modifier = GlanceModifier.width(ROUTE_ICON_GAP_DP.dp))
             Image(
                 provider = ImageProvider(iconRes),
                 contentDescription = SesameRouteLabel.name(route),
                 colorFilter = ColorFilter.tint(ColorProvider(Color(NEUTRAL_TEXT_ARGB))),
                 modifier = GlanceModifier.size(ROUTE_ICON_SIZE_DP.dp),
             )
+            Spacer(modifier = GlanceModifier.width(ROUTE_ICON_GAP_DP.dp))
         }
+        Text(text = displayName, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, CAPTION_SP), maxLines = 1)
     }
 }
 
