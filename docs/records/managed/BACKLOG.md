@@ -5,6 +5,74 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-199
+  区分: 品質ゲート
+  タスク内容: >-
+    配布元 copilot-rules v0.26.0 のガードレール分割を取り込む。`rules/guardrails-unified.v1.md` を
+    配布元版で置換し、分離された `rules/guardrails-app.v1.md`（セクション4・6・7・8）を新規に取り込む。
+    あわせて参照側（`docs/guidelines/RULE.md` / `ADOPTION.md`、`docs/records/README.md`、
+    `.github/copilot-instructions.md`「参照するドキュメント」、`CONTRIBUTING.md`「レビュー要件」）を追随させる。
+  優先度: P1
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    2ファイルが配布元と一致し、旧セクション4・6・7・8への参照が宙に浮いていないこと。品質ゲートが成功すること。
+  依存: []
+- id: BL-200
+  区分: 品質ゲート
+  タスク内容: >-
+    配布元 v0.26.0 のPR規範の集約を取り込む。`.github/instructions/pr.instructions.md` から品質ゲート対応表を
+    外し、変更の種類ごとに実行するゲートを `CLAUDE.md`「本リポジトリの品質ゲート定義」へ寄せる。
+    `pr-create` スキル・`/pr-create` プロンプトの参照を合わせ、`.github/copilot-instructions.md`
+    「Copilot 固有の差分」のPR関連2項目を1項目へ統合する。PRテンプレートは本リポジトリ版を維持する。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    ゲートのコマンドが `CLAUDE.md` 以外に新たに複製されておらず、PR関連の参照がすべて到達できること。
+  依存:
+    - BL-199
+- id: BL-201
+  区分: 品質ゲート
+  タスク内容: >-
+    配布元 v0.26.0 の常時読み込みコンテキスト最適化を取り込む。`CLAUDE.md` の固有差分表の圧縮、
+    `.github/copilot-instructions.md` の冒頭・記録対象の圧縮（本リポジトリ固有の補足は維持）、
+    配布元と共有するスキル（`autonomous-loop` / `docs-consistency-review`）のdescription圧縮、
+    Markdown静的解析ゲートへのドット配下（`.claude/` `.github/`）の追加、`validate-records.py` のdocstring。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    常時読み込み合計が取り込み前（51,747 bytes）以下であり、本リポジトリ固有の規範が失われていないこと。
+  依存:
+    - BL-200
+- id: BL-202
+  区分: 品質ゲート
+  タスク内容: >-
+    Skill `guardrail-sync-local` を今回の取り込みに合わせて更新する（配布元の所在が
+    `C:\Dev\repo\play\copilot-rules` へ移ったこと、取り込み実績、三分類への `guardrails-app.v1.md` と
+    `pr.instructions.md` の分類変更、常時読み込みのベースライン）。`CHANGELOG.md` へ取り込みを記録する。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    スキルの三分類・配布元パス・ベースラインが実態と一致し、`CHANGELOG.md` に計測値の before/after があること。
+  依存:
+    - BL-201
+- id: BL-203
+  区分: 人手検証
+  タスク内容: >-
+    `rules/` 配下（`guardrails-unified.v1.md` の圧縮と `guardrails-app.v1.md` の新設）の変更を、
+    `CONTRIBUTING.md`「レビュー要件」に従いセキュリティ観点・プライバシー観点の双方でレビューする。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    メンテナーがPRのレビューで両観点を確認し、規定ブランチへマージしていること。
+  依存:
+    - BL-199
+  根拠: >-
+    `rules/` の変更は人のレビューが必須で、AIエージェントが承認を代行できないため人手検証として保留する。
 - id: BL-198
   区分: 人手検証
   タスク内容: >-
