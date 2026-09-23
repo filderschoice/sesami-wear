@@ -17,7 +17,9 @@
   状態: 未着手
   担当: ユーザー
   完了条件: >-
-    上記3点を実機で確認し、結果をBACKLOGまたはEXECUTEへ残していること。
+    上記3点を実機で確認し、結果をBACKLOGまたはDESIGNへ残していること。2026-09-23に両端末へデバッグ版を
+    インストール済みで、検証手順は `docs/verification/VERIFICATION-0.14.0.local.md`（Git管理外）の
+    「BL-208」節にある。検証の操作はユーザーが行う（Skill `release-verification-prep`）。
   依存:
     - BL-204
     - BL-205

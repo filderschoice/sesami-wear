@@ -176,11 +176,14 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 - Wear OS実機（Pixel Watch）およびSesame実機を伴う検証、実資格情報（apikey / secretKey）を用いる
   疎通確認は自動実行の対象外とし、`BACKLOG.md` へ `区分: 人手検証` として記録する。自動品質ゲートの
   合否判定からは除外する
-- ただし `区分: 人手検証` は「Claude Code には検証できない」という意味ではない。ユーザーから実機検証を
-  指示された場合は、**エミュレータの用意やユーザーへの手動確認依頼より先に、adb 経由での実機接続を試す**
+- 人手検証は、**実機へのデバッグ版インストールと検証手順書の作成までを Claude Code が行い、検証の操作は
+  ユーザーが行う**（Skill `release-verification-prep`）。手順書は次のリリースごとの
+  `docs/verification/VERIFICATION-<バージョン>.local.md`（Git管理外）へBLごとの節として集める。
+  実機がつながらないときも、エミュレータの用意より先に adb での実機接続を試す
+- Claude Code が adb 経由でUIを操作して検証するのは、ユーザーが明示的に求めた場合だけ
   （手順は Skill `realmachine-verification`、接続そのものの定石は Skill `adb-device-connection`）。
-  デモモード・ダミー資格情報・モックAPI（`-PsesameApiBaseUrl`）で代替できる範囲は adb 経由のUI操作で
-  検証し、実資格情報と実Sesameデバイスを要する範囲だけを人手検証として残す
+  そのときは、デモモード・ダミー資格情報・モックAPI（`-PsesameApiBaseUrl`）で代替できる範囲を検証し、
+  実資格情報と実Sesameデバイスを要する範囲だけを人手検証として残す
 
 ## 検証コストの抑制（MUST）
 
