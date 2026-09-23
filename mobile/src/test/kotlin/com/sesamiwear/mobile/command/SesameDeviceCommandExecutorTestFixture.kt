@@ -23,7 +23,8 @@ import org.junit.Before
  *
  * モックのSesame API（[MockWebServer]）・ロック状態の保存先・BLE経路の差し替えをまとめて持つ。
  * 1つのテストクラスへ全ケースを置くとdetektの`LargeClass`に触れるため、
- * BLE経路の選択（[SesameDeviceCommandExecutorBleRouteTest]）とそれ以外を別クラスへ分けている。
+ * BLE経路の選択（[SesameDeviceCommandExecutorBleRouteTest]）、「更新」でのBLE確認
+ * （[SesameDeviceCommandExecutorStatusCheckTest]）とそれ以外を別クラスへ分けている。
  */
 abstract class SesameDeviceCommandExecutorTestFixture {
     protected lateinit var server: MockWebServer
@@ -41,6 +42,9 @@ abstract class SesameDeviceCommandExecutorTestFixture {
 
     /** 端末の「バックグラウンドデータの制限」が掛かっているとして扱うか（BL-192）。 */
     protected var backgroundDataRestricted = false
+
+    /** BLEをいま使えるか（権限とBluetoothの有効状態、BL-204）。[bleAccess]の`isAvailable`が返す。 */
+    protected var bleAvailable = true
 
     @Before
     fun setUp() {
@@ -131,6 +135,7 @@ abstract class SesameDeviceCommandExecutorTestFixture {
                     probes++
                     probeFindsDevice
                 },
+                isAvailable = { bleAvailable },
             ),
         logRoute = { message -> routeLogs += message },
         onFallbackToWebApi = { fallbackNotices++ },

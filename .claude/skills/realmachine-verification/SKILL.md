@@ -1,6 +1,6 @@
 ---
 name: realmachine-verification
-description: 本リポジトリの「人手検証」項目（BACKLOG.md の `区分: 人手検証`）を、Claude Code が adb 経由の実機操作で可能な範囲まで自動検証するための手順。Play ストア版を消さずにデバッグ版を併存インストールする構成（applicationIdSuffix ".debug"）、実資格情報・実 Sesame デバイスを使わずに施錠/解錠の成功を再現するモック API（`-PsesameApiBaseUrl` と `scripts/mock-sesame-api.py`）、デモモードで検証できる範囲と原理的にできない範囲の線引き、ウォッチへの Tile 追加（DEBUG_SURFACE ブロードキャスト）、ウィジェット設置の UI 自動操作、検証後の後始末までを含む。「人手検証をやって」「実機で確認して」「BL-126を検証して」「ウィジェットの動作を見て」「Tileの動作を確認して」等、Pixel 8 Pro / Pixel Watch 2 を伴う検証の依頼で参照する。adb 接続そのものの落とし穴（ペアリング、mDNS、サンドボックス）は `adb-device-connection` スキルが正本で、本スキルは本アプリ固有の検証構成だけを扱う。
+description: 本リポジトリの「人手検証」項目（BACKLOG.md の `区分: 人手検証`）を、Claude Code が adb 経由の実機操作で可能な範囲まで自動検証するための手順。**ユーザーが「操作まで任せる」と明示的に求めた場合だけ使う**（既定の人手検証はインストールまでを Claude Code、操作をユーザーが行う `release-verification-prep`）。Play ストア版を消さずにデバッグ版を併存インストールする構成（applicationIdSuffix ".debug"）、実資格情報・実 Sesame デバイスを使わずに施錠/解錠の成功を再現するモック API（`-PsesameApiBaseUrl` と `scripts/mock-sesame-api.py`）、デモモードで検証できる範囲と原理的にできない範囲の線引き、ウォッチへの Tile 追加（DEBUG_SURFACE ブロードキャスト）、ウィジェット設置の UI 自動操作、検証後の後始末までを含む。「実機の操作まで任せる」「adbで操作して検証して」「Claudeが実機で確認して」等、Claude Code自身による実機操作を明示した依頼で参照する。インストールと手順書の作成だけなら `release-verification-prep` を使う。adb 接続そのものの落とし穴（ペアリング、mDNS、サンドボックス）は `adb-device-connection` スキルが正本で、本スキルは本アプリ固有の検証構成だけを扱う。
 ---
 
 # 実機検証手順（Sesami Wear）
@@ -11,6 +11,10 @@ description: 本リポジトリの「人手検証」項目（BACKLOG.md の `区
 
 ## 0. 最重要原則
 
+0. **本スキルは、ユーザーが Claude Code による実機操作を明示的に求めた場合だけ使う**（2026-09-23の
+   ユーザー判断）。実機操作とスクリーンショットはコンテキストを最も消費するため、既定の人手検証は
+   Skill `release-verification-prep`（インストールと手順書の作成まで）で行い、操作はユーザーが行う。
+   インストール・モックAPI・保存値の細工など、本スキルの各節は同スキルからも参照される。
 1. **実機検証を依頼されたら、まず adb での実機接続を試す。** エミュレータの用意やユーザーへの
    手動確認依頼より先に、`adb-device-connection` スキルの手順（`adb kill-server` → `start-server` →
    mDNS 自動検出）で実機に繋がらないかを確認する。本リポジトリの検証対象は Pixel 8 Pro（スマホ）と

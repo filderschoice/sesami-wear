@@ -91,6 +91,14 @@ object SesameTileContent {
      */
     const val CHIP_NEUTRAL_COLOR_ARGB = 0xFF424242.toInt()
 
+    /**
+     * Tile・ホーム画面ウィジェット（4x2）の右上のデバイス名の帯の背景色（BL-210）。
+     * 押せるチップ（[CHIP_NEUTRAL_COLOR_ARGB]）と同じ色だとボタンに見えたため、それより暗くして
+     * 表示専用であることを示す。画面の背景（Tileは黒、ウィジェットは0xFF121212）よりは明るくして
+     * 帯のまとまりは残す。白い文字・経路アイコンとのコントラストは状態によらず一定。
+     */
+    const val NAME_HEADER_COLOR_ARGB = 0xFF262626.toInt()
+
     private const val COLOR_LOCKED_GREEN = 0xFF4CAF50.toInt()
     private const val COLOR_UNLOCKED_RED = 0xFFF44336.toInt()
     private const val COLOR_MIXED_PURPLE = 0xFF7E57C2.toInt()

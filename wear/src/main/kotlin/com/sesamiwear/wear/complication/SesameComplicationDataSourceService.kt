@@ -105,7 +105,7 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         val text =
             if (type == ComplicationType.LONG_TEXT) {
                 val displayName = SesameTileStateResolver.resolveDisplayName(applicationContext, deviceUuid)
-                SesameComplicationContent.longText(displayName, status.state, status.detailLabel)
+                SesameComplicationContent.longText(displayName, status.state, status.detailLabelWithRouteIcon)
             } else {
                 SesameComplicationContent.shortText(status.state)
             }

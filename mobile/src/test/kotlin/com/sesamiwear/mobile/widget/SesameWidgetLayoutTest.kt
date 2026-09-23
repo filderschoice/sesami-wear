@@ -6,7 +6,7 @@ import org.junit.Test
 class SesameWidgetLayoutTest {
     @Test
     fun `tile sized widget uses the full layout`() {
-        // 既定サイズ（4x2相当。高さは1マス分の約2倍で、しきい値の140dpを上回る）は従来どおりの表示（BL-121）。
+        // 既定サイズ（4x2相当。高さは1マス分の約2倍で、しきい値の172dpを上回る）は従来どおりの表示（BL-121）。
         assertEquals(SesameWidgetLayout.FULL, SesameWidgetLayout.of(widthDp = 250, heightDp = 256))
     }
 

@@ -27,6 +27,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.sesamiwear.core.SesameStatusRoute
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.ui.SesameRouteIcon
 
@@ -81,32 +82,45 @@ internal fun StatusIconAndLabel(model: SesameWidgetModel.Configured) {
 }
 
 /**
- * 最終取得時刻（と電池残量）の行（BL-142 / BL-171）。先頭へ経路のベクターアイコンを置く（BL-176）。
+ * 4x2表示の右上に置くデバイス名の帯（BL-205）。中立色の背景に、経路のベクターアイコン（BL-176）と
+ * デバイス名を横に並べる（BL-209でアイコンを名前の前へ移した）。
  *
- * **行は増やさない。** ウィジェットの高さ予算は既に埋まっており（[SesameWidgetLayout]のKDoc）、
- * 行を足すと最小サイズで操作文言が見切れる（BL-158と同じ事故）。そのため横並びにしている。
- * 経路が分からない場合はアイコンを出さず、文言だけを従来どおり中央へ置く。
+ * 表示専用でタップは受けない（BL-210）。BL-205〜BL-209の間は「更新」と同じ状態取得だったが、
+ * 押せるチップと同じ中立色だったためボタンに見え、「更新」と機能も重複していた。背景を押せるチップより
+ * 暗い[SesameTileContent.NAME_HEADER_COLOR_ARGB]にして、ボタンと区別する。
+ *
+ * 経路アイコンは、BL-176では状態表示の最終取得時刻の行へ置いていたが、状態色（施錠中＝緑・
+ * 解錠中＝赤）の上では背景に埋もれて見分けにくかった（2026-09-23のユーザー指摘）。
+ * 状態によって色の変わらない暗色の帯へ移し、常に同じコントラストで見えるようにしている。
+ * 経路が分からない場合はアイコンを出さず、デバイス名だけを出す。
  */
 @Composable
-internal fun DetailRow(
+internal fun NameHeader(
+    displayName: String,
     route: SesameStatusRoute?,
-    text: String,
-    textColorArgb: Int,
 ) {
-    val iconRes = SesameRouteIcon.drawableResOrNull(route)
-    if (iconRes == null) {
-        Text(text = text, style = widgetTextStyle(textColorArgb, FOOTNOTE_SP), maxLines = 2)
-    } else {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier =
+            GlanceModifier
+                .fillMaxWidth()
+                .background(ColorProvider(Color(SesameTileContent.NAME_HEADER_COLOR_ARGB)))
+                .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
+                .padding(horizontal = CHIP_INNER_PADDING_DP.dp, vertical = NAME_HEADER_VERTICAL_PADDING_DP.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // 経路アイコンは名前の前に置く（BL-209、Tileと揃える）。Rowは子を先頭から順に測り、後ろの子には
+        // 残りの幅しか渡さないため、名前を先に置くと長い名前でアイコンが右端から押し出される。
+        SesameRouteIcon.drawableResOrNull(route)?.let { iconRes ->
             Image(
                 provider = ImageProvider(iconRes),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(ColorProvider(Color(textColorArgb))),
+                contentDescription = SesameRouteLabel.name(route),
+                colorFilter = ColorFilter.tint(ColorProvider(Color(NEUTRAL_TEXT_ARGB))),
                 modifier = GlanceModifier.size(ROUTE_ICON_SIZE_DP.dp),
             )
             Spacer(modifier = GlanceModifier.width(ROUTE_ICON_GAP_DP.dp))
-            Text(text = text, style = widgetTextStyle(textColorArgb, FOOTNOTE_SP), maxLines = 2)
         }
+        Text(text = displayName, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, CAPTION_SP), maxLines = 1)
     }
 }
 
@@ -136,6 +150,12 @@ internal const val CAPTION_SP = 13
 internal const val FOOTNOTE_SP = 11
 internal const val COMPACT_ICON_SP = 24
 
-/** 経路アイコンの大きさと、文言との間隔（BL-176）。11spの文言と並べて浮かない値にしている。 */
-private const val ROUTE_ICON_SIZE_DP = 12
-private const val ROUTE_ICON_GAP_DP = 2
+/** 経路アイコンの大きさと、デバイス名との間隔（BL-176 / BL-205）。13spの文言と並べて浮かない値にしている。 */
+private const val ROUTE_ICON_SIZE_DP = 14
+private const val ROUTE_ICON_GAP_DP = 4
+
+/**
+ * デバイス名の帯の上下の内側余白（BL-205）。状態表示の高さを削らないよう、他のチップ（6dp）より詰めている。
+ * 帯の高さは 13sp≒18dp＋4dp×2＝約26dp（[SesameWidgetLayout.FULL_MIN_HEIGHT_DP]の内訳を参照）。
+ */
+private const val NAME_HEADER_VERTICAL_PADDING_DP = 4

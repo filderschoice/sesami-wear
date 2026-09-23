@@ -17,10 +17,13 @@ import androidx.wear.tiles.TileService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.wear.R
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
@@ -38,10 +41,11 @@ import kotlinx.coroutines.launch
  * DataItemの結果から[SesameTileStateResolver]が算出する（BL-015）。対象デバイスuuidが
  * `SesameWearProtocol.ALL_DEVICES_TARGET_UUID`（「全デバイス」選択）の場合は登録済み全デバイスの
  * 状態を集約表示する（BL-071、複数デバイス一括操作）。
- * タイルを左右2分割し、「左上＝デバイス名」「左下＝デバイス変更」「右全体＝状態アイコン・操作
- * （拡大表示）」の3領域を、それぞれ独立した角丸の背景を持つ「チップ」として表現する（BL-063）。
- * 状態色（施錠中=緑/解錠中=赤等）は右側のチップにのみ適用し、左側2チップは中立色にすることで、
- * 領域の区切りとステータス色の意味をひと目で区別できるようにする。全体をタイル端から一定の
+ * タイルを左右2分割し、「左上＝更新」「左下＝デバイス変更」「右上＝デバイス名と経路アイコンの帯」
+ * 「右下＝状態アイコン・操作（拡大表示）」の4領域を、それぞれ独立した角丸の背景を持つ「チップ」として
+ * 表現する（BL-063 / BL-206）。状態色（施錠中=緑/解錠中=赤等）は右下のチップにのみ適用し、それ以外は
+ * 中立色にすることで、領域の区切りとステータス色の意味をひと目で区別できるようにする。
+ * BL-206より前は左上がデバイス名（タップで状態取得）で、経路は状態チップの中へ絵文字で出していた。全体をタイル端から一定の
  * パディングで内側へ寄せ、各チップ間にも隙間を設けることで、円形画面のセーフエリア（内接正方形）
  * からのテキストのはみ出し・欠けを防ぐ。
  * TileServiceはビルド確認までとする
@@ -77,6 +81,19 @@ class SesameTileService : TileService() {
         Log.d(TAG, "buildConfiguredTile tileId=$tileId nodeId=${nodeId != null} state=${status.state}")
 
         val leftColumn = buildLeftColumn(displayName, deviceUuid, tileId)
+        // 右列（BL-206）。上がデバイス名と経路アイコンの帯、下が状態チップ。
+        val rightColumn =
+            LayoutElementBuilders.Column.Builder()
+                .setWidth(DimensionBuilders.expand())
+                .setHeight(DimensionBuilders.expand())
+                .addContent(
+                    buildNameHeader(this, displayName, status.route),
+                )
+                .addContent(
+                    LayoutElementBuilders.Spacer.Builder().setHeight(DimensionBuilders.dp(CHIP_SPACING_DP)).build(),
+                )
+                .addContent(buildStatusBox(status, deviceUuid, displayName))
+                .build()
         // セーフエリア（内接正方形）からチップがはみ出さないよう、タイル端から内側へ寄せる。
         val root =
             LayoutElementBuilders.Box.Builder()
@@ -101,7 +118,7 @@ class SesameTileService : TileService() {
                                 .setWidth(DimensionBuilders.dp(CHIP_SPACING_DP))
                                 .build(),
                         )
-                        .addContent(buildStatusBox(status, deviceUuid, displayName))
+                        .addContent(rightColumn)
                         .build(),
                 )
                 .build()
@@ -109,36 +126,20 @@ class SesameTileService : TileService() {
     }
 
     /**
-     * 左列（デバイス名チップ・デバイス変更チップを縦に並べたColumn）を構築する（BL-063）。
+     * 左列（「更新」チップ・デバイス変更チップを縦に並べたColumn）を構築する（BL-063 / BL-206）。
      * 2チップの高さは[DimensionBuilders.weight]で均等分割することで、円形画面の上下端に
      * 寄りすぎずセーフエリア内に収まる位置（列の中央寄り）に配置される。状態色とは無関係な
-     * 中立色の角丸背景を持たせ、右側のステータスチップと視覚的に区別する。デバイス名チップは
+     * 中立色の角丸背景を持たせ、右側のステータスチップと視覚的に区別する。「更新」チップは
      * タップで[SesameStatusRefreshActivity]を起動し、ユーザー契機での状態更新を可能にする。
+     * スマホ側は到達実績によらずBLEで取得を試み、届かなければWeb APIへ倒す（BL-204）。
+     * BL-206より前はここがデバイス名チップだった（デバイス名は右上の帯へ移した）。
      */
     private fun buildLeftColumn(
         displayName: String,
         deviceUuid: String,
         tileId: Int,
     ): LayoutElementBuilders.LayoutElement {
-        val refreshClickable =
-            ModifiersBuilders.Clickable.Builder()
-                .setId("refresh-status")
-                .setOnClick(
-                    ActionBuilders.LaunchAction.Builder()
-                        .setAndroidActivity(
-                            ActionBuilders.AndroidActivity.Builder()
-                                .setPackageName(packageName)
-                                .setClassName(SesameStatusRefreshActivity::class.java.name)
-                                .addKeyToExtraMapping(
-                                    SesameActionCommandParser.EXTRA_DEVICE_UUID,
-                                    ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
-                                )
-                                .build(),
-                        )
-                        .build(),
-                )
-                .build()
-        val deviceNameBox =
+        val refreshBox =
             LayoutElementBuilders.Box.Builder()
                 .setWidth(DimensionBuilders.expand())
                 .setHeight(DimensionBuilders.weight(1f))
@@ -146,7 +147,7 @@ class SesameTileService : TileService() {
                 .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
                 .setModifiers(
                     buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
-                        .setClickable(refreshClickable)
+                        .setClickable(buildRefreshClickable(packageName, deviceUuid))
                         .setSemantics(
                             ModifiersBuilders.Semantics.Builder()
                                 .setContentDescription("$displayName タップして状態を更新")
@@ -155,7 +156,7 @@ class SesameTileService : TileService() {
                         .build(),
                 )
                 .addContent(
-                    Text.Builder(this, displayName)
+                    Text.Builder(this, REFRESH_LABEL)
                         .setTypography(Typography.TYPOGRAPHY_CAPTION2)
                         .setColor(ColorBuilders.argb(CHIP_NEUTRAL_TEXT_COLOR_ARGB))
                         .setMaxLines(2)
@@ -167,7 +168,7 @@ class SesameTileService : TileService() {
         return LayoutElementBuilders.Column.Builder()
             .setWidth(DimensionBuilders.dp(LEFT_COLUMN_WIDTH_DP))
             .setHeight(DimensionBuilders.expand())
-            .addContent(deviceNameBox)
+            .addContent(refreshBox)
             .addContent(
                 LayoutElementBuilders.Spacer.Builder().setHeight(DimensionBuilders.dp(CHIP_SPACING_DP)).build(),
             )
@@ -195,11 +196,16 @@ class SesameTileService : TileService() {
         requestParams: RequestBuilders.ResourcesRequest,
     ): ListenableFuture<ResourceBuilders.Resources> =
         Futures.immediateFuture(
-            ResourceBuilders.Resources.Builder().setVersion(RESOURCES_VERSION).build(),
+            ResourceBuilders.Resources.Builder()
+                .setVersion(RESOURCES_VERSION)
+                // 経路アイコン（BL-206）。スマホのウィジェット・アプリ画面と同じMaterialのベクターアイコン。
+                .addIdToImageMapping(ROUTE_ICON_BLE_ID, androidImageResource(R.drawable.ic_route_bluetooth))
+                .addIdToImageMapping(ROUTE_ICON_WEB_API_ID, androidImageResource(R.drawable.ic_route_internet))
+                .build(),
         )
 
     /**
-     * タイル右側（左列を除いた残り全域）を占める角丸のステータスチップ（クリックで施錠/解錠）を
+     * タイル右下（左列とデバイス名の帯を除いた残り全域）を占める角丸のステータスチップ（クリックで施錠/解錠）を
      * 構築する（BL-063）。状態色（施錠中=緑/解錠中=赤等）はこのチップの背景にのみ適用し、
      * 左列（[buildLeftColumn]）とは独立したBoxにすることで、
      * 施錠/解錠のクリック領域とデバイス変更のクリック領域が競合しないようにする。
@@ -226,7 +232,8 @@ class SesameTileService : TileService() {
 
         return LayoutElementBuilders.Box.Builder()
             .setWidth(DimensionBuilders.expand())
-            .setHeight(DimensionBuilders.expand())
+            // 右列の中で、デバイス名の帯を除いた残りの高さを占める（BL-206）。
+            .setHeight(DimensionBuilders.weight(1f))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
             .addContent(buildStatusColumn(this, status, isAllDevices))
@@ -365,7 +372,11 @@ class SesameTileService : TileService() {
     }
 
     private companion object {
-        const val RESOURCES_VERSION = "1"
+        // 画像リソースを足したら上げる（Tileのホストが古いリソースを使い続けないように）。BL-206で経路アイコンを追加。
+        const val RESOURCES_VERSION = "2"
+
+        // 「更新」チップの文言（BL-206）。「変更」と同じく2文字にして左列の幅へ確実に収める。
+        const val REFRESH_LABEL = "更新"
 
         // タイル端からチップ全体を内側へ寄せ、円形画面のセーフエリア（内接正方形）からの
         // はみ出しを防ぐための全体パディング（BL-063）。角丸の一部が見切れるとの指摘を受け、
@@ -376,7 +387,11 @@ class SesameTileService : TileService() {
         const val CHIP_SPACING_DP = 6f
         const val CHIP_CORNER_RADIUS_DP = 12f
         const val CHIP_INNER_PADDING_DP = 6f
-        const val LEFT_COLUMN_WIDTH_DP = 76f
+
+        // 左列の幅。BL-206で中身が「更新」「変更」の2文字だけになったため、BL-209で76dpから狭め、
+        // 右列（デバイス名の帯と状態チップ）へ幅を回した。2文字（CAPTION2で約26dp）＋左右の内側余白
+        // （6dp×2）に余裕を持たせた値。
+        const val LEFT_COLUMN_WIDTH_DP = 56f
 
         // 左側2チップの中立色（ダークグレー）に対してコントラストを確保する白系テキスト色。
         const val CHIP_NEUTRAL_TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()
@@ -403,8 +418,10 @@ private fun buildStatusColumn(
         LayoutElementBuilders.Column.Builder()
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .addContent(
+                // BL-206でデバイス名の帯（約24dp）が上に入り状態チップの高さが減ったため、
+                // 4行（アイコン・状態・時刻・操作）が円形画面で見切れないよう、DISPLAY1から一段小さくした。
                 Text.Builder(context, SesameTileContent.statusIcon(state))
-                    .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
+                    .setTypography(Typography.TYPOGRAPHY_DISPLAY2)
                     .setColor(textColor)
                     .build(),
             )
@@ -422,7 +439,8 @@ private fun buildStatusColumn(
             )
     // 最後に状態を取得した時刻、または直近の失敗の理由（BL-142 / BL-140）。自動取得を廃止した
     // ため、表示がどれだけ古いかを利用者が判断できるよう状態文言のすぐ下へ添える。
-    // 文言は最長でも「23時間前」「認証エラー」の5〜6文字。
+    // 文言は最長でも「23時間前」「認証エラー」の5〜6文字。経路の絵文字はここへは付けない
+    // （緑・赤の上で見分けにくかったため、デバイス名の帯へベクターアイコンで出す。BL-206）。
     status.detailLabel?.let { detailLabel ->
         statusColumnBuilder.addContent(
             Text.Builder(context, detailLabel)
@@ -453,3 +471,143 @@ private fun buildStatusColumn(
 
     return statusColumnBuilder.build()
 }
+
+/**
+ * 右上のデバイス名の帯（BL-206）。暗色の背景に、経路のベクターアイコンとデバイス名を横に並べる
+ * （BL-209でアイコンを名前の前へ移した）。
+ * 表示専用でタップは受けない（BL-210）。BL-206〜BL-209の間は左上の「更新」と同じ状態取得だったが、
+ * 押せるチップと同じ中立色だったためボタンに見え、「更新」と機能も重複していた。背景を押せるチップより
+ * 暗い[SesameTileContent.NAME_HEADER_COLOR_ARGB]にして、ボタンと区別する。
+ *
+ * 経路アイコンは、BL-168 / BL-173では状態チップの最終取得時刻の行へ絵文字（🔗 / 🌐）で前置していたが、
+ * 施錠中＝緑・解錠中＝赤の背景の上では見分けにくかった（2026-09-23のユーザー指摘）。状態によって色の
+ * 変わらない暗色の帯へ移し、スマホのウィジェットと同じMaterialのアイコンを白で描く。
+ * 経路が分からない場合はアイコンを出さず、デバイス名だけを出す。
+ *
+ * クラス内のメソッド数がdetektの`TooManyFunctions`閾値に近いため、トップレベル関数にしている。
+ */
+private fun buildNameHeader(
+    context: Context,
+    displayName: String,
+    route: SesameStatusRoute?,
+): LayoutElementBuilders.LayoutElement {
+    // 経路アイコンは名前の前に置く（BL-209）。Rowは子を先頭から順に測り、後ろの子には残りの幅しか
+    // 渡さないため、名前を先に置くと長い名前が幅を使い切り、後ろのアイコンが右端で見切れていた。
+    // アイコンを先に確保すれば、名前は残りの幅で末尾省略される。
+    val row =
+        LayoutElementBuilders.Row.Builder()
+            .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+    routeIconIdOf(route)?.let { iconId ->
+        row.addContent(buildRouteIcon(iconId))
+        row.addContent(
+            LayoutElementBuilders.Spacer.Builder().setWidth(DimensionBuilders.dp(NAME_HEADER_ICON_GAP_DP)).build(),
+        )
+    }
+    row.addContent(
+        Text.Builder(context, displayName)
+            .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+            .setColor(ColorBuilders.argb(NAME_HEADER_TEXT_COLOR_ARGB))
+            .setMaxLines(1)
+            .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE)
+            .build(),
+    )
+    val description =
+        if (route == null) displayName else "$displayName 経路 ${SesameRouteLabel.name(route)}"
+    return LayoutElementBuilders.Box.Builder()
+        .setWidth(DimensionBuilders.expand())
+        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+        .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+        .setModifiers(
+            ModifiersBuilders.Modifiers.Builder()
+                .setBackground(
+                    ModifiersBuilders.Background.Builder()
+                        .setColor(ColorBuilders.argb(SesameTileContent.NAME_HEADER_COLOR_ARGB))
+                        .setCorner(
+                            ModifiersBuilders.Corner.Builder()
+                                .setRadius(DimensionBuilders.dp(NAME_HEADER_CORNER_RADIUS_DP))
+                                .build(),
+                        )
+                        .build(),
+                )
+                .setPadding(
+                    ModifiersBuilders.Padding.Builder()
+                        .setStart(DimensionBuilders.dp(NAME_HEADER_HORIZONTAL_PADDING_DP))
+                        .setEnd(DimensionBuilders.dp(NAME_HEADER_HORIZONTAL_PADDING_DP))
+                        .setTop(DimensionBuilders.dp(NAME_HEADER_VERTICAL_PADDING_DP))
+                        .setBottom(DimensionBuilders.dp(NAME_HEADER_VERTICAL_PADDING_DP))
+                        .build(),
+                )
+                .setSemantics(
+                    ModifiersBuilders.Semantics.Builder().setContentDescription(description).build(),
+                )
+                .build(),
+        )
+        .addContent(row.build())
+        .build()
+}
+
+/**
+ * 状態取得（[SesameStatusRefreshActivity]の起動）のクリック（BL-206）。左上の「更新」が使う
+ * （BL-210までは右上のデバイス名の帯と共用していた）。クラス内のメソッド数を増やさないためトップレベルに置く。
+ */
+private fun buildRefreshClickable(
+    packageName: String,
+    deviceUuid: String,
+): ModifiersBuilders.Clickable =
+    ModifiersBuilders.Clickable.Builder()
+        .setId("refresh-status")
+        .setOnClick(
+            ActionBuilders.LaunchAction.Builder()
+                .setAndroidActivity(
+                    ActionBuilders.AndroidActivity.Builder()
+                        .setPackageName(packageName)
+                        .setClassName(SesameStatusRefreshActivity::class.java.name)
+                        .addKeyToExtraMapping(
+                            SesameActionCommandParser.EXTRA_DEVICE_UUID,
+                            ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
+                        )
+                        .build(),
+                )
+                .build(),
+        )
+        .build()
+
+/** 帯の中の経路アイコン（BL-206）。ドローアブルは白だが、明示的に白で着色して色を固定する。 */
+private fun buildRouteIcon(iconId: String): LayoutElementBuilders.LayoutElement =
+    LayoutElementBuilders.Image.Builder()
+        .setResourceId(iconId)
+        .setWidth(DimensionBuilders.dp(NAME_HEADER_ICON_SIZE_DP))
+        .setHeight(DimensionBuilders.dp(NAME_HEADER_ICON_SIZE_DP))
+        .setColorFilter(
+            LayoutElementBuilders.ColorFilter.Builder()
+                .setTint(ColorBuilders.argb(NAME_HEADER_TEXT_COLOR_ARGB))
+                .build(),
+        )
+        .build()
+
+/** 経路アイコンのリソースID（[SesameTileService.onTileResourcesRequest]で登録するもの）。経路不明ならnull。 */
+private fun routeIconIdOf(route: SesameStatusRoute?): String? =
+    when (route) {
+        SesameStatusRoute.BLE -> ROUTE_ICON_BLE_ID
+        SesameStatusRoute.WEB_API -> ROUTE_ICON_WEB_API_ID
+        null -> null
+    }
+
+private fun androidImageResource(resId: Int): ResourceBuilders.ImageResource =
+    ResourceBuilders.ImageResource.Builder()
+        .setAndroidResourceByResId(
+            ResourceBuilders.AndroidImageResourceByResId.Builder().setResourceId(resId).build(),
+        )
+        .build()
+
+private const val ROUTE_ICON_BLE_ID = "route_ble"
+private const val ROUTE_ICON_WEB_API_ID = "route_web_api"
+
+// デバイス名の帯の寸法（BL-206）。状態チップの高さを削りすぎないよう、上下の余白を他のチップ（6dp）より詰める。
+// 帯の高さは CAPTION2（12sp≒16dp）＋3dp×2＝約22dp。
+private const val NAME_HEADER_VERTICAL_PADDING_DP = 3f
+private const val NAME_HEADER_HORIZONTAL_PADDING_DP = 6f
+private const val NAME_HEADER_CORNER_RADIUS_DP = 12f
+private const val NAME_HEADER_ICON_SIZE_DP = 12f
+private const val NAME_HEADER_ICON_GAP_DP = 3f
+private const val NAME_HEADER_TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()

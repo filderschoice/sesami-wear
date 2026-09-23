@@ -5,6 +5,138 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 14:30
+  summary: Tile・ウィジェットのデバイス名の帯を押せるチップより暗い色の表示専用にし、タップを外す
+  details:
+    変更内容: >-
+      `core.display.SesameTileContent`へ帯の背景色`NAME_HEADER_COLOR_ARGB`（0xFF262626、押せるチップの
+      0xFF424242より暗い）を追加し、Tileの`buildNameHeader`とウィジェットの`SesameWidgetChips.NameHeader`で使う。
+      両方から帯のクリック（状態取得）を外した（ユーザーの選択。「更新」と機能が重複していた）。
+      帯の色がチップより暗いことを`SesameTileContentTest`へ追加した。利用者向けの`docs/USER_GUIDE.md`・
+      `docs/RELEASE_NOTES.md`（0.14.0）を追随させた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。実機での見た目とタップが効かないことはBL-211（人手検証）で確認する。
+    関連ID:
+      - BL-210
+- date: 2026-09-23 14:00
+  summary: Tileのデバイス名の帯で経路マークを名前の前へ移して見切れを防ぎ、左列を狭めて右列へ幅を回す
+  details:
+    変更内容: >-
+      `SesameTileService.buildNameHeader`で経路アイコンを名前の前へ移した（`Row`は子を先頭から順に測り、
+      後ろの子へ残り幅しか渡さないため、長い名前で後ろのアイコンが見切れていた）。名前は残り幅で末尾省略される。
+      左列`LEFT_COLUMN_WIDTH_DP`を76dpから56dpへ狭め、右列（帯と状態チップ）を約78dpから約98dpへ広げた。
+      ウィジェット（4x2）の`SesameWidgetChips.NameHeader`も同じ順へ揃えた（左列96dpは据え置き、ユーザー選択）。
+      利用者向けの`docs/USER_GUIDE.md`・`docs/RELEASE_NOTES.md`（0.14.0）を追随させた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0（初回はktlintの`spacing-between-declarations-with-comments`で失敗し、
+      定数の前へ空行を入れて解消）。TileService・Glance描画は単体テスト対象外のため、実機での見た目は
+      BL-211（人手検証）で確認する。
+    関連ID:
+      - BL-209
+- date: 2026-09-23 12:10
+  summary: Tileのデバイス名を状態の上の帯へ移し、左上を「更新」、経路をベクターアイコンで帯へ出す
+  details:
+    変更内容: >-
+      `SesameTileService`を、左列＝「更新」「変更」、右列上＝デバイス名の帯（`buildNameHeader`、中立色で
+      デバイス名と経路のベクターアイコンを並べる）、右列下＝状態チップへ組み替えた。経路アイコンは
+      スマホと同じMaterialのドローアブルをwearへ複製し、`onTileResourcesRequest`で登録（`RESOURCES_VERSION`を
+      "2"へ）して白で着色する。状態チップの最終取得時刻の行からは経路の絵文字を外し、
+      `SesameTileStatus`へ`route`と、Complication向けの`detailLabelWithRouteIcon`（絵文字を前置）を追加した。
+      帯のぶん高さが減るため状態アイコンの書体を`DISPLAY1`から`DISPLAY2`へ下げた。Complicationの表示は従来どおり。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/res/drawable/ic_route_bluetooth.xml
+      - wear/src/main/res/drawable/ic_route_internet.xml
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0（初回はdetektの`LongMethod`で失敗し、経路アイコンの生成を`buildRouteIcon`へ
+      切り出して解消）。TileServiceはAndroid Tiles API依存のため単体テスト対象外で、円形画面での見切れの
+      有無とベクターアイコンの描画はBL-208で実機確認する。
+    関連ID:
+      - BL-206
+- date: 2026-09-23 11:20
+  summary: ウィジェット（4x2）のデバイス名を状態の上の帯へ移し、左上を「更新」、経路アイコンを中立色の帯へ移す
+  details:
+    変更内容: >-
+      `SesameWidget`のFULL表示を、左列＝「更新」「変更」、右上＝デバイス名の帯（`SesameWidgetChips.NameHeader`、
+      中立色でデバイス名と経路のベクターアイコンを横に並べる）、右下＝状態表示へ組み替えた。経路アイコンは
+      状態色（緑・赤）の上で見分けにくかったため、最終取得時刻の行（旧`DetailRow`）から帯へ移し白で描く。
+      帯のタップも「更新」と同じ状態取得にした（旧来のデバイス名タップを引き継ぐ）。帯のぶん高さが増えるため
+      `SesameWidgetLayout.FULL_MIN_HEIGHT_DP`を140dpから172dpへ引き上げた。2x1・1x1は変更していない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。`SesameWidgetLayoutTest`はしきい値の定数を参照しており、172dpでも成功する。
+      実機での表示確認はBL-208へ残す。
+    関連ID:
+      - BL-205
+- date: 2026-09-23 10:30
+  summary: 状態の「更新」で到達実績によらずBLEを試し、届かなければWeb APIへフォールバックする
+  details:
+    変更内容: >-
+      `SesameBleAccess.checkStatus`を追加し、`SesameDeviceCommandExecutor.refreshStatus`の経路選択を
+      置き換えた。到達実績の有無にかかわらずBLEで状態取得を試し、失敗したらWeb APIへ倒す。
+      圏外（`NOT_REACHED`）の場合はWeb APIと並行する到達確認を間隔によらず行い（`withReachabilityProbe`へ
+      `forceProbe`を追加）、BLEアドレスを覚え直せるようにした。方針が「常にインターネット経由」、または
+      権限が無い・Bluetoothが無効な場合（`SesameBleOperations.isAvailable`を新設し、Factoryで
+      `SesameBlePermissions.hasAll`とアダプタの有効状態を配線）は従来どおり。施錠/解錠の経路選択は変えていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorStatusCheckTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。新規テスト6件（到達実績なしでもBLEを試す、圏外でWeb APIへ倒れ到達確認を
+      強制する、圏内の失敗では強制しない、Bluetoothが使えない・方針が「常にインターネット経由」では試さない、
+      施錠は従来どおり）を含む。実機での確認はBL-208へ残す。
+    関連ID:
+      - BL-204
 - date: 2026-09-21 12:55
   summary: 到達確認がどの手段で成立したかをログへ残し、BL-193・BL-194を実機検証する
   details:

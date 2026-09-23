@@ -177,9 +177,9 @@ class SesameDeviceCommandExecutor(
 
     private suspend fun fetchStatus(uuid: String): SesameStatusReading? {
         val credentials = findCredentials(uuid) ?: return null
-        // BLEで取得できた場合はWeb APIを呼ばない（上限を消費しない、BL-152）。
-        return routes.ble.tryStatus(credentials, nowMillis())
-            ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) { fetchStatusOverApi(credentials) }
+        // BLEで取得できた場合はWeb APIを呼ばない（上限を消費しない、BL-152）。状態取得は利用者の
+        // 「更新」操作でしか行わないため、到達実績によらずBLEを試し、届かなければWeb APIへ倒す（BL-204）。
+        return routes.ble.checkStatus(credentials, nowMillis()) { fetchStatusOverApi(credentials) }
     }
 
     /**
