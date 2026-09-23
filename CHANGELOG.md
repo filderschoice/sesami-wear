@@ -7,6 +7,25 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-23（ガードレール配布元 v0.26.0 の追従）
+
+配布元（`C:\Dev\repo\play\copilot-rules`。旧所在 `C:\Dev\repo\copilot-rules` から移動）の
+v0.26.0 を取り込みました。v0.26.0 の大半は本リポジトリからの逆輸入のため、取り込み対象は
+ガードレールの分割と、配布元側で行われた重複削除・圧縮です。規範そのものの追加・削除はありません。
+
+- **ガードレールの分割（BL-199）**: `rules/guardrails-unified.v1.md` を配布元版へ置換し、
+  生成AIアプリの設計・運用にのみ関わるセクション4（プライバシー）・6（評価ゲート）・7（運用・
+  インシデント対応）・8（コンプライアンス）を分離した `rules/guardrails-app.v1.md` を新規に取り込みました。
+  `@import` はせず、生成AI機能の設計・実装・運用時に読みます（本アプリは生成AI機能を持たないため、
+  常時読み込みから外れても判断に影響しません）。節番号は2ファイルで共通のため既存の番号参照
+  （3.3、3.4、5.3、12.x）は変わりません。旧4.2を参照していた `DESIGN.md` の1箇所のみ参照先を
+  `rules/guardrails-app.v1.md` へ直しました。
+  - あわせて `docs/guidelines/RULE.md` / `ADOPTION.md`、`docs/records/README.md` を配布元版へ置換し、
+    `.github/copilot-instructions.md`「参照するドキュメント」へ `rules/guardrails-app.v1.md` の行を、
+    `CONTRIBUTING.md`「レビュー要件」の対象へ同ファイルを追加しました。
+  - `rules/` 配下の変更のため、`CONTRIBUTING.md`「レビュー要件」に従うセキュリティ観点・
+    プライバシー観点のレビューを BL-203（人手検証）として残しています。
+
 ## 2026-09-22（人手検証項目の棚卸し）
 
 BACKLOG.md に残っていた人手検証5件について、対応可否を整理したうえでユーザーが判断しました。

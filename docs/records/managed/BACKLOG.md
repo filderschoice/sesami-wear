@@ -5,19 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-199
-  区分: 品質ゲート
-  タスク内容: >-
-    配布元 copilot-rules v0.26.0 のガードレール分割を取り込む。`rules/guardrails-unified.v1.md` を
-    配布元版で置換し、分離された `rules/guardrails-app.v1.md`（セクション4・6・7・8）を新規に取り込む。
-    あわせて参照側（`docs/guidelines/RULE.md` / `ADOPTION.md`、`docs/records/README.md`、
-    `.github/copilot-instructions.md`「参照するドキュメント」、`CONTRIBUTING.md`「レビュー要件」）を追随させる。
-  優先度: P1
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    2ファイルが配布元と一致し、旧セクション4・6・7・8への参照が宙に浮いていないこと。品質ゲートが成功すること。
-  依存: []
 - id: BL-200
   区分: 品質ゲート
   タスク内容: >-

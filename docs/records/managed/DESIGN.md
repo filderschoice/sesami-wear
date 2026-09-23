@@ -1994,7 +1994,7 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
 - 信頼性: 通信失敗時はサイレント失敗を避け、Tile上に明示する（PLAN.md UX要件）。
 - セキュリティ/プライバシー:
   - secretKey/apikey/uuidは`mobile`側のみで保持し、`EncryptedSharedPreferences`で暗号化保存する。
-  - ログへの秘密情報出力を禁止する（`rules/guardrails-unified.v1.md` 3.3/4.2）。実装上、
+  - ログへの秘密情報出力を禁止する（`rules/guardrails-unified.v1.md` 3.3 / `rules/guardrails-app.v1.md` 4.2）。実装上、
     資格情報を扱うクラスは`android.util.Log`等のログ出力を一切使用していない。
   - 実資格情報を用いた検証はBACKLOGで`区分: 人手検証`として自動実行対象から除外している。
     AES-CMACの自動テストはRFC 4493公開テストベクタとダミー鍵のみを用いる。

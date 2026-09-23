@@ -13,7 +13,8 @@
 
 | パス | 役割 | 区分 |
 | --- | --- | --- |
-| `rules/guardrails-unified.v1.md` | セキュリティ・プライバシー・ガバナンス統制の正本 | 必須 |
+| `rules/guardrails-unified.v1.md` | セキュリティ・ガバナンス統制の正本（常時読み込み） | 必須 |
+| `rules/guardrails-app.v1.md` | 生成AIアプリ運用統制（プライバシー・評価ゲート・インシデント対応・コンプライアンス） | 必須 |
 | `docs/guidelines/RULE.md` | 汎用フレームワーク（基本原則・出力要件・完了条件） | 必須 |
 | `docs/guidelines/ADOPTION.md` | 本ガイド（導入・移行・日常運用） | 必須 |
 | `CONTRIBUTING.md` | 規定ブランチ、ブランチ・コミット規約、レビュー要件、指示ファイルの構成規約 | 必須 |
@@ -26,14 +27,17 @@
 | `.github/copilot-instructions.md` | 全エージェント共通の実行ルールの正本（Copilot 固有差分を末尾に含む） | 必須 |
 | `.github/instructions/pr.instructions.md` | PR説明文・コードレビューの言語と構成（両エージェント共通の正本） | 必須 |
 | `.github/CODEOWNERS` | 変更統制（`@your-org/...` を実在チームへ置換） | 必須 |
-| `.github/PULL_REQUEST_TEMPLATE.md` | PRテンプレート | 必須 |
+| `.github/PULL_REQUEST_TEMPLATE.md` | PRテンプレート（本文の6節構成とチェックリストの正本） | 必須 |
 | `templates/app-guardrail-template.yaml` | アプリ別ガードレール設定（`replace-me` を解消） | 必須 |
 | `templates/model-risk-register-template.csv` | モデルリスク登録簿（初期リスク2件以上） | 必須 |
+| `scripts/validate-records.py` | 記録ファイルのYAML検証（品質ゲート。PyYAMLが必要） | 必須 |
 | `.vscode/settings.json` | `pr.instructions.md` を Copilot Chat から参照させる設定 | Copilot のみ |
-| `CLAUDE.md` | Claude Code 固有の差分と追加規約（リポジトリルート直下） | Claude Code のみ |
+| `.github/prompts/pr-create.prompt.md` | PR作成手順の入口（Copilot Chat で `/pr-create`） | Copilot のみ・任意 |
+| `CLAUDE.md` | Claude Code 固有の差分と追加規約（リポジトリルート直下。品質ゲート定義の `replace-me` を解消） | Claude Code のみ |
 | `.claude/settings.json` | 記録ファイル編集を権限プロンプトなしで許可する設定 | Claude Code のみ・任意 |
 | `.claude/skills/docs-consistency-review/SKILL.md` | ドキュメント整合性レビューの汎用スキル | Claude Code のみ・任意 |
 | `.claude/skills/autonomous-loop/SKILL.md` | 自律ループ実行モードの実行手順 | Claude Code のみ・モード採用時は必須 |
+| `.claude/skills/pr-create/SKILL.md` | PR作成の実行手順（`gh` での反映） | Claude Code のみ・任意 |
 
 補足:
 
@@ -41,8 +45,13 @@
   利用する配布先でも必須で、`CLAUDE.md` が `@import` で読み込みます。ファイル名は GitHub が自動読み込み
   するパスとして規約で固定されているため変更できません。役割分担は `CONTRIBUTING.md`
   「エージェント指示ファイルの構成規約」を参照してください。
+- `CLAUDE.md` は配布バンドルでは汎用テンプレート（配布元の `templates/CLAUDE-template.md`）の内容で同梱され、
+  「本リポジトリの品質ゲート定義」の表が `replace-me` のままです。導入時に自プロジェクトのコマンドと
+  合否基準へ差し替えてください（「5. 受け入れチェックリスト」で確認します）。
 - `.vscode/settings.json` をリポジトリに含めない運用の場合、各利用者の設定で同等の指定が必要です。
 - `.claude/settings.json` を設定しない場合、記録更新のたびに権限確認が入ります。採否は配布先の判断です。
+  配布バンドルには記録ファイル関連の許可のみを含む内容で同梱されるため、配布先に同名ファイルが既にある
+  場合は上書きせず `permissions.allow` をマージしてください。
 - `.claude/skills/` のうち配布されるのは技術スタックに依存しない汎用スキルのみです。配布先固有の作業手順を
   記述したスキルは**配布対象外**であり、導入先で同じ形式により新規作成します。
 
@@ -55,7 +64,8 @@
 `@import` し、`CONTRIBUTING.md` / `docs/guidelines/RULE.md` / `docs/records/spec/FORMAT.md` などは必要に
 なった時点で読む構成にしています。
 
-- `rules/guardrails-unified.v1.md`（セキュリティ・プライバシー・統制の正本）
+- `rules/guardrails-unified.v1.md`（セキュリティ・ガバナンス統制の正本。`rules/guardrails-app.v1.md` は
+  生成AIアプリの設計・運用に関わる節だけを持つため `@import` せず、必要時に読む）
 - `.github/copilot-instructions.md`（全エージェント共通の実行ルールの正本）
 
 配布先で `CLAUDE.md` へ内容を具体化した場合も、同じ方針で `@import` 対象を絞ってください
