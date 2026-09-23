@@ -51,7 +51,7 @@ class SesameDeviceCommandExecutor(
     private val routes: SesameRouteAccess = SesameRouteAccess(),
     private val guard: SesameCommandGuard = SesameCommandGuard(),
     private val nowMillis: () -> Long = System::currentTimeMillis,
-) {
+) : SesameDeviceCommands {
     /** 施錠/解錠の実行結果。[DEBOUNCED]は重複として無視した（APIを呼んでいない）ことを表す。 */
     enum class Outcome {
         SUCCESS,
@@ -65,7 +65,7 @@ class SesameDeviceCommandExecutor(
      * 資格情報が無い、または保存済みの鍵が不正な場合はAPIを呼ばず[Outcome.FAILURE]を返す（BL-026）。
      * デモ用デバイスはAPIを呼ばず常に成功とし、端末内の状態だけを書き換える（BL-123）。
      */
-    suspend fun execute(
+    override suspend fun execute(
         uuid: String,
         command: SesameCommand,
     ): Outcome {
@@ -143,7 +143,7 @@ class SesameDeviceCommandExecutor(
      * 施錠/解錠とは別のキーで数えるため、施錠/解錠の直後でも状態取得は抑止されない（移設前と同じ）。
      * 「全デバイス」対象のタップで登録台数ぶん飛ぶのは意図した動作のため対象外（uuidが異なる）。
      */
-    suspend fun refreshStatus(uuid: String): Boolean? =
+    override suspend fun refreshStatus(uuid: String): Boolean? =
         when {
             // デモは取得先が無いため、保存済み（無ければ初期状態）をそのまま返し、保存・通知もしない。
             SesameDemoMode.isDemoDevice(uuid) -> {

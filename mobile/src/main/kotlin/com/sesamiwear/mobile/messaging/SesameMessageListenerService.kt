@@ -10,6 +10,7 @@ import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.EntryPointGuard
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
+import com.sesamiwear.mobile.command.SesameDeviceCommands
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,7 +42,7 @@ class SesameMessageListenerService : WearableListenerService() {
     }
 
     private suspend fun handleCommandRequest(
-        executor: SesameDeviceCommandExecutor,
+        executor: SesameDeviceCommands,
         messageEvent: MessageEvent,
     ) {
         val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)
@@ -71,7 +72,7 @@ class SesameMessageListenerService : WearableListenerService() {
     }
 
     private suspend fun handleStatusRequest(
-        executor: SesameDeviceCommandExecutor,
+        executor: SesameDeviceCommands,
         messageEvent: MessageEvent,
     ) {
         val deviceUuid = SesameWearProtocol.decodeDeviceUuid(messageEvent.data)

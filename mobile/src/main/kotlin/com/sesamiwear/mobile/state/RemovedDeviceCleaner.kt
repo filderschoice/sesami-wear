@@ -43,7 +43,7 @@ object RemovedDeviceCleaner {
         scope: CoroutineScope,
     ) {
         val appContext = context.applicationContext
-        LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)).remove(uuid)
+        SesameDeviceStores.lockState(appContext).remove(uuid)
         SesameBleReachability(SharedPreferencesKeyValueStore.forBleReachability(appContext)).remove(uuid)
         SesameWidgetRepository.assignmentStore(appContext).unassignDevice(uuid)
         scope.launch { deleteSyncedStatus(appContext, uuid) }

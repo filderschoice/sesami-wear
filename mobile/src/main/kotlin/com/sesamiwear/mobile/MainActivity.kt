@@ -11,9 +11,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.credentials.CredentialsSettingsScreen
-import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.ui.SesameTheme
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 import kotlinx.coroutines.launch
@@ -24,8 +23,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val credentialsStore =
-            SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(applicationContext))
+        val credentialsStore = SesameDeviceStores.credentials(applicationContext)
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
             LaunchedEffect(isDarkTheme) { applySystemBarIcons(isDarkTheme) }

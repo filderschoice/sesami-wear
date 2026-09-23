@@ -24,6 +24,7 @@ import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.network.BackgroundDataRestriction
 import com.sesamiwear.mobile.notification.SesameRouteNotifier
+import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -45,8 +46,15 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
  * 生成の配線だけを行う薄いアダプタのためユニットテスト対象外（本体は[SesameDeviceCommandExecutor]でテスト済み）。
  */
 object SesameDeviceCommandExecutorFactory {
-    fun create(context: Context): SesameDeviceCommandExecutor {
-        val appContext = context.applicationContext
+    /**
+     * 施錠/解錠・状態取得の実行口を返す。デバッグ版の撮影モード中は、実物へ一切通信しない
+     * 撮影用の実行口を返す（BL-212、[ShowcaseMode]）。リリース版では常に実物の実行口になる。
+     */
+    fun create(context: Context): SesameDeviceCommands =
+        ShowcaseMode.commandsOrNull(context.applicationContext) ?: createExecutor(context.applicationContext)
+
+    /** 実物の実行口。保存先は撮影モードに関わらず実物のものを直接開く（[SesameDeviceStores]を通さない）。 */
+    private fun createExecutor(appContext: Context): SesameDeviceCommandExecutor {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(appContext))
         val apiUsageCounter = ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(appContext))
         return SesameDeviceCommandExecutor(

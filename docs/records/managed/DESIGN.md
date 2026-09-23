@@ -1288,6 +1288,43 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `com.sesamiwear.mobile.demotest`へ変えた検証専用のデバッグビルドで実施し、終了後に両端末から
   アンインストールした（ビルド設定の変更はコミットしていない）。
 
+### 撮影モード（デバッグ版限定）
+
+掲載スクリーンショット（BL-198）を撮るために、ウォッチ・ホーム画面ウィジェット・スマートフォンの
+カード一覧へ撮影用のデバイスと状態を出すモード（BL-212）。**mobileのデバッグ版にだけ含まれ、
+リリース版（Google Playへ配信するAAB）には実装を載せない。** デモモード（登録0台のときに体験用の
+1台を出す、利用者向けの機能）とは別物で、開発者が撮影のためだけに使う。
+
+- **実物から切り離す。** モード中は、登録済みデバイス（資格情報）・ロック状態・ウィジェットの割り当ての
+  保存先を撮影用の別ファイル（`sesami_wear_showcase_*`、非暗号化のSharedPreferences）へ差し替える。
+  登録済みの資格情報と実物の状態へは一切書き込まない。
+- **操作を抑止する。** 施錠/解錠・状態取得の実行口（`mobile.command.SesameDeviceCommands`）を
+  撮影用の`ShowcaseDeviceCommands`へ差し替え、Sesame Web APIもBLEも呼ばない。施錠/解錠は撮影用の
+  状態を切り替えてウォッチ（DataItem）とウィジェットへ知らせるだけ、状態取得は取得時刻を今へ進めるだけ。
+  撮影用でないuuid（実物）への操作は何もせず失敗を返す。撮影用の状態に直近の失敗を設定している場合は、
+  失敗の表示を撮れるよう操作も失敗させる。
+- **APIキー・秘密鍵を保存しない。** 撮影用のデバイスもカード一覧から追加・編集・削除できるが、
+  保存の直前に`ShowcaseCredentialsKeyValueStore`がAPIキーと秘密鍵を固定のダミー値
+  （`showcase-dummy` / 0が32桁）へ置き換える。実物の値を誤って入力しても残らない。
+- **見本。** `ShowcasePresets`が3台（玄関・勝手口・ガレージ）を持つ。uuidは
+  `00000000-0000-4000-8000-00000000000N`で実物と衝突せず、表示名はTileのチップ（5文字）に収まる。
+- **ウォッチへの反映。** モードの切り替え（`ShowcaseSync.setActive`）で、そのときの保存先から
+  デバイス一覧と各状態をDataItemへ同期し直す。抜けるときは撮影用デバイスの状態のDataItemを消し、
+  実物の一覧・状態を同期し直す。ウォッチ側の変更は無い。スマートフォンから同期するため、
+  `SesameWearDebugReceiver`（ウォッチ自身がDataItemを書く）で起きていた、スマートフォンの同期と
+  衝突して表示名が反映されない問題（BL-198）が起きない。
+- **Tileの対象デバイスはウォッチ側の保存値のため差し替わらない。** 実物のuuidを対象にしたTileは
+  モード中に撮影用デバイスへ設定し直し、モードを抜けたら戻す必要がある（「全デバイス」は設定不要）。
+- **ビルドタイプでの出し分け。** main側は差し替え口だけを持つ。
+  - `mobile.state.SesameDeviceStores`: 画面・ウィジェットが開く保存先を選ぶ（`MainActivity`・
+    `SesameWidgetRepository`・`DeviceCard`・`RemovedDeviceCleaner`が使う）。
+  - `SesameDeviceCommandExecutorFactory.create`: `ShowcaseMode.commandsOrNull`が返せば撮影用の実行口を、
+    返さなければ実物の実行口を返す。実物の実行口は`SesameDeviceStores`を通さず実物の保存先を直接開く。
+  - `mobile.showcase.ShowcaseMode`は`src/debug`に実装、`src/release`に同名・同じ関数のスタブ
+    （常に「撮影モードではない」・nullを返す）を置く。関数を増やすときは両方へ足す。
+    リリース版のクラスはスタブの1つだけになる（`compileReleaseKotlin`の出力で確認）。
+- 撮影用の実行口と保存先のテストは`src/testDebug`（デバッグ版の単体テストにだけ含まれる）。
+
 ### ハプティクス
 
 施錠/解錠の成否を、画面を見なくても区別できるよう振動で通知する（BL-008 / BL-016、

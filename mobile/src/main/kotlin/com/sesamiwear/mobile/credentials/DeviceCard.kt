@@ -37,7 +37,7 @@ import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
-import com.sesamiwear.mobile.state.LockStateStore
+import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.ui.SesameRouteIcon
 
@@ -189,7 +189,7 @@ private fun rememberBleConnectionLine(uuid: String): String {
 @Composable
 private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
     val context = LocalContext.current
-    val store = remember { LockStateStore(SharedPreferencesKeyValueStore.forLockState(context)) }
+    val store = remember { SesameDeviceStores.lockState(context) }
     var snapshot by remember { mutableStateOf(store.load(uuid)) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { snapshot = store.load(uuid) }
     return snapshot
