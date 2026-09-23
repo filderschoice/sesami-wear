@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 10:30
+  summary: 状態の「更新」で到達実績によらずBLEを試し、届かなければWeb APIへフォールバックする
+  details:
+    変更内容: >-
+      `SesameBleAccess.checkStatus`を追加し、`SesameDeviceCommandExecutor.refreshStatus`の経路選択を
+      置き換えた。到達実績の有無にかかわらずBLEで状態取得を試し、失敗したらWeb APIへ倒す。
+      圏外（`NOT_REACHED`）の場合はWeb APIと並行する到達確認を間隔によらず行い（`withReachabilityProbe`へ
+      `forceProbe`を追加）、BLEアドレスを覚え直せるようにした。方針が「常にインターネット経由」、または
+      権限が無い・Bluetoothが無効な場合（`SesameBleOperations.isAvailable`を新設し、Factoryで
+      `SesameBlePermissions.hasAll`とアダプタの有効状態を配線）は従来どおり。施錠/解錠の経路選択は変えていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameBleAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorStatusCheckTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - すべて終了コード0。新規テスト6件（到達実績なしでもBLEを試す、圏外でWeb APIへ倒れ到達確認を
+      強制する、圏内の失敗では強制しない、Bluetoothが使えない・方針が「常にインターネット経由」では試さない、
+      施錠は従来どおり）を含む。実機での確認はBL-208へ残す。
+    関連ID:
+      - BL-204
 - date: 2026-09-21 12:55
   summary: 到達確認がどの手段で成立したかをログへ残し、BL-193・BL-194を実機検証する
   details:

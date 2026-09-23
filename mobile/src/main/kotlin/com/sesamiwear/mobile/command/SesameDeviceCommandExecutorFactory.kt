@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.command
 
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +14,7 @@ import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.ble.SesameBleAddressCache
 import com.sesamiwear.mobile.ble.SesameBleClient
+import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRouteChangeTracker
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
@@ -127,6 +129,7 @@ object SesameDeviceCommandExecutorFactory {
                         )
                     },
                     probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
+                    isAvailable = { SesameBlePermissions.hasAll(appContext) && isBluetoothEnabled(appContext) },
                 ),
             logRoute = { message -> Log.w(SesameApiFailureLog.TAG, message) },
             // トーストは前景でしか出ない（背景からのトーストは通知が無効な端末で抑止される、BL-190）。
@@ -193,6 +196,13 @@ object SesameDeviceCommandExecutorFactory {
             probeMillis = 4_000,
             probeConnectMillis = 1_500,
         )
+
+    /**
+     * Bluetoothが有効か（BL-204）。無効な端末で「更新」のたびにBLEを試すと、必ず失敗するうえ
+     * フォールバックの通知が出るため、試す前に確かめる。非対応の端末ではfalse。
+     */
+    private fun isBluetoothEnabled(context: Context): Boolean =
+        context.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
 
     /** 表示名が空のデバイスを通知で指すときの呼び名。 */
     private const val UNNAMED_DEVICE = "セサミ"

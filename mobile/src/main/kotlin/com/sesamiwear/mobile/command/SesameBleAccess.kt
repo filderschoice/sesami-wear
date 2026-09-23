@@ -79,17 +79,51 @@ class SesameBleAccess(
     }
 
     /**
+     * 利用者が状態の「更新」を操作したときの取得（BL-204）。
+     *
+     * [tryStatus]と違い、**到達実績の有無にかかわらずBLEを試す。** 到達実績は操作の契機でしか
+     * 更新されないため、実績が切れた後は利用者がSesameの近くにいてもインターネット経由のままになり、
+     * BLEへ戻る手段が無かった（2026-09-23のユーザー指示「BLE接続をユーザ任意のタイミングで」）。
+     * 状態取得は利用者の操作でしか行わない（BL-142で自動取得を廃止）ため、自動で電力を消費することはない。
+     *
+     * BLEで届かなければ[api]（Web API）へ倒す。圏外と判定した場合（探索で見つからない）は、
+     * Web APIと並行する到達確認（[withReachabilityProbe]）を**前回の確認からの間隔によらず**行う。
+     * 利用者を待たせる経路の探索は短い（`SesameBleClient.Timeouts.scanMillis`）ため、BLEアドレスを
+     * まだ覚えていないと近くにいても外れうる。長めの探索と最後に成功したアドレスへの接続（BL-193）で
+     * アドレスを覚え直し、次の「更新」や施錠/解錠でBLEへ戻れるようにする。
+     * 所要時間はBLEの上限3秒＋Web API最大6秒（到達確認4秒はWeb APIと並行）で、従来の設計値と同じ。
+     * 方針が「常にインターネット経由」、またはBLEを使えない（権限が無い・Bluetoothが無効、
+     * [SesameBleOperations.isAvailable]）場合は試さず、従来の[tryStatus]と同じ経路選択に任せる。
+     */
+    suspend fun checkStatus(
+        credentials: SesameCredentials,
+        nowMillis: Long,
+        api: suspend () -> SesameStatusReading?,
+    ): SesameStatusReading? {
+        if (!routePolicy().allowsBle || !operations.isAvailable()) {
+            return tryStatus(credentials, nowMillis) ?: withReachabilityProbe(credentials, nowMillis, block = api)
+        }
+        val attempt = operations.fetchStatus(credentials)
+        recordAttempt(credentials, nowMillis, "STATUS", attempt)
+        return attempt.value
+            ?: withReachabilityProbe(credentials, nowMillis, forceProbe = !attempt.foundInRange, block = api)
+    }
+
+    /**
      * Web APIを呼ぶ[block]を実行しつつ、必要なら並行して到達確認のスキャンを行う。
      * スキャンの成否は次回の経路選択にだけ影響し、[block]の結果には影響しない。
+     * [forceProbe]がtrueなら、前回の確認からの間隔によらず到達確認を行う（「更新」、BL-204）。
      */
     suspend fun <T> withReachabilityProbe(
         credentials: SesameCredentials,
         nowMillis: Long,
+        forceProbe: Boolean = false,
         block: suspend () -> T,
     ): T {
         // ここへ来た時点でWeb APIを使うことが決まっている（BLEを試していない、または失敗した後）。
         onRouteUsed(credentials, SesameStatusRoute.WEB_API)
-        return if (!routePolicy().allowsBle || !reachability.shouldProbe(credentials.uuid, nowMillis)) {
+        val probes = forceProbe || reachability.shouldProbe(credentials.uuid, nowMillis)
+        return if (!routePolicy().allowsBle || !probes) {
             block()
         } else {
             coroutineScope {
@@ -166,6 +200,9 @@ class SesameBleAccess(
  * @property execute 施錠/解錠。成功したらそのとき分かった実測値。
  * @property fetchStatus 状態取得。成功したら施錠状態と実測値。
  * @property probeReachable スキャンだけの到達確認。接続もログインもしない。
+ * @property isAvailable BLEをいま使えるか（権限があり、Bluetoothが有効か）。到達実績によらずBLEを試す
+ * 「更新」（[SesameBleAccess.checkStatus]、BL-204）が、試しても必ず失敗する場面で待ち時間と
+ * フォールバックの通知を出さないために使う。
  */
 class SesameBleOperations(
     val execute: suspend (SesameCredentials, SesameCommand) -> SesameBleAttempt<SesameStatusMeasurement> =
@@ -173,4 +210,5 @@ class SesameBleOperations(
     val fetchStatus: suspend (SesameCredentials) -> SesameBleAttempt<SesameStatusReading> =
         { SesameBleAttempt.notReached() },
     val probeReachable: suspend (SesameCredentials) -> Boolean = { false },
+    val isAvailable: () -> Boolean = { false },
 )
