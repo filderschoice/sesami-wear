@@ -12,9 +12,13 @@ description: ガードレール・エージェント指示ルールを配布元�
 
 | 項目 | 値 |
 | --- | --- |
-| 配布元リポジトリ | `C:\Dev\repo\copilot-rules` |
+| 配布元リポジトリ | `C:\Dev\repo\play\copilot-rules`（2026-09-23時点。旧所在 `C:\Dev\repo\copilot-rules` から移動した。見つからなければユーザーへ所在を確認する） |
 | 追従判断の根拠 | 同リポジトリの `CHANGELOG.md`（バージョン節に意図と計測値がある） |
-| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編） |
+| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮） |
+
+**配布元の変更の多くは本リポジトリからの逆輸入**（v0.26.0 など）。逆輸入の際に配布元は本リポジトリ固有の
+記述を汎用文面へ置き換えているため、「配布元にある＝採る」ではない。差分の `-` 側（本リポジトリにしか無い行）が
+固有の記述でないかを、ファイルごとに確認してから置換する。
 
 配布元は `scripts/package-rules.*` と `dist/` を持つが、本リポジトリは配布**先**なので取り込まない。
 
@@ -25,11 +29,15 @@ description: ガードレール・エージェント指示ルールを配布元�
 
 ### そのままコピー（`cp` で丸ごと置換）
 
-- `rules/guardrails-unified.v1.md`
+- `rules/guardrails-unified.v1.md` / `rules/guardrails-app.v1.md`（**2ファイルは必ず同時に取り込む**。
+  本体だけを更新するとセクション4・6・7・8が参照先ごと失われる）
 - `docs/guidelines/RULE.md` / `README.md` / `ADOPTION.md`
 - `docs/records/README.md`
 - `templates/app-guardrail-template.yaml` / `model-risk-register-template.csv`
-- `.github/instructions/pr.instructions.md`
+- `.github/instructions/pr.instructions.md`（v0.26.0 以降、ゲートのコマンドを持たず `CLAUDE.md` を参照する
+  汎用版になった。変更の種類ごとの適用範囲は `CLAUDE.md`「本リポジトリの品質ゲート定義」に置く）
+- `.github/prompts/pr-create.prompt.md`、`.claude/skills/pr-create/SKILL.md`、
+  `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`
 
 ### 固有改変をマージ（配布元の構造を採り、固有の内容は残す）
 
@@ -39,6 +47,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | `.github/copilot-instructions.md` | 参照ドキュメント表の本リポジトリ行、実資格情報を使わない旨のセキュリティ補足、記録対象の `docs/RELEASE_NOTES.md` と利用者向けドキュメント |
 | `CONTRIBUTING.md` | **冒頭の外部コントリビューション方針（Issueは受付・PRは非受付）、レビュー要件（メンテナー1名体制）、品質ゲート、ドキュメント管理** |
 | `docs/records/spec/FORMAT.md` | `BACKLOG.md` の記述例（Pixel Watch実機・ハプティクスの文面。配布元は汎用文面へ置換済み） |
+| `.claude/skills/autonomous-loop/SKILL.md` | description は配布元版を採る。本文の人手検証の3類型、`docs/RELEASE_NOTES.md` の更新、「利用量を抑える」節、`PLAN.md` の参照は本リポジトリ固有 |
 
 **`CONTRIBUTING.md` に注意。** 汎用手順では「そのままコピー」に分類されているが、本リポジトリの
 `CONTRIBUTING.md` は配布元の約2倍あり、前半すべてが外部の方向けの受け付け方針で占められている。
@@ -50,7 +59,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | --- | --- |
 | `.markdownlint-cli2.yaml` | `**/*.local.md` の除外と `MD024: siblings_only` を追加済み（`docs/RELEASE_NOTES.md` がバージョンごとに同名見出しを繰り返すため） |
 | `.github/PULL_REQUEST_TEMPLATE.md` | 品質ゲート・資格情報混入確認のチェックリストを持つ独自版 |
-| `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ） |
+| `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ）。`* @filderschoice` で `rules/` 配下の新ファイルも担当済み |
 | `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み |
 
 ## 取り込み後に必ず確認すること
@@ -89,11 +98,13 @@ CRLF化していないことも確認する。
 grep -n "gradlew\|markdownlint" CLAUDE.md CONTRIBUTING.md | grep -v "^CHANGELOG"
 ```
 
-現在の品質ゲート（6項目）:
+現在の品質ゲート（`CLAUDE.md` の表のうち脆弱性チェックを除く7項目）:
 
 ```bash
 ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
 npx markdownlint-cli2 "**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
+python scripts/validate-records.py
 ```
 
 定義を変えたら、**それを説明している派生記述**も追う。段階A/Bの区分を廃止したとき、
@@ -108,9 +119,14 @@ grep -rn "段階B\|品質ゲート" --include="*.md" . | grep -v node_modules | 
 `npx markdownlint-cli2 "**/*.md"` は `.claude/` `.github/` 配下を**検査しない**。
 汎用手順のリンク検査スクリプトの `glob('**/*.md')` も同様。別途指定する。
 
+**1コマンドに並べても直らない。** 配布元 v0.26.0 のゲートは
+`npx markdownlint-cli2 "**/*.md" ".claude/**/*.md" ".github/**/*.md"` だが、本リポジトリで実行すると
+`Linting: 38 files`（`"**/*.md"` 単独と同数）で、ドット配下10件が黙って落ちる。必ず2回に分ける。
+出力の `Linting: N files` を見て、ドット配下の件数が加わっていることを確かめる。
+
 ```bash
 npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/skills/**/*.md" ".github/**/*.md"
+npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 ```
 
 ## 本リポジトリ固有の読み替え
@@ -125,21 +141,26 @@ npx markdownlint-cli2 ".claude/skills/**/*.md" ".github/**/*.md"
 
 ## 常時読み込みサイズのベースライン
 
-2026-09-12 の最適化完了時点の実測値。次回の追従で悪化していないかの基準に使う
-（数値そのものは古くなるので、比較のたびに測り直す）。
+2026-09-23（v0.26.0 取り込み後）の実測値。次回の追従で悪化していないかの基準に使う
+（数値そのものは古くなるので、比較のたびに測り直す）。skill description は全スキル分を含む。
 
 | ファイル | bytes | 備考 |
 | --- | --- | --- |
-| `CLAUDE.md` | 17,784 | 固有情報を持つので配布先ごとに変わる |
-| `.github/copilot-instructions.md` | 13,152 | 共通規約の実体 |
-| `rules/guardrails-unified.v1.md` | 11,083 | 配布元の正本。**圧縮しない**（フォークすると同期が破綻する） |
-| 合計 | **42,019** | 再編前は 46,225（`CLAUDE.md` 34,842 + guardrails 11,383） |
+| `CLAUDE.md` | 19,129 | 固有情報を持つので配布先ごとに変わる |
+| `.github/copilot-instructions.md` | 12,675 | 共通規約の実体 |
+| `rules/guardrails-unified.v1.md` | 8,358 | 配布元の正本。**本リポジトリ側では圧縮しない**（フォークすると同期が破綻する） |
+| skill description 計 | 5,444 | 配布元と共有するスキルは配布元版を採る |
+| 合計 | **45,606** | 取り込み前は 51,747（2026-09-12 の 42,019 は skill description を含まない値） |
 
-guardrails が合計の26%を占めるが、本リポジトリでは削減対象にしない。削るなら配布元側で
-「適用可否を宣言できる仕組み」を入れるのが筋（`guardrail-rules-sync`「触ってはいけないもの」参照）。
+`rules/guardrails-app.v1.md`（3,715 bytes）は `@import` しないため合計に含めない。ガードレールの削減は
+配布元側で行われた（生成AIアプリ運用統制の分離）。本リポジトリ側で独自に削ることはしない
+（`guardrail-rules-sync`「触ってはいけないもの」参照）。
 
 ## 更新履歴
 
 - 2026-09-12: 配布元 v0.23.0 の取り込みと常時読み込みの最適化（PR #25）を経て新規作成。
   三分類の確定値、`CONTRIBUTING.md` を「そのままコピー」に分類してはいけない理由、
   取り込み後に実際に問題が出た3点、ベースライン値を収録した。
+- 2026-09-23: 配布元 v0.26.0 の取り込みを経て更新。配布元の所在変更、逆輸入された変更の扱い、
+  `guardrails-app.v1.md` と PR 関連ファイルの分類、markdownlint を1コマンドに並べるとドット配下が
+  落ちる事象、ベースライン値（skill description 込み）を反映した。

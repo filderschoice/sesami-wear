@@ -63,6 +63,12 @@ v0.26.0 を取り込みました。v0.26.0 の大半は本リポジトリから�
     - `.github/copilot-instructions.md`: 13,736 → 12,675 bytes（Copilot の常時読み込みも同値で -7.7%）
     - `rules/guardrails-unified.v1.md`: 11,083 → 8,358 bytes（分離した `guardrails-app.v1.md` 3,715 bytes は必要時のみ読む）
     - skill description 計: 6,442 → 5,444 bytes
+- **配布先プロファイルの更新（BL-202）**: Skill `guardrail-sync-local` を今回の取り込みに合わせて
+  更新しました（配布元の所在、取り込み実績、逆輸入された変更を採る前に固有の記述か確認すること、
+  `guardrails-app.v1.md` と PR 関連ファイル・`autonomous-loop` の分類、markdownlint を1コマンドに並べると
+  ドット配下が落ちる事象、skill description を含むベースライン値）。
+- 配布元へ返すべき事項: 配布元 `CLAUDE.md` の Markdown 静的解析ゲート（3つのglobを1コマンドに並べる形）は、
+  本リポジトリで実行するとドット配下が検査されませんでした。配布元でも同じ挙動かは未確認です。
 
 ## 2026-09-22（人手検証項目の棚卸し）
 

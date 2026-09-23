@@ -5,19 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-202
-  区分: 品質ゲート
-  タスク内容: >-
-    Skill `guardrail-sync-local` を今回の取り込みに合わせて更新する（配布元の所在が
-    `C:\Dev\repo\play\copilot-rules` へ移ったこと、取り込み実績、三分類への `guardrails-app.v1.md` と
-    `pr.instructions.md` の分類変更、常時読み込みのベースライン）。`CHANGELOG.md` へ取り込みを記録する。
-  優先度: P3
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    スキルの三分類・配布元パス・ベースラインが実態と一致し、`CHANGELOG.md` に計測値の before/after があること。
-  依存:
-    - BL-201
 - id: BL-203
   区分: 人手検証
   タスク内容: >-
