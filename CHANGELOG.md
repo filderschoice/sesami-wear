@@ -25,6 +25,17 @@ v0.26.0 を取り込みました。v0.26.0 の大半は本リポジトリから�
     `CONTRIBUTING.md`「レビュー要件」の対象へ同ファイルを追加しました。
   - `rules/` 配下の変更のため、`CONTRIBUTING.md`「レビュー要件」に従うセキュリティ観点・
     プライバシー観点のレビューを BL-203（人手検証）として残しています。
+- **PR規範の集約（BL-200）**: `.github/instructions/pr.instructions.md` から品質ゲートの対応表
+  （変更の種類ごとの実行コマンド）を外し、配布元版へ置換しました。コマンドの複製を無くすため、
+  変更の種類ごとの適用範囲は `CLAUDE.md`「本リポジトリの品質ゲート定義」の箇条書きへ移しています
+  （内容は旧対応表と同じ。`RELEASE_NOTES.md` / `EXECUTE.md` の更新確認はPRテンプレートのチェックリストに残る）。
+  - `.claude/skills/pr-create/SKILL.md` と `.github/prompts/pr-create.prompt.md` を配布元版へ置換
+    （参照先を `CLAUDE.md` へ変更。description から「本リポジトリで」等の前置きを削除）。
+  - `.github/copilot-instructions.md`「Copilot 固有の差分」のPR関連2項目を1項目へ統合し、参照表の
+    `pr.instructions.md` の行へ「PR作成」を追加。`CLAUDE.md` の固有差分表・`CONTRIBUTING.md` の
+    構成規約表も同じ表現へ揃えました。
+  - `.github/PULL_REQUEST_TEMPLATE.md` は本リポジトリ版（Gradleのコマンド・資格情報の種類を明記した
+    チェックリスト）を維持しています。
 
 ## 2026-09-22（人手検証項目の棚卸し）
 

@@ -22,7 +22,7 @@ Claude Code が本リポジトリで作業するときの実行ルールです�
 | git操作 | エージェントは実行せず、コマンド例のみ提示する | 同左。ただし「自律ループ実行モード」中の作業ブランチへの `git add` / `git commit` のみ例外。`git push` はモードを問わず常にユーザーが実行する |
 | 1ブランチ1目的の例外 | `BACKLOG.md` の複数項目の一括対応のみ | 上記に加えて「自律ループ実行モード」も例外。いずれも対象タスクの `id` をブランチ名・コミット本文・PR説明へ列挙する |
 | 指示参照の優先順位 1位 | エージェントのシステム指示 | Claude Code ハーネスのシステムプロンプト |
-| PR説明文・コードレビュー | `.github/instructions/pr.instructions.md` に従う | Claude Code には同ファイルを自動適用する機構が無いため、生成時に**明示的に同ファイルを読んでから**従う。PR作成の実行手順は Skill `pr-create` が正本 |
+| PR説明文・コードレビュー・PR作成 | `.github/instructions/pr.instructions.md` に従う | 同ファイルを自動適用する機構が無いため、Skill `pr-create` の手順で同ファイルを**明示的に読んでから**従う |
 | 記録ファイルの編集権限 | 規定なし | `.claude/settings.json` の `permissions.allow` により権限プロンプトなしで反映される（下記「記録ファイルの権限設定」） |
 
 ## リポジトリの現状とアーキテクチャ概要
@@ -174,6 +174,10 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
 - 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する
   （定義とドキュメントの乖離を禁止）
+- 変更の種類ごとの適用（PRのチェックリストで実行済みとしてよい範囲）: Gradle系の5ゲート（ktlint〜ビルド）は
+  `core` / `mobile` / `wear` 配下またはGradle設定を変更した場合、Markdown静的解析は `.md` を変更した場合、
+  記録ファイルのYAML検証は `docs/records/managed/` を変更した場合に実行する。自律ループ実行モードでは
+  変更の種類によらず全ゲートを実行する
 - ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
 - 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
   （経緯は `CONTRIBUTING.md`「Markdownlintのローカル実行」参照）

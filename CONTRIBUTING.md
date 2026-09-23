@@ -178,7 +178,7 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | ファイル | 役割 | 編集する変更 |
 | --- | --- | --- |
 | `.github/copilot-instructions.md` | **全エージェント共通の実行ルールの正本** | セキュリティ要件、開発プロセス要件、品質・信頼性要件、ドキュメント管理要件、出力要件、例外と保守 |
-| 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用 |
+| 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用、`/pr-create` の入口 |
 | `CLAUDE.md` | Claude Code 固有の差分と本リポジトリ固有の情報 | 共通規約への上書き表、アーキテクチャ概要、本リポジトリの品質ゲート定義、記録ファイルの権限設定、自律ループ実行モードの適用条件 |
 | `.github/instructions/*.instructions.md` | **特定の作業に限った共通規約の正本** | PR説明文・コードレビューの言語と構成。Copilot へは `.vscode/settings.json` から自動適用され、Claude Code はスキル経由で読む |
 | `.github/prompts/*.prompt.md` | Copilot のオンデマンド手順（`/名前` で呼び出す） | Copilot 固有の実行手順。規範は `.github/instructions/` 側に置き、ここへは複製しない |

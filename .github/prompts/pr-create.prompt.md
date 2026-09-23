@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: "テンプレートに沿ったPR説明文を組み立て、Pull Requestを作成・更新する（Sesami Wear）"
+description: "テンプレートに沿ったPR説明文を組み立て、Pull Requestを作成・更新する"
 ---
 
 # PR作成（GitHub Copilot 用）
@@ -13,7 +13,7 @@ description: "テンプレートに沿ったPR説明文を組み立て、Pull Re
    作業ブランチがリモートへ push 済みであることを確認する。**push はユーザーが行う**ため、
    未 push なら本文だけを提示し、push を依頼して待つ。
 2. **差分を読む。** `git log main..HEAD --oneline` と `git diff main...HEAD` を確認してから本文を書く。
-3. **品質ゲートを実行する。** 変更の種類ごとの対応表は pr.instructions.md「チェックリストの扱い」。
+3. **品質ゲートを実行する。** 実行するゲートは pr.instructions.md「チェックリストの扱い」に従う。
    実行していないゲートはチェックしない。
 4. **本文を組み立てる。** `.github/PULL_REQUEST_TEMPLATE.md` の6節構成をそのまま使い、
    チェックリストはテンプレート本体の文言を維持する。対象外の項目は理由を添えて未チェックで残す。

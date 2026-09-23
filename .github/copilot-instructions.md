@@ -24,7 +24,7 @@
 | `CLAUDE.md` | アプリのアーキテクチャ概要、品質ゲートの実行コマンド、参照先マップ（`README.md` / `DESIGN.md` / `BACKLOG.md` など本リポジトリの正本の所在） | 実装・検証に着手する時 |
 | `CONTRIBUTING.md` | 規定ブランチ定義、ブランチ・コミット規約、レビュー要件 | ブランチ作成時・PR作成時 |
 | `docs/records/spec/FORMAT.md` | 記録ファイルの記述仕様（唯一の参照元） | 記録ファイル更新時 |
-| `.github/instructions/pr.instructions.md` | PR説明文・コードレビューの言語と構成（正本） | PR説明文・レビュー生成時 |
+| `.github/instructions/pr.instructions.md` | PR説明文・コードレビュー・PR作成の規約（正本） | PR説明文・レビュー生成時・PR作成時 |
 | `docs/guidelines/RULE.md` | 複数プロジェクト共通の汎用フレームワーク | 他リポジトリへ導入・移行する時 |
 | `docs/guidelines/ADOPTION.md` | 導入・移行・日常運用の手順 | 同上 |
 
@@ -211,11 +211,7 @@
 - **自律ループ実行モードは対象外**: guardrails セクション12「自律ループ実行モード統制」と
   `CLAUDE.md`「自律ループ実行モード（Loop Engineering）」は Claude Code 固有の運用モードです。
   Copilot は本モードの対象外であり、git操作の例外規定も適用されません。
-- **PR説明文・コードレビュー**: 規約の正本は `.github/instructions/pr.instructions.md` で、Claude Code と
-  共通です。Copilot へは `.vscode/settings.json`（またはメンバー各自の設定）の
-  `github.copilot.chat.pullRequestDescriptionGeneration.instructions` と
-  `github.copilot.chat.reviewSelection.instructions` から参照され、PR説明文の生成時とレビュー時に
-  自動適用されます。この参照が外れると規約が適用されないため、設定を保ってください。
-- **PRの作成手順**: `.github/prompts/pr-create.prompt.md` を Copilot Chat で `/pr-create` として
-  呼び出します。規範は上記 `pr.instructions.md` と `.github/PULL_REQUEST_TEMPLATE.md` にあり、
-  プロンプトファイルは入口として手順の順序と Copilot 固有の注意だけを持ちます。
+- **PR説明文・コードレビュー・PR作成**: 規範は `.github/instructions/pr.instructions.md`（Claude Code と共通）。
+  `.vscode/settings.json`（またはメンバー各自の設定）の `pullRequestDescriptionGeneration.instructions` /
+  `reviewSelection.instructions` から自動適用されるため、この参照を保つ。PR作成は
+  `.github/prompts/pr-create.prompt.md`（Copilot Chat の `/pr-create`）から行う。

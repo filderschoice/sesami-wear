@@ -5,20 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-200
-  区分: 品質ゲート
-  タスク内容: >-
-    配布元 v0.26.0 のPR規範の集約を取り込む。`.github/instructions/pr.instructions.md` から品質ゲート対応表を
-    外し、変更の種類ごとに実行するゲートを `CLAUDE.md`「本リポジトリの品質ゲート定義」へ寄せる。
-    `pr-create` スキル・`/pr-create` プロンプトの参照を合わせ、`.github/copilot-instructions.md`
-    「Copilot 固有の差分」のPR関連2項目を1項目へ統合する。PRテンプレートは本リポジトリ版を維持する。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    ゲートのコマンドが `CLAUDE.md` 以外に新たに複製されておらず、PR関連の参照がすべて到達できること。
-  依存:
-    - BL-199
 - id: BL-201
   区分: 品質ゲート
   タスク内容: >-
