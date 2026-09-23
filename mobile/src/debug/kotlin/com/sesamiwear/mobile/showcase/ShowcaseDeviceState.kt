@@ -4,6 +4,7 @@ import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusRoute
+import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.mobile.state.LockStateStore
 
 /**
@@ -41,6 +42,22 @@ data class ShowcaseDeviceState(
             )
         }
         failure?.let { store.saveFailure(uuid, it) }
+    }
+
+    companion object {
+        /** 保存済みの[snapshot]を、操作画面で1項目だけ変えるための元の状態へ戻す（未保存なら「未取得」）。 */
+        fun of(
+            snapshot: SesameStatusSnapshot?,
+            nowMillis: Long,
+        ): ShowcaseDeviceState =
+            ShowcaseDeviceState(
+                isLocked = snapshot?.isLocked,
+                batteryPercentage = snapshot?.batteryPercentage,
+                position = snapshot?.position,
+                route = snapshot?.lastRoute,
+                failure = snapshot?.lastFailure,
+                ageMillis = snapshot?.updatedAtEpochMillis?.let { (nowMillis - it).coerceAtLeast(0) } ?: 0,
+            )
     }
 }
 

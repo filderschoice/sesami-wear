@@ -16,6 +16,15 @@
             android:name=".ble.SesameBleDebugReceiver"
             android:exported="true"
             tools:ignore="ExportedReceiver" />
+        <!--
+            撮影モードの操作画面（BL-212 / BL-213）。デバッグ版の設定メニューからだけ開く。
+            リリースビルドには含まれない（リリース版の設定メニューには項目自体が出ない）。
+        -->
+        <activity
+            android:name=".showcase.ShowcaseModeActivity"
+            android:exported="false"
+            android:label="撮影モード"
+            android:theme="@style/Theme.SesamiWear" />
     </application>
 
 </manifest>

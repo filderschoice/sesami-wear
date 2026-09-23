@@ -2,11 +2,13 @@ package com.sesamiwear.mobile.credentials
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -28,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -35,6 +38,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
+import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import kotlinx.coroutines.launch
@@ -107,7 +111,14 @@ fun CredentialsSettingsScreen(
 @Composable
 private fun ScreenTopBar() {
     TopAppBar(
-        title = { Text(text = SCREEN_TITLE) },
+        title = {
+            // デバッグ版の撮影モード中だけ、タイトルの横へ小さく印を出す（BL-213。リリース版は何も出さない）。
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = SCREEN_TITLE)
+                Spacer(modifier = Modifier.width(8.dp))
+                ShowcaseModeUi.Indicator()
+            }
+        },
         // ヘルプ・操作の経路・Bluetooth権限は、まとめて設定メニューへ入れる（BL-180）。
         actions = { SettingsMenu() },
     )

@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 17:00
+  summary: 撮影モードの操作画面と、モード中の控えめな表示を追加する（デバッグ版限定）
+  details:
+    変更内容: >-
+      デバッグ版の設定メニューに「撮影モード」を追加し、操作画面`ShowcaseModeActivity`で、モードのオン/オフ、
+      見本の3台への置き換え、全台の施錠中/解錠中、デバイスごとの施錠状態・電池残量・経路・直近の失敗・
+      最終取得時刻の切り替えを行えるようにした。撮影モード中はカード一覧のタイトルの横へ「📷 撮影モード」を
+      小さく出す。メニュー項目と表示は`ShowcaseModeUi`越しに呼び、リリース版は何も出さないスタブにした。
+      `MainActivity`はモードが切り替わって戻ってきたら作り直す。手順を`README.md`とスキル
+      （`store-screenshot-capture` / `realmachine-verification`）へ追記し、実機確認をBL-214として起票した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMenuEntry.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptions.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDeviceState.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptionsTest.kt
+      - README.md
+      - .claude/skills/store-screenshot-capture/SKILL.md
+      - .claude/skills/realmachine-verification/SKILL.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:compileReleaseKotlin / ./gradlew :mobile:detektDebug（新規・変更ファイルの指摘のみ確認） /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。リリース版の`showcase`パッケージのクラスはスタブの
+      `ShowcaseMode`・`ShowcaseModeUi`と、mainの`ShowcaseMenuEntry`だけであることを確認した。
+      実機での表示と連携はBL-214（人手検証）で確認する
+    関連ID:
+      - BL-213
+      - BL-214
 - date: 2026-09-23 16:00
   summary: スクリーンショット撮影用の撮影モード（デバッグ版限定）の土台を追加する
   details:
