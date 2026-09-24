@@ -5,6 +5,88 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-09-23 17:00
+  summary: 撮影モードの操作画面と、モード中の控えめな表示を追加する（デバッグ版限定）
+  details:
+    変更内容: >-
+      デバッグ版の設定メニューに「撮影モード」を追加し、操作画面`ShowcaseModeActivity`で、モードのオン/オフ、
+      見本の3台への置き換え、全台の施錠中/解錠中、デバイスごとの施錠状態・電池残量・経路・直近の失敗・
+      最終取得時刻の切り替えを行えるようにした。撮影モード中はカード一覧のタイトルの横へ「📷 撮影モード」を
+      小さく出す。メニュー項目と表示は`ShowcaseModeUi`越しに呼び、リリース版は何も出さないスタブにした。
+      `MainActivity`はモードが切り替わって戻ってきたら作り直す。手順を`README.md`とスキル
+      （`store-screenshot-capture` / `realmachine-verification`）へ追記し、実機確認をBL-214として起票した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMenuEntry.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptions.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDeviceState.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptionsTest.kt
+      - README.md
+      - .claude/skills/store-screenshot-capture/SKILL.md
+      - .claude/skills/realmachine-verification/SKILL.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:compileReleaseKotlin / ./gradlew :mobile:detektDebug（新規・変更ファイルの指摘のみ確認） /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。リリース版の`showcase`パッケージのクラスはスタブの
+      `ShowcaseMode`・`ShowcaseModeUi`と、mainの`ShowcaseMenuEntry`だけであることを確認した。
+      実機での表示と連携はBL-214（人手検証）で確認する
+    関連ID:
+      - BL-213
+      - BL-214
+- date: 2026-09-23 16:00
+  summary: スクリーンショット撮影用の撮影モード（デバッグ版限定）の土台を追加する
+  details:
+    変更内容: >-
+      施錠/解錠・状態取得の実行口を`SesameDeviceCommands`へ抽象化し、`SesameDeviceCommandExecutorFactory`が
+      撮影モード中は撮影用の実行口（`ShowcaseDeviceCommands`、Web APIもBLEも呼ばない）を返すようにした。
+      画面・ウィジェットが開く保存先を`SesameDeviceStores`へ集め、撮影モード中は撮影用の別ファイルへ差し替える
+      （資格情報・ロック状態・ウィジェットの割り当て）。撮影用のAPIキー・秘密鍵は保存前にダミー値へ置き換える。
+      実装は`mobile/src/debug`、リリース版は機能を持たないスタブを`mobile/src/release`へ置いた。
+      モード切り替え時のウォッチ・ウィジェットへの再同期（`ShowcaseSync`）と見本3台（`ShowcasePresets`）を含む。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommands.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SesameDeviceStores.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/RemovedDeviceCleaner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandRunner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetRepository.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseSync.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDeviceCommands.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDeviceState.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseCredentialsKeyValueStore.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDeviceCommandsTest.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStoresTest.kt
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      ./gradlew :mobile:compileReleaseKotlin / ./gradlew :mobile:detektDebug（新規ファイルの指摘のみ確認） /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。リリース版の`showcase`パッケージのクラスはスタブの
+      `ShowcaseMode`1つだけであることを`mobile/build/tmp/kotlin-classes/release`で確認した。
+      通常の`detekt`タスクは`src/debug`を走査しないため、型解決付きの`detektDebug`で新規ファイルに
+      指摘が無いことを別途確認した（既存ファイルの指摘は対象外）
+    関連ID:
+      - BL-212
 - date: 2026-09-23 14:30
   summary: Tile・ウィジェットのデバイス名の帯を押せるチップより暗い色の表示専用にし、タップを外す
   details:

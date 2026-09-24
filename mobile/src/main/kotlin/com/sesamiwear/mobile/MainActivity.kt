@@ -11,9 +11,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.mobile.credentials.CredentialsSettingsScreen
-import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.showcase.ShowcaseMode
+import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.ui.SesameTheme
 import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 import kotlinx.coroutines.launch
@@ -22,10 +22,13 @@ import kotlinx.coroutines.launch
 // なくなったため、PackageManager.FEATURE_WATCHを判定してwear.MainActivityへexplicit Intentで
 // 委譲する処理を削除した（BL-092）。ウォッチ側のランチャー導線はwear側のMainActivityが持つ。
 class MainActivity : ComponentActivity() {
+    /** 画面を作ったときに撮影モード中だったか（BL-213）。切り替えて戻ってきたら作り直す。 */
+    private var showcaseActiveAtCreate = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val credentialsStore =
-            SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(applicationContext))
+        showcaseActiveAtCreate = ShowcaseMode.isActive(applicationContext)
+        val credentialsStore = SesameDeviceStores.credentials(applicationContext)
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
             LaunchedEffect(isDarkTheme) { applySystemBarIcons(isDarkTheme) }
@@ -46,6 +49,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStart() {
         super.onStart()
+        // デバッグ版の撮影モードを切り替えると、読み書きする保存先が変わる（BL-212）。
+        // 画面は作ったときの保存先を持ち続けるため、作り直して切り替え後の保存先を開き直す。
+        if (ShowcaseMode.isActive(applicationContext) != showcaseActiveAtCreate) {
+            recreate()
+            return
+        }
         lifecycleScope.launch {
             EntryPointGuard.run(onFailure = { Log.w(TAG, "widget redraw failed: $it") }) {
                 SesameWidgetUpdater.updateAll(applicationContext)

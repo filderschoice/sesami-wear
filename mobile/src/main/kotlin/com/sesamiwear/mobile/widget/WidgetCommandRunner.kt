@@ -4,6 +4,7 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameDeviceTargets
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutor
+import com.sesamiwear.mobile.command.SesameDeviceCommands
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -21,7 +22,7 @@ import kotlinx.coroutines.withContext
  * ロック状態は実行口が成功時にだけ保存するため、失敗した場合の再描画は操作前の状態に戻る。
  */
 class WidgetCommandRunner(
-    private val executor: SesameDeviceCommandExecutor,
+    private val executor: SesameDeviceCommands,
     private val loadRegisteredDevices: () -> List<SesameDeviceSummary>,
     private val inProgressTracker: WidgetInProgressTracker,
     private val requestRedraw: suspend () -> Unit,

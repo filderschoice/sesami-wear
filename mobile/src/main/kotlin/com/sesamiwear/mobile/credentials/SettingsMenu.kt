@@ -14,8 +14,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogDialog
+import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 
 /**
  * 上部バーの設定メニュー（BL-180）。
@@ -34,6 +36,7 @@ import com.sesamiwear.mobile.diagnostics.DiagnosticsLogDialog
 @Composable
 internal fun SettingsMenu() {
     var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val dialogs = remember { SettingsDialogState() }
     val routePolicy = rememberRoutePolicyState()
     val blePermission = rememberBlePermissionState()
@@ -80,6 +83,10 @@ internal fun SettingsMenu() {
             subtitle = DIAGNOSTICS_MENU_SUBTITLE,
             onClick = { open { dialogs.diagnostics = true } },
         )
+        // 撮影モード（BL-213）。デバッグ版だけが項目を返し、リリース版では現れない。
+        ShowcaseModeUi.menuEntryOrNull(context)?.let { entry ->
+            SettingsMenuItem(entry.title, entry.subtitle) { open { context.startActivity(entry.intent) } }
+        }
     }
 }
 

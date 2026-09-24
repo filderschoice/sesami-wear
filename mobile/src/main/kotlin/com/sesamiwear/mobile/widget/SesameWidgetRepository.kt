@@ -1,11 +1,8 @@
 package com.sesamiwear.mobile.widget
 
 import android.content.Context
-import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameDeviceSummary
-import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
-import com.sesamiwear.mobile.state.LockStateStore
-import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.state.SesameDeviceStores
 
 /**
  * ウィジェットの表示に必要な保存値（割り当て・登録済みデバイス・ロック状態）を読み、
@@ -21,7 +18,7 @@ object SesameWidgetRepository {
         val appContext = context.applicationContext
         val registeredDevices = loadRegisteredDevices(appContext)
         val assignedUuid = assignmentStore(appContext).assignedDeviceUuid(appWidgetId)
-        val lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext))
+        val lockStateStore = SesameDeviceStores.lockState(appContext)
         return SesameWidgetModelResolver.resolve(
             assignedUuid = assignedUuid,
             registeredDevices = registeredDevices,
@@ -31,10 +28,9 @@ object SesameWidgetRepository {
     }
 
     fun loadRegisteredDevices(context: Context): List<SesameDeviceSummary> =
-        SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(context.applicationContext))
+        SesameDeviceStores.credentials(context)
             .loadAll()
             .map { SesameDeviceSummary(uuid = it.uuid, displayName = it.displayName) }
 
-    fun assignmentStore(context: Context): WidgetDeviceAssignmentStore =
-        WidgetDeviceAssignmentStore(SharedPreferencesKeyValueStore.forWidgetAssignments(context.applicationContext))
+    fun assignmentStore(context: Context): WidgetDeviceAssignmentStore = SesameDeviceStores.widgetAssignments(context)
 }
