@@ -5,6 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-216
+  区分: 人手検証
+  タスク内容: >-
+    0.14.0の表示へ撮り直した掲載スクリーンショット（BL-198で2026-09-25〜26に撮影）を、Play Consoleの
+    ストア掲載情報へ差し替える。対象はスマートフォン用の`phone_1_widget_locked.png`〜
+    `phone_3_widget_unlocked.png`と、Wear OS用の`wear_2_tile_locked.png`〜`wear_4_tile_mixed.png`・
+    `wear_6_device_select.png`（`docs/store/images/screenshots/`）。`phone_4`〜`phone_7`・`wear_1`・
+    `wear_5`は据え置きのため差し替え不要。並び順はファイル名の番号順を保つ。
+    **リリースの審査とは別の送信で行う**（掲載情報の差し戻しでアプリ更新の配信まで止めないため）。
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    Play Consoleの掲載ページで、上記7枚が0.14.0の表示の画像へ置き換わっていること
+  根拠: >-
+    Play Consoleの操作はブラウザ専用でエージェントが実行できない
+    （rules/guardrails-unified.v1.md セクション12.2）。手順の現在地は
+    `docs/store/PLAY_CONSOLE_STEPS.local.md`「ストア掲載情報の変更手順」が持つ
+  依存: [BL-215]
+
+- id: BL-215
+  区分: 人手検証
+  タスク内容: >-
+    0.14.0をGoogle Playのクローズドテストの両トラックへ配信する。署名付きAABは2026-09-26に
+    `scripts/release-build.bat -VersionName 0.14.0`でビルド済み（mobile `versionCode 9` →
+    電話・タブレット系トラック、wear `versionCode 1007` → Wear OS専用トラック、
+    どちらも既存と同じアップロード鍵で署名されていることを確認済み）。「このリリースの新機能」欄へは
+    `docs/RELEASE_NOTES.md`の0.14.0「ストア掲載用の要約」（105/500文字）を転記する。
+    0.14.0では権限・データの扱いに変更が無いため、権限申告・データセーフティ欄の更新は不要。
+    公開後、規定ブランチへのマージを待って`v0.14.0`タグとGitHub Releaseを作成する
+    （Skill `github-release-publish`。タグのpushはユーザー）。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    両トラックで0.14.0が公開中になり、`v0.14.0`のタグとGitHub Releaseが作成されていること
+  根拠: >-
+    Play Consoleへのアップロードと審査への送信はブラウザ専用の操作で、外部への発信にあたるため
+    エージェントは実行できない（rules/guardrails-unified.v1.md セクション12.2）
+  依存: []
+
 - id: BL-195
   区分: 人手検証
   タスク内容: >-

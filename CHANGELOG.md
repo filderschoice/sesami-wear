@@ -7,6 +7,20 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-26（0.14.0のリリース準備）
+
+タイル・ホーム画面ウィジェットの「更新」ボタンと表示レイアウトの改善（BL-204〜BL-206 / BL-209 / BL-210）を
+中心とした 0.14.0 を Google Play のクローズドテストへ配信するための準備を行いました。
+リリース前の実機検証（BL-208 / BL-211 / BL-214）はすべてOKで完了しています。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.14.0 を「未リリース」から「2026-09-26」へ
+  確定しました。「ストア掲載用の要約」は105/500文字です。
+- **`scripts/version.properties`** を `versionCode 9` / `wear 1007` / `versionName 0.14.0` へ
+  更新し、署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.14.0`）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.14.0 の配信とタグ・
+  GitHub Releaseの作成を BL-215、掲載スクリーンショットのPlay Consoleへの差し替えを BL-216 として
+  起票しました（どちらもPlay Consoleの操作のためユーザー担当）。
+
 ## 2026-09-26（掲載スクリーンショットの撮り直し完了、BL-198）
 
 - **BL-198（完了）**: Google Play掲載用のスクリーンショットを、デバッグ版の撮影モード（BL-212〜BL-214）を
