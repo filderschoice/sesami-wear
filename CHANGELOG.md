@@ -7,6 +7,17 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-26（0.14.0の配信完了とv0.14.0の公開、BL-215 / BL-216）
+
+- **BL-215（完了）**: 0.14.0（mobile の `versionCode 9` / wear の `versionCode 1007`）が、Google Playの
+  クローズドテストの両トラックで公開中になりました。リリース準備のマージコミット（`50990c1`）へ
+  注釈付きタグ `v0.14.0` を作成し、[GitHub Release](https://github.com/filderschoice/sesami-wear/releases/tag/v0.14.0)
+  を公開しました（`docs/RELEASE_NOTES.md` の0.14.0から、Play用の要約を除いて転記。0.xのため
+  pre-releaseとしています）。
+- **BL-216（完了）**: Play Consoleの掲載スクリーンショットを、0.14.0の表示で撮り直した7枚
+  （`phone_1`〜`phone_3`、`wear_2`〜`wear_4`、`wear_6`）へ差し替えました。
+- 両項目ともユーザーの作業が終わったため、BACKLOG.mdから削除しています。
+
 ## 2026-09-26（0.14.0のリリース準備）
 
 タイル・ホーム画面ウィジェットの「更新」ボタンと表示レイアウトの改善（BL-204〜BL-206 / BL-209 / BL-210）を
