@@ -3,7 +3,7 @@
 - 対象ブランチ: `<ブランチ名>`
 - 対象機: Pixel 8 Pro（スマホ）＋ Pixel Watch 2（ウォッチ）＋ 登録済みの Sesame 5
 - 対象の人手検証: <BL-xxx, BL-yyy>
-- 本ファイルは `*.local.md` のためGit管理外です。リリース後に削除して構いません。
+- 本ファイルは `*.local.md` のためGit管理外です。Google Playの両トラックで公開中になった時点で削除します。
 - 作成・更新: Skill `release-verification-prep`（インストールまでを Claude Code、検証の操作をユーザーが行う）
 
 ## 0. インストール状況
