@@ -178,7 +178,8 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
   合否判定からは除外する
 - 人手検証は、**実機へのデバッグ版インストールと検証手順書の作成までを Claude Code が行い、検証の操作は
   ユーザーが行う**（Skill `release-verification-prep`）。手順書は次のリリースごとの
-  `docs/verification/VERIFICATION-<バージョン>.local.md`（Git管理外）へBLごとの節として集める。
+  `docs/verification/VERIFICATION-<バージョン>.local.md`（Git管理外）へBLごとの節として集め、
+  そのリリースがGoogle Playの両トラックで公開中になった時点で削除する。
   実機がつながらないときも、エミュレータの用意より先に adb での実機接続を試す
 - Claude Code が adb 経由でUIを操作して検証するのは、ユーザーが明示的に求めた場合だけ
   （手順は Skill `realmachine-verification`、接続そのものの定石は Skill `adb-device-connection`）。

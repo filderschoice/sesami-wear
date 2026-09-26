@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-26（検証手順書をリリース時に削除する運用）
+
+リリースごとの検証手順書 `docs/verification/VERIFICATION-<バージョン>.local.md` を、そのリリースが
+Google Playの両トラックで公開中になった時点で削除することにしました（ユーザー判断）。これまでは
+「リリース後に削除してよい」とだけ書いていたため、削除する時点が決まっていませんでした。
+
+- Skill `release-verification-prep` に「4. リリース時の削除」を追加しました。削除の前に、手順書に
+  載っているBLの結果が記録済みか（BACKLOG.mdに残っていないか）と、結果欄が空の項目が無いかを確かめます。
+  descriptionにも削除を加えています。
+- 手順書の雛形（同スキルの `template.md`）と、`CLAUDE.md`「本リポジトリの品質ゲート定義」の
+  人手検証の記述を上記に合わせました。
+
 ## 2026-09-26（0.14.0の配信完了とv0.14.0の公開、BL-215 / BL-216）
 
 - **BL-215（完了）**: 0.14.0（mobile の `versionCode 9` / wear の `versionCode 1007`）が、Google Playの
