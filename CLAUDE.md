@@ -94,6 +94,7 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 | 利用者向けの操作説明（UIの表示文言を変えたら追随させる） | `docs/USER_GUIDE.md` |
 | 利用者向けの変更点・問い合わせ窓口・クローズドテスト参加手順 | `docs/RELEASE_NOTES.md` / `docs/SUPPORT.md` / `docs/CLOSED_TEST.md` |
 | Google Play掲載情報・プライバシーポリシー・アイコン | `docs/store/`（索引は `docs/store/README.md`） |
+| アプリ紹介ポートフォリオ（静的な1ページ。機能・版・配信状況を変えたら追随させる） | `site/`（構成と更新方針は `site/README.md`） |
 | 脆弱性報告の受付方針 | `SECURITY.md`（GitHubがSecurity policyとして参照するためルートから移動しない） |
 | 開発プロセス・ブランチ規約・レビュー要件・Issue受付方針 | `CONTRIBUTING.md` |
 | 運用ルール・ドキュメントの変更履歴 | `CHANGELOG.md` |

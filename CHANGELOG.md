@@ -7,6 +7,27 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-29（アプリ紹介ポートフォリオの追加とGitHub Pagesでの公開、BL-217〜BL-220）
+
+Romcha（`C:\Dev\repo\play\romcha`）の `site/` をテンプレートとして、Sesami Wear を紹介する静的な
+1ページを `site/` に追加しました（自律ループ実行モード）。
+
+- **BL-217（完了）**: `site/index.html`・`style.css`・`app.json`・`README.md`・`assets/` を作成しました。
+  構成はテンプレートと同じで、内容は0.14.0の仕様（STORE_LISTING.md・USER_GUIDE.md・DESIGN.md）に
+  合わせています。テンプレートからの差分（「画面」セクションの追加など）は `site/README.md` に記載しています。
+  画面の画像は、Google Play掲載用に加工済みのスクリーンショットを縮小して使っています。
+- **BL-218（完了）**: `README.md`（プロジェクト構成・関連ドキュメント）と `CLAUDE.md`（参照先マップ）へ
+  `site/` を追加しました。
+- **BL-219（完了）**: ユーザー判断により、`site/` をGitHub Pagesで公開する方針になりました。公開方式は
+  `site/` の中身を `gh-pages` ブランチへ切り出す方式（`git subtree push --prefix site origin gh-pages`）です。
+  Pagesの公開元フォルダは `/ (root)` か `/docs` しか選べませんが、GitHub Actionsのワークフロー追加は
+  自律ループ実行モードで禁止されているCI/CD定義の変更にあたり、本リポジトリはCIを持たない運用でもあるため
+  採りませんでした。`site/.nojekyll` の追加、公開URL（<https://filderschoice.github.io/sesami-wear/>）の
+  `README.md`・`site/README.md`・`site/app.json`・`index.html`（`og:url` / `canonical`）への反映、公開と更新の
+  手順（`site/README.md`「GitHub Pages での公開」、`README.md` のリリース手順）の記載を行いました。
+- **BL-220（人手検証）**: `gh-pages` のpushとリポジトリ設定（Settings → Pages）、公開URLでの表示確認は
+  ユーザーが行います。
+
 ## 2026-09-26（検証手順書をリリース時に削除する運用）
 
 リリースごとの検証手順書 `docs/verification/VERIFICATION-<バージョン>.local.md` を、そのリリースが
