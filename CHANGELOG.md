@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-09-29（アプリ紹介ポートフォリオの追加、BL-217 / BL-218 / BL-219）
+
+Romcha（`C:\Devepo\playomcha`）の `site/` をテンプレートとして、Sesami Wear を紹介する静的な
+1ページを `site/` に追加しました（自律ループ実行モード）。
+
+- **BL-217（完了）**: `site/index.html`・`style.css`・`app.json`・`README.md`・`assets/` を作成しました。
+  構成はテンプレートと同じで、内容は0.14.0の仕様（STORE_LISTING.md・USER_GUIDE.md・DESIGN.md）に
+  合わせています。テンプレートからの差分（「画面」セクションの追加など）は `site/README.md` に記載しています。
+  画面の画像は、Google Play掲載用に加工済みのスクリーンショットを縮小して使っています。
+- **BL-219（要確認）**: 公開方法（GitHub Pages等）は外部への発信にあたるため、ユーザーの判断待ちとして
+  BACKLOG.mdに残しています。
+
 ## 2026-09-26（検証手順書をリリース時に削除する運用）
 
 リリースごとの検証手順書 `docs/verification/VERIFICATION-<バージョン>.local.md` を、そのリリースが

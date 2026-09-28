@@ -1,0 +1,19 @@
+{
+  "schema": "app-portfolio.v1",
+  "id": "sesami-wear",
+  "name": "Sesami Wear",
+  "nameJa": "セサミウェア",
+  "tagline": "Pixel Watch とホーム画面ウィジェットから、CANDY HOUSE Sesame スマートロックを施錠・解錠",
+  "platforms": ["Android", "Wear OS"],
+  "status": "beta",
+  "version": "0.14.0",
+  "license": "MIT",
+  "tags": ["Android", "Wear OS", "Kotlin", "Jetpack Compose", "Tiles", "Bluetooth LE", "Smart Lock"],
+  "icon": "assets/icon.svg",
+  "page": "index.html",
+  "links": {
+    "repository": "https://github.com/filderschoice/sesami-wear",
+    "download": "https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md"
+  },
+  "updated": "2026-09-29"
+}

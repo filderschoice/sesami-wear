@@ -1,0 +1,231 @@
+<!doctype html>
+<!--
+  アプリ紹介ポートフォリオ（テンプレート兼 Sesami Wear 版）。使い方は site/README.md。
+  テンプレートの原本は Romcha（C:\Dev\repo\play\romcha）の site/。
+  他アプリへ流用するときは「TEMPLATE:」の付いた箇所を差し替え、不要なセクションは丸ごと削除する。
+  外部フォント・外部スクリプトは読み込まない（閲覧者の情報を第三者へ送らないため）。
+-->
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TEMPLATE: タイトル・説明・テーマ色 -->
+  <title>Sesami Wear — ウォッチから Sesame を施錠・解錠</title>
+  <meta name="description" content="Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE Sesame 5 スマートロックを施錠・解錠する Android / Wear OS アプリ。">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sesami Wear">
+  <meta property="og:description" content="Pixel Watch とホーム画面ウィジェットから、CANDY HOUSE Sesame スマートロックを施錠・解錠（Android / Wear OS）">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="#top">
+        <img src="assets/icon.svg" alt="" width="32" height="32">
+        <span>Sesami Wear</span>
+      </a>
+      <nav class="nav" aria-label="ページ内の移動">
+        <a href="#features">機能</a>
+        <a href="#screens">画面</a>
+        <a href="#how">仕組み</a>
+        <a href="#usage">使い方</a>
+        <a href="#privacy">プライバシー</a>
+        <a href="#download">入手</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ================= ヒーロー ================= -->
+    <section class="hero">
+      <div class="container">
+        <div>
+          <!-- TEMPLATE: 分類・アプリ名・一言説明・ボタン -->
+          <span class="eyebrow">Android / Wear OS アプリ</span>
+          <h1>Sesami Wear<br>手首から<br>鍵をかける</h1>
+          <p class="lead">
+            Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE の
+            Sesame 5 スマートロックをワンタップで施錠・解錠。結果は振動で伝わるので、画面を見返す必要はありません。
+          </p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md">クローズドテストに参加</a>
+            <a class="button" href="https://github.com/filderschoice/sesami-wear">ソースコード</a>
+          </div>
+          <p class="meta">v0.14.0 ・ Android 8.0 以上 ・ Wear OS 3 以上（任意） ・ MIT License ・ 広告なし</p>
+        </div>
+        <div class="hero-visual">
+          <img src="assets/phone-widget.png" alt="スマートフォンのホーム画面に置いた Sesami Wear のウィジェット。施錠中の状態と、更新・変更のボタンが表示されている（壁紙とステータスバーはぼかし加工）" width="450" height="800">
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 機能 ================= -->
+    <section id="features">
+      <div class="container">
+        <h2>機能</h2>
+        <p class="section-lead">鍵の資格情報はスマートフォンだけが持ち、ウォッチは「施錠して」「解錠して」を伝えるだけの設計です。</p>
+        <!-- TEMPLATE: 機能カード（1 枚 = 1 つの li） -->
+        <ul class="features">
+          <li class="card">
+            <span class="tag">タイル</span>
+            <h3>ワンタップで施錠・解錠</h3>
+            <p>Wear OS のタイルから操作します。施錠は即時、解錠は誤操作を防ぐため確認を挟みます。通信中はボタンを無効にして二重送信を防ぎます。</p>
+          </li>
+          <li class="card">
+            <span class="tag">振動</span>
+            <h3>結果は手首で分かる</h3>
+            <p>施錠・解錠の成功と失敗を、異なる振動パターンで知らせます。画面を見なくても鍵がかかったか確かめられます。</p>
+          </li>
+          <li class="card">
+            <span class="tag">コンプリケーション</span>
+            <h3>文字盤に施錠状態</h3>
+            <p>ウォッチフェイスのコンプリケーションに現在の状態を表示します。最後に状態を取得した時刻もあわせて示します。</p>
+          </li>
+          <li class="card">
+            <span class="tag">ウィジェット</span>
+            <h3>ウォッチが無くても使える</h3>
+            <p>スマートフォンのホーム画面ウィジェットから、タイルと同じ表示・操作で施錠・解錠できます。大きさも変えられます。</p>
+          </li>
+          <li class="card">
+            <span class="tag">複数台</span>
+            <h3>玄関も勝手口もまとめて</h3>
+            <p>複数の Sesame を登録し、タイル・コンプリケーション・ウィジェットごとに操作対象を選べます。「全デバイス」で一括操作も可能です。</p>
+          </li>
+          <li class="card">
+            <span class="tag">通信経路</span>
+            <h3>近くは Bluetooth、遠くはネット</h3>
+            <p>Sesame の近くでは Bluetooth で直接操作し、離れているときはインターネット経由へ自動で切り替えます。どちらで操作したかも表示します。</p>
+          </li>
+          <li class="card">
+            <span class="tag">診断</span>
+            <h3>電池残量と操作の記録</h3>
+            <p>Sesame の電池残量を表示し、直近 50 件の施錠・解錠・状態取得を診断ログで確認できます。不具合の報告にもそのまま使えます。</p>
+          </li>
+          <li class="card">
+            <span class="tag">デモ</span>
+            <h3>登録前に操作感を試せる</h3>
+            <p>Sesame を登録していない状態では、実際の鍵を操作しない「デモ」でタイルやウィジェットの動きを確かめられます。</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= 画面 ================= -->
+    <section id="screens">
+      <div class="container">
+        <h2>画面</h2>
+        <p class="section-lead">Pixel Watch 2 での表示です（0.14.0。コンプリケーションは以前の版で撮影）。</p>
+        <!-- TEMPLATE: 画面のスクリーンショット（1 枚 = 1 つの li。不要ならセクションごと削除） -->
+        <ul class="features">
+          <li class="card">
+            <img src="assets/wear-tile-locked.png" alt="ウォッチのタイル。全デバイスが施錠中で、タップで全解錠できることを示す緑のボタンと、更新・変更のボタンが並ぶ" width="384" height="384">
+            <h3>タイル（施錠中）</h3>
+            <p>大きなボタンが状態と次の操作を示します。</p>
+          </li>
+          <li class="card">
+            <img src="assets/wear-tile-mixed.png" alt="ウォッチのタイル。全デバイスのうち一部だけが解錠されている状態を紫のボタンで示している" width="384" height="384">
+            <h3>タイル（一部解錠）</h3>
+            <p>複数台の状態が揃っていないことも一目で分かります。</p>
+          </li>
+          <li class="card">
+            <img src="assets/wear-unlock-confirm.png" alt="解錠の確認画面。左にキャンセル、右に赤い全解錠のボタンがある" width="384" height="384">
+            <h3>解錠の確認</h3>
+            <p>解錠だけは確認を挟み、誤操作を防ぎます。</p>
+          </li>
+          <li class="card">
+            <img src="assets/wear-complication.png" alt="ウォッチフェイス。時刻の下に並ぶコンプリケーションのひとつに「施錠」と表示されている" width="384" height="384">
+            <h3>コンプリケーション</h3>
+            <p>文字盤から現在の状態を確認できます。</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= 仕組み ================= -->
+    <section id="how">
+      <div class="container">
+        <h2>仕組み</h2>
+        <p class="section-lead">秘密鍵（secretKey）はスマートフォンの中だけにあり、ウォッチには渡しません。</p>
+        <!-- TEMPLATE: 構成図 -->
+        <figure class="figure">
+          <img src="assets/how-it-works.svg" alt="ウォッチやウィジェットからの操作を、資格情報を持つスマートフォンが受け、Bluetooth で Sesame 5 へ直接、またはインターネット経由で CANDY HOUSE の Web API と Hub 3 を通して施錠・解錠する流れの図解" width="720" height="250">
+          <figcaption>
+            ウォッチは Wearable Data Layer API で操作の種類だけをスマートフォンへ送ります。スマートフォンは AES-CMAC で署名した指示を作り、
+            Sesame が近ければ Bluetooth で、離れていれば CANDY HOUSE の Web API（Hub 3 経由）で送ります。結果と状態はウォッチへ返り、タイルと振動に反映されます。
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ================= 使い方 ================= -->
+    <section id="usage">
+      <div class="container">
+        <h2>使い方</h2>
+        <p class="section-lead">最初に Sesame の資格情報を登録すれば、あとはタイルかウィジェットをタップするだけです。</p>
+        <!-- TEMPLATE: 手順（1 行 = 1 つの li） -->
+        <ol class="steps">
+          <li>SESAME Biz 開発者ページ（biz.candyhouse.co）で、uuid・apikey・secretKey の 3 点を確認・発行します。</li>
+          <li>スマートフォンの Sesami Wear を開き、3 点とデバイス名を登録します（端末内に暗号化して保存します）。</li>
+          <li>ウォッチのタイル一覧で「＋」から Sesami Wear を追加し、操作したいデバイスを選びます。ウォッチが無い場合はホーム画面にウィジェットを置きます。</li>
+          <li>ボタンをタップすると施錠します。解錠は確認画面で「解錠」を押します。成功・失敗は振動で分かります。</li>
+        </ol>
+        <p class="spaced">詳しい手順は<a href="https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md">利用ガイド</a>を参照してください。</p>
+      </div>
+    </section>
+
+    <!-- ================= プライバシーと注意 ================= -->
+    <section id="privacy">
+      <div class="container">
+        <h2>プライバシーと注意</h2>
+        <p class="section-lead">開発者が管理するサーバーはありません。広告・アクセス解析の SDK も組み込んでいません。</p>
+        <!-- TEMPLATE: プライバシー（箇条書き）と免責（notice） -->
+        <ul class="plain-list">
+          <li>資格情報はスマートフォンに暗号化して保存し、ウォッチには保持しません。secretKey は端末内で署名の計算にだけ使い、送信しません。</li>
+          <li>通信先は CANDY HOUSE の Web API（施錠・解錠の指示と状態の取得）と、近くの Sesame との Bluetooth 通信だけです。</li>
+          <li>Bluetooth の許可は任意です。スキャン結果から位置情報を推定することはなく、位置情報の収集・送信も行いません。</li>
+        </ul>
+        <p class="spaced">収集する情報の範囲は<a href="https://github.com/filderschoice/sesami-wear/blob/main/docs/store/PRIVACY_POLICY.md">プライバシーポリシー</a>を参照してください。</p>
+        <div class="notice spaced">
+          <p>
+            本アプリは個人による非公式アプリで、CANDY HOUSE 株式会社とは提携・協力関係にありません。公開されている Sesame API を利用していますが、
+            同社による動作保証・サポートの対象外です。アプリ名の「Sesami」は公式製品の「Sesame」と取り違えないよう綴りを変えた造語です。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 入手 ================= -->
+    <section id="download">
+      <div class="container">
+        <h2>入手</h2>
+        <p class="section-lead">現在は Google Play のクローズドテストで配信しています（参加方法は案内ページを参照してください）。</p>
+        <!-- TEMPLATE: 仕様表とボタン -->
+        <table class="spec">
+          <tbody>
+            <tr><th scope="row">動作環境</th><td>Android 8.0（API 26）以上のスマートフォン。タイル・コンプリケーションを使う場合は Wear OS 3 以上のウォッチ</td></tr>
+            <tr><th scope="row">対応機器</th><td>CANDY HOUSE Sesame 5（インターネット経由の操作には Hub 3 が必要）</td></tr>
+            <tr><th scope="row">確認端末</th><td>Pixel 8 Pro、Pixel Watch 2</td></tr>
+            <tr><th scope="row">配信</th><td>Google Play（クローズドテスト）。スマートフォン用とウォッチ用は同じ掲載ページから入手</td></tr>
+            <tr><th scope="row">ライセンス</th><td>MIT License</td></tr>
+          </tbody>
+        </table>
+        <div class="actions spaced">
+          <a class="button primary" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md">クローズドテストの案内</a>
+          <a class="button" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/RELEASE_NOTES.md">リリースノート</a>
+          <a class="button" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/SUPPORT.md">サポート</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <!-- TEMPLATE: 著作権表記・リンク -->
+      <span>© 2026 filderschoice ・ MIT License</span>
+      <span>「CANDY HOUSE」「Sesame」は CANDY HOUSE 株式会社の商標または登録商標です。本アプリは同社とは関係ありません。</span>
+    </div>
+  </footer>
+</body>
+</html>
