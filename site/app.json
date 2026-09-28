@@ -12,6 +12,7 @@
   "icon": "assets/icon.svg",
   "page": "index.html",
   "links": {
+    "homepage": "https://filderschoice.github.io/sesami-wear/",
     "repository": "https://github.com/filderschoice/sesami-wear",
     "download": "https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md"
   },

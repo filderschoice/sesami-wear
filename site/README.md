@@ -12,6 +12,7 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 | `style.css` | 共通のスタイル。アプリごとに変えるのは先頭の `:root` のアクセント色（3 つ）だけ |
 | `app.json` | アプリの概要（名前・一言説明・版・タグ・リンク）。複数アプリのポートフォリオ（一覧ページ）から読むためのもの |
 | `assets/` | アイコン・構成図（SVG）と、画面のスクリーンショット（PNG） |
+| `.nojekyll` | GitHub Pages に Jekyll の変換をさせず、ファイルをそのまま配信させるための空ファイル |
 
 `assets/` の内訳は次のとおりです。
 
@@ -62,14 +63,56 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 | `status` | `released`（公開済み）/ `beta` / `development` |
 | `version` / `license` | 現在の版とライセンス |
 | `icon` / `page` | アイコンとページの、`app.json` からの相対パス |
-| `links` | `repository`・`download` などの外部リンク |
+| `links` | `homepage`（公開URL）・`repository`・`download` などの外部リンク |
 | `updated` | 最終更新日（`YYYY-MM-DD`） |
 
 一覧ページは、各アプリの `app.json` を集めてカードを並べ、`page` へリンクする想定です（一覧ページ自体は未作成）。
 
 ## Sesami Wear での運用
 
-- 公開方法（GitHub Pages 等）は未定で、現在はリポジトリ内に置くだけです（BACKLOG の BL-219 で判断待ち）。
+- GitHub Pages で公開します（2026-09-29 ユーザー判断）。公開URLは <https://filderschoice.github.io/sesami-wear/> です。
+  公開の手順は下記「GitHub Pages での公開」を参照してください。
 - Google Play では一般公開前のクローズドテスト中のため、`app.json` の `status` は `beta`、`links.download` は
   クローズドテストの案内（`docs/CLOSED_TEST.md`）にしています。製品版を公開したら Google Play の掲載ページへ変えます。
 - 機能・版・動作環境・配信状況を変えたときは、`index.html` と `app.json` も `docs/store/STORE_LISTING.md` と合わせて更新します。
+
+## GitHub Pages での公開
+
+`site/` の中身だけを `gh-pages` ブランチへ切り出し、GitHub Pages の「Deploy from a branch」で配信します。
+GitHub Actions のワークフローは使いません（本リポジトリには CI が無く、Pages の公開元フォルダには
+`/ (root)` か `/docs` しか選べないため）。公開される範囲は `gh-pages` に載る `site/` の中身だけです。
+
+### 初回の設定（1 回だけ）
+
+1. `site/` の変更を `main` へマージしたあと、`main` を最新にした状態で `gh-pages` ブランチを作って push する。
+
+   ```bash
+   git checkout main
+   git pull
+   git subtree push --prefix site origin gh-pages
+   ```
+
+2. GitHub のリポジトリの Settings → Pages で、Source を「Deploy from a branch」、Branch を `gh-pages` の
+   `/ (root)` にして保存する。
+3. 数分後に <https://filderschoice.github.io/sesami-wear/> を開き、画像とリンクが表示されることを確かめる。
+
+### 更新するとき
+
+`site/` の変更を `main` へマージしたあと、`main` で同じコマンドを実行します。`gh-pages` の履歴は
+`site/` の履歴から毎回同じ形で作られるため、通常は早送りで反映されます。
+
+```bash
+git checkout main
+git pull
+git subtree push --prefix site origin gh-pages
+```
+
+`gh-pages` を直接編集しないでください（次の push が早送りにならず失敗します）。失敗した場合は、
+`gh-pages` を `site/` の履歴で作り直します（公開中の内容は `site/` と同じなので失われるものはありません）。
+
+```bash
+git push origin "$(git subtree split --prefix site main)":refs/heads/gh-pages --force
+```
+
+アプリのリリース（両トラックでの公開）で機能・版・画面が変わったときは、`index.html` と `app.json` を更新して
+上記の手順で反映します。

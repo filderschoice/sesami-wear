@@ -48,6 +48,7 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 | 更新内容を確認したい | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) |
 | 不具合を報告したい・質問したい | [docs/SUPPORT.md](docs/SUPPORT.md) |
 | 収集する情報を知りたい | [docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md) |
+| アプリの紹介ページを見たい | <https://filderschoice.github.io/sesami-wear/>（原本は [site/](site/)） |
 | 脆弱性を報告したい | [SECURITY.md](SECURITY.md) |
 
 ---
@@ -219,6 +220,10 @@ Wear OS向けリリースは専用トラックでの公開が必須です（詳�
 Play Console提出用のストア掲載情報・プライバシーポリシーのドラフトは
 [docs/store/](docs/store/) 配下で管理しています。
 
+リリースで機能・版・画面が変わった場合は、アプリ紹介ページ（[site/](site/)）も更新し、`main` へマージした後に
+`git subtree push --prefix site origin gh-pages` でGitHub Pagesへ反映してください（手順の詳細は
+[site/README.md](site/README.md)「GitHub Pages での公開」）。
+
 ## プロジェクト構成
 
 ```text
@@ -299,7 +304,8 @@ sesami-wear/
 - [docs/SUPPORT.md](docs/SUPPORT.md): アップデート内容の確認先・問い合わせ窓口
 - [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md): バージョンごとの変更点
 - [docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md): プライバシーポリシー
-- [site/index.html](site/index.html): アプリ紹介ページ（ブラウザーで開くだけで表示できる。構成は [site/README.md](site/README.md)）
+- [site/index.html](site/index.html): アプリ紹介ページ（GitHub Pages で <https://filderschoice.github.io/sesami-wear/> に公開。
+  構成と公開手順は [site/README.md](site/README.md)）
 
 ### 開発者向け
 

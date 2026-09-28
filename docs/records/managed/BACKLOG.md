@@ -21,27 +21,6 @@
   依存:
     - BL-219
 
-- id: BL-219
-  区分: 品質ゲート
-  タスク内容: >-
-    site/ を GitHub Pages で公開できるようにする（2026-09-29 ユーザー判断で公開方針が確定）。
-    公開方式は site/ を gh-pages ブランチへ切り出す方式（git subtree）とし、`.nojekyll` の追加、
-    公開URLの README.md・site/README.md・site/app.json・index.html（og:url）への反映、公開と更新の手順の
-    記載を行う。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    公開と更新の手順が README.md と site/README.md に記載され、公開URLが app.json と README.md に
-    載っており、Markdown静的解析が 0 issues であること
-  根拠: >-
-    公開方式は GitHub Actions のワークフロー（actions/deploy-pages）ではなく gh-pages ブランチを選んだ。
-    Pages の「Deploy from a branch」は公開元フォルダを `/ (root)` か `/docs` しか選べず site/ を直接指定できないが、
-    ワークフローの追加は CI/CD 定義の変更にあたり自律ループ実行モードでは禁止されている（guardrails 12.2）。
-    本リポジトリには CI が無く、品質ゲートもローカル実行のみとしているため、ワークフローを持ち込まない方式は
-    既存の運用とも合う。gh-pages には site/ の中身しか載らないため、公開される範囲も site/ に限られる。
-  依存: []
-
 - id: BL-195
   区分: 人手検証
   タスク内容: >-
