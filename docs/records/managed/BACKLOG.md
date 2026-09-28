@@ -5,21 +5,42 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-220
+  区分: 人手検証
+  タスク内容: >-
+    site/ を GitHub Pages で公開する。main へのマージ後に `git subtree push --prefix site origin gh-pages` で
+    gh-pages ブランチを push し、GitHub のリポジトリ設定（Settings → Pages）で Source を
+    「Deploy from a branch」、ブランチを gh-pages の `/ (root)` にする。公開後、
+    https://filderschoice.github.io/sesami-wear/ で表示・画像・リンクを確認する。
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: 公開URLでページが表示され、画像の欠けとリンク切れがないこと
+  根拠: >-
+    push とリポジトリ設定の変更は外部への反映にあたり、エージェントは実行しない（guardrails 5.3 / 12.2）。
+  依存:
+    - BL-219
+
 - id: BL-219
   区分: 品質ゲート
   タスク内容: >-
-    アプリ紹介ポートフォリオ（site/）の公開方法を決める。GitHub Pages で公開するか、別のホスティングへ
-    置くか、リポジトリ内に置くだけにするかを選ぶ。GitHub Pages を使う場合はリポジトリ設定の変更と
-    公開URLの README・app.json への反映が要る。
-  優先度: P3
-  状態: 要確認
-  担当: ユーザー
-  完了条件: 公開方法が決まり、公開する場合は公開URLが README と site/app.json に記載されていること
+    site/ を GitHub Pages で公開できるようにする（2026-09-29 ユーザー判断で公開方針が確定）。
+    公開方式は site/ を gh-pages ブランチへ切り出す方式（git subtree）とし、`.nojekyll` の追加、
+    公開URLの README.md・site/README.md・site/app.json・index.html（og:url）への反映、公開と更新の手順の
+    記載を行う。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    公開と更新の手順が README.md と site/README.md に記載され、公開URLが app.json と README.md に
+    載っており、Markdown静的解析が 0 issues であること
   根拠: >-
-    Web への公開は外部への発信にあたり、自律ループ実行モードでは実施できない（guardrails 12.2 / 12.4）。
-    参考にした Romcha でも公開方法は未定で、リポジトリ内に置くだけの運用としている。
-  依存:
-    - BL-217
+    公開方式は GitHub Actions のワークフロー（actions/deploy-pages）ではなく gh-pages ブランチを選んだ。
+    Pages の「Deploy from a branch」は公開元フォルダを `/ (root)` か `/docs` しか選べず site/ を直接指定できないが、
+    ワークフローの追加は CI/CD 定義の変更にあたり自律ループ実行モードでは禁止されている（guardrails 12.2）。
+    本リポジトリには CI が無く、品質ゲートもローカル実行のみとしているため、ワークフローを持ち込まない方式は
+    既存の運用とも合う。gh-pages には site/ の中身しか載らないため、公開される範囲も site/ に限られる。
+  依存: []
 
 - id: BL-195
   区分: 人手検証
