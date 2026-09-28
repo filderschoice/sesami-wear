@@ -21,18 +21,6 @@
   依存:
     - BL-217
 
-- id: BL-218
-  区分: 品質ゲート
-  タスク内容: >-
-    site/ への導線を追加する。README.md と CLAUDE.md の参照先マップに site/ を載せ、
-    CHANGELOG.md へ追加の経緯を記録する。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: README.md・CLAUDE.md から site/ を辿れ、Markdown静的解析が 0 issues であること
-  依存:
-    - BL-217
-
 - id: BL-195
   区分: 人手検証
   タスク内容: >-

@@ -9,13 +9,15 @@
 
 ## 2026-09-29（アプリ紹介ポートフォリオの追加、BL-217 / BL-218 / BL-219）
 
-Romcha（`C:\Devepo\playomcha`）の `site/` をテンプレートとして、Sesami Wear を紹介する静的な
+Romcha（`C:\Dev\repo\play\romcha`）の `site/` をテンプレートとして、Sesami Wear を紹介する静的な
 1ページを `site/` に追加しました（自律ループ実行モード）。
 
 - **BL-217（完了）**: `site/index.html`・`style.css`・`app.json`・`README.md`・`assets/` を作成しました。
   構成はテンプレートと同じで、内容は0.14.0の仕様（STORE_LISTING.md・USER_GUIDE.md・DESIGN.md）に
   合わせています。テンプレートからの差分（「画面」セクションの追加など）は `site/README.md` に記載しています。
   画面の画像は、Google Play掲載用に加工済みのスクリーンショットを縮小して使っています。
+- **BL-218（完了）**: `README.md`（プロジェクト構成・関連ドキュメント）と `CLAUDE.md`（参照先マップ）へ
+  `site/` を追加しました。
 - **BL-219（要確認）**: 公開方法（GitHub Pages等）は外部への発信にあたるため、ユーザーの判断待ちとして
   BACKLOG.mdに残しています。
 

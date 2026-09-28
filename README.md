@@ -231,6 +231,7 @@ sesami-wear/
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
 ├── templates/ # ガードレールのプロジェクト別設定・モデルリスク台帳のテンプレート
+├── site/    # アプリ紹介ポートフォリオ（静的な1ページ。使い方は site/README.md）
 ├── PLAN.md  # 要件・API仕様メモ・アーキテクチャ方針（初回依頼時点のメモ）
 └── docs/
     ├── USER_GUIDE.md     # 利用ガイド（アプリ利用者向け）
@@ -298,6 +299,7 @@ sesami-wear/
 - [docs/SUPPORT.md](docs/SUPPORT.md): アップデート内容の確認先・問い合わせ窓口
 - [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md): バージョンごとの変更点
 - [docs/store/PRIVACY_POLICY.md](docs/store/PRIVACY_POLICY.md): プライバシーポリシー
+- [site/index.html](site/index.html): アプリ紹介ページ（ブラウザーで開くだけで表示できる。構成は [site/README.md](site/README.md)）
 
 ### 開発者向け
 
