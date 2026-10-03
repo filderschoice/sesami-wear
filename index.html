@@ -11,7 +11,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- TEMPLATE: タイトル・説明・テーマ色 -->
   <title>Sesami Wear — ウォッチから Sesame を施錠・解錠</title>
-  <meta name="description" content="Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE Sesame 5 スマートロックを施錠・解錠する Android / Wear OS アプリ。">
+  <meta name="description" content="Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE Sesame スマートロックを施錠・解錠する Android / Wear OS アプリ。">
   <meta name="theme-color" content="#1e3a5f">
   <meta property="og:type" content="website">
   <!-- TEMPLATE: 公開URL（GitHub Pages）。公開しない場合は og:url と canonical を削除する -->
@@ -50,7 +50,7 @@
           <h1>Sesami Wear<br>手首から<br>鍵をかける</h1>
           <p class="lead">
             Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE の
-            Sesame 5 スマートロックをワンタップで施錠・解錠。結果は振動で伝わるので、画面を見返す必要はありません。
+            Sesame スマートロックをワンタップで施錠・解錠。結果は振動で伝わるので、画面を見返す必要はありません。
           </p>
           <div class="actions">
             <a class="button primary" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md">クローズドテストに参加</a>
@@ -153,7 +153,7 @@
         <p class="section-lead">秘密鍵（secretKey）はスマートフォンの中だけにあり、ウォッチには渡しません。</p>
         <!-- TEMPLATE: 構成図 -->
         <figure class="figure">
-          <img src="assets/how-it-works.svg" alt="ウォッチやウィジェットからの操作を、資格情報を持つスマートフォンが受け、Bluetooth で Sesame 5 へ直接、またはインターネット経由で CANDY HOUSE の Web API と Hub 3 を通して施錠・解錠する流れの図解" width="720" height="250">
+          <img src="assets/how-it-works.svg" alt="ウォッチやウィジェットからの操作を、資格情報を持つスマートフォンが受け、Bluetooth で Sesame へ直接、またはインターネット経由で CANDY HOUSE の Web API と Hub 3 を通して施錠・解錠する流れの図解" width="720" height="250">
           <figcaption>
             ウォッチは Wearable Data Layer API で操作の種類だけをスマートフォンへ送ります。スマートフォンは AES-CMAC で署名した指示を作り、
             Sesame が近ければ Bluetooth で、離れていれば CANDY HOUSE の Web API（Hub 3 経由）で送ります。結果と状態はウォッチへ返り、タイルと振動に反映されます。
@@ -204,11 +204,40 @@
       <div class="container">
         <h2>入手</h2>
         <p class="section-lead">現在は Google Play のクローズドテストで配信しています（参加方法は案内ページを参照してください）。</p>
+        <h3>対応機器（インターネット接続）</h3>
+        <p class="note">インターネット（Wi-Fi）での操作には、Sesame のほかに Hub 3 または Wi-Fiモジュール2 が必要です。対応する Sesame の機種は、CANDY HOUSE の公式ページ（<a href="https://jp.candyhouse.co/products/hub3">Hub3</a>・<a href="https://jp.candyhouse.co/products/new-wifi">WiFiモジュール2</a>・<a href="https://jp.candyhouse.co/products/sesame6-pro-mini">SESAME 6 Pro mini</a>）の記載にもとづく次のとおりです。</p>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr><th scope="col">Sesame の機種</th><th scope="col">Hub 3</th><th scope="col">Wi-Fiモジュール2</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Sesame 5</th><td><span aria-label="対応">✓</span></td><td><span aria-label="対応">✓</span></td></tr>
+              <tr><th scope="row">Sesame 6 Pro mini</th><td><span aria-label="対応">✓</span></td><td><span aria-label="記載なし">－</span></td></tr>
+              <tr><th scope="row">Sesame 3</th><td><span aria-label="非対応">－</span></td><td><span aria-label="対応">✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">✓ 公式に対応と記載　－ 非対応、または公式に記載なし。公式ページの確認日は 2026-10-03 です。Wi-Fiモジュール2 は完売で、後継は Hub 3 です。Bluetooth での直接操作には、これらの機器は不要です。</p>
+        <h3 class="spaced">検証状況</h3>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr><th scope="col">Sesame の機種</th><th scope="col">インターネット（Wi-Fi）での操作</th><th scope="col">Bluetooth での直接操作</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Sesame 5</th><td><span aria-label="実機確認済み">◎</span></td><td><span aria-label="実機確認済み">◎</span></td></tr>
+              <tr><th scope="row">Sesame 6 Pro mini</th><td><span aria-label="動作の報告あり">○</span></td><td><span aria-label="未確認">－</span></td></tr>
+              <tr><th scope="row">Sesame 3</th><td><span aria-label="動作の報告あり">○</span></td><td><span aria-label="未確認">－</span></td></tr>
+              <tr><th scope="row">上記以外</th><td><span aria-label="未確認">－</span></td><td><span aria-label="未確認">－</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">◎ 実機で確認済み　○ 動作の報告あり（開発者は再現確認していません）　－ 未確認（動作しないという意味ではありません）<br>Bluetooth での直接操作は Sesame 5 系のモデルを想定した実装です。動作の可否は問い合わせ窓口へお知らせください。</p>
         <!-- TEMPLATE: 仕様表とボタン -->
-        <table class="spec">
+        <table class="spec spaced">
           <tbody>
             <tr><th scope="row">動作環境</th><td>Android 8.0（API 26）以上のスマートフォン。タイル・コンプリケーションを使う場合は Wear OS 3 以上のウォッチ</td></tr>
-            <tr><th scope="row">対応機器</th><td>CANDY HOUSE Sesame 5 ＋ Hub 3（開発者が確認）。テスターから Sesame 6 Pro mini ＋ Hub 3、Sesame 3 ＋ Wi-Fiモジュール2 でも動作したとの報告があります（Bluetooth での直接操作は Sesame 5 系のみ）</td></tr>
             <tr><th scope="row">確認端末</th><td>Pixel 8 Pro、Pixel Watch 2</td></tr>
             <tr><th scope="row">配信</th><td>Google Play（クローズドテスト）。スマートフォン用とウォッチ用は同じ掲載ページから入手</td></tr>
             <tr><th scope="row">ライセンス</th><td>MIT License</td></tr>
