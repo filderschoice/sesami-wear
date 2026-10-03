@@ -37,8 +37,10 @@ Romcha（`C:\Dev\repo\play\romcha`）の `site/` をテンプレートとして�
   採りませんでした。`site/.nojekyll` の追加、公開URL（<https://filderschoice.github.io/sesami-wear/>）の
   `README.md`・`site/README.md`・`site/app.json`・`index.html`（`og:url` / `canonical`）への反映、公開と更新の
   手順（`site/README.md`「GitHub Pages での公開」、`README.md` のリリース手順）の記載を行いました。
-- **BL-220（人手検証）**: `gh-pages` のpushとリポジトリ設定（Settings → Pages）、公開URLでの表示確認は
-  ユーザーが行います。
+- **BL-220（完了、2026-10-03）**: ユーザーが `gh-pages` をpushして公開し、公開URLでHTML・CSS・`app.json`・画像7点が
+  すべてHTTP 200で配信され、ページ内のGitHubリンク6件も到達することをClaude Codeが確認しました。
+  公開中のページは対応機種の追記（BL-221）より前の版で、BL-221を含むブランチのマージ後に
+  `git subtree push --prefix site origin gh-pages` で再公開すると反映されます。
 
 ## 2026-09-26（検証手順書をリリース時に削除する運用）
 

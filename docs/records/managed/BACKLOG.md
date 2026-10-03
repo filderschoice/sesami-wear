@@ -5,25 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-220
-  区分: 人手検証
-  タスク内容: >-
-    site/ を GitHub Pages で公開する。main へのマージ後に `git subtree push --prefix site origin gh-pages` で
-    gh-pages ブランチを push し、GitHub のリポジトリ設定（Settings → Pages）で Source を
-    「Deploy from a branch」、ブランチを gh-pages の `/ (root)` にする。公開後、
-    https://filderschoice.github.io/sesami-wear/ で表示・画像・リンクを確認する。
-  優先度: P3
-  状態: 未着手
-  担当: ユーザー
-  完了条件: 公開URLでページが表示され、画像の欠けとリンク切れがないこと
-  根拠: >-
-    push とリポジトリ設定の変更は外部への反映にあたり、エージェントは実行しない（guardrails 5.3 / 12.2）。
-    2026-10-03、公開前に確認できる範囲をClaude Codeがローカルで検証した（index.htmlの相対参照7件と`style.css`の
-    実在、JavaScript・`site/`外参照が無いこと、ヘッドレスChromeでの描画に画像の欠けが無いこと）。
-    公開URLでの確認（外部リンクを含む）はpush後にユーザーが行う。
-  依存:
-    - BL-219
-
 - id: BL-195
   区分: 人手検証
   タスク内容: >-
