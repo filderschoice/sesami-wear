@@ -20,7 +20,7 @@ Pixel Watchとホーム画面ウィジェットから、CANDY HOUSE Sesameスマ
 ## 詳細な説明（4000文字以内）
 
 Sesami Wearは、Pixel Watchやスマートフォンのホーム画面ウィジェットからCANDY HOUSE Sesame
-（Sesame 5 + Hub 3）スマートロックを操作するためのアプリです。スマートフォンのホーム画面ウィジェットはウォッチが無くても
+（Sesame 5 / Sesame 6 Pro mini + Hub 3、Sesame 3 + Wi-Fiモジュール2で動作を確認）スマートロックを操作するためのアプリです。スマートフォンのホーム画面ウィジェットはウォッチが無くても
 使えます。
 
 ### 主な機能
