@@ -21,7 +21,9 @@
   クラウドAPI（`https://app.candyhouse.co/api/sesame2/{uuid}`）経由で施錠/解錠・状態取得を行う。
   開発者が実機で確認した構成はSesame 5 + Hub 3のみ。クローズドテストのテスターから、Sesame 6 Pro mini +
   Hub 3、Sesame 3 + Wi-Fiモジュール2でも動作したとの報告があった（2026-10-03、開発者は再現確認していない）。
-  BLE直接操作（BL-151）の対象はSesame 5系のモデルコードに限られ、これらの機種はWeb API経由になる。
+  報告はHub 3 / Wi-Fiモジュール2を使うWeb API経由のもので、BLEでの確認の有無は含まれない。BLE直接操作
+  （BL-151）の検証はSesame 5で実施し、実装はSesame 5系のモデルコードを想定している。ほかの機種のBLE動作は
+  未確認とし、「Sesame 5のみ対応」とは断定しない。
   この内容は`docs/USER_GUIDE.md`「動作確認の状況」、`README.md`、`docs/store/STORE_LISTING.md`、`site/`へ公開している。
   登録済みの複数Sesameデバイス（3〜5台程度を想定）を1つのアプリから個別または一括で操作できる。
   操作手段はウォッチのTile（表示はComplicationも）と、スマートフォンのホーム画面ウィジェット

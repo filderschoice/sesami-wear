@@ -34,16 +34,32 @@ Sesameをまだ持っていない場合や、資格情報の登録前でも、�
 
 ### 動作確認の状況
 
-| Sesameの機種 | 接続機器 | 状況 |
+| Sesameの機種 | インターネット（Wi-Fi）での操作 | Bluetoothでの直接操作 |
 | --- | --- | --- |
-| Sesame 5 | Hub 3 | 開発者が実機で確認済み（Bluetoothでの直接操作にも対応） |
-| Sesame 6 Pro mini | Hub 3 | クローズドテストのテスターから動作の報告あり（2026-10-03） |
-| Sesame 3 | Wi-Fiモジュール2 | クローズドテストのテスターから動作の報告あり（2026-10-03） |
+| Sesame 5 | ◎ | ◎ |
+| Sesame 6 Pro mini | ○ | － |
+| Sesame 3 | ○ | － |
 
-- 報告のある機種は、いずれもインターネット経由（Sesame APIとHub 3 / Wi-Fiモジュール2）での操作です。
-  Bluetoothでの直接操作の対象は現在Sesame 5系のみです。
+- ◎ 実機で確認済み　○ 動作の報告あり（開発者は再現確認していません）　－ 未確認（動作しないという意味ではありません）
+- Bluetoothでの直接操作は、Hub 3 / Wi-Fiモジュール2 が無くても使えます（Sesame 5系のモデルを想定した実装です）。
 - 上記以外の機種・組み合わせは未確認です。動作しなかった場合や、ほかの機種で動いた場合は
   [SUPPORT.md](SUPPORT.md)の窓口へお知らせください。
+
+### インターネット接続に使える機器
+
+インターネット（Wi-Fi）での操作には、Sesameのほかに Hub 3 または Wi-Fiモジュール2 が必要です。
+対応するSesameの機種は、CANDY HOUSE公式の記載（[Hub3](https://jp.candyhouse.co/products/hub3)・
+[WiFiモジュール2](https://jp.candyhouse.co/products/new-wifi)・
+[SESAME 6 Pro mini](https://jp.candyhouse.co/products/sesame6-pro-mini)）にもとづく次のとおりです。
+
+| Sesameの機種 | Hub 3 | Wi-Fiモジュール2 |
+| --- | --- | --- |
+| Sesame 5 | ✓ | ✓ |
+| Sesame 6 Pro mini | ✓ | － |
+| Sesame 3 | － | ✓ |
+
+- ✓ 公式に対応と記載　－ 非対応、または公式に記載なし（確認日: 2026-10-03）
+- Wi-Fiモジュール2 は完売で、後継は Hub 3 です。
 
 ## STEP 1: Sesame APIの資格情報を取得する
 

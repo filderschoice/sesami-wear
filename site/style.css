@@ -338,6 +338,42 @@ section h2 {
   font-weight: 600;
 }
 
+/* ---- 検証状況の表 ---- */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.matrix {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.matrix th,
+.matrix td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.matrix thead th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.matrix tbody th {
+  font-weight: 600;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* ---- フッター ---- */
 .site-footer {
   padding: 32px 0 48px;
