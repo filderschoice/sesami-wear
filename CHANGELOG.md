@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-03（対応機種の動作報告を公開情報へ反映、BL-221）
+
+クローズドテストのテスターから、Sesame 6 Pro mini + Hub 3、Sesame 3 + Wi-Fiモジュール2でも動作したとの
+フィードバックがあったため、公開情報へ反映しました（自律ループ実行モード）。
+
+- **BL-221（完了）**: `docs/USER_GUIDE.md` へ「動作確認の状況」の表を追加し、`README.md`・
+  `docs/CLOSED_TEST.md`・`docs/store/STORE_LISTING.md`・`site/index.html`・`DESIGN.md` の対応機器の記述を
+  追随させました。開発者が確認したのはSesame 5 + Hub 3のみで、追加の2構成は「テスターの報告」と明記しています。
+  Bluetooth直接操作はSesame 5系のみが対象のため、報告の機種はインターネット経由の動作として書いています。
+  アプリの挙動は変更していないため、`RELEASE_NOTES.md` は更新していません。
+  Google Play Console上のストア掲載文の反映（`STORE_LISTING.md` の転記）はユーザーが行います。
+
 ## 2026-09-29（アプリ紹介ポートフォリオの追加とGitHub Pagesでの公開、BL-217〜BL-220）
 
 Romcha（`C:\Dev\repo\play\romcha`）の `site/` をテンプレートとして、Sesami Wear を紹介する静的な
@@ -25,8 +37,10 @@ Romcha（`C:\Dev\repo\play\romcha`）の `site/` をテンプレートとして�
   採りませんでした。`site/.nojekyll` の追加、公開URL（<https://filderschoice.github.io/sesami-wear/>）の
   `README.md`・`site/README.md`・`site/app.json`・`index.html`（`og:url` / `canonical`）への反映、公開と更新の
   手順（`site/README.md`「GitHub Pages での公開」、`README.md` のリリース手順）の記載を行いました。
-- **BL-220（人手検証）**: `gh-pages` のpushとリポジトリ設定（Settings → Pages）、公開URLでの表示確認は
-  ユーザーが行います。
+- **BL-220（完了、2026-10-03）**: ユーザーが `gh-pages` をpushして公開し、公開URLでHTML・CSS・`app.json`・画像7点が
+  すべてHTTP 200で配信され、ページ内のGitHubリンク6件も到達することをClaude Codeが確認しました。
+  公開中のページは対応機種の追記（BL-221）より前の版で、BL-221を含むブランチのマージ後に
+  `git subtree push --prefix site origin gh-pages` で再公開すると反映されます。
 
 ## 2026-09-26（検証手順書をリリース時に削除する運用）
 
