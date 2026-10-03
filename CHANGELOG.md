@@ -15,7 +15,8 @@
 - **BL-222（完了）**: `site/index.html` の「対応機器」を、Sesameの機種の行ごとに「インターネット（Wi-Fi）での
   操作」と「Bluetoothでの直接操作」の動作実績を記号（◎実機確認済み／○動作の報告あり／－未確認）で示す
   「検証状況」表へ改めました（`style.css` に `.matrix` を追加）。開発者かテスターかは凡例の区別に留め、
-  Hub 3 / Wi-Fiモジュール2は機種と並べず、インターネット操作に必要な機器として扱っています。
+  Hub 3 / Wi-Fiモジュール2は検証状況の表へ混ぜず、CANDY HOUSE公式ページの記載（Hub 3: Sesame 5・6 Pro mini、
+  Wi-Fiモジュール2: Sesame 5・3。確認日2026-10-03）にもとづく別の「対応機器」表にしています。
   ヒーロー・meta description・構成図から「Sesame 5」の限定を外し、`docs/USER_GUIDE.md`・`README.md`・
   `DESIGN.md` の同趣旨の記述も追随させました。
   アプリの挙動は変更していないため `RELEASE_NOTES.md` は更新していません。
