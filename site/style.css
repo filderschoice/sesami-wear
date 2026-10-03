@@ -345,7 +345,7 @@ section h2 {
 
 .matrix {
   width: 100%;
-  min-width: 720px;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
@@ -364,10 +364,6 @@ section h2 {
   white-space: nowrap;
 }
 
-.matrix thead tr:first-child th[colspan] {
-  white-space: normal;
-  text-align: center;
-}
 
 .matrix tbody th {
   font-weight: 600;

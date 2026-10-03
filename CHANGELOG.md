@@ -12,12 +12,12 @@
 「Bluetoothの直接操作はSesame 5系のみ」「報告の機種はインターネット経由の動作」という書き方が、
 テスターもBluetoothで実機確認している可能性を考えると強すぎたため、表現を改めました（自律ループ実行モード）。
 
-- **BL-222（完了）**: `site/index.html` の「対応機器」を、Sesameの機種ごとに「インターネット経由
-  （Hub 3 / Wi-Fiモジュール2が必須）」と「Bluetooth直接操作」に分け、それぞれを「開発者の確認」
-  「テスターの報告」の列に分けた（開発者が確認済みの欄は、テスターの報告を必要としないため「—」）「検証状況」表へ改めました（`style.css` に `.matrix` を追加）。Hub 3 / Wi-Fiモジュールは機種と並べず、インターネット経由に
-  必要な機器として扱っています。Bluetoothの検証はSesame 5で行い、テスター報告にBluetoothでの確認の
-  有無は含まれないことを明記しました。ヒーロー・meta description・構成図から「Sesame 5」の限定を外し、
-  `docs/USER_GUIDE.md`・`README.md`・`DESIGN.md` の同趣旨の記述も追随させました。
+- **BL-222（完了）**: `site/index.html` の「対応機器」を、Sesameの機種の行ごとに「インターネット（Wi-Fi）での
+  操作」と「Bluetoothでの直接操作」の動作実績を記号（◎実機確認済み／○動作の報告あり／－未確認）で示す
+  「検証状況」表へ改めました（`style.css` に `.matrix` を追加）。開発者かテスターかは凡例の区別に留め、
+  Hub 3 / Wi-Fiモジュール2は機種と並べず、インターネット操作に必要な機器として扱っています。
+  ヒーロー・meta description・構成図から「Sesame 5」の限定を外し、`docs/USER_GUIDE.md`・`README.md`・
+  `DESIGN.md` の同趣旨の記述も追随させました。
   アプリの挙動は変更していないため `RELEASE_NOTES.md` は更新していません。
   `docs/store/STORE_LISTING.md` は変更していません（Play Console反映が要るため、必要ならユーザー判断）。
 
