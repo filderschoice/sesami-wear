@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-03（ポートフォリオの対応機種の表現を見直し、BL-222）
+
+「Bluetoothの直接操作はSesame 5系のみ」「報告の機種はインターネット経由の動作」という書き方が、
+テスターもBluetoothで実機確認している可能性を考えると強すぎたため、表現を改めました（自律ループ実行モード）。
+
+- **BL-222（完了）**: `site/index.html` の「対応機器」を「動作確認（開発者）」「動作報告（テスター）」
+  「上記以外」の3行へ分け、テスター報告には操作の経路が含まれず再現確認もしていないことを明記しました。
+  ヒーロー・meta description・構成図から「Sesame 5」の限定を外し、`docs/USER_GUIDE.md`・`README.md`・
+  `DESIGN.md` の同趣旨の記述も追随させました。Bluetoothは「Sesame 5系のモデルを想定した実装で、
+  ほかの機種は未確認」と書いています。アプリの挙動は変更していないため `RELEASE_NOTES.md` は更新していません。
+  `docs/store/STORE_LISTING.md` は変更していません（Play Console反映が要るため、必要ならユーザー判断）。
+
 ## 2026-10-03（対応機種の動作報告を公開情報へ反映、BL-221）
 
 クローズドテストのテスターから、Sesame 6 Pro mini + Hub 3、Sesame 3 + Wi-Fiモジュール2でも動作したとの

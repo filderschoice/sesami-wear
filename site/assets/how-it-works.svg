@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" role="img" aria-labelledby="t d" font-family="system-ui, sans-serif">
   <title id="t">仕組み</title>
-  <desc id="d">ウォッチのタイルやスマートフォンのウィジェットから操作すると、資格情報を持つスマートフォンが署名付きの指示を作り、近くにあれば Bluetooth で Sesame 5 へ直接、離れていれば CANDY HOUSE の Web API と Hub 3 を経由して施錠・解錠する流れの図。</desc>
+  <desc id="d">ウォッチのタイルやスマートフォンのウィジェットから操作すると、資格情報を持つスマートフォンが署名付きの指示を作り、近くにあれば Bluetooth で Sesame へ直接、離れていれば CANDY HOUSE の Web API と Hub 3 を経由して施錠・解錠する流れの図。</desc>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
       <path d="M0 0 L10 5 L0 10z" fill="#c99a46"/>
@@ -27,7 +27,7 @@
     <text x="338" y="217" fill="#1e3a5f" font-size="13">ホーム画面ウィジェット</text>
 
     <rect x="552" y="20" width="160" height="70" rx="14" fill="#f5ecd9" stroke="#c99a46"/>
-    <text x="632" y="52" fill="#1e3a5f" font-weight="700">Sesame 5</text>
+    <text x="632" y="52" fill="#1e3a5f" font-weight="700">Sesame</text>
     <text x="632" y="74" fill="#6d5020" font-size="12">施錠・解錠</text>
 
     <rect x="552" y="160" width="160" height="70" rx="14" fill="#eceff1" stroke="#90a4ae"/>
