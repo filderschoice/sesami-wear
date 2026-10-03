@@ -365,6 +365,7 @@ section h2 {
 }
 
 .matrix thead tr:first-child th[colspan] {
+  white-space: normal;
   text-align: center;
 }
 
