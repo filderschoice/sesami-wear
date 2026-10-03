@@ -204,13 +204,25 @@
       <div class="container">
         <h2>入手</h2>
         <p class="section-lead">現在は Google Play のクローズドテストで配信しています（参加方法は案内ページを参照してください）。</p>
+        <h3>検証状況</h3>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr><th scope="col">Sesame の機種</th><th scope="col">接続機器</th><th scope="col">開発者の実機確認</th><th scope="col">テスターの報告</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Sesame 5</th><td>Hub 3</td><td>確認済み（インターネット経由・Bluetooth 直接操作）</td><td>—</td></tr>
+              <tr><th scope="row">Sesame 6 Pro mini</th><td>Hub 3</td><td>未確認</td><td>動作の報告あり（経路は不明）</td></tr>
+              <tr><th scope="row">Sesame 3</th><td>Wi-Fiモジュール2</td><td>未確認</td><td>動作の報告あり（経路は不明）</td></tr>
+              <tr><th scope="row">上記以外</th><td>—</td><td>未確認</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">テスターの報告は、開発者が再現確認したものではありません。報告に操作の経路（Bluetooth かインターネットか）は含まれていません。Bluetooth での直接操作は Sesame 5 系のモデルを想定した実装です。動作の可否は問い合わせ窓口へお知らせください。</p>
         <!-- TEMPLATE: 仕様表とボタン -->
-        <table class="spec">
+        <table class="spec spaced">
           <tbody>
             <tr><th scope="row">動作環境</th><td>Android 8.0（API 26）以上のスマートフォン。タイル・コンプリケーションを使う場合は Wear OS 3 以上のウォッチ</td></tr>
-            <tr><th scope="row">動作確認（開発者）</th><td>CANDY HOUSE Sesame 5 ＋ Hub 3 で、インターネット経由と Bluetooth での直接操作の実機確認をしています</td></tr>
-            <tr><th scope="row">動作報告（テスター）</th><td>クローズドテストのテスターから、Sesame 6 Pro mini ＋ Hub 3、Sesame 3 ＋ Wi-Fiモジュール2 でも動作したとの報告があります。操作の経路（Bluetooth かインターネットか）は報告に含まれておらず、開発者は再現確認していません</td></tr>
-            <tr><th scope="row">上記以外</th><td>未確認です。Bluetooth での直接操作は Sesame 5 系のモデルを想定した実装で、ほかの機種は確認できていません。動作の可否は問い合わせ窓口へお知らせください</td></tr>
             <tr><th scope="row">確認端末</th><td>Pixel 8 Pro、Pixel Watch 2</td></tr>
             <tr><th scope="row">配信</th><td>Google Play（クローズドテスト）。スマートフォン用とウォッチ用は同じ掲載ページから入手</td></tr>
             <tr><th scope="row">ライセンス</th><td>MIT License</td></tr>
