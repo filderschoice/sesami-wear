@@ -7,6 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-12（0.14.2のリリース準備）
+
+ホーム画面ウィジェットの横1マスまでの縮小と、2 × 1の状態文言の省略の修正（BL-232 / BL-233）を中心とした
+0.14.2 を Google Play のクローズドテストへ配信するための準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.14.2 を「未リリース」から「2026-10-12」へ確定し、
+  「ストア掲載用の要約」を追加しました。
+- **`scripts/version.properties`** を `versionCode 11` / `wear 1009` / `versionName 0.14.2` へ更新し、
+  署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.14.2`）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.14.2 の配信とタグ・
+  GitHub Releaseの作成を BL-235 として起票しました（Play Consoleの操作のためユーザー担当）。
+  BL-234（実機での人手検証）は、0.14.2 の配信後にテスターの環境で確認するため未完了のまま残しています。
+
 ## 2026-10-12（ウィジェットのサイズ変更の確認結果を受けたタスクの登録、BL-232〜BL-234）
 
 - **BL-225 / BL-227（完了・削除）**: 公開版でのテスターの確認結果から、2 × 1での配置と4 × 2版の
