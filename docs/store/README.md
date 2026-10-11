@@ -18,7 +18,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 
 | ファイル | 内容 | サイズ |
 | --- | --- | --- |
-| `phone_1_widget_locked.png` | ホーム画面ウィジェット（施錠中、タップで解錠）。2x1と4x2を並べて表示 | 1350x2400 |
+| `phone_1_widget_locked.png` | ホーム画面ウィジェット（施錠中、タップで解錠）。2x1と4x2を並べて表示。アプリのウィジェット一覧のプレビュー画像の元でもある（差し替えたら `scripts/make-widget-previews.py` で作り直す） | 1350x2400 |
 | `phone_2_widget_unlock_confirm.png` | ウィジェットからの解錠確認ダイアログ | 1350x2400 |
 | `phone_3_widget_unlocked.png` | ホーム画面ウィジェット（解錠中、タップで施錠）。2台の状態が混在した表示 | 1350x2400 |
 | `phone_4_device_list.png` | アプリ主画面（Sesameごとのカード。状態・電池・角度・最終取得時刻・経路・Bluetoothの到達状況） | 1350x2400 |

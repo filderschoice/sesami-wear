@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-11 22:40
+  summary: ウィジェット一覧（ウィジェットピッカー）にウィジェットの見た目のプレビュー画像を出す
+  details:
+    変更内容: >-
+      4 × 2版・2 × 1版の`appwidget-provider`へ`android:previewImage`を指定し、一覧にアプリのアイコンではなく
+      それぞれの大きさの見た目が出るようにした。画像はストア掲載用のスクリーンショット`phone_1_widget_locked.png`
+      から切り出す`scripts/make-widget-previews.py`（Pillowのみ）を追加して生成した。ウィジェットの背景色の
+      画素が多い行の塊を上下2つ探して範囲を決め（2x1は490x283px、4x2は1020x619px）、角丸の半径を縁の形への
+      当てはめで見積もり（35px・37px。16dpの見込み約38pxと整合）、外側を透明にしている。
+      `previewLayout`とGlanceの生成プレビューは、見た目の二重管理・対象端末の限定を避けるため採らなかった。
+      プレビューの指定と画像の有無の検査を`SesameWidgetProviderInfoTest`へ追加し、掲載画像を撮り直したときに
+      作り直す手順をSkill `store-screenshot-capture`と`docs/store/README.md`へ追記した。
+    変更ファイル:
+      - scripts/make-widget-previews.py
+      - mobile/src/main/res/drawable-nodpi/widget_preview.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview_small.png
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetProviderInfoTest.kt
+      - .claude/skills/store-screenshot-capture/SKILL.md
+      - docs/store/README.md
+      - README.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      python scripts/make-widget-previews.py /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。`SesameWidgetProviderInfoTest`（3件）がスキップされずに成功し、
+      デバッグ版APKの`res/drawable-nodpi-v4/`に2枚の画像が含まれることを確認した。切り出した画像は
+      マゼンタの背景へ重ねた縮小版で、角に壁紙が残っていないことを目視で確認した。
+      一覧での見え方はBL-227（人手検証）で確認する
+    関連ID:
+      - BL-226
 - date: 2026-10-11 15:30
   summary: ホーム画面ウィジェットの高さの縮小下限をAndroidの1マス分（40dp）へ揃える
   details:

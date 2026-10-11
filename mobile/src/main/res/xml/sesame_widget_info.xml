@@ -12,6 +12,8 @@
   表示領域に応じたレイアウトの出し分けは SesameWidget / SesameWidgetLayout が行う。
   追加時は android:configure の選択画面で対象デバイスを選ぶ。reconfigurable により長押しメニューからも再設定できる。
   表示の更新は資格情報の保存・操作結果などの契機で明示的に要求するため、定期更新は行わない（updatePeriodMillis=0）。
+  ウィジェット一覧のプレビュー（previewImage）は、ストア掲載用のスクリーンショットから
+  scripts/make-widget-previews.py で切り出した画像（BL-226）。見た目を変えたら作り直す。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -24,6 +26,7 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewImage="@drawable/widget_preview"
     android:configure="com.sesamiwear.mobile.widget.WidgetConfigurationActivity"
     android:widgetFeatures="reconfigurable"
     android:description="@string/widget_description"

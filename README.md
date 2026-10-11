@@ -232,7 +232,7 @@ sesami-wear/
 ├── mobile/  # スマートフォン用アプリ（資格情報保存、Sesame API通信、Data Layer受信）
 ├── wear/    # Wear OS用アプリ（Tile、Complication、施錠/解錠アクション、ハプティクス）。
 │            # mobileと同一のapplicationIdを持つ独立したapplicationモジュール
-├── scripts/ # リリースビルド（release-build.bat / .ps1）、記録ファイル検証、検証用モックAPI
+├── scripts/ # リリースビルド（release-build.bat / .ps1）、記録ファイル検証、検証用モックAPI、ウィジェットのプレビュー画像生成
 ├── config/  # detekt設定
 ├── rules/   # 統合ガードレール（セキュリティ・プライバシー・自律ループ実行モード統制）
 ├── templates/ # ガードレールのプロジェクト別設定・モデルリスク台帳のテンプレート

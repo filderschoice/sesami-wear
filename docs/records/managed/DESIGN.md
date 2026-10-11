@@ -434,6 +434,18 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     `SesameWidgetUpdater.updateAll`は両方のクラスを走査する。
     対象デバイスの割り当ては appWidgetId ごとで、appWidgetId は provider をまたいで一意のため
     2種類が混在しても取り違えは起きない。
+  - **ウィジェット一覧のプレビュー**（BL-226）: 両providerの`android:previewImage`に、それぞれの大きさの
+    見た目の画像（`res/drawable-nodpi/widget_preview.png` / `widget_preview_small.png`）を指定する。
+    指定が無いと一覧にはアプリのアイコンしか出ず、2種類の違いが名前でしか分からなかった。
+    画像はストア掲載用のスクリーンショット`phone_1_widget_locked.png`（2x1と4x2が縦に並ぶ）から
+    `scripts/make-widget-previews.py`が切り出す。ウィジェットの背景色（0xFF121212）の画素が多い行の塊を
+    上下2つ探して範囲を決め、角丸の半径を縁の形から見積もって外側を透明にする（Pillowのみで動く）。
+    ウィジェットの見た目を変えて掲載画像を撮り直したら作り直す（Skill `store-screenshot-capture` 第6節）。
+    `previewLayout`（Android 12以降）は、見た目をRemoteViews用のXMLでもう1つ持つことになり、表示を変える
+    たびに2か所の追随が要るため採らない。Glanceの生成プレビュー（`providePreview`、Android 15以降）は
+    対象の端末が限られ、更新回数の制限と呼び出しの契機の管理が要るため採らない。画像は実際の描画結果の
+    ため見た目の食い違いが起きにくく、全APIレベルで同じものが出る。
+    指定と画像の有無は`SesameWidgetProviderInfoTest`で検査する。
   - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
     250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
     による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（40dp＝同じ式による
@@ -912,7 +924,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
   `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
   minResizeWidth 110dp / minResizeHeight 40dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174 / BL-223）。
-  `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
+  `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト、
+  `previewImage`は`@drawable/widget_preview`（2 × 1版は`widget_preview_small`、BL-226）。
 
 ### ウィジェットの電池残量表示
 
