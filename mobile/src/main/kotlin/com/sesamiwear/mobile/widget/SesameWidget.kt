@@ -50,7 +50,7 @@ import kotlinx.coroutines.withContext
  * デバイス名と経路アイコンの帯（BL-205）、その下の大きな領域に状態アイコン・状態文言・操作文言を置き、
  * 状態色は右下の状態表示にだけ使う。表示内容の決定は
  * [SesameWidgetModelResolver]（Android非依存）が行い、ここはGlanceで並べるだけにしている。
- * 表示領域に応じて、2マス×1マス相当（BL-174）・1マス相当（BL-128、保険）の表示へ切り替える。
+ * 表示領域に応じて、2マス×1マス相当（BL-174）・1マス相当（BL-128 / BL-232）の表示へ切り替える。
  * どれを使うかの判定は[SesameWidgetLayout]（Android非依存）が持つ。
  *
  * 表示の更新は[SesameWidgetUpdater]がウィジェットの状態へ更新トークン（[REFRESH_TOKEN_KEY]）を書き込んで
@@ -64,7 +64,7 @@ open class SesameWidget : GlanceAppWidget() {
     /**
      * サイズ別レイアウト（BL-128 / BL-174）。提示した候補のうち、実際の表示領域に収まる最大のものが
      * [LocalSize]として渡される。候補は「1マス（1x1）相当」「2マス×1マス相当」「Tile相当（4x2）」の3つ。
-     * 縮小の下限は`minResizeWidth`で2マス分（110dp）にしているため、通常は後ろ2つのどちらかになる。
+     * 縮小の下限は1マス×1マス（`minResizeWidth`/`minResizeHeight`＝40dp、BL-232）。
      */
     override val sizeMode: SizeMode =
         SizeMode.Responsive(

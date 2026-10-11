@@ -398,7 +398,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     最後に取得した時刻、または直近の失敗の理由を添える（前述「状態の鮮度表示と失敗の区別」）。
     ウィジェットだけは表示領域に余裕があるため、失敗時に対処を併記する詳しい文言を使う（BL-140）。
     更新は利用者のタップで行う。
-  - サイズ: 既定はTile相当（4x2）で、**横2マス×縦1マスまで**縮められる（BL-128 / BL-174）。
+  - サイズ: 既定はTile相当（4x2）で、**横1マス×縦1マスまで**縮められる（BL-128 / BL-232）。
+    BL-174〜BL-231の間は横2マス×縦1マスを下限にしていたが、利用者から1マスへ縮めたいとの要望があり
+    （2026-10-12、ユーザー指示）、1マスへ戻した。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
     `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
     （40x40 / 110x40 / 200x172）を提示して`LocalSize`を受け取る。1マス分の候補の40dpは
@@ -420,9 +422,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     「変更」チップを置く余地が無いため（2026-09-20、ユーザー確認済み。`FULL`は従来どおり「変更」）。
   - `COMPACT`（1マス相当）は状態アイコンと状態文言だけを出し、デバイス名・「変更」・最終取得時刻・
     操作文言は出さない。未設定時の文言は「タップして設定」ではなく「設定」にする。
-    **BL-174で縮小の下限を2マス×1マスへ上げたため、通常の操作でこの表示にはならない**が、
-    `minResizeWidth`より狭い表示領域を渡すランチャーと、BL-174より前に1マスで置かれた既存の
-    インスタンスのために保険として残している（2026-09-20、ユーザー確認済み）。
+    状態の取得しなおし（「更新」）と対象デバイスの順送りも置けないため、広げるか長押しメニュー
+    （`reconfigurable`）で選び直す。横1マスへ縮めたときの通常の表示（BL-232）。
   - **ウィジェット一覧へは「4 × 2」と「2 × 1」の2種類を並べる**（BL-186）。Androidは1つの
     `appwidget-provider`へ初期サイズを1つしか持たせられないため、置いた直後から小さく使いたい
     利用者のために2つ目のproviderを宣言する（`sesame_widget_small_info.xml`、
@@ -447,9 +448,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     ため見た目の食い違いが起きにくく、全APIレベルで同じものが出る。
     指定と画像の有無は`SesameWidgetProviderInfoTest`で検査する。
   - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
-    250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
-    による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（40dp＝同じ式による
-    1マス分。`SesameWidgetLayout.ONE_CELL_MIN_DP`と同値）で指定する。2 × 1版の`minHeight`も40dp。
+    250x110dpのままにし、縮小の下限は`minResizeWidth`・`minResizeHeight`（どちらも40dp＝Androidの算出式
+    70dp×マス数−30dpによる1マス分。`SesameWidgetLayout.ONE_CELL_MIN_DP`と同値、BL-232）で指定する。
+    2 × 1版の`minWidth`は110dp（同じ式による2マス分、`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`）、
+    `minHeight`は40dp。
     BL-223より前は高さの下限を50dpとしていたが、1マス分の最小値（40dp）を上回るため、dpからマス数を
     切り上げで求めるランチャーでは高さ1マスへ縮められないおそれがあった（テスターからサイズを変えられない
     との報告を受けて見直した。報告の原因そのものは未確認で、BL-225で確認する）。
@@ -923,7 +925,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
 - `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
   `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
-  minResizeWidth 110dp / minResizeHeight 40dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174 / BL-223）。
+  minResizeWidth 40dp / minResizeHeight 40dpにより横1マス×縦1マスまで縮められる（BL-128 / BL-223 / BL-232）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト、
   `previewImage`は`@drawable/widget_preview`（2 × 1版は`widget_preview_small`、BL-226）。
 

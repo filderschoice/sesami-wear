@@ -6,17 +6,18 @@ import org.junit.Test
 import java.io.File
 
 /**
- * `appwidget-provider`の寸法が[SesameWidgetLayout]の定数と食い違っていないこと（BL-223）と、
+ * `appwidget-provider`の寸法が[SesameWidgetLayout]の定数と食い違っていないこと（BL-223 / BL-232）と、
  * ウィジェット一覧のプレビュー画像が指定されていること（BL-226）を確かめる。
  * XMLとKotlinの片方だけを直すと、ランチャーが許す縮小の下限と、表示の出し分けの前提がずれるため。
  * Gradleの単体テストは作業ディレクトリがモジュール直下になるため、相対パスでリソースを読む。
  */
 class SesameWidgetProviderInfoTest {
     @Test
-    fun `both providers allow shrinking to two cells by one cell`() {
+    fun `both providers allow shrinking to one cell by one cell`() {
+        // BL-232。BL-174〜BL-231の間は幅の下限を2マス分（110dp）にしていた。
         listOf(LARGE_INFO, SMALL_INFO).forEach { path ->
             val attributes = providerAttributes(path)
-            assertEquals(path, "${SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP}dp", attributes["minResizeWidth"])
+            assertEquals(path, "${SesameWidgetLayout.ONE_CELL_MIN_DP}dp", attributes["minResizeWidth"])
             assertEquals(path, "${SesameWidgetLayout.ONE_CELL_MIN_DP}dp", attributes["minResizeHeight"])
             assertEquals(path, "horizontal|vertical", attributes["resizeMode"])
         }

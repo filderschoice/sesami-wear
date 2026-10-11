@@ -12,7 +12,7 @@ class SesameWidgetLayoutTest {
 
     @Test
     fun `two cells wide and one cell tall uses the medium layout`() {
-        // 縮小の下限（2x1、BL-174）。デバイス名・「◀ ▶」と状態表示を横に並べられる。
+        // 2x1（BL-174）。デバイス名・「◀ ▶」と状態表示を横に並べられる。
         assertEquals(
             SesameWidgetLayout.MEDIUM,
             SesameWidgetLayout.of(widthDp = SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP, heightDp = 50),
@@ -41,8 +41,7 @@ class SesameWidgetLayoutTest {
 
     @Test
     fun `one cell widget uses the compact layout`() {
-        // 1x1相当（おおむね57x102dp、端末によって前後する）。BL-174で下限を2x1へ上げたため、
-        // 通常はここへ来ないが保険として残している。
+        // 1x1相当（おおむね57x102dp、端末によって前後する）。縮小の下限（BL-232）。
         assertEquals(SesameWidgetLayout.COMPACT, SesameWidgetLayout.of(widthDp = 57, heightDp = 102))
     }
 

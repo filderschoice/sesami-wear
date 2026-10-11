@@ -12,9 +12,8 @@ enum class SesameWidgetLayout {
     /**
      * 1マス（1x1）相当。状態アイコンと短い状態文言だけを出し、タップの挙動は[FULL]と同じ。
      *
-     * 縮小の下限は2マス×1マス（[MEDIUM]）へ引き上げたため（BL-174）、通常の操作でこの表示に
-     * なることはない。**保険として残している**。`minResizeWidth`より狭い表示領域を渡す
-     * ランチャーや、BL-174より前に1マスで置かれた既存のインスタンスが該当しうる。
+     * 縮小の下限は1マス×1マス（BL-232）で、横1マスへ縮めたときの通常の表示。
+     * BL-174〜BL-231の間は下限を2マス×1マスへ上げており、保険としてだけ残していた。
      */
     COMPACT,
 
@@ -50,7 +49,7 @@ enum class SesameWidgetLayout {
          *
          * [FULL]に届かない場合は幅だけで[MEDIUM]と[COMPACT]を分ける（BL-174）。
          * [MEDIUM_MIN_WIDTH_DP]はAndroidが定める「2マス分の最小幅」（70dp×2−30dp＝110dp）で、
-         * `sesame_widget_info.xml`の`minResizeWidth`と同じ値にしている。
+         * これ未満（横1マス、`minResizeWidth`＝[ONE_CELL_MIN_DP]まで縮められる、BL-232）は[COMPACT]。
          * 高さはランチャーの1マス（実寸は下限の`minResizeHeight`＝40dpより大きい）があれば
          * デバイス名・「◀ ▶」の2段が入るため、ここでは見ない。
          */
@@ -67,13 +66,13 @@ enum class SesameWidgetLayout {
         const val FULL_MIN_WIDTH_DP = 200
         const val FULL_MIN_HEIGHT_DP = 172
 
-        /** 2マス分の最小幅（Androidの算出式 70dp×マス数−30dp）。`minResizeWidth`と同じ値。 */
+        /** 2マス分の最小幅（Androidの算出式 70dp×マス数−30dp）。2 × 1版の`minWidth`と同じ値。 */
         const val MEDIUM_MIN_WIDTH_DP = 110
 
         /**
-         * 1マス分の最小値（Androidの算出式 70dp×1−30dp）。`minResizeHeight`と、2 × 1版の`minHeight`と
-         * 同じ値（BL-223）。50dpとしていた頃は、dpからマス数を切り上げで求めるランチャーで
-         * 高さ1マスへ縮められないおそれがあった。
+         * 1マス分の最小値（Androidの算出式 70dp×1−30dp）。`minResizeWidth`・`minResizeHeight`と、
+         * 2 × 1版の`minHeight`と同じ値（BL-223 / BL-232）。高さを50dpとしていた頃は、dpからマス数を
+         * 切り上げで求めるランチャーで高さ1マスへ縮められないおそれがあった。
          */
         const val ONE_CELL_MIN_DP = 40
     }
