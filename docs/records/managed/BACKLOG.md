@@ -5,22 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-230
-  区分: 性能
-  タスク内容: >-
-    ユーザー共通スキル（`~/.claude/skills/`、本リポジトリの管理外）のうち、`backlog-summary`と
-    `commit-changes`へ`model: haiku`、`prune-merged-branches`と`github-release-publish`へ`model: sonnet`を
-    指定する。変更前の版はスクラッチパッドへ退避する。
-  優先度: P3
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    4スキルのfrontmatterに指定が入り、CHANGELOGへ実施内容（リポジトリ外の変更であること）が記録されていること
-  根拠: >-
-    4スキルはGit管理外で配布元からの同期対象でもない（`~/.claude/skills/synced/`は別のスキル群）ことを
-    確認済み。ブランチ削除・リリース公開を伴う2つは判断の誤りの影響が大きいためHaikuではなくSonnetとした。
-  依存: []
-
 - id: BL-227
   区分: 人手検証
   タスク内容: >-

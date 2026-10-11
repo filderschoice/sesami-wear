@@ -7,17 +7,23 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
-## 2026-10-11（PR作成スキルを軽量モデルで実行する、BL-228）
+## 2026-10-11（スキルの実行モデルを固定する、BL-228〜BL-230）
 
-- `.claude/skills/pr-create/SKILL.md` の frontmatter に `model: haiku` を追加し、PRの作成・更新を
+依頼ごとに必要な判断の重さに合わせ、スキルのfrontmatterの `model` で実行モデルを固定しました（自律ループ実行モード）。
+
+- **BL-228**: `.claude/skills/pr-create/SKILL.md` の frontmatter に `model: haiku` を追加し、PRの作成・更新を
   軽量モデルで行うようにしました。手順が定型で、判断の材料（差分・`EXECUTE.md` の品質ゲート記録）が
   リポジトリに揃っているためです。指定はスキルを実行したターンの間だけ効き、セッションのモデルは変わりません
-  （Claude Code のスキルの `model` フィールドの仕様）。
-- 配布元（copilot-rules）からの同期で指定が消えないよう、Skill `guardrail-sync-local` で
-  `pr-create` を「そのままコピー」から「固有改変をマージ」へ移しました。
+  （Claude Code のスキルの `model` フィールドの仕様）。配布元（copilot-rules）からの同期で指定が消えないよう、
+  Skill `guardrail-sync-local` で `pr-create` を「そのままコピー」から「固有改変をマージ」へ移しました。
 - **BL-229**: 単独で依頼が完結し、判断を一部含む `release-verification-prep`（検証手順書の作成）と
   `store-screenshot-masking`（隠す範囲の判断）へ `model: sonnet` を指定しました。他の作業の途中で読み込まれる
   参照用のスキルへ指定すると、その後の作業ごとモデルが切り替わるため、依頼の入口となるスキルに限っています。
+- **BL-230（リポジトリ外の変更）**: ユーザー共通スキル（`~/.claude/skills/`。Git管理外）のうち、
+  `backlog-summary`・`commit-changes` へ `model: haiku`、`prune-merged-branches`・`github-release-publish` へ
+  `model: sonnet` を指定しました。後者2つはブランチ削除・リリース公開を伴い、判断の誤りの影響が大きいため
+  Haikuにしていません。参照用のスキル（`guardrail-records-update`・`adb-device-connection` 等）と、実装・
+  設計判断を伴うスキル（`autonomous-loop` 等）には指定していません。
 
 ## 2026-10-11（ウィジェットの大きさを変える操作と対処を利用者向けに追記、BL-224）
 
