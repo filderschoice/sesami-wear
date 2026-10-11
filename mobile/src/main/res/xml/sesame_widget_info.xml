@@ -6,6 +6,9 @@
   minWidth/minHeight は API 30 以下で既定の配置サイズを決めるため下げず、縮小の下限は
   minResizeWidth/minResizeHeight で指定する。minResizeWidth の 110dp は Android の算出式
   （70dp×マス数−30dp）による2マス分で、SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP と同じ値。
+  minResizeHeight の 40dp は同じ算出式による1マス分（SesameWidgetLayout.ONE_CELL_MIN_DP、BL-223）。
+  これを上回ると、dpからマス数を切り上げで求めるランチャーで高さ1マスへ縮められなくなるおそれがある。
+  値の整合は SesameWidgetProviderInfoTest で検査している。
   表示領域に応じたレイアウトの出し分けは SesameWidget / SesameWidgetLayout が行う。
   追加時は android:configure の選択画面で対象デバイスを選ぶ。reconfigurable により長押しメニューからも再設定できる。
   表示の更新は資格情報の保存・操作結果などの契機で明示的に要求するため、定期更新は行わない（updatePeriodMillis=0）。
@@ -15,7 +18,7 @@
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="110dp"
-    android:minResizeHeight="50dp"
+    android:minResizeHeight="40dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"

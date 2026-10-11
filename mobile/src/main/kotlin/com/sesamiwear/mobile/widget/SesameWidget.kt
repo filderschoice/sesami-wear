@@ -307,10 +307,12 @@ private const val SPACING_DP = 6
 private const val CORNER_RADIUS_DP = 16
 
 // サイズ別レイアウト（BL-128）へ提示する候補。実際の表示領域に収まる最大のものが選ばれる。
-// 1マスの実寸は端末とランチャーで前後するため、一般的な値より小さめを候補にしている。
-private const val COMPACT_WIDTH_DP = 50
-private const val COMPACT_HEIGHT_DP = 50
+// 1マスの実寸は端末とランチャーで前後するため、Androidの算出式による1マス分の最小値（40dp）を使う（BL-223）。
+// providerの`minHeight`（2 × 1版）・`minResizeHeight`と同じ値にしておくと、表示領域を通知しないランチャーで
+// Glanceがproviderの最小サイズへフォールバックしたときにも2マス×1マス相当の候補が選ばれる。
+private const val COMPACT_WIDTH_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
+private const val COMPACT_HEIGHT_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
 private const val MEDIUM_WIDTH_DP = SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP
-private const val MEDIUM_HEIGHT_DP = 50
+private const val MEDIUM_HEIGHT_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
 private const val FULL_WIDTH_DP = SesameWidgetLayout.FULL_MIN_WIDTH_DP
 private const val FULL_HEIGHT_DP = SesameWidgetLayout.FULL_MIN_HEIGHT_DP

@@ -20,6 +20,26 @@ class SesameWidgetLayoutTest {
     }
 
     @Test
+    fun `the minimum sizes follow the android cell formula`() {
+        // Androidの算出式（70dp×マス数−30dp）による1マス・2マス分の最小値（BL-223）。
+        assertEquals(70 * 1 - 30, SesameWidgetLayout.ONE_CELL_MIN_DP)
+        assertEquals(70 * 2 - 30, SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP)
+    }
+
+    @Test
+    fun `the provider minimum of the small widget uses the medium layout`() {
+        // 表示領域を通知しないランチャーでは、Glanceがproviderの最小サイズ（2 × 1版は110x40dp）へ
+        // フォールバックする。そのときも2マス×1マス相当の表示になる（BL-223）。
+        assertEquals(
+            SesameWidgetLayout.MEDIUM,
+            SesameWidgetLayout.of(
+                widthDp = SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP,
+                heightDp = SesameWidgetLayout.ONE_CELL_MIN_DP,
+            ),
+        )
+    }
+
+    @Test
     fun `one cell widget uses the compact layout`() {
         // 1x1相当（おおむね57x102dp、端末によって前後する）。BL-174で下限を2x1へ上げたため、
         // 通常はここへ来ないが保険として残している。

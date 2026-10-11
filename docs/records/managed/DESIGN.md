@@ -401,7 +401,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - サイズ: 既定はTile相当（4x2）で、**横2マス×縦1マスまで**縮められる（BL-128 / BL-174）。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
     `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
-    （50x50 / 110x50 / 200x172）を提示して`LocalSize`を受け取る。
+    （40x40 / 110x40 / 200x172）を提示して`LocalSize`を受け取る。1マス分の候補の40dpは
+    Androidの算出式（70dp×マス数−30dp）による1マス分（`SesameWidgetLayout.ONE_CELL_MIN_DP`、BL-223）で、
+    providerの高さの下限と揃える。表示領域を通知しないランチャーではGlanceがproviderの最小サイズへ
+    フォールバックするため、候補の高さが下限より高いと2 × 1版でも`COMPACT`が選ばれてしまう。
     `FULL`のしきい値は幅200dp・高さ172dpで、どちらかを下回れば`MEDIUM`以下。幅は「左列（96dp）＋
     間隔（6dp）＋状態表示」を横に並べて成立する下限、高さは状態アイコン・状態文言・最終取得時刻・
     操作文言の4行が入る下限（外周・内側のパディング28dpと4行分の約108dpで合計約136dp）に、
@@ -433,8 +436,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     2種類が混在しても取り違えは起きない。
   - `sesame_widget_info.xml`の`minWidth`/`minHeight`はAPI 30以下で既定の配置サイズを決めるため
     250x110dpのままにし、縮小の下限は`minResizeWidth`（110dp＝Androidの算出式 70dp×マス数−30dp
-    による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（50dp）で
-    指定する。
+    による2マス分。`SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP`と同値）と`minResizeHeight`（40dp＝同じ式による
+    1マス分。`SesameWidgetLayout.ONE_CELL_MIN_DP`と同値）で指定する。2 × 1版の`minHeight`も40dp。
+    BL-223より前は高さの下限を50dpとしていたが、1マス分の最小値（40dp）を上回るため、dpからマス数を
+    切り上げで求めるランチャーでは高さ1マスへ縮められないおそれがあった（テスターからサイズを変えられない
+    との報告を受けて見直した。報告の原因そのものは未確認で、BL-225で確認する）。
+    XMLとKotlinの定数の食い違いは`SesameWidgetProviderInfoTest`（XMLを読む単体テスト）で検出する。
+    providerの寸法はランチャーが配置時に読むため、変更が既に置かれたウィジェットへ反映されるかは
+    ランチャーによる（利用者には置き直しを案内する、BL-224）。
   - **複数台を横に並べる表示（4x1等）は採らない**（2026-09-18、ユーザー確認済み）。wear側に無い機能に
     なり、以降の表示変更で両方を追従させる必要が出るため。
   - 対象デバイスの順送り（BL-175）: 巡回する並びは選択画面と同じ`SesameDeviceTargets.choices`で、
@@ -902,7 +911,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   端末内に保存しているTile割り当て・デモ状態と同種の非機密情報であるため。
 - `res/xml/sesame_widget_info.xml`: 既定のサイズはTile相当（minWidth 250dp / minHeight 110dp、
   `targetCellWidth`/`targetCellHeight`で4x2セル）で、`resizeMode=horizontal|vertical`と
-  minResizeWidth 110dp / minResizeHeight 50dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174）。
+  minResizeWidth 110dp / minResizeHeight 40dpにより横2マス×縦1マスまで縮められる（BL-128 / BL-174 / BL-223）。
   `widgetFeatures=reconfigurable`、`initialLayout`はGlance既定の読み込み中レイアウト。
 
 ### ウィジェットの電池残量表示

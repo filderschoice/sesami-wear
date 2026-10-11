@@ -5,13 +5,14 @@
   Android は1つの provider へ初期サイズを1つしか持たせられないため、
   「置いた直後から小さく使いたい」を満たすには provider をもう1つ宣言する必要がある。
   縮小の下限（minResizeWidth/minResizeHeight）と再設定の可否は 4x2 版と揃える。
+  minHeight の 40dp は Android の算出式（70dp×マス数−30dp）による1マス分（BL-223）。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:minWidth="110dp"
-    android:minHeight="50dp"
+    android:minHeight="40dp"
     android:minResizeWidth="110dp"
-    android:minResizeHeight="50dp"
+    android:minResizeHeight="40dp"
     android:targetCellWidth="2"
     android:targetCellHeight="1"
     android:resizeMode="horizontal|vertical"

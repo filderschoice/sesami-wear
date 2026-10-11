@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-11 15:30
+  summary: ホーム画面ウィジェットの高さの縮小下限をAndroidの1マス分（40dp）へ揃える
+  details:
+    変更内容: >-
+      テスターからウィジェットの大きさを変えられないとの報告を受け、ウィジェット周りを集中レビューした。
+      両providerの`minResizeHeight`と2 × 1版の`minHeight`が50dpで、Androidの算出式（70dp×マス数−30dp）による
+      1マス分の40dpを上回っていたため、dpからマス数を切り上げで求めるランチャーでは高さ1マスへ縮められない
+      おそれがあった。これらを40dpへ下げ、`SesameWidgetLayout.ONE_CELL_MIN_DP`として定数化した。
+      Glanceへ提示するサイズ候補（1マス・2マス×1マス）の高さも40dpへ揃え、表示領域を通知しない
+      ランチャーでproviderの最小サイズへフォールバックしたときにも2マス×1マス表示が選ばれるようにした。
+      XMLと定数の食い違いを検出する`SesameWidgetProviderInfoTest`を追加した。報告の原因そのものは
+      未確認のため、報告環境での確認をBL-225（人手検証）として残している。
+    変更ファイル:
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetProviderInfoTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。追加した`SesameWidgetProviderInfoTest`（2件）と
+      `SesameWidgetLayoutTest`（9件）がスキップされずに成功したことをテスト結果のXMLで確認した。
+      報告環境での効果はBL-225（人手検証）で確認する
+    関連ID:
+      - BL-223
 - date: 2026-09-23 17:00
   summary: 撮影モードの操作画面と、モード中の控えめな表示を追加する（デバッグ版限定）
   details:
