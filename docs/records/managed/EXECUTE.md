@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-12 08:20
+  summary: 2 × 1のウィジェットで右側の状態文言が省略される問題を、幅の配分を可変にして直す（BL-233）
+  details:
+    変更内容: >-
+      MEDIUM表示の左1マスを72dpに固定していたため、横5列のグリッド（2マスで約145dp前後）では状態表示の幅が
+      足りず「施…」と省略されていた。Android非依存の`SesameWidgetMediumMetrics`を追加し、状態表示へ64dpを
+      残して左1マスを50〜72dpへ収める配分と、13spで4文字が入らないときに状態文言を11spへ下げる判定を置いた。
+      `SizeMode.Responsive`では`LocalSize`が候補の大きさになるため、2マス×1マスの候補を110・130・150・170dpの
+      4つへ刻み、候補の幅から配分を決める。`MediumLeftColumn`・`MediumStatusBox`・`StatusIconAndLabel`へ
+      幅と文字サイズの引数を追加した。単体テスト`SesameWidgetMediumMetricsTest`（7件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMediumMetrics.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMediumMetricsTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。`SesameWidgetMediumMetricsTest`（7件）がスキップされずに成功した。
+      実機での見え方はBL-234（人手検証）で確認する。
+
 - date: 2026-10-12 07:58
   summary: ホーム画面ウィジェットを横1マス×縦1マスまで縮められるようにする（BL-232）
   details:

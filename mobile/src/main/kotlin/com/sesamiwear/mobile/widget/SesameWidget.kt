@@ -63,16 +63,17 @@ import kotlinx.coroutines.withContext
 open class SesameWidget : GlanceAppWidget() {
     /**
      * サイズ別レイアウト（BL-128 / BL-174）。提示した候補のうち、実際の表示領域に収まる最大のものが
-     * [LocalSize]として渡される。候補は「1マス（1x1）相当」「2マス×1マス相当」「Tile相当（4x2）」の3つ。
+     * [LocalSize]として渡される。候補は「1マス（1x1）相当」「2マス×1マス相当」「Tile相当（4x2）」の3種類で、
+     * 2マス×1マス相当は左右の幅の配分を決めるため幅を刻んで複数提示する（[SesameWidgetMediumMetrics]、BL-233）。
      * 縮小の下限は1マス×1マス（`minResizeWidth`/`minResizeHeight`＝40dp、BL-232）。
      */
     override val sizeMode: SizeMode =
         SizeMode.Responsive(
-            setOf(
-                DpSize(COMPACT_WIDTH_DP.dp, COMPACT_HEIGHT_DP.dp),
-                DpSize(MEDIUM_WIDTH_DP.dp, MEDIUM_HEIGHT_DP.dp),
-                DpSize(FULL_WIDTH_DP.dp, FULL_HEIGHT_DP.dp),
-            ),
+            buildSet {
+                add(DpSize(COMPACT_WIDTH_DP.dp, COMPACT_HEIGHT_DP.dp))
+                SesameWidgetMediumMetrics.CANDIDATE_WIDTHS_DP.forEach { add(DpSize(it.dp, MEDIUM_HEIGHT_DP.dp)) }
+                add(DpSize(FULL_WIDTH_DP.dp, FULL_HEIGHT_DP.dp))
+            },
         )
 
     override suspend fun provideGlance(
@@ -88,14 +89,12 @@ open class SesameWidget : GlanceAppWidget() {
                 model = withContext(Dispatchers.IO) { SesameWidgetRepository.loadModel(context, appWidgetId) }
             }
             val size = LocalSize.current
+            val widthDp = size.width.value.toInt()
             SesameWidgetContent(
                 model = model,
                 actions = WidgetActions(context, appWidgetId, model),
-                layout =
-                    SesameWidgetLayout.of(
-                        widthDp = size.width.value.toInt(),
-                        heightDp = size.height.value.toInt(),
-                    ),
+                layout = SesameWidgetLayout.of(widthDp = widthDp, heightDp = size.height.value.toInt()),
+                widthDp = widthDp,
             )
         }
     }
@@ -177,6 +176,7 @@ private fun SesameWidgetContent(
     model: SesameWidgetModel,
     actions: WidgetActions,
     layout: SesameWidgetLayout,
+    widthDp: Int,
 ) {
     val containerModifier =
         GlanceModifier
@@ -202,9 +202,17 @@ private fun SesameWidgetContent(
                     CompactStatusBox(model = model, modifier = containerModifier, onClick = actions.status)
                 SesameWidgetLayout.MEDIUM ->
                     Row(modifier = containerModifier) {
-                        MediumLeftColumn(displayName = model.displayName, actions = actions)
+                        MediumLeftColumn(
+                            displayName = model.displayName,
+                            actions = actions,
+                            widthDp = SesameWidgetMediumMetrics.leftColumnWidthDp(widthDp),
+                        )
                         Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
-                        MediumStatusBox(model = model, onClick = actions.status)
+                        MediumStatusBox(
+                            model = model,
+                            onClick = actions.status,
+                            labelSp = SesameWidgetMediumMetrics.statusLabelSp(widthDp),
+                        )
                     }
                 SesameWidgetLayout.FULL ->
                     Row(modifier = containerModifier) {
@@ -302,6 +310,8 @@ private const val WIDGET_BACKGROUND_ARGB = 0xFF121212.toInt()
 // 寸法はwearのTile（当時の左列76dp・チップ角丸12dp・間隔6dp）を、スマホのホーム画面の広さに合わせて広げたもの。
 // Tileの左列はBL-209で56dpへ狭めたが、ウィジェットは見切れの指摘が無いため据え置いている。
 private const val LEFT_COLUMN_WIDTH_DP = 96
+
+// CONTAINER_PADDING_DP と SPACING_DP を変えたら SesameWidgetMediumMetrics の HORIZONTAL_CHROME_DP も直す。
 private const val CONTAINER_PADDING_DP = 8
 private const val SPACING_DP = 6
 private const val CORNER_RADIUS_DP = 16
@@ -312,7 +322,6 @@ private const val CORNER_RADIUS_DP = 16
 // Glanceがproviderの最小サイズへフォールバックしたときにも2マス×1マス相当の候補が選ばれる。
 private const val COMPACT_WIDTH_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
 private const val COMPACT_HEIGHT_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
-private const val MEDIUM_WIDTH_DP = SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP
 private const val MEDIUM_HEIGHT_DP = SesameWidgetLayout.ONE_CELL_MIN_DP
 private const val FULL_WIDTH_DP = SesameWidgetLayout.FULL_MIN_WIDTH_DP
 private const val FULL_HEIGHT_DP = SesameWidgetLayout.FULL_MIN_HEIGHT_DP

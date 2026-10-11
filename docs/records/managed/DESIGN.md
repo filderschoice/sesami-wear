@@ -403,7 +403,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     （2026-10-12、ユーザー指示）、1マスへ戻した。
     `SesameWidgetLayout`（Android非依存、ユニットテスト対象）が表示領域（dp）から
     `FULL`/`MEDIUM`/`COMPACT`を決め、`SesameWidget`は`SizeMode.Responsive`で候補サイズ
-    （40x40 / 110x40 / 200x172）を提示して`LocalSize`を受け取る。1マス分の候補の40dpは
+    （40x40 / 110x40・130x40・150x40・170x40 / 200x172）を提示して`LocalSize`を受け取る。
+    `LocalSize`は実寸ではなく選ばれた候補の大きさのため、`MEDIUM`は幅を刻んで提示し、候補の幅から
+    左右の配分を決める（BL-233、後述）。1マス分の候補の40dpは
     Androidの算出式（70dp×マス数−30dp）による1マス分（`SesameWidgetLayout.ONE_CELL_MIN_DP`、BL-223）で、
     providerの高さの下限と揃える。表示領域を通知しないランチャーではGlanceがproviderの最小サイズへ
     フォールバックするため、候補の高さが下限より高いと2 × 1版でも`COMPACT`が選ばれてしまう。
@@ -415,8 +417,15 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     余裕を見て140dpへ引き上げ（BL-158）、BL-205で帯のぶん172dpへ引き上げた。既定の4x2は一般的な端末で
     約250dpになるため`FULL`のまま。
     `FULL`に届かない場合は幅だけで`MEDIUM`（110dp以上）と`COMPACT`（それ未満）を分ける。
-  - `MEDIUM`（2マス×1マス相当、BL-174）は、左1マス（60dp）にデバイス名チップ（タップで状態取得）と
+  - `MEDIUM`（2マス×1マス相当、BL-174）は、左1マスにデバイス名チップ（タップで状態取得）と
     「◀ ▶」（対象デバイスの順送り、BL-175）を縦に並べ、右1マスに状態アイコンと状態文言を出す。
+    **横幅は状態表示を優先して配分する**（`SesameWidgetMediumMetrics`、Android非依存、BL-233）。
+    状態表示へ64dp（状態文言4文字＝13sp×4と内側パディング）を残し、残りを左1マスへ回して50〜72dpに収める。
+    上限72dpは「全デバイス」が省略されずに収まる幅（BL-184）、下限50dpは「◀」「▶」のチップが収まる幅。
+    状態表示の内側に13spで4文字が入らない候補（110dp・130dp）では状態文言を11spにする。
+    BL-174〜BL-232の間は左1マスを72dpに固定しており、2マスの実幅を約182dp（横4列のグリッド）と
+    見込んでいたが、横5列のグリッドでは約145dp前後になり、状態文言が「施…」と省略されていた（公開版での報告）。
+    狭いときはデバイス名が省略（…）されることを許す。
     最終取得時刻・電池残量・操作文言は高さが足りないため出さない。タップの挙動は`FULL`と同じ
     （`WidgetTapAction`の判定どおり）。**高さ1マスのときだけ順送りにする**のは、選択画面を開く
     「変更」チップを置く余地が無いため（2026-09-20、ユーザー確認済み。`FULL`は従来どおり「変更」）。
@@ -472,7 +481,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   明示して2.10.5へ引き上げている（2026-09-16にユーザー判断）。2.11系は`kotlin-stdlib`をコンパイラ
   （2.0.21）より新しい2.1.20へ上げるため採らない（BL-130と同じ基準）。Glanceの導入で既存依存の版が
   変わるのは`compose-runtime`の1.7.6→1.7.8のみ。
-- Glanceの部品は3ファイルに分かれる（BL-174）。`SesameWidget`（`GlanceAppWidget`本体と`FULL`/`COMPACT`の
+- Glanceの部品は3ファイルに分かれ（BL-174）、`MEDIUM`の幅の配分は純Kotlinの
+  `SesameWidgetMediumMetrics`に置く（BL-233、ユニットテスト対象）。`SesameWidget`（`GlanceAppWidget`本体と`FULL`/`COMPACT`の
   並べ方）、`SesameWidgetMedium`（`MEDIUM`の左1マスと右1マス）、`SesameWidgetChips`（両者が共用する
   チップ・文字スタイル・寸法の定数）。1ファイルへ置くとdetektの`TooManyFunctions`（上限11）に達するため。
   `WidgetUnlockConfirmActivity`も同じ面の部品として`SesameWidgetChips`の色・角丸の定数を使う。

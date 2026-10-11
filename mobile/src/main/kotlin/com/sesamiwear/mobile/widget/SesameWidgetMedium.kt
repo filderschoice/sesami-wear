@@ -27,13 +27,17 @@ import androidx.glance.unit.ColorProvider
  * 高さ1マスには選択画面を開くチップを置く余地が無いため、ここでは「変更」の代わりに順送りを置く
  * （[SesameWidgetLayout.FULL]は従来どおり「変更」）。選択画面は、ウィジェットの長押しメニュー
  * （`widgetFeatures="reconfigurable"`）から開ける。
+ *
+ * 幅[widthDp]は表示領域に応じて[SesameWidgetMediumMetrics.leftColumnWidthDp]が決める（BL-233）。
+ * 狭いときはデバイス名が省略（…）される。
  */
 @Composable
 internal fun MediumLeftColumn(
     displayName: String,
     actions: WidgetActions,
+    widthDp: Int,
 ) {
-    Column(modifier = GlanceModifier.width(MEDIUM_LEFT_COLUMN_WIDTH_DP.dp).fillMaxHeight()) {
+    Column(modifier = GlanceModifier.width(widthDp.dp).fillMaxHeight()) {
         NeutralChip(
             text = displayName,
             modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh),
@@ -66,11 +70,13 @@ internal fun MediumLeftColumn(
 /**
  * 2マス×1マス相当の右1マス（BL-174）。1マス表示と同じく状態アイコンと状態文言だけを出す
  * （[StatusIconAndLabel]）。タップの挙動はTile相当の表示と同じ（[WidgetTapAction]の判定どおり）。
+ * 狭いときは状態文言を小さくする（[labelSp]、[SesameWidgetMediumMetrics.statusLabelSp]、BL-233）。
  */
 @Composable
 internal fun RowScope.MediumStatusBox(
     model: SesameWidgetModel.Configured,
     onClick: Action?,
+    labelSp: Int,
 ) {
     Box(
         modifier =
@@ -83,7 +89,7 @@ internal fun RowScope.MediumStatusBox(
                 .padding(CHIP_INNER_PADDING_DP.dp),
         contentAlignment = Alignment.Center,
     ) {
-        StatusIconAndLabel(model)
+        StatusIconAndLabel(model, labelSp)
     }
 }
 
@@ -91,9 +97,4 @@ internal fun RowScope.MediumStatusBox(
 private const val CYCLE_BACKWARD_LABEL = "◀"
 private const val CYCLE_FORWARD_LABEL = "▶"
 
-// 左1マスの幅（BL-174 / BL-184）。本アプリが出す最長の文言「全デバイス」（11sp×全角5文字＝55dp）に
-// チップの内側パディング（6dp×2）を足した67dpが収まる値にする。60dpでは「全デバ…」と省略されていた。
-// 右1マスは残り全域（defaultWeight）で、実サイズの2マス幅（Pixel 6相当で約182dp）なら
-// 「施錠中」（13sp×3文字＋パディング＝約51dp）に足りる。
-private const val MEDIUM_LEFT_COLUMN_WIDTH_DP = 72
 private const val MEDIUM_SPACING_DP = 4
