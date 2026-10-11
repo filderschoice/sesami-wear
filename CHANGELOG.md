@@ -7,6 +7,20 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-11（0.14.1のリリース準備）
+
+ホーム画面ウィジェットの縮小下限の見直しと、ウィジェット一覧のプレビュー画像の追加
+（BL-223 / BL-224 / BL-226）を中心とした 0.14.1 を Google Play のクローズドテストへ配信するための準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.14.1 を「未リリース」から「2026-10-11」へ確定しました。
+- **`scripts/version.properties`** を `versionCode 10` / `wear 1008` / `versionName 0.14.1` へ更新し、
+  署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.14.1`）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.14.1 の配信とタグ・
+  GitHub Releaseの作成を BL-231 として起票しました（Play Consoleの操作のためユーザー担当）。
+  BL-225 / BL-227（実機での人手検証）は未完了のまま残しています。
+- **[README.md](README.md)** の「リリースビルド」節へ、空きメモリ不足でR8中にGradleデーモンが落ちて
+  ビルドが失敗する場合の対処（`GRADLE_OPTS` で並列実行を止める）を追記しました。
+
 ## 2026-10-11（スキルの実行モデルを固定する、BL-228〜BL-230）
 
 依頼ごとに必要な判断の重さに合わせ、スキルのfrontmatterの `model` で実行モデルを固定しました（自律ループ実行モード）。
