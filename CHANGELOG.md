@@ -7,6 +7,14 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-12（VSCodeの推奨拡張機能からGradle for Javaを除外）
+
+- **`.vscode/extensions.json`** の `unwantedRecommendations` へ Gradle for Java（`vscjava.vscode-gradle`）を
+  追加しました。本リポジトリを開くと同拡張がGradleプロジェクトを自動で読み込み、Gradleデーモン
+  （`-Xmx2048m`）とgradle-serverのJavaプロセスを起動します。メモリ8GBの開発機ではメモリが逼迫し、
+  拡張ホストの起動が完了せず、組み込みGit拡張が動かなくなる事象が起きていました。ビルド・テストは
+  `./gradlew` のコマンド実行で行う運用のため、同拡張は使いません。
+
 ## 2026-10-12（0.14.1の配信完了とv0.14.1の公開、BL-231）
 
 - **BL-231（完了）**: 0.14.1（mobile の `versionCode 10` / wear の `versionCode 1008`）が、Google Playの
