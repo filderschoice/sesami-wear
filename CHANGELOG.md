@@ -7,6 +7,16 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-12（0.14.1の配信完了とv0.14.1の公開、BL-231）
+
+- **BL-231（完了）**: 0.14.1（mobile の `versionCode 10` / wear の `versionCode 1008`）が、Google Playの
+  クローズドテストの両トラックで公開中になりました。リリース準備のマージコミット（`9d3dcfa`）へ
+  注釈付きタグ `v0.14.1` を作成し、[GitHub Release](https://github.com/filderschoice/sesami-wear/releases/tag/v0.14.1)
+  を公開しました（`docs/RELEASE_NOTES.md` の0.14.1から、Play用の要約を除いて転記。0.xのため
+  pre-releaseとしています）。
+- ユーザーの作業が終わったため、BACKLOG.mdから削除しています。BL-225 / BL-227（実機での人手検証）は
+  未完了のまま残しています。
+
 ## 2026-10-11（0.14.1のリリース準備）
 
 ホーム画面ウィジェットの縮小下限の見直しと、ウィジェット一覧のプレビュー画像の追加
