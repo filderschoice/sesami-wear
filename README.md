@@ -206,6 +206,23 @@ scripts\release-build.bat -VersionCode 10 -VersionName 1.1.0
 上書きしており（`wear`は`mobile`から継承するため個別指定不要）、通常の`./gradlew assembleDebug`等
 には影響しません。
 
+**ビルドが「システム リソースが不足しているため、要求されたサービスを完了できません」
+（`java.io.IOException`、`Gradle build daemon disappeared unexpectedly`）で失敗する場合**は、
+PCの空きメモリ不足でR8（`minifyReleaseWithR8`）の並列実行中にGradleデーモンが落ちています
+（空きメモリ約1.7GB／搭載8GBで再現。`mobile`と`wear`のR8が同時に走ると足りなくなります）。
+並列実行を止めて再実行してください。失敗時は`scripts/version.properties`が更新されないため、
+同じコマンドをそのまま再実行できます。
+
+```bat
+set GRADLE_OPTS=-Dorg.gradle.parallel=false -Dorg.gradle.workers.max=1
+scripts\release-build.bat -VersionName 0.14.1
+```
+
+ほかのアプリを閉じて空きメモリを増やすと、並列のままでも通ることがあります。
+ビルドは数分かかるため、エージェントから実行するときはバックグラウンド実行にします
+（フォアグラウンドの120秒制限に当たります）。成功後は`version.properties`の更新と、
+両AABの署名（`keytool -printcert -jarfile <aab>`のSHA256が一致すること）を確認します。
+
 リリース時は、利用者向けの変更点を [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) へ追記してください
 （Google Play Consoleの「このリリースの新機能」欄への転記元になります）。
 
