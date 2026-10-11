@@ -5,21 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-229
-  区分: 性能
-  タスク内容: >-
-    単独で依頼が完結し、判断を一部含むリポジトリ内のスキル`release-verification-prep`と
-    `store-screenshot-masking`のfrontmatterに`model: sonnet`を指定する。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    両スキルに`model: sonnet`と理由の説明があり、CHANGELOGへ記録されていること
-  根拠: >-
-    他の作業の途中で読み込まれる参照用のスキルへ指定すると、その後の作業ごと指定のモデルへ切り替わるため、
-    依頼の入口となるスキルに限る。実装・設計判断を伴うスキル（autonomous-loop等）は指定しない。
-  依存: []
-
 - id: BL-230
   区分: 性能
   タスク内容: >-
