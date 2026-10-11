@@ -5,6 +5,64 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-12 08:20
+  summary: 2 × 1のウィジェットで右側の状態文言が省略される問題を、幅の配分を可変にして直す（BL-233）
+  details:
+    変更内容: >-
+      MEDIUM表示の左1マスを72dpに固定していたため、横5列のグリッド（2マスで約145dp前後）では状態表示の幅が
+      足りず「施…」と省略されていた。Android非依存の`SesameWidgetMediumMetrics`を追加し、状態表示へ64dpを
+      残して左1マスを50〜72dpへ収める配分と、13spで4文字が入らないときに状態文言を11spへ下げる判定を置いた。
+      `SizeMode.Responsive`では`LocalSize`が候補の大きさになるため、2マス×1マスの候補を110・130・150・170dpの
+      4つへ刻み、候補の幅から配分を決める。`MediumLeftColumn`・`MediumStatusBox`・`StatusIconAndLabel`へ
+      幅と文字サイズの引数を追加した。単体テスト`SesameWidgetMediumMetricsTest`（7件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMediumMetrics.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMediumMetricsTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。`SesameWidgetMediumMetricsTest`（7件）がスキップされずに成功した。
+      実機での見え方はBL-234（人手検証）で確認する。
+
+- date: 2026-10-12 07:58
+  summary: ホーム画面ウィジェットを横1マス×縦1マスまで縮められるようにする（BL-232）
+  details:
+    変更内容: >-
+      4 × 2版・2 × 1版の`appwidget-provider`の`minResizeWidth`を110dp（2マス分）から40dp
+      （Androidの算出式による1マス分、`SesameWidgetLayout.ONE_CELL_MIN_DP`）へ下げた。公開版での確認で
+      横1マスへ縮められないことが分かり、ユーザーから1マスまでの縮小を求められたため、BL-174の下限
+      （2マス×1マス）を置き換える。1マスでは従来から保険として残していたCOMPACT表示（状態アイコンと
+      状態文言のみ）になる。`SesameWidgetProviderInfoTest`の検査を1マス分へ改め、KDoc・XMLのコメント、
+      DESIGN.md、利用者向けガイド、README、リリースノートの縮小の下限の記述を更新した。
+    変更ファイル:
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetProviderInfoTest.kt
+      - README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。`SesameWidgetProviderInfoTest`（3件）がスキップされずに成功した。
+      実機のホームアプリで1マスまで縮められるかはBL-234（人手検証）で確認する。
+
 - date: 2026-10-11 22:40
   summary: ウィジェット一覧（ウィジェットピッカー）にウィジェットの見た目のプレビュー画像を出す
   details:

@@ -68,14 +68,18 @@ internal fun NeutralChip(
  * 状態アイコンと状態文言だけの表示。1マス（[SesameWidgetLayout.COMPACT]）と
  * 2マス×1マス（[SesameWidgetLayout.MEDIUM]）の右1マスで共用する。
  * 最終取得時刻・操作文言は高さが足りないため出さない。
+ * 状態文言の文字サイズは、2マス×1マスで幅が足りないときだけ小さくする（[labelSp]、BL-233）。
  */
 @Composable
-internal fun StatusIconAndLabel(model: SesameWidgetModel.Configured) {
+internal fun StatusIconAndLabel(
+    model: SesameWidgetModel.Configured,
+    labelSp: Int = CAPTION_SP,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = model.statusIcon, style = widgetTextStyle(model.textColorArgb, COMPACT_ICON_SP))
         Text(
             text = model.statusLabel,
-            style = widgetTextStyle(model.textColorArgb, CAPTION_SP, bold = true),
+            style = widgetTextStyle(model.textColorArgb, labelSp, bold = true),
             maxLines = 1,
         )
     }

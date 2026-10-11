@@ -2,12 +2,12 @@
 <!--
   ホーム画面ウィジェットの定義（BL-121）。
   既定の大きさは wear の Tile 相当（4x2、minWidth/minHeight と targetCellWidth/Height）のままで、
-  利用者がリサイズしたときに2マス×1マスまで縮められるようにする（BL-128 / BL-174）。
+  利用者がリサイズしたときに1マス×1マスまで縮められるようにする（BL-128 / BL-232）。
   minWidth/minHeight は API 30 以下で既定の配置サイズを決めるため下げず、縮小の下限は
-  minResizeWidth/minResizeHeight で指定する。minResizeWidth の 110dp は Android の算出式
-  （70dp×マス数−30dp）による2マス分で、SesameWidgetLayout.MEDIUM_MIN_WIDTH_DP と同じ値。
-  minResizeHeight の 40dp は同じ算出式による1マス分（SesameWidgetLayout.ONE_CELL_MIN_DP、BL-223）。
-  これを上回ると、dpからマス数を切り上げで求めるランチャーで高さ1マスへ縮められなくなるおそれがある。
+  minResizeWidth/minResizeHeight で指定する。どちらも 40dp で、Android の算出式
+  （70dp×マス数−30dp）による1マス分（SesameWidgetLayout.ONE_CELL_MIN_DP、BL-223 / BL-232）。
+  これを上回ると、dpからマス数を切り上げで求めるランチャーで1マスへ縮められなくなるおそれがある。
+  BL-174〜BL-231の間は幅の下限を2マス分（110dp）としていたが、1マスへ縮めたいとの要望で戻した。
   値の整合は SesameWidgetProviderInfoTest で検査している。
   表示領域に応じたレイアウトの出し分けは SesameWidget / SesameWidgetLayout が行う。
   追加時は android:configure の選択画面で対象デバイスを選ぶ。reconfigurable により長押しメニューからも再設定できる。
@@ -19,7 +19,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:minWidth="250dp"
     android:minHeight="110dp"
-    android:minResizeWidth="110dp"
+    android:minResizeWidth="40dp"
     android:minResizeHeight="40dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
