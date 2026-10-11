@@ -1,9 +1,15 @@
 ---
 name: pr-create
 description: Pull Requestを作成・更新するときのClaude Code側の実行手順。規範の正本（.github/instructions/pr.instructions.md と PULL_REQUEST_TEMPLATE.md）をghで反映する手順だけを扱う。未pushのブランチではPRを作れないこと（pushはユーザーが実行）、PowerShellで`--body`へ本文を渡すと引数分割が壊れる事故と`--body-file`での回避、未実行の品質ゲートをチェックしないことを含む。「PRを作成して」「PRの説明文を作って」「テンプレに沿ってPRを直して」「プルリクを出して」等の依頼で参照する。
+model: haiku
 ---
 
 # PR作成手順（Claude Code 用）
+
+**本スキルは frontmatter の `model: haiku` により軽量モデルで実行します。** 手順が定型で、判断の材料
+（差分・品質ゲートの記録）がリポジトリに揃っているためです。指定はスキルを実行したターンの間だけ効き、
+次の入力からはセッションのモデルへ戻ります（設定には保存されません）。組織の許可リストやauto modeで
+使えないモデルの場合は、指定は無視されてセッションのモデルのまま動きます。
 
 ## 0. 規範の正本を先に読む（MUST）
 

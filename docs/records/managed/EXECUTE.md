@@ -5,6 +5,75 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-11 22:40
+  summary: ウィジェット一覧（ウィジェットピッカー）にウィジェットの見た目のプレビュー画像を出す
+  details:
+    変更内容: >-
+      4 × 2版・2 × 1版の`appwidget-provider`へ`android:previewImage`を指定し、一覧にアプリのアイコンではなく
+      それぞれの大きさの見た目が出るようにした。画像はストア掲載用のスクリーンショット`phone_1_widget_locked.png`
+      から切り出す`scripts/make-widget-previews.py`（Pillowのみ）を追加して生成した。ウィジェットの背景色の
+      画素が多い行の塊を上下2つ探して範囲を決め（2x1は490x283px、4x2は1020x619px）、角丸の半径を縁の形への
+      当てはめで見積もり（35px・37px。16dpの見込み約38pxと整合）、外側を透明にしている。
+      `previewLayout`とGlanceの生成プレビューは、見た目の二重管理・対象端末の限定を避けるため採らなかった。
+      プレビューの指定と画像の有無の検査を`SesameWidgetProviderInfoTest`へ追加し、掲載画像を撮り直したときに
+      作り直す手順をSkill `store-screenshot-capture`と`docs/store/README.md`へ追記した。
+    変更ファイル:
+      - scripts/make-widget-previews.py
+      - mobile/src/main/res/drawable-nodpi/widget_preview.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview_small.png
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetProviderInfoTest.kt
+      - .claude/skills/store-screenshot-capture/SKILL.md
+      - docs/store/README.md
+      - README.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      python scripts/make-widget-previews.py /
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。`SesameWidgetProviderInfoTest`（3件）がスキップされずに成功し、
+      デバッグ版APKの`res/drawable-nodpi-v4/`に2枚の画像が含まれることを確認した。切り出した画像は
+      マゼンタの背景へ重ねた縮小版で、角に壁紙が残っていないことを目視で確認した。
+      一覧での見え方はBL-227（人手検証）で確認する
+    関連ID:
+      - BL-226
+- date: 2026-10-11 15:30
+  summary: ホーム画面ウィジェットの高さの縮小下限をAndroidの1マス分（40dp）へ揃える
+  details:
+    変更内容: >-
+      テスターからウィジェットの大きさを変えられないとの報告を受け、ウィジェット周りを集中レビューした。
+      両providerの`minResizeHeight`と2 × 1版の`minHeight`が50dpで、Androidの算出式（70dp×マス数−30dp）による
+      1マス分の40dpを上回っていたため、dpからマス数を切り上げで求めるランチャーでは高さ1マスへ縮められない
+      おそれがあった。これらを40dpへ下げ、`SesameWidgetLayout.ONE_CELL_MIN_DP`として定数化した。
+      Glanceへ提示するサイズ候補（1マス・2マス×1マス）の高さも40dpへ揃え、表示領域を通知しない
+      ランチャーでproviderの最小サイズへフォールバックしたときにも2マス×1マス表示が選ばれるようにした。
+      XMLと定数の食い違いを検出する`SesameWidgetProviderInfoTest`を追加した。報告の原因そのものは
+      未確認のため、報告環境での確認をBL-225（人手検証）として残している。
+    変更ファイル:
+      - mobile/src/main/res/xml/sesame_widget_info.xml
+      - mobile/src/main/res/xml/sesame_widget_small_info.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayout.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetLayoutTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetProviderInfoTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md" /
+      python scripts/validate-records.py
+    検証結果: >-
+      成功 - 品質ゲートはすべて終了コード0。追加した`SesameWidgetProviderInfoTest`（2件）と
+      `SesameWidgetLayoutTest`（9件）がスキップされずに成功したことをテスト結果のXMLで確認した。
+      報告環境での効果はBL-225（人手検証）で確認する
+    関連ID:
+      - BL-223
 - date: 2026-09-23 17:00
   summary: 撮影モードの操作画面と、モード中の控えめな表示を追加する（デバッグ版限定）
   details:

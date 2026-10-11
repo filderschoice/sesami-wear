@@ -51,8 +51,8 @@ enum class SesameWidgetLayout {
          * [FULL]に届かない場合は幅だけで[MEDIUM]と[COMPACT]を分ける（BL-174）。
          * [MEDIUM_MIN_WIDTH_DP]はAndroidが定める「2マス分の最小幅」（70dp×2−30dp＝110dp）で、
          * `sesame_widget_info.xml`の`minResizeWidth`と同じ値にしている。
-         * 高さは下限（`minResizeHeight`＝50dp）に達していればデバイス名・「◀ ▶」の2段が入るため、
-         * ここでは見ない。
+         * 高さはランチャーの1マス（実寸は下限の`minResizeHeight`＝40dpより大きい）があれば
+         * デバイス名・「◀ ▶」の2段が入るため、ここでは見ない。
          */
         fun of(
             widthDp: Int,
@@ -69,5 +69,12 @@ enum class SesameWidgetLayout {
 
         /** 2マス分の最小幅（Androidの算出式 70dp×マス数−30dp）。`minResizeWidth`と同じ値。 */
         const val MEDIUM_MIN_WIDTH_DP = 110
+
+        /**
+         * 1マス分の最小値（Androidの算出式 70dp×1−30dp）。`minResizeHeight`と、2 × 1版の`minHeight`と
+         * 同じ値（BL-223）。50dpとしていた頃は、dpからマス数を切り上げで求めるランチャーで
+         * 高さ1マスへ縮められないおそれがあった。
+         */
+        const val ONE_CELL_MIN_DP = 40
     }
 }

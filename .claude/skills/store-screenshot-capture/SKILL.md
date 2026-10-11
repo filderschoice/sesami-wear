@@ -154,6 +154,11 @@ canvas.paste(im, ((tw - w) // 2, 0))
 - `docs/store/README.md` の内訳表（ファイル名・内容・サイズ）と、撮影方法・撮影日の記述を更新する。
   モザイクの有無や撮影環境が変わったら、その説明も書き換える。
 - `docs/store/STORE_LISTING.md`「スクリーンショット」の枚数・撮影環境を更新する。
+- `phone_1_widget_locked.png` を差し替えたら、ウィジェット一覧のプレビュー画像も作り直す
+  （`python scripts/make-widget-previews.py`。この画像の2x1と4x2を切り出して
+  `mobile/src/main/res/drawable-nodpi/` へ書き出す。BL-226）。構図を変えて2つが縦に並ばなくなると
+  スクリプトが止まるため、その場合はスクリプトの検出方法を合わせて直す。アプリの画像が変わるため、
+  これはコード修正として `EXECUTE.md` に記録する。
 - `BACKLOG.md` の配信タスクへ「掲載アセットの差し替えも Play Console の作業に含む」ことを追記する。
   画像を更新しただけでは掲載は変わらない。
 - `CHANGELOG.md` へ記録する（コード修正を伴わないため `EXECUTE.md` は更新しない）。
