@@ -5,6 +5,54 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-228
+  区分: 性能
+  タスク内容: >-
+    PR作成スキル（`.claude/skills/pr-create/SKILL.md`）の frontmatter に`model: haiku`を指定し、PRの作成・更新を
+    軽量モデルで行う。本スキルは配布元（copilot-rules）から「そのままコピー」で取り込む分類のため、
+    次回の同期で指定が消えないよう、Skill `guardrail-sync-local`の分類を「固有改変をマージ」へ移す。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    pr-createに`model: haiku`と理由の説明があり、guardrail-sync-localで固有改変として扱われ、
+    CHANGELOGへ記録されていること
+  根拠: >-
+    エージェントの利用量（コスト）の削減が目的のため、区分は既存の値のうち最も近い`性能`とした。
+    `model`の指定はスキルを実行したターンの間だけ効き、セッションのモデルは変わらない
+    （Claude Code公式ドキュメントのスキルのfrontmatter仕様で確認）。
+  依存: []
+
+- id: BL-229
+  区分: 性能
+  タスク内容: >-
+    単独で依頼が完結し、判断を一部含むリポジトリ内のスキル`release-verification-prep`と
+    `store-screenshot-masking`のfrontmatterに`model: sonnet`を指定する。
+  優先度: P2
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    両スキルに`model: sonnet`と理由の説明があり、CHANGELOGへ記録されていること
+  根拠: >-
+    他の作業の途中で読み込まれる参照用のスキルへ指定すると、その後の作業ごと指定のモデルへ切り替わるため、
+    依頼の入口となるスキルに限る。実装・設計判断を伴うスキル（autonomous-loop等）は指定しない。
+  依存: []
+
+- id: BL-230
+  区分: 性能
+  タスク内容: >-
+    ユーザー共通スキル（`~/.claude/skills/`、本リポジトリの管理外）のうち、`backlog-summary`と
+    `commit-changes`へ`model: haiku`、`prune-merged-branches`と`github-release-publish`へ`model: sonnet`を
+    指定する。変更前の版はスクラッチパッドへ退避する。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    4スキルのfrontmatterに指定が入り、CHANGELOGへ実施内容（リポジトリ外の変更であること）が記録されていること
+  根拠: >-
+    4スキルはGit管理外で配布元からの同期対象でもない（`~/.claude/skills/synced/`は別のスキル群）ことを
+    確認済み。ブランチ削除・リリース公開を伴う2つは判断の誤りの影響が大きいためHaikuではなくSonnetとした。
+  依存: []
 - id: BL-227
   区分: 人手検証
   タスク内容: >-
