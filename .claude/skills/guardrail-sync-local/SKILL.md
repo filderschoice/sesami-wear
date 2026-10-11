@@ -36,7 +36,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 - `templates/app-guardrail-template.yaml` / `model-risk-register-template.csv`
 - `.github/instructions/pr.instructions.md`（v0.26.0 以降、ゲートのコマンドを持たず `CLAUDE.md` を参照する
   汎用版になった。変更の種類ごとの適用範囲は `CLAUDE.md`「本リポジトリの品質ゲート定義」に置く）
-- `.github/prompts/pr-create.prompt.md`、`.claude/skills/pr-create/SKILL.md`、
+- `.github/prompts/pr-create.prompt.md`、
   `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`
 
 ### 固有改変をマージ（配布元の構造を採り、固有の内容は残す）
@@ -47,6 +47,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | `.github/copilot-instructions.md` | 参照ドキュメント表の本リポジトリ行、実資格情報を使わない旨のセキュリティ補足、記録対象の `docs/RELEASE_NOTES.md` と利用者向けドキュメント |
 | `CONTRIBUTING.md` | **冒頭の外部コントリビューション方針（Issueは受付・PRは非受付）、レビュー要件（メンテナー1名体制）、品質ゲート、ドキュメント管理** |
 | `docs/records/spec/FORMAT.md` | `BACKLOG.md` の記述例（Pixel Watch実機・ハプティクスの文面。配布元は汎用文面へ置換済み） |
+| `.claude/skills/pr-create/SKILL.md` | frontmatter の `model: haiku` と、冒頭のその説明の段落（BL-228）。本文は配布元版を採る |
 | `.claude/skills/autonomous-loop/SKILL.md` | description は配布元版を採る。本文の人手検証の3類型、`docs/RELEASE_NOTES.md` の更新、「利用量を抑える」節、`PLAN.md` の参照は本リポジトリ固有 |
 
 **`CONTRIBUTING.md` に注意。** 汎用手順では「そのままコピー」に分類されているが、本リポジトリの

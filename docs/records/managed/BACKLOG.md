@@ -5,24 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-228
-  区分: 性能
-  タスク内容: >-
-    PR作成スキル（`.claude/skills/pr-create/SKILL.md`）の frontmatter に`model: haiku`を指定し、PRの作成・更新を
-    軽量モデルで行う。本スキルは配布元（copilot-rules）から「そのままコピー」で取り込む分類のため、
-    次回の同期で指定が消えないよう、Skill `guardrail-sync-local`の分類を「固有改変をマージ」へ移す。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    pr-createに`model: haiku`と理由の説明があり、guardrail-sync-localで固有改変として扱われ、
-    CHANGELOGへ記録されていること
-  根拠: >-
-    エージェントの利用量（コスト）の削減が目的のため、区分は既存の値のうち最も近い`性能`とした。
-    `model`の指定はスキルを実行したターンの間だけ効き、セッションのモデルは変わらない
-    （Claude Code公式ドキュメントのスキルのfrontmatter仕様で確認）。
-  依存: []
-
 - id: BL-229
   区分: 性能
   タスク内容: >-
@@ -53,6 +35,7 @@
     4スキルはGit管理外で配布元からの同期対象でもない（`~/.claude/skills/synced/`は別のスキル群）ことを
     確認済み。ブランチ削除・リリース公開を伴う2つは判断の誤りの影響が大きいためHaikuではなくSonnetとした。
   依存: []
+
 - id: BL-227
   区分: 人手検証
   タスク内容: >-
