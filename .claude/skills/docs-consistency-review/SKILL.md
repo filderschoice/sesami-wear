@@ -95,7 +95,7 @@ PY
 ### 2.3 陳腐化しやすい「時点情報」の抽出
 
 **セッション開始時に自動読み込みされるファイル（`CLAUDE.md` と `@import` 先）に書かれた時点情報は、必ず陳腐化する。**
-配布元での実例では、残件数の記述が2箇所にあり、いずれも実態と異なるうえ**互いに矛盾していた**。
+本スキルの抽出元となったリポジトリでの実例では、残件数の記述が2箇所にあり、いずれも実態と異なるうえ**互いに矛盾していた**。
 
 ```bash
 grep -rn "本ファイル最終更新時点\|現時点で\|残件\|件のみ\|の[0-9]件\|[0-9]件です" \
@@ -111,9 +111,8 @@ grep -rn "本ファイル最終更新時点\|現時点で\|残件\|件のみ\|�
 見出しを突き合わせると重複が見つかる。
 
 ```bash
-grep -n "^#\{2,3\} " CLAUDE.md | sed 's/.*#* //' | sort > /tmp/claude-heads.txt
-grep -n "^#\{2,3\} " .github/copilot-instructions.md | sed 's/.*#* //' | sort > /tmp/copilot-heads.txt
-comm -12 /tmp/claude-heads.txt /tmp/copilot-heads.txt   # 両方にある = 重複の疑い
+heads() { grep "^#\{2,3\} " "$1" | sed 's/^#* //' | sort -u; }
+comm -12 <(heads CLAUDE.md) <(heads .github/copilot-instructions.md)   # 両方にある = 重複の疑い
 ```
 
 行単位で重複量を測るなら、エージェント名を正規化してから比較する。
@@ -198,6 +197,7 @@ comm -12 <(norm CLAUDE.md) <(norm .github/copilot-instructions.md) | wc -l
 
 ```bash
 npx markdownlint-cli2 "**/*.md" --config .markdownlint-cli2.yaml   # 0 issues であること
+git ls-files --cached --others --exclude-standard "*.md" | wc -l   # 上の Linting: N files と一致すること
 file docs/records/managed/*.md                                     # CRLF になっていないこと
 git diff --stat
 ```
@@ -215,17 +215,3 @@ git diff --stat
 - 時点情報（件数・残件・最終更新時点）を書き換えて済ませる。次回また古くなる。
 - 冗長表現の整理と称して意味を変える。主語を短縮する場合は、冒頭で用語を定義してからにする。
 - `markdownlint` を通さずに完了報告する。
-
-## 更新履歴
-
-- 2026-09-12: 配布元リポジトリ（copilot-rules）へ汎用スキルとして取り込み。
-  特定の技術スタック・アプリ固有の記述と、配布対象外スキルへの参照を除去し、
-  記録ファイルの書き方の参照先を `docs/records/spec/FORMAT.md` へ一本化した。
-  元は配布先リポジトリでMarkdown 22ファイル（計約10,000行）を点検した経験から抽出したもので、
-  検出した乖離は、(1) `CLAUDE.md` のアーキテクチャ節に実在ファイルが未記載、(2) 残件数の記述2箇所が
-  実態と異なりかつ互いに矛盾、(3) 履歴文書に廃止済みの仕組みが現役の仕様として残存、
-  (4) `README.md` の機能一覧に実装済み機能が未反映、(5) `FORMAT.md` に実運用で使う `区分`・`担当` の
-  許容値が未定義、(6) `ADOPTION.md` のチェックリストが現行構成を未反映、(7) `docs/guidelines/README.md` に
-  他プロジェクト由来の技術スタック例が残存、(8) 同一言い回しの11回の繰り返し、の8種類。
-  このうち(1)(2)(4)は機械検査で確定でき、(3)(5)(6)(7)(8)は通読で判断した。この経験から第2節（機械検査）と
-  第3節（通読の観点）を分け、第4節に二重管理の判定基準を置いた。

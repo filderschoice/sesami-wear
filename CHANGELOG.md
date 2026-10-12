@@ -7,6 +7,40 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-13（ガードレール配布元 v0.28.0 の取り込み）
+
+配布元 `copilot-rules` の v0.28.0（`dist/copilot-rules-v0.28.0`）を取り込みました（前回は v0.26.0）。
+規範（禁止事項・git操作の範囲・品質ゲート・記録の更新）の追加・削除はありません。
+
+- **そのまま取り込み**: `rules/guardrails-unified.v1.md`（3.4の禁止カテゴリ列挙を1行の要約へ縮め、定義を
+  `rules/guardrails-app.v1.md` 3.4 へ移設）、`rules/guardrails-app.v1.md`、`docs/guidelines/RULE.md` /
+  `ADOPTION.md`、`scripts/validate-records.py`（BACKLOG の `依存` が存在しない `id` を指していないかの検査を追加）、
+  Skill `docs-consistency-review` / `pr-create`
+- **マージして取り込み**:
+  - `.github/copilot-instructions.md`: 「提示の仕方」節を新設し、完全コード・差分の提示をファイルを編集できない環境に限定。
+    優先順位2位へ `guardrails-app.v1.md` を明記。本リポジトリ固有の記述（アプリ概要・資格情報の補足・記録対象）は維持
+  - `CLAUDE.md`: 固有差分表の2行（優先順位1位・記録ファイルの編集権限）と、自律ループ実行モード向けの重複文を削除
+  - `docs/records/spec/FORMAT.md`: BACKLOG 項目の削除時に `依存` から `id` を外す規定を追加（記述例は本リポジトリ版を維持）
+  - `.markdownlint-cli2.yaml`: `build` / `node_modules` 配下の除外を追加（`**/*.local.md` 除外と `MD024` は維持）
+  - Skill `autonomous-loop`: 前提段落・「利用量を抑える」節・終了報告の圧縮を反映（人手検証の3類型や
+    `docs/RELEASE_NOTES.md` の更新など本リポジトリ固有の記述は維持）
+- **`CONTRIBUTING.md` を配布元版へ置換し、固有内容を `CONTRIBUTING.local.md` へ分離**（ユーザー判断）:
+  外部コントリビューション方針、レビュー責任者、自律ループ採否、ドキュメント構成の追加分、変更手順の記録先、
+  品質ゲートの補足を移した。移動に伴い次を変更
+  - `.gitignore` に `!/CONTRIBUTING.local.md` を追加（`*.local.md` の除外から外す）。
+    `.markdownlint-cli2.yaml` の除外は `**/*.local.md` から `docs/**/*.local.md` に絞った
+  - Issueテンプレート（`config.yml` / `feature_request.yml`）・`README.md`・`docs/SUPPORT.md`・
+    `PULL_REQUEST_TEMPLATE.md`・`CLAUDE.md` の参照先を `CONTRIBUTING.local.md` へ変更
+  - 旧 `CONTRIBUTING.md` にあった品質ゲートのコードブロックは複製をやめ、`CLAUDE.md` を正本に一本化
+  - 注意: GitHub が「Contributing」として表示するのは `CONTRIBUTING.md`（共通規約）になった。外部向けの窓口説明は
+    Issueテンプレートの案内リンクから `CONTRIBUTING.local.md` へ誘導する
+- **markdownlint の品質ゲートを1コマンドに修正**: `npx markdownlint-cli2 "**/*.md"` 単独で `.claude/` `.github/` も
+  走査され `Linting: 41 files`（git 管理下の `.md` 件数）と一致することを確認し、2コマンドに分ける記述
+  （`CLAUDE.md`・`README.md`・Skill `guardrail-sync-local`）を廃止。合否基準へ件数照合を追加
+- **採らなかったもの**: `.claude/settings.json`（配布バンドルは固有の `Edit(...)` 許可を含まない）、
+  `templates/CONTRIBUTING.local-template.md`（導入時に `CONTRIBUTING.local.md` を作るための雛形で、作成済みのため不要）
+- 常時読み込み（`CLAUDE.md` + 共通規約 + guardrails）: 40,743 → 40,204 bytes（−539）
+
 ## 2026-10-12（ウィジェットのサイズ変更の人手検証の完了、BL-234）
 
 - **BL-234（完了・削除）**: 0.14.2 を使うテスターの環境で、ウィジェットを横1マス×縦1マスまで縮められ、

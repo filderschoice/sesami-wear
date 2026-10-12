@@ -88,11 +88,11 @@ Sesame側の応答が同じため、アプリはこの2つを区別できませ�
 
 - 本アプリの実装は、Claude Code によるAI実装を主体として開発者本人が行っています。
   **修正・改善はすべて開発者側で実装するため、外部からのPull Requestは受け付けていません。**
-  ご報告・ご提案はIssueへお願いします（詳細は [CONTRIBUTING.md](../CONTRIBUTING.md)）。
+  ご報告・ご提案はIssueへお願いします（詳細は [CONTRIBUTING.local.md](../CONTRIBUTING.local.md)）。
 - 本プロジェクトは個人が余暇に開発しており、専任の対応体制はありません。返信までに数日〜数週間
   かかる場合があります。
 - いただいた要望のすべてに対応できるとは限りません。判断基準は
-  [CONTRIBUTING.md](../CONTRIBUTING.md)「要望・提案を実装するかどうかの判断基準」に記載しています。
+  [CONTRIBUTING.local.md](../CONTRIBUTING.local.md)「要望・提案を実装するかどうかの判断基準」に記載しています。
 - 修正・改善を行った場合は、リリースノートへ内容を記載します。
 
 ## サポートの対象範囲

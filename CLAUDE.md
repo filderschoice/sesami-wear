@@ -13,9 +13,7 @@ Claude Code 固有の差分と、本リポジトリ固有の情報（アーキ�
 | 項目 | Claude Code での差分 |
 | --- | --- |
 | git操作 | 自律ループ実行モード中の作業ブランチへの `git add` / `git commit` のみ実行してよい。`git push` はモードを問わず常にユーザーが実行する |
-| 指示参照の優先順位 1位 | Claude Code ハーネスのシステムプロンプト |
 | PR説明文・コードレビュー・PR作成 | `.github/instructions/pr.instructions.md` を自動適用する機構が無いため、Skill `pr-create` の手順で同ファイルを**明示的に読んでから**従う |
-| 記録ファイルの編集権限 | `.claude/settings.json` の `permissions.allow` により権限プロンプトなしで反映される（下記） |
 
 ## リポジトリの現状とアーキテクチャ概要
 
@@ -96,7 +94,8 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 | Google Play掲載情報・プライバシーポリシー・アイコン | `docs/store/`（索引は `docs/store/README.md`） |
 | アプリ紹介ポートフォリオ（静的な1ページ。機能・版・配信状況を変えたら追随させる） | `site/`（構成と更新方針は `site/README.md`） |
 | 脆弱性報告の受付方針 | `SECURITY.md`（GitHubがSecurity policyとして参照するためルートから移動しない） |
-| 開発プロセス・ブランチ規約・レビュー要件・Issue受付方針 | `CONTRIBUTING.md` |
+| 開発プロセス・ブランチ規約・レビュー要件（共通規約） | `CONTRIBUTING.md` |
+| 本リポジトリ固有の開発プロセス・レビュー責任者・Issue受付方針 | `CONTRIBUTING.local.md` |
 | 運用ルール・ドキュメントの変更履歴 | `CHANGELOG.md` |
 | 要件・API仕様の背景（原初の依頼内容） | `PLAN.md`（実装済み内容は DESIGN.md を優先する） |
 | 記録ファイルの記述仕様（唯一の参照元） | `docs/records/spec/FORMAT.md` |
@@ -107,11 +106,11 @@ secretKeyは機密性が高いためWatch単体には保持させず、施錠/�
 - detekt: `config/detekt/detekt.yml`（`MagicNumber`無効、`LongMethod`閾値60、`maxIssues: 0`）と、
   ルート `build.gradle.kts` の `subprojects` ブロック（`buildUponDefaultConfig = true`）の2箇所。
 - markdownlint: `.markdownlint-cli2.yaml`（行長120、コードブロック/テーブルは対象外、MD060無効、
-  MD024は`siblings_only`、`**/*.local.md` は検査対象外）。
+  MD024は`siblings_only`、`docs/**/*.local.md` は検査対象外）。
 - リリースビルド: `scripts/release-build.bat` / `.ps1` と `scripts/version.properties`。
 - GitHub: `.github/ISSUE_TEMPLATE/`（Issueフォームと空Issueの無効化）、
   `.github/PULL_REQUEST_TEMPLATE.md`（品質ゲート実行・資格情報混入確認のチェックリスト）。
-  外部からのPull Requestは受け付けていない（`CONTRIBUTING.md` 参照）。
+  外部からのPull Requestは受け付けていない（`CONTRIBUTING.local.md` 参照）。
 
 ### よく使うコマンド
 
@@ -152,7 +151,7 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 ## 本リポジトリの品質ゲート定義（MUST）
 
 共通規約「品質ゲート」を本リポジトリでの具体的なコマンドと合否基準へ落とし込みます。Copilot・Claude Code など
-全エージェント共通で使用する正本です。自律ループ実行モードでは各イテレーションでこの表を実行し、記録へ残します。
+全エージェント共通で使用する正本です。
 
 | ゲート | コマンド | 合否基準 |
 | --- | --- | --- |
@@ -161,19 +160,19 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 | Android Lint | `./gradlew lintDebug` | 終了コード0 |
 | 単体テスト | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
 | ビルド | `./gradlew assembleDebug` | 終了コード0 |
-| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` と `npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"` | 両方で `Summary: 0 issues`（`**` はドット始まりのディレクトリを拾わない。1コマンドに並べるとドット配下が検査から落ちるため分けて実行する） |
+| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` | `Summary: 0 issues`、かつ出力の `Linting: N files` が `git ls-files --cached --others --exclude-standard "*.md"` の件数と一致（対象漏れの検出。`.claude/` `.github/` などドット配下も走査される） |
 | 記録ファイルのYAML検証 | `python scripts/validate-records.py`（PyYAMLが必要） | 終了コード0（検査内容はスクリプトのdocstring、体裁の正本は `docs/records/spec/FORMAT.md`） |
 | 脆弱性チェック | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
 
-- 上記コマンドを変更・追加した場合は本セクションと `CONTRIBUTING.md`「品質ゲート」の両方を更新する
-  （定義とドキュメントの乖離を禁止）
+- 上記コマンドを変更・追加した場合は本セクションを更新する（`CONTRIBUTING.local.md`「品質ゲート」と
+  `README.md` は本節を参照しており、コマンドを複製しない。複製を見つけたら本節へ寄せる）
 - 変更の種類ごとの適用（PRのチェックリストで実行済みとしてよい範囲）: Gradle系の5ゲート（ktlint〜ビルド）は
   `core` / `mobile` / `wear` 配下またはGradle設定を変更した場合、Markdown静的解析は `.md` を変更した場合、
   記録ファイルのYAML検証は `docs/records/managed/` を変更した場合に実行する。自律ループ実行モードでは
   変更の種類によらず全ゲートを実行する
 - ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
 - 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
-  （経緯は `CONTRIBUTING.md`「Markdownlintのローカル実行」参照）
+  （補足は `CONTRIBUTING.local.md`「品質ゲート」参照）
 - Wear OS実機（Pixel Watch）およびSesame実機を伴う検証、実資格情報（apikey / secretKey）を用いる
   疎通確認は自動実行の対象外とし、`BACKLOG.md` へ `区分: 人手検証` として記録する。自動品質ゲートの
   合否判定からは除外する
@@ -209,8 +208,8 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 
 `docs/records/managed/` 配下の3ファイルは、`.claude/settings.json` の `permissions.allow` により権限プロンプト
 なしで編集できます（人手編集を前提とせず、妥当性はコミット前の差分確認と `FORMAT.md` 準拠で担保するため）。
-ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md`）・`.github/` 配下・`docs/records/spec/FORMAT.md` の
-編集は確認を挟みます。自律ループ実行モードでは、各イテレーションの完了を記録ファイルの更新契機とします。
+ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md` / `CONTRIBUTING.local.md`）・`.github/` 配下・
+`docs/records/spec/FORMAT.md` の編集は確認を挟みます。
 
 ## 自律ループ実行モード（Loop Engineering）
 

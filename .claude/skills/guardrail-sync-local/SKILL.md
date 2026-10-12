@@ -14,7 +14,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | --- | --- |
 | 配布元リポジトリ | `C:\Dev\repo\play\copilot-rules`（2026-09-23時点。旧所在 `C:\Dev\repo\copilot-rules` から移動した。見つからなければユーザーへ所在を確認する） |
 | 追従判断の根拠 | 同リポジトリの `CHANGELOG.md`（バージョン節に意図と計測値がある） |
-| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮） |
+| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮）、v0.28.0（2026-10-13。出力要件の「提示の仕方」、禁止カテゴリの `guardrails-app` への移設） |
 
 **配布元の変更の多くは本リポジトリからの逆輸入**（v0.26.0 など）。逆輸入の際に配布元は本リポジトリ固有の
 記述を汎用文面へ置き換えているため、「配布元にある＝採る」ではない。差分の `-` 側（本リポジトリにしか無い行）が
@@ -37,6 +37,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 - `.github/instructions/pr.instructions.md`（v0.26.0 以降、ゲートのコマンドを持たず `CLAUDE.md` を参照する
   汎用版になった。変更の種類ごとの適用範囲は `CLAUDE.md`「本リポジトリの品質ゲート定義」に置く）
 - `.github/prompts/pr-create.prompt.md`、
+  `.claude/skills/pr-create/SKILL.md`（v0.28.0 で配布元へ `model: haiku` が入り、固有改変が無くなった）、
   `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`
 
 ### 固有改変をマージ（配布元の構造を採り、固有の内容は残す）
@@ -45,20 +46,24 @@ description: ガードレール・エージェント指示ルールを配布元�
 | --- | --- |
 | `CLAUDE.md` | アーキテクチャ概要、処理フロー、参照先マップ、`--tests` と実機インストールのコマンド、品質ゲート定義 |
 | `.github/copilot-instructions.md` | 参照ドキュメント表の本リポジトリ行、実資格情報を使わない旨のセキュリティ補足、記録対象の `docs/RELEASE_NOTES.md` と利用者向けドキュメント |
-| `CONTRIBUTING.md` | **冒頭の外部コントリビューション方針（Issueは受付・PRは非受付）、レビュー要件（メンテナー1名体制）、品質ゲート、ドキュメント管理** |
 | `docs/records/spec/FORMAT.md` | `BACKLOG.md` の記述例（Pixel Watch実機・ハプティクスの文面。配布元は汎用文面へ置換済み） |
-| `.claude/skills/pr-create/SKILL.md` | frontmatter の `model: haiku` と、冒頭のその説明の段落（BL-228）。本文は配布元版を採る |
 | `.claude/skills/autonomous-loop/SKILL.md` | description は配布元版を採る。本文の人手検証の3類型、`docs/RELEASE_NOTES.md` の更新、「利用量を抑える」節、`PLAN.md` の参照は本リポジトリ固有 |
 
-**`CONTRIBUTING.md` に注意。** 汎用手順では「そのままコピー」に分類されているが、本リポジトリの
-`CONTRIBUTING.md` は配布元の約2倍あり、前半すべてが外部の方向けの受け付け方針で占められている。
-丸ごと置換すると公開リポジトリの窓口説明が消える。必ずマージする。
+**`CONTRIBUTING.md` は配布元版を丸ごとコピーし、固有内容は `CONTRIBUTING.local.md` に置く**（v0.28.0 から。
+v0.26.2 で配布元が二分割を導入した）。外部コントリビューション方針（Issueは受付・PRは非受付）、レビュー責任者
+（メンテナー1名体制）、ドキュメント構成の追加分、品質ゲートの補足は `CONTRIBUTING.local.md` が正本で、
+Issueテンプレート・`README.md`・`docs/SUPPORT.md` はそちらを指す。取り込みのたびに `CONTRIBUTING.md` を
+上書きしてよい（固有内容を書き足さないこと）。
+
+`CONTRIBUTING.local.md` は `.gitignore` の `*.local.md` に当たるため、`!/CONTRIBUTING.local.md` で例外にしている。
+`.markdownlint-cli2.yaml` の除外も `docs/**/*.local.md` に絞っている（`**/*.local.md` だと同ファイルが
+検査から落ちる）。
 
 ### 配布元を採らない（本リポジトリ版を維持する）
 
 | ファイル | 理由 |
 | --- | --- |
-| `.markdownlint-cli2.yaml` | `**/*.local.md` の除外と `MD024: siblings_only` を追加済み（`docs/RELEASE_NOTES.md` がバージョンごとに同名見出しを繰り返すため） |
+| `.markdownlint-cli2.yaml` | `docs/**/*.local.md` の除外と `MD024: siblings_only` を追加済み（`docs/RELEASE_NOTES.md` がバージョンごとに同名見出しを繰り返すため） |
 | `.github/PULL_REQUEST_TEMPLATE.md` | 品質ゲート・資格情報混入確認のチェックリストを持つ独自版 |
 | `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ）。`* @filderschoice` で `rules/` 配下の新ファイルも担当済み |
 | `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み |
@@ -91,12 +96,13 @@ CRLF化していないことも確認する。
 
 ### 2. 品質ゲート定義が2箇所で食い違っていないか
 
-本リポジトリはコマンドの正本を `CLAUDE.md`「本リポジトリの品質ゲート定義」に置き、
-`CONTRIBUTING.md`「品質ゲート」にも実行用のコードブロックを持つ。**片方だけ更新される事故が実際に
-起きていた**（`CLAUDE.md` 側に `npx markdownlint-cli2` と `test` タスクが欠けていた）。
+本リポジトリはコマンドの正本を `CLAUDE.md`「本リポジトリの品質ゲート定義」に置く。かつて
+`CONTRIBUTING.md` にも実行用のコードブロックを持ち、**片方だけ更新される事故が実際に起きていた**
+（`CLAUDE.md` 側に `npx markdownlint-cli2` と `test` タスクが欠けていた）。v0.28.0 以降は
+`CONTRIBUTING.local.md` と `README.md` から複製を除き、コマンドは `CLAUDE.md` に集約している。複製が復活していないか確認する。
 
 ```bash
-grep -n "gradlew\|markdownlint" CLAUDE.md CONTRIBUTING.md | grep -v "^CHANGELOG"
+grep -n "gradlew\|markdownlint" CLAUDE.md CONTRIBUTING.local.md README.md | grep -v "^CHANGELOG"
 ```
 
 現在の品質ゲート（`CLAUDE.md` の表のうち脆弱性チェックを除く7項目）:
@@ -104,7 +110,6 @@ grep -n "gradlew\|markdownlint" CLAUDE.md CONTRIBUTING.md | grep -v "^CHANGELOG"
 ```bash
 ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
 npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 python scripts/validate-records.py
 ```
 
@@ -115,20 +120,19 @@ python scripts/validate-records.py
 grep -rn "段階B\|品質ゲート" --include="*.md" . | grep -v node_modules | grep -v CHANGELOG | grep -v records/managed
 ```
 
-### 3. markdownlint と リンク検査はドット配下を拾わない
+### 3. markdownlint の対象件数を git と照合する
 
-`npx markdownlint-cli2 "**/*.md"` は `.claude/` `.github/` 配下を**検査しない**。
-汎用手順のリンク検査スクリプトの `glob('**/*.md')` も同様。別途指定する。
-
-**1コマンドに並べても直らない。** 配布元 v0.26.0 のゲートは
-`npx markdownlint-cli2 "**/*.md" ".claude/**/*.md" ".github/**/*.md"` だが、本リポジトリで実行すると
-`Linting: 38 files`（`"**/*.md"` 単独と同数）で、ドット配下10件が黙って落ちる。必ず2回に分ける。
-出力の `Linting: N files` を見て、ドット配下の件数が加わっていることを確かめる。
+`npx markdownlint-cli2 "**/*.md"` 単独でドット配下（`.claude/` `.github/`）も走査される（v0.23.3。配布元
+0.26.1 で訂正済み。本スキルの旧版にあった「ドット配下を拾わないので2回に分ける」は誤りだった）。
+ただし指摘件数だけでは対象漏れを検出できないため、出力の `Linting: N files` が次の件数と一致することを確かめる。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
+git ls-files --cached --others --exclude-standard "*.md" | wc -l
 ```
+
+リンク検査スクリプトは Python の `glob('**/*.md')` がドット始まりを返さないので、上の `git ls-files` の
+出力から対象を取る（`guardrail-rules-sync`「6. 検証」参照）。
 
 ## 本リポジトリ固有の読み替え
 
@@ -165,3 +169,6 @@ npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 - 2026-09-23: 配布元 v0.26.0 の取り込みを経て更新。配布元の所在変更、逆輸入された変更の扱い、
   `guardrails-app.v1.md` と PR 関連ファイルの分類、markdownlint を1コマンドに並べるとドット配下が
   落ちる事象、ベースライン値（skill description 込み）を反映した。
+- 2026-10-13: 配布元 v0.28.0 の取り込みを経て更新。`CONTRIBUTING.md` を配布元版へ置換し、固有内容を
+  `CONTRIBUTING.local.md` へ分離（`.gitignore` と markdownlint 除外の調整を含む）。markdownlint を
+  1コマンドに戻し、`pr-create` の固有改変が無くなった点を反映した。

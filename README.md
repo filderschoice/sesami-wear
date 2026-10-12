@@ -123,11 +123,10 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 上記のうち `ktlintCheck` / `detekt` / `lintDebug` / `testDebugUnitTest test` / `assembleDebug` と、
 次のコマンドを合わせたものが本リポジトリの品質ゲートです。コマンドと合否基準の正本は
 [CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」で、ローカル実行の補足は
-[CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+[CONTRIBUTING.local.md](CONTRIBUTING.local.md) を参照してください。
 
 ```bash
 npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
 python scripts/validate-records.py
 ```
 
@@ -335,8 +334,8 @@ sesami-wear/
 - [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md): 未対応事項・課題・次ステップ
 - [docs/BLE_KEY_VERIFICATION.md](docs/BLE_KEY_VERIFICATION.md): 保持中のsecretKeyでSesame 5へ
   BLE接続できるかをPCから確認する手順（BL-150）
-- [CONTRIBUTING.md](CONTRIBUTING.md): 報告の受け付け方針（Issueは受付、外部Pull Requestは非受付）・
-  開発プロセス・品質ゲート
+- [CONTRIBUTING.local.md](CONTRIBUTING.local.md): 報告の受け付け方針（Issueは受付、外部Pull Requestは非受付）・
+  本リポジトリ固有の開発プロセス（共通規約は [CONTRIBUTING.md](CONTRIBUTING.md)）
 - [SECURITY.md](SECURITY.md): 脆弱性の報告方法・対象範囲・サポート対象バージョン
 - [CHANGELOG.md](CHANGELOG.md): リポジトリの運用ルール・ドキュメントの変更履歴
 - [.github/copilot-instructions.md](.github/copilot-instructions.md): AIエージェント共通の実行ルール（正本）
