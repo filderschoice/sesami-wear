@@ -1,143 +1,55 @@
 # コントリビューションガイド
 
-本リポジトリは、Pixel WatchからCANDY HOUSE Sesameを操作する非公式アプリ「Sesami Wear」の
-開発リポジトリです。本ドキュメントは、外部の方からの報告の受け付け方針（次章）と、
-開発者向けの開発プロセス規約（「規定ブランチ定義」以降）の2部構成です。
+## 本ファイルと `CONTRIBUTING.local.md` の分担
 
-- アプリの使い方・不具合の相談は [docs/SUPPORT.md](docs/SUPPORT.md) を参照してください。
-- 脆弱性の報告は公開Issueではなく [SECURITY.md](SECURITY.md) の手順に従ってください。
+本ファイルは配布元から取り込む共通規約で、取り込みのたびに上書きされます。リポジトリ固有の内容は
+本ファイルへ書かず、同じディレクトリの `CONTRIBUTING.local.md` に書きます（配布元からは配布されず、
+取り込みで上書きされません。雛形は `templates/CONTRIBUTING.local-template.md`）。
 
-## 受け付けている報告と、受け付けていないもの
-
-本アプリの実装は、Claude Code によるAI実装を主体として開発者本人が行う体制で進めています。
-コードの変更経路を開発者側へ一本化しているため、**外部からのPull Requestは受け付けていません**。
-一方で、Issueでのご報告・ご要望は歓迎します。いただいた内容は開発者が確認し、対応する場合は
-開発者側で実装します。
-
-| 種類 | 受け付け | 窓口 |
-| --- | --- | --- |
-| 不具合の報告 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
-| 機能の要望・改善提案 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
-| 使い方の質問 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
-| 誤字・ドキュメントの誤りの指摘 | 受け付けます | [Issue](https://github.com/filderschoice/sesami-wear/issues/new/choose) |
-| 脆弱性の報告 | 受け付けます（非公開経路） | [SECURITY.md](SECURITY.md) |
-| Pull Request | 受け付けていません | — |
-
-### Pull Requestを受け付けていない理由
-
-- 実装・テスト・記録ファイル（`docs/records/managed/`）の更新を、AIエージェントを含む一貫した手順で
-  行っており、外部からの変更を取り込むとこの手順と記録の整合を保てないためです。
-- 資格情報（apikey / secretKey / uuid）を扱うアプリのため、コードの変更経路を開発者に限定し、
-  変更の監査を単純に保っています。
-- 個人が余暇で開発しており、外部のPull Requestをレビューする体制を維持できないためです。
-
-Pull Requestをいただいても、内容を確認せずにクローズする場合があります。あらかじめご了承ください。
-ご提案は Issue へお願いします。
-
-### Issueを作成するときのお願い
-
-- 目的に合ったテンプレート（不具合の報告 / 機能の要望・改善提案 / 使い方の質問）を選んでください。
-- **実際の資格情報（apikey / secretKey / uuid）を含めないでください。** ログやスクリーンショットに
-  写り込んでいないかもご確認ください。
-- 既に同じ内容のIssueがないかご確認ください。
-- 個人が余暇に開発しているため、返信までに数日〜数週間かかる場合があります。
-- ご要望に対応するかどうか、対応する時期は開発者が判断します。対応しないままクローズする場合も
-  あります。
-
-### 要望・提案を実装するかどうかの判断基準
-
-いただいたご要望は、次の観点で判断します（開発者自身の実装にも同じ基準を適用します）。
-
-- 本アプリの目的（Wear OSからSesameを操作する）に沿っていること
-- 資格情報の取り扱い方針を変えないこと。secretKeyはウォッチ側へ保持させず、施錠/解錠は
-  スマートフォン側で実行する設計を前提とします
-  （[docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md)「アーキテクチャ方針」参照）
-- 広告SDK・アクセス解析SDK・外部への送信を伴う機能を追加しないこと
-- 既存の公開仕様・UXを壊す場合は、移行方針を示せること
-- 個人で保守を継続できる範囲に収まること
-
----
-
-以降は、開発者（メンテナーおよびAIエージェント）向けの規約です。
+- `CONTRIBUTING.local.md` に書くもの: 規定ブランチの指定、レビュー責任者（担当者・チーム）、自律ループ実行モードの採否、
+  例外の追跡場所と運用、「ドキュメント構成」に足すリポジトリ固有の行、その他リポジトリ固有の開発プロセス
+- 同じ項目を両方が定める場合は `CONTRIBUTING.local.md` を優先します。ただし具体化と追加に限り、
+  `rules/` のガードレールと本ファイルの禁止事項（規定ブランチへの直接コミット禁止など）を緩めることはできません。
+- `CONTRIBUTING.local.md` が無い場合は、本ファイルの既定値に従います。
 
 ## 規定ブランチ定義
 
-- 規定ブランチは、リポジトリ設定のデフォルトブランチとして定義されたブランチを指します（例: `main`, `master`）。
-- 本リポジトリでの規定ブランチの定義場所は本セクションです。
-- 規定ブランチの明示指定がない場合は、`main` を優先し、`main` が存在しない場合は `master` を規定ブランチとして扱います。
-- 規定ブランチを変更した場合は、本セクションと `CHANGELOG.md` を更新します。
+- 規定ブランチは、リポジトリ設定のデフォルトブランチです。
+- `CONTRIBUTING.local.md` に指定がない場合は `main` を優先し、`main` が存在しない場合は `master` を
+  規定ブランチとして扱います。
+- 規定ブランチを変更した場合は、`CONTRIBUTING.local.md` と `CHANGELOG.md` を更新します。
 
 ## 変更手順
 
 1. 規定ブランチからブランチを作成します。
-2. 変更を実施します（アプリのコード、ドキュメント、ルールファイルのいずれも同じ手順です）。
-3. 該当する記録ファイルを更新します。
-   - コード修正を伴う変更: `docs/records/managed/EXECUTE.md`（実施記録）と、設計方針が変わる場合は
-     `docs/records/managed/DESIGN.md`
-   - リポジトリのルール・ドキュメントのみの変更: `CHANGELOG.md`
-   - 利用者向けの機能変更・不具合修正: `docs/RELEASE_NOTES.md`
-4. 後述の[品質ゲート](#品質ゲート)を実行し、すべて成功することを確認します。
-5. 根拠とリスクメモを添えてプルリクエストを作成します。
-
-## 品質ゲート
-
-本リポジトリにはCIがありません（[Markdownlintのローカル実行](#markdownlintのローカル実行)参照）。
-変更をコミットする前に以下をローカルで実行し、すべて成功することを確認します。
-
-```bash
-./gradlew ktlintCheck
-./gradlew detekt
-./gradlew lintDebug
-./gradlew testDebugUnitTest test
-./gradlew assembleDebug
-npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
-python scripts/validate-records.py
-```
-
-`python scripts/validate-records.py` は、`docs/records/managed/` 配下の記録ファイル
-（`BACKLOG.md` / `EXECUTE.md`）のマーカー内をYAMLとして読み込めること、`BACKLOG.md` の必須キーと
-許容値が揃っていること、改行コードがLFであることを確認します（体裁の正本は
-[docs/records/spec/FORMAT.md](docs/records/spec/FORMAT.md)「YAMLとしての体裁」）。
-PyYAMLが必要です（`pip install pyyaml`）。
-
-ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビルド環境の準備は
-[README.md](README.md)「前提環境」を参照してください。コマンドの定義は
-[CLAUDE.md](CLAUDE.md)「本リポジトリの品質ゲート定義」に集約しており、変更した場合は両方を更新します。
+2. ルールファイルを追加または更新します。
+3. `CHANGELOG.md` を更新します。
+4. 根拠とリスクメモを添えてプルリクエストを作成します（説明文の構成は `.github/instructions/pr.instructions.md`）。
 
 ## レビュー要件
 
-本リポジトリの現在の体制はメンテナー1名（[@filderschoice](https://github.com/filderschoice)、
-`.github/CODEOWNERS` で全パスを担当）です。以下の役割は現時点ではすべてメンテナーが兼務します。
-体制を拡大した場合は本セクションを更新します。
-
-- すべての変更は、規定ブランチへマージする前にメンテナーのレビューを必須とします。
-- `rules/` 配下（`guardrails-unified.v1.md` / `guardrails-app.v1.md`）の変更は、セキュリティ観点・
-  プライバシー観点の双方をレビューで確認します（担当を分離できる体制になった場合は、それぞれ1名以上を必須とします）。
-- 互換性に影響する変更は、移行方針の提示とメンテナーの承認を必須とします。
-- 本リポジトリの実装はClaude CodeによるAI実装を主体としています。AIエージェント（Claude Code /
-  GitHub Copilot）が作成した変更にも、人手による変更と同じレビュー要件を適用します。
-- 外部からのPull Requestは受け付けていないため（[前掲](#受け付けている報告と受け付けていないもの)）、
-  レビュー対象は開発者およびAIエージェントによる変更に限られます。
+- `rules/` 配下（`guardrails-unified.v1.md` / `guardrails-app.v1.md`）の変更はセキュリティ担当とプライバシー担当を各1名以上必須とします。
+- 互換性に影響する変更はプロダクトオーナー承認を必須とします。
+- 各担当に該当する担当者・チームは `CONTRIBUTING.local.md` に記載します（`.github/CODEOWNERS` と一致させます）。
 
 ## 開発プロセス規約
 
 - 初回対応を含むすべての作業は、規定ブランチから新しい作業ブランチを切って開始します。
 - 規定ブランチへの直接コミットは禁止します。
-- `git add` / `git commit` / `git push` はユーザーが任意に実行する。Copilot・Claude Code などのAIエージェントはこれらを実行しない。
-  ただし「自律ループ実行モード」（後述）に限り、作業ブランチ上の `git add` / `git commit` を許可する。
-  `git push` はモードを問わず常にユーザーが実行する。
 - ブランチ名は `feature/`, `fix/`, `docs/`, `chore/` のいずれかで開始します。
+- `git add` / `git commit` / `git push` はユーザーが任意に実行し、AIエージェントは実行しません。
+  例外は「自律ループ実行モード」を採用している場合の、同モード中の作業ブランチへの `git add` / `git commit`
+  のみです。`git push` はモードを問わず常にユーザーが実行します。
 - プルリクエスト作成時に、目的・影響範囲・ロールバック方針を記載します。
 
 ### 1ブランチ1目的の原則と例外
 
 1つの作業ブランチでは1つの目的に絞ります。例外は次の2つだけです。
 
-1. **`docs/records/managed/BACKLOG.md` の複数項目の一括対応** — 関連性の高い小規模な変更に限ります。
-   互いに関連の薄い大規模な変更は対象に含めません。
-2. **自律ループ実行モード** — 単一の目的を「指示された対象を完成させること」と定義し、配下の複数タスクを
-   同一ブランチへ積みます。
+1. **`BACKLOG.md` の複数項目の一括対応** — 関連性の高い小規模な変更に限ります。互いに関連の薄い大規模な
+   変更は対象に含めません。
+2. **自律ループ実行モード**（採用している場合のみ） — 単一の目的を「指示された対象を完成させること」と定義し、
+   配下の複数タスクを同一ブランチへ積みます。
 
 どちらの例外でも、対象項目の識別子（`id`）を次の3か所すべてへ列挙します。列挙を伴わずに複数目的を1つの
 作業ブランチへ混在させることは、引き続き禁止します。
@@ -149,13 +61,17 @@ ktlintの指摘は `./gradlew ktlintFormat` で自動修正できます。ビル
 ### 自律ループ実行モードのブランチ・コミット規約
 
 AIエージェントが人の応答を待たずに複数イテレーションを連続実行する運用です。統制要件は
-`rules/guardrails-unified.v1.md` セクション12、適用条件は `CLAUDE.md` の同名節、実行手順は
-`.claude/skills/autonomous-loop/SKILL.md` を参照してください。
+`rules/guardrails-unified.v1.md` セクション12、適用条件は `CLAUDE.md`「自律ループ実行モード（Loop Engineering）」、
+実行手順は Skill `autonomous-loop`（`.claude/skills/autonomous-loop/SKILL.md`）を参照してください。
 本セクションはブランチとコミットの運用のみを定義します。
+
+**本セクションは、本モードを採用しているリポジトリにのみ適用します。** 採否は `CONTRIBUTING.local.md` に記載し
+（記載が無い場合は `CLAUDE.md` に上記の節があれば採用とみなします）、採用しない場合は本セクションと
+「開発プロセス規約」の git操作の例外を適用しません。本モードの Skill を配置しないため、上記の参照先も存在しません。
 
 - 本モードは、ユーザーが明示的に開始を指示した場合にのみ適用します。
 - ループ全体で長期作業ブランチを1本使用します。ブランチ名は `feature/loop-<YYYYMMDD>-<主題>` 形式とします
-  （例: `feature/loop-20260818-sesame-wear-app`）。
+  （例: `feature/loop-20260912-records-spec`）。
 - 1イテレーション＝1コミットとし、コミットメッセージ本文に対象タスクの識別子（`id`）を列挙します。
 - 規定ブランチへの直接コミットは、本モードでも禁止します。ループ開始時に現在ブランチを確認し、
   規定ブランチ上であれば作業ブランチを作成してから開始します。
@@ -167,9 +83,8 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 
 ### 作業開始チェック
 
-- 変更前に現在ブランチを確認し、規定ブランチ上で直接変更しないことを確認します。
+- 変更前に `git branch --show-current` で現在ブランチを確認し、規定ブランチ上で直接変更しないことを確認します。
 - ブランチ作成後に再確認し、作業ブランチへ切り替わっていることを確認します。
-- 推奨確認コマンド: `git branch --show-current`
 
 ## エージェント指示ファイルの構成規約
 
@@ -180,7 +95,7 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | --- | --- | --- |
 | `.github/copilot-instructions.md` | **全エージェント共通の実行ルールの正本** | セキュリティ要件、開発プロセス要件、品質・信頼性要件、ドキュメント管理要件、出力要件、例外と保守 |
 | 同ファイル末尾「Copilot 固有の差分」節 | Copilot にのみ適用 | Copilot の git操作禁止、自律ループ対象外、`pr.instructions.md` の自動適用、`/pr-create` の入口 |
-| `CLAUDE.md` | Claude Code 固有の差分と本リポジトリ固有の情報 | 共通規約への上書き表、アーキテクチャ概要、本リポジトリの品質ゲート定義、記録ファイルの権限設定、自律ループ実行モードの適用条件 |
+| `CLAUDE.md` | Claude Code 固有の差分と追加規約 | 共通規約への上書き表、本リポジトリの品質ゲート定義、記録ファイルの権限設定、自律ループ実行モードの適用条件 |
 | `.github/instructions/*.instructions.md` | **特定の作業に限った共通規約の正本** | PR説明文・コードレビューの言語と構成。Copilot へは `.vscode/settings.json` から自動適用され、Claude Code はスキル経由で読む |
 | `.github/prompts/*.prompt.md` | Copilot のオンデマンド手順（`/名前` で呼び出す） | Copilot 固有の実行手順。規範は `.github/instructions/` 側に置き、ここへは複製しない |
 | `.claude/skills/*/SKILL.md` | Claude Code のオンデマンド手順 | 明示指示時にしか使わない手順（自律ループ実行モードの実行手順など） |
@@ -192,7 +107,7 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 - Copilot は同ファイルを自動読み込みします。Claude Code は `CLAUDE.md` の `@import` 経由で読み込みます。
   どちらも参照リンクの追従に依存しないため、共通規約が読まれない状態は発生しません。
 - 共通規約と各エージェント固有規約が矛盾する場合は、**エージェント固有規約を優先**します。
-- Claude Code のみを利用する場合でも、`.github/copilot-instructions.md` は共通規約の実体として必須です。
+- Claude Code のみを利用する配布先でも、`.github/copilot-instructions.md` は共通規約の実体として必須です。
 
 正本が別ファイルにあるもの:
 
@@ -205,32 +120,23 @@ AIエージェントが人の応答を待たずに複数イテレーションを
 | PR本文の節構成とチェックリストの文言 | `.github/PULL_REQUEST_TEMPLATE.md` | GitHub がPR作成時に自動展開する実体。チェックリスト節はこのファイルにしか無い |
 | PR作成の実行手順（エージェント別） | `.claude/skills/pr-create/SKILL.md`（Claude Code）／`.github/prompts/pr-create.prompt.md`（Copilot） | `gh` の使い方や一時ファイルの扱いはエージェントの実行環境に依存するため、規範とは分けている |
 
-ガードレール一式の配布元は `copilot-rules` リポジトリです。更新の追従は同リポジトリの `CHANGELOG.md` を
-参照して判断します（導入・移行手順は `docs/guidelines/ADOPTION.md`）。
-
 ## Markdownlintのローカル実行
 
-本リポジトリにはGitHub Actionsのワークフロー定義がありません（`.github/workflows/` ディレクトリ自体を
-置いていません）。Markdownlintも後述のGradle品質ゲートもCIでは自動実行されないため、
-プルリクエスト作成前に以下のコマンドをローカル実行し、指摘を事前に解消してください。
-設定ファイルは `.markdownlint-cli2.yaml` です。`**/*.md` はドット始まりのディレクトリ（`.claude/` `.github/`）を
-拾わず、1コマンドに並べるとドット配下が検査から落ちるため、2回に分けて実行します。
+Markdown の静的解析は、ローカルで都度実行することを品質ゲートとします。Markdown（記録ファイルを含む）を
+変更したら、コミット・プルリクエスト作成の前にローカル実行して指摘を解消してください。
 
-```bash
-npx markdownlint-cli2 "**/*.md"
-npx markdownlint-cli2 ".claude/**/*.md" ".github/**/*.md"
-```
+実行コマンドと合否基準（対象件数の照合を含む）は `CLAUDE.md`「本リポジトリの品質ゲート定義」の
+「Markdown の静的解析」行が正本です。ここへは複製しません。
 
-- `.markdownlint-cli2.yaml` に定義された設定（`config:` フィールド）はカレントディレクトリから自動的に読み込まれます。設定ファイルを明示指定する場合は以下のようにします。
-
-```bash
-npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
-```
-
-- Node.js / npx が利用できる環境が前提です。事前インストール済みパッケージを使う場合は `markdownlint-cli2` をdevDependenciesとして追加しても構いません。
-- VS Code利用者は拡張機能 `DavidAnson.vscode-markdownlint`（`.vscode/extensions.json` で推奨、`.vscode/settings.json` で保存時実行を設定済み）でも同等のチェックを保存のたびに確認できます。ただしCLI実行結果が最終判定であるため、プルリクエスト作成前は必ずCLIコマンドでも確認してください。
-- リンク切れチェックは、CI・ローカル手順とも本リポジトリでは定義していません。確認する場合は
-  [lychee](https://github.com/lycheeverse/lychee) を別途インストールし、`lychee "**/*.md"` を実行してください。
+- `.claude/` `.github/` などドット始まりのディレクトリも対象です。markdownlint-cli2 は既定でドット始まりの
+  パスも走査するため、ドット配下のglobを併記する必要はありません。
+- 設定 `.markdownlint-cli2.yaml` はリポジトリルートに置きます。
+- Node.js / npx が利用できる環境が前提です。
+- VS Code 利用者は拡張機能 `DavidAnson.vscode-markdownlint`（`.vscode/extensions.json` で推奨、
+  `.vscode/settings.json` で保存時実行を設定済み）でも確認できますが、CLI実行結果が最終判定です。
+- リンク切れチェックを品質ゲートとして実行するかどうかは `CLAUDE.md`「本リポジトリの品質ゲート定義」で定めます。
+  未定義のまま確認する場合は [lychee](https://github.com/lycheeverse/lychee) を別途インストールし
+  `lychee "**/*.md"` を実行します。
 
 ## ルール記述スタイル
 
@@ -239,50 +145,19 @@ npx markdownlint-cli2 --config ".markdownlint-cli2.yaml" "**/*.md"
 - 禁止事項と許可事項の例を示します。
 - オーナーと最終レビュー日を記載します。
 
-## ドキュメント管理
+## ドキュメント構成
 
-ドキュメントは以下のフォルダ配置で管理されています：
+| パス | 役割 | 詳細 |
+| --- | --- | --- |
+| `rules/` | ガードレール定義の正本 | `guardrails-unified.v1.md`（常時読み込み）、`guardrails-app.v1.md`（生成AIアプリ運用統制。必要時に読む） |
+| `docs/guidelines/` | 複数プロジェクトで再利用するガイドライン | `docs/guidelines/README.md` |
+| `docs/records/spec/` | 記録ファイルの記述仕様（唯一の参照元） | `docs/records/spec/FORMAT.md` |
+| `docs/records/managed/` | AIエージェント管理の記録本体（手動編集禁止） | `docs/records/README.md` |
 
-### docs/（利用者向け）
-
-アプリ利用者が参照するドキュメントです。UIの表示文言・配布状況・仕様を変更した場合は追随させます。
-
-- `USER_GUIDE.md`: 初期設定・タイル/コンプリケーションの設定・操作方法・トラブル時の確認事項
-- `INSTALL.md`: 実機へのインストール手順
-- `SUPPORT.md`: アップデート内容の確認先・問い合わせ窓口・サポート対象範囲
-- `RELEASE_NOTES.md`: バージョンごとの変更点（利用者に影響する変更を行った場合に追記）
-- `store/`: Google Play提出用の掲載情報の原本（索引は `store/README.md`）
-
-### docs/records/
-
-プロジェクトの運用記録を管理します：
-
-- `README.md`: records 配下の運用ルール
-- `spec/FORMAT.md`: records記述仕様（唯一の参照元）
-- `managed/DESIGN.md`: 実装済み内容を統合した再実装用プロンプト設計書（最新版）を管理
-- `managed/EXECUTE.md`: コード修正を伴う変更の実施済み内容を記録
-- `managed/BACKLOG.md`: 未対応事項、課題、次ステップを記録
-
-詳細は各ファイルのテンプレートを参照してください。
-
-### docs/guidelines/
-
-複数プロジェクトで再利用できるガイドラインを管理します：
-
-- `RULE.md`: Copilot / Claude Code 運用ルール（汎用版）
-- `ADOPTION.md`: 他リポジトリへの導入・移行手順と日常運用ガイド
-- `README.md`: ガイドラインの説明と使い方
-
-### .claude/skills/
-
-Claude Code が必要になった時点で読み込むオンデマンド手順です（常時読み込みしません）。
-
-- `autonomous-loop/SKILL.md`: 自律ループ実行モードの実行手順（配布元と共有）
-- `docs-consistency-review/SKILL.md`: ドキュメント整合性レビューの手順（配布元と共有）
-- `guardrail-sync-local/SKILL.md`: ガードレール取り込み時の本リポジトリ固有の事情
-  （配布元の所在、ファイルの三分類、取り込み後の確認事項）。本リポジトリ固有のため配布対象外
+リポジトリ固有のディレクトリ（例 `docs/reviews/`）は本表へ追記せず、`CONTRIBUTING.local.md`
+「ドキュメント構成（追加分）」に同じ形式で記載します。
 
 ## 例外管理
 
 - 例外には理由・期限・責任者を必ず記載します。
-- 例外はチャット上のみでなく、必ずリポジトリで追跡します。
+- 例外はチャット上のみでなく、必ずリポジトリで追跡します。追跡場所は `CONTRIBUTING.local.md` に記載します。

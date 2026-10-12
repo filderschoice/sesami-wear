@@ -13,7 +13,7 @@ body:
         **実装は開発者が行います。本リポジトリでは外部からのPull Requestを受け付けていません。**
         受け付けている報告の種類と、要望を実装するかどうかの判断基準（secretKeyをウォッチ側へ
         保持しない、広告・解析SDKを組み込まない等の設計方針を含む）は
-        [CONTRIBUTING.md](https://github.com/filderschoice/sesami-wear/blob/main/CONTRIBUTING.md)
+        [CONTRIBUTING.local.md](https://github.com/filderschoice/sesami-wear/blob/main/CONTRIBUTING.local.md)
         に記載しています。
 
   - type: textarea

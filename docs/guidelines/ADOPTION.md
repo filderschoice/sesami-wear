@@ -1,7 +1,8 @@
 # Copilot / Claude Code ルール導入・運用ガイド
 
-本リポジトリで管理している Copilot・Claude Code 用のプロセスルールとガードレールを、新規リポジトリと
-既存リポジトリへ適用して運用するための実務手順です。
+配布元リポジトリで管理している Copilot・Claude Code 用のプロセスルールとガードレールを、新規リポジトリと
+既存リポジトリへ適用して運用するための実務手順です。本ガイドは配布先へそのままコピーされるため、
+「配布元」は本ガイドの配布元リポジトリを、「配布先」は導入するリポジトリを指します。
 
 - 導入判断 → 導入実施 → 日常運用の順に読みます。
 - すぐ着手する場合は「2. クイックスタート」から開始します。
@@ -17,7 +18,9 @@
 | `rules/guardrails-app.v1.md` | 生成AIアプリ運用統制（プライバシー・評価ゲート・インシデント対応・コンプライアンス） | 必須 |
 | `docs/guidelines/RULE.md` | 汎用フレームワーク（基本原則・出力要件・完了条件） | 必須 |
 | `docs/guidelines/ADOPTION.md` | 本ガイド（導入・移行・日常運用） | 必須 |
-| `CONTRIBUTING.md` | 規定ブランチ、ブランチ・コミット規約、レビュー要件、指示ファイルの構成規約 | 必須 |
+| `docs/guidelines/README.md` | `docs/guidelines/` 配下の案内とエージェント指示ファイルからの参照方法 | 必須 |
+| `CONTRIBUTING.md` | 規定ブランチ、ブランチ・コミット規約、レビュー要件、指示ファイルの構成規約（共通規約。取り込みのたびに上書き） | 必須 |
+| `templates/CONTRIBUTING.local-template.md` | `CONTRIBUTING.local.md` の雛形 | 必須 |
 | `CHANGELOG.md` | 変更履歴（配布元の追従判断にも使用） | 必須 |
 | `docs/records/README.md` | records 配下の運用ルール | 必須 |
 | `docs/records/spec/FORMAT.md` | 記録ファイルの記述仕様（唯一の参照元） | 必須 |
@@ -31,13 +34,16 @@
 | `templates/app-guardrail-template.yaml` | アプリ別ガードレール設定（`replace-me` を解消） | 必須 |
 | `templates/model-risk-register-template.csv` | モデルリスク登録簿（初期リスク2件以上） | 必須 |
 | `scripts/validate-records.py` | 記録ファイルのYAML検証（品質ゲート。PyYAMLが必要） | 必須 |
+| `.markdownlint-cli2.yaml` | Markdown 静的解析の設定（品質ゲートのコマンドが `--config` で参照） | 必須 |
 | `.vscode/settings.json` | `pr.instructions.md` を Copilot Chat から参照させる設定 | Copilot のみ |
+| `.vscode/extensions.json` | markdownlint 拡張機能（`DavidAnson.vscode-markdownlint`）の推奨設定 | 任意 |
 | `.github/prompts/pr-create.prompt.md` | PR作成手順の入口（Copilot Chat で `/pr-create`） | Copilot のみ・任意 |
 | `CLAUDE.md` | Claude Code 固有の差分と追加規約（リポジトリルート直下。品質ゲート定義の `replace-me` を解消） | Claude Code のみ |
 | `.claude/settings.json` | 記録ファイル編集を権限プロンプトなしで許可する設定 | Claude Code のみ・任意 |
 | `.claude/skills/docs-consistency-review/SKILL.md` | ドキュメント整合性レビューの汎用スキル | Claude Code のみ・任意 |
 | `.claude/skills/autonomous-loop/SKILL.md` | 自律ループ実行モードの実行手順 | Claude Code のみ・モード採用時は必須 |
 | `.claude/skills/pr-create/SKILL.md` | PR作成の実行手順（`gh` での反映） | Claude Code のみ・任意 |
+| `.claude/skills/dependabot-alert-triage/SKILL.md` | Dependabot アラートの出どころ切り分けと対応手順 | Claude Code のみ・任意 |
 
 補足:
 
@@ -47,7 +53,10 @@
   「エージェント指示ファイルの構成規約」を参照してください。
 - `CLAUDE.md` は配布バンドルでは汎用テンプレート（配布元の `templates/CLAUDE-template.md`）の内容で同梱され、
   「本リポジトリの品質ゲート定義」の表が `replace-me` のままです。導入時に自プロジェクトのコマンドと
-  合否基準へ差し替えてください（「5. 受け入れチェックリスト」で確認します）。
+  合否基準へ差し替えてください（「8. 導入完了チェックリスト」で確認します）。
+- `CONTRIBUTING.local.md`（リポジトリ固有の規定ブランチ・レビュー責任者・例外運用・ディレクトリ）は配布されず、
+  導入時に `templates/CONTRIBUTING.local-template.md` から作成します。以降の取り込みでは上書きしません
+  （「3. 適用方式」の取り込み時の扱い）。
 - `.vscode/settings.json` をリポジトリに含めない運用の場合、各利用者の設定で同等の指定が必要です。
 - `.claude/settings.json` を設定しない場合、記録更新のたびに権限確認が入ります。採否は配布先の判断です。
   配布バンドルには記録ファイル関連の許可のみを含む内容で同梱されるため、配布先に同名ファイルが既にある
@@ -86,7 +95,9 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 されるため、スキルを読み込んでいない状態でも禁止事項は有効です。
 
 採用しない場合は `CLAUDE.md` から該当節を削除し、`.claude/skills/autonomous-loop/` を配置せず、
-`git add` / `git commit` を実行しない既定の運用へ統一してください。
+`git add` / `git commit` を実行しない既定の運用へ統一してください。`CONTRIBUTING.md`
+「自律ループ実行モードのブランチ・コミット規約」は共通規約として残りますが、`CONTRIBUTING.local.md` に
+不採用と記載すれば適用されません（`CONTRIBUTING.md` 側は編集しません）。
 
 ## 2. クイックスタート
 
@@ -100,7 +111,16 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 
 - 推奨方式: 配布先リポジトリに「正本コピー」を配置し、差分を PR で管理する。
 - バージョン管理: ルール本文はファイル名バージョン（例: `guardrails-unified.v1.md`）で管理する。
-- 更新同期: 配布元（本リポジトリ）の `CHANGELOG.md` を参照して追従判断する。
+- 更新同期: 配布元リポジトリの `CHANGELOG.md` を参照して追従判断する（配布バンドルに含まれる `CHANGELOG.md` は
+  配布先用の空の初期状態のため、配布元の変更履歴は含まない）。
+- 取り込み時の扱い: 配布物は次の3つに分けて取り込む。
+  - そのままコピーする: `rules/`、`docs/guidelines/`、`docs/records/spec/FORMAT.md`、`docs/records/README.md`、
+    `CONTRIBUTING.md`、`.github/copilot-instructions.md`、`.github/instructions/`、`templates/`、配布スキル
+  - 配布先固有の内容とマージする: `CLAUDE.md`（品質ゲート定義など固有に書き換えた節を残す）、
+    `.claude/settings.json`（`permissions.allow` をマージ）
+  - 触らない: `CONTRIBUTING.local.md`、`CHANGELOG.md`、`docs/records/managed/` 配下の記録ファイル
+  - リポジトリ固有の内容を「そのままコピーする」ファイルへ書くと、次の取り込みで上書きされて失われる。
+    `CONTRIBUTING.md` への追記は `CONTRIBUTING.local.md` へ置く。
 
 ## 4. 既存リポジトリへの適用手順
 
@@ -133,7 +153,8 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 3. `docs/records/README.md` と `docs/records/spec/FORMAT.md` に基づき、records をエージェント自動更新前提で運用する。
 4. `templates/app-guardrail-template.yaml` の `replace-me` をすべて埋める。
 5. `templates/model-risk-register-template.csv` に初期リスクを最低 2 件以上登録する。
-6. `CONTRIBUTING.md` に規定ブランチとレビュー責任者を明記する。
+6. `templates/CONTRIBUTING.local-template.md` を `CONTRIBUTING.local.md` としてコピーし、規定ブランチと
+   レビュー責任者を明記する（`CONTRIBUTING.md` は共通規約のため直接編集しない）。
 7. `.github/CODEOWNERS` と `.github/PULL_REQUEST_TEMPLATE.md` を組織体制に合わせて調整する。
 
 ### 5.1 受け入れ確認
@@ -184,7 +205,7 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 - `templates/app-guardrail-template.yaml` の `replace-me` を解消済み
 - `templates/model-risk-register-template.csv` に初期リスクを登録済み
 - `.github/CODEOWNERS` の `@your-org/...` を実在チームへ置換済み
-- `CONTRIBUTING.md` に規定ブランチ、レビュー責任者、例外運用を明記済み
+- `CONTRIBUTING.local.md` に規定ブランチ、レビュー責任者、例外運用を明記済み（`replace-me` を解消済み）
 - `docs/records/managed/*.md` に `COPILOT_RECORDS:BEGIN` / `COPILOT_RECORDS:END` が存在
 - `CHANGELOG.md` と `docs/records/` の更新ルールをチームで合意済み
 - `CLAUDE.md` の `@import` 対象を最小限に絞り済み（「1.1」参照）

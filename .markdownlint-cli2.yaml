@@ -1,6 +1,9 @@
 # ローカル専用メモ（.gitignoreで除外、リポジトリ管理対象外）は検査しない
 ignores:
-  - "**/*.local.md"
+  - "docs/**/*.local.md"
+  # ビルド生成物のMarkdownは対象外（git管理対象の *.md 件数と Linting: N files を一致させるため）
+  - "**/build/**"
+  - "**/node_modules/**"
 config:
   MD013:
     line_length: 120

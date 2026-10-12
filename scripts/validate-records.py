@@ -9,6 +9,8 @@
 
 - 改行コードがLFであること（PowerShellでの一括置換によるCRLF化を検出する）
 - BACKLOG.md の必須キーが揃っていること、`優先度` と `状態` が許容値であること
+- BACKLOG.md の `依存` が配列で、BACKLOG.md に存在する `id` だけを指していること
+  （完了項目を削除したときに、他タスクの `依存` に削除済みの `id` が残る事故を検出する）
 
 使い方:
 
@@ -70,6 +72,25 @@ def check_backlog_keys(records: list, errors: list[str]) -> None:
             errors.append(f"BACKLOG.md {task_id}: 状態 `{state}` は許容値ではない")
 
 
+def check_backlog_dependencies(records: list, errors: list[str]) -> None:
+    """BACKLOG.md の `依存` が配列で、存在する `id` だけを指していることを確認する。"""
+    ids = {record.get("id") for record in records}
+    for record in records:
+        task_id = record.get("id", "(idなし)")
+        depends = record.get("依存")
+        if depends is None:
+            continue
+        if not isinstance(depends, list):
+            errors.append(f"BACKLOG.md {task_id}: 依存 は配列で書く（依存が無い場合は []）")
+            continue
+        for dep in depends:
+            if dep not in ids:
+                errors.append(
+                    f"BACKLOG.md {task_id}: 依存 `{dep}` は BACKLOG.md に存在しない"
+                    "（完了して削除した id は依存から外し、空になったら [] にする）"
+                )
+
+
 def main() -> int:
     errors: list[str] = []
     for path in RECORD_FILES:
@@ -79,6 +100,7 @@ def main() -> int:
         print(f"{path}: OK ({len(records)} records)")
         if path.endswith("BACKLOG.md"):
             check_backlog_keys(records, errors)
+            check_backlog_dependencies(records, errors)
     if errors:
         print("")
         for error in errors:
