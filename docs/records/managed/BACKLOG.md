@@ -5,26 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-235
-  区分: 人手検証
-  タスク内容: >-
-    0.14.2をGoogle Playのクローズドテストの両トラックへ配信する。署名付きAABは2026-10-12に
-    `scripts/release-build.bat -VersionName 0.14.2`でビルド済み（mobile `versionCode 11` →
-    電話・タブレット系トラック、wear `versionCode 1009` → Wear OS専用トラック）。
-    「このリリースの新機能」欄へは`docs/RELEASE_NOTES.md`の0.14.2「ストア掲載用の要約」を転記する。
-    権限・データの扱いに変更が無いため、権限申告・データセーフティ欄の更新は不要。
-    公開後、規定ブランチへのマージを待って`v0.14.2`タグとGitHub Releaseを作成する
-    （Skill `github-release-publish`。タグのpushはユーザー）。
-  優先度: P2
-  状態: 未着手
-  担当: ユーザー
-  完了条件: >-
-    両トラックで0.14.2が公開中になり、`v0.14.2`のタグとGitHub Releaseが作成されていること
-  根拠: >-
-    Play Consoleへのアップロードと審査への送信はブラウザ専用の操作で、外部への発信にあたるため
-    エージェントは実行できない（rules/guardrails-unified.v1.md セクション12.2）
-  依存: []
-
 - id: BL-234
   区分: 人手検証
   タスク内容: >-
