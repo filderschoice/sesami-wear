@@ -128,7 +128,7 @@ private fun share(
     context.startActivity(Intent.createChooser(intent, SHARE_LABEL))
 }
 
-private const val TITLE = "診断ログ"
+private const val TITLE = "操作履歴（診断ログ）"
 private const val CLOSE_LABEL = "閉じる"
 private const val COPY_LABEL = "コピー"
 private const val SHARE_LABEL = "共有"

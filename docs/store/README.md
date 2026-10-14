@@ -22,7 +22,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `phone_2_widget_unlock_confirm.png` | ウィジェットからの解錠確認ダイアログ | 1350x2400 |
 | `phone_3_widget_unlocked.png` | ホーム画面ウィジェット（解錠中、タップで施錠）。2台の状態が混在した表示 | 1350x2400 |
 | `phone_4_device_list.png` | アプリ主画面（Sesameごとのカード。状態・電池・角度・最終取得時刻・経路・Bluetoothの到達状況） | 1350x2400 |
-| `phone_5_menu.png` | 右上の「⋮」メニュー（操作の経路・Bluetoothで直接操作・通知・ヘルプ・診断ログ） | 1350x2400 |
+| `phone_5_menu.png` | 右上の「⋮」メニュー（操作の経路・Bluetoothで直接操作・通知・ヘルプ・診断ログ。0.14.3で「操作履歴（診断ログ）」へ改名したため撮り直しが必要、BL-242） | 1350x2400 |
 | `phone_6_device_edit.png` | Sesameの追加・編集画面（表示名・uuid・apikey・secretKey） | 1350x2400 |
 | `phone_7_help.png` | ヘルプのメニュー（値の取得方法・デモ・ウォッチ・ウィジェット・Bluetooth） | 1350x2400 |
 | `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |

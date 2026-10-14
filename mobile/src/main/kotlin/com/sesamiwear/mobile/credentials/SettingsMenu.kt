@@ -162,5 +162,7 @@ private class SettingsDialogState {
 
 private const val MENU_DESCRIPTION = "設定"
 private const val HELP_MENU_TITLE = "ヘルプ"
-private const val DIAGNOSTICS_MENU_TITLE = "診断ログ"
-private const val DIAGNOSTICS_MENU_SUBTITLE = "うまく動かないときの記録を見る・送る"
+
+// 利用者が「操作の履歴」を探したときに見つけられるよう、履歴であることを先に出す（BL-237）。
+private const val DIAGNOSTICS_MENU_TITLE = "操作履歴（診断ログ）"
+private const val DIAGNOSTICS_MENU_SUBTITLE = "施錠・解錠・取得の記録を見る・送る"

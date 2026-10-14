@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 13:10
+  summary: 設定メニューの「診断ログ」を「操作履歴（診断ログ）」へ改名する（BL-237）
+  details:
+    変更内容: >-
+      操作の履歴を探す利用者が見つけられるよう、設定メニューの項目名と副題、ダイアログの表題を変えた。
+      記録の内容（直近50件・資格情報を含まない）は変えていない。専用の履歴画面は診断ログと中身が重複するため
+      作らない（2026-10-15のユーザー判断）。掲載スクリーンショットの撮り直しはBL-242（人手検証）へ登録した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogDialog.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0、markdownlintは40ファイル0件（対象件数とgit管理対象の件数が一致）
+
 - date: 2026-10-15 12:00
   summary: ホーム画面ウィジェットの取得時刻を「たった今」「N分前」から日時表示（M/d HH:mm）へ統一する（BL-236）
   details:
