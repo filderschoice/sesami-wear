@@ -358,6 +358,24 @@
 - 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
   `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
 
+### クイック設定パネルのタイル（スマートフォン）
+
+通知シェードのクイック設定パネルへ「Sesame」タイルを出す（BL-240、`SesameQuickSettingsTileService`）。
+
+- パネルのタイルは端末に1つで対象を選ぶ画面を持たせにくいため、対象は**登録1台ならその1台、2台以上なら
+  全デバイス**に固定する（`QuickSettingsTileContent.targetUuid`）。
+- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中→解錠の
+  確認画面、解錠中・一部解錠→確認なしで施錠、通信中→何もしない）。ウィジェットとの差分は2つで、
+  (1) 状態不明のタップは状態の取得しなおし（パネルに「更新」を置けないため）、(2) 表示名が未設定のときは
+  uuidではなく「Sesame」と出す（パネルはロック画面からも見えるため）。判定は`QuickSettingsTileContent`
+  （Android非依存、ユニットテスト対象）。
+- タイルの状態は施錠中＝`STATE_ACTIVE`、通信中＝`STATE_UNAVAILABLE`、それ以外＝`STATE_INACTIVE`。
+- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、解錠は同じ`WidgetUnlockConfirmActivity`へ
+  渡す。確認画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
+- 描き直しは`onStartListening`（パネルを開いたとき）と、`SesameWidgetUpdater.updateAll`からの
+  `requestListeningState`（操作の開始・終了、ロック状態の変化）。**表示のために通信はしない**（BL-142）。
+- `ACTIVE_TILE`は宣言しない。サービスは`BIND_QUICK_SETTINGS_TILE`で守る。
+
 ### アプリアイコンの長押しメニュー（スマートフォン）
 
 ランチャーのアプリアイコン長押しメニュー（App Shortcuts）へ「全施錠」「状態を更新」を出す（BL-239）。

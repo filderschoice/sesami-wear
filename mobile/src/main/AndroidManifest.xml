@@ -116,6 +116,21 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!--
+            クイック設定パネルの「Sesame」タイル（BL-240）。システムだけがバインドできるよう権限で守る。
+            ACTIVE_TILE にはせず、パネルを開いたときに保存値から描き直す（通信はタップしたときだけ）。
+        -->
+        <service
+            android:name=".quicksettings.SesameQuickSettingsTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_shortcut_lock"
+            android:label="@string/qs_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".messaging.SesameMessageListenerService"
             android:exported="true">

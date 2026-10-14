@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 14:55
+  summary: クイック設定パネルに「Sesame」タイルを追加する（BL-240）
+  details:
+    変更内容: >-
+      `mobile.quicksettings`パッケージを追加した。`QuickSettingsTileContent`（対象の決定＝1台ならその1台、
+      2台以上なら全デバイス。ウィジェットの判定を流用し、状態不明は再取得、表示名が無いときはuuidを出さない）と
+      `SesameQuickSettingsTileService`（`Tile`への反映、施錠・取得は`WidgetCommandReceiver`、解錠は
+      `WidgetUnlockConfirmActivity`）。`SesameWidgetUpdater.updateAll`からパネルの描き直しを要求する。
+      Manifestへサービスを宣言し（`BIND_QUICK_SETTINGS_TILE`）、アイコン`ic_qs_lock_open`を追加した。
+      単体テスト`QuickSettingsTileContentTest`（6件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_qs_lock_open.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。パネル上の表示と操作はBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 14:20
   summary: アプリアイコンの長押しメニューへ「全施錠」「状態を更新」を追加する（BL-239）
   details:
