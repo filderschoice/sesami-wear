@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 14:20
+  summary: アプリアイコンの長押しメニューへ「全施錠」「状態を更新」を追加する（BL-239）
+  details:
+    変更内容: >-
+      `mobile.shortcut`パッケージを追加した。`AppShortcutAction`（操作の解釈と文言。解錠は受け付けない）、
+      `AppShortcutPublisher`（動的ショートカットの登録。`MainActivity.onCreate`から呼ぶ）、
+      `AppShortcutActivity`（画面を持たない非公開の受け口。`WidgetCommandReceiver`へ全デバイスを対象に
+      ブロードキャストする）。静的ショートカットはデバッグ版のapplicationId（`.debug`）で起動先を
+      固定できないため動的にした。単体テスト`AppShortcutActionTest`（4件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutPublisher.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_shortcut_lock.xml
+      - mobile/src/main/res/drawable/ic_shortcut_refresh.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutActionTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのLongParameterListで失敗したため、ラベル類を
+      AppShortcutActionへ移して再実行）。ランチャー上の表示と実行はBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 13:50
   summary: セサミの電池残量が20%を下回ったときにスマートフォンへ1回だけ通知する（BL-238）
   details:

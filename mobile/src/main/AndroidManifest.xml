@@ -104,6 +104,18 @@
             android:taskAffinity=""
             android:theme="@style/Theme.SesamiWear.Dialog" />
 
+        <!--
+            アプリアイコン長押しメニュー（BL-239）の受け口。画面を持たずにすぐ閉じる。
+            ショートカットはランチャーが本アプリとして起動するため非公開でよく、他アプリからの施錠の入口を作らない。
+        -->
+        <activity
+            android:name=".shortcut.AppShortcutActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".messaging.SesameMessageListenerService"
             android:exported="true">
