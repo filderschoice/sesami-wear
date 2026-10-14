@@ -250,6 +250,8 @@
   ウィジェット（暗色固定）・Tile（黒背景）とも食い違っていた。
   **Material Youの動的カラーは使わない。** 施錠状態の色（緑／赤／紫、`SesameTileContent`）が
   壁紙由来の色と競合し、状態の読み取りを鈍らせるため。テーマは地の色だけを担う。
+  **主色はアプリアイコン・ストア画像と同じ紺`#1E3A5F`**（BL-245、2026-10-15のユーザー判断。それまでは
+  M3既定の紫系）。ライトは紺そのもの、ダークは紺を明るくした`#A4C8FF`を主色にし、面の色はM3の既定のまま。
   Activityのウィンドウ側は`res/values/themes.xml`と`res/values-night/themes.xml`の
   `Theme.SesamiWear` / `Theme.SesamiWear.Dialog`（AppCompatを使わないため親はplatformの
   `Theme.Material`系）。システムバーのアイコン色は`MainActivity.applySystemBarIcons`が
@@ -260,11 +262,16 @@
   入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。現在の構成:
   - 画面全体が1つの`LazyColumn`で縦スクロールする。もとは`Column`の中に`LazyColumn`が入れ子に
     なっており、一覧の外側（入力フォーム）はスクロールできなかった。
-  - 1台＝1枚の`Card`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のアイコンと
+  - 1台＝1枚の`ElevatedCard`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のバッジと
     表示名、(2) 施錠状態・電池残量・角度、(3) 最後に取得した時刻（または失敗の理由）と経路、を出す。
     **1行へ詰め込まない**（詰め込むと端末の幅に収まらず折り返される）。行の組み立ては
     `core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
-    編集・削除はカード内のアイコンボタン（`Icons.Default.Edit` / `Icons.Default.Delete`）。
+    BL-245で見た目を整理した: 施錠状態は絵文字ではなく**状態色（`SesameTileContent`の緑・赤・紫・灰）の
+    丸いバッジに錠のアイコン**（絵文字は端末のフォントで見た目が変わり、色で読めなかったため）。
+    編集・削除はカード右上の⋮メニューへまとめ、カード下部に「ダイヤル操作」（BL-243）の文字付きボタンを置く。
+  - 一覧の先頭は今月のAPI呼び出し回数の要約カード（`ApiUsageCard`、回数を大きく出し目安である旨を注記）。
+    未登録のときは要約カードを出さず、錠のアイコン・説明・「Sesameを追加」・ヘルプへの導線を並べた
+    空状態（`EmptyDeviceState`）を出す（BL-245）。
   - **追加・編集は全画面ダイアログ**（`mobile.credentials.CredentialsEditorDialog`、BL-178）。
     `Dialog`＋`DialogProperties(usePlatformDefaultWidth = false)`で、上部に「×」（キャンセル）と
     「保存」を置く。`enabled = isInputValid`の制御は従来どおり（BL-024）。

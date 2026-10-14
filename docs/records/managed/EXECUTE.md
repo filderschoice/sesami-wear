@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 17:30
+  summary: スマートフォンアプリのUIをモダン化する（BL-245。ブランド色のテーマ・カード・空状態・API回数）
+  details:
+    変更内容: >-
+      ユーザー判断（2026-10-15、4項目すべて採用）に基づき、`SesameTheme`の主色をアイコンと同じ紺`#1E3A5F`
+      （ダークは`#A4C8FF`）へ変えた。`DeviceCard`を`ElevatedCard`にし、絵文字の状態表示を状態色の丸いバッジ
+      （錠アイコン）へ、編集・削除をカード右上の⋮メニューへ、ダイヤル操作を文字付きのFilledTonalButtonへ
+      変えた。`DeviceListParts.kt`へ`ApiUsageCard`（回数を大きく表示）と`EmptyDeviceState`（未登録時の
+      案内。追加ボタンとヘルプへの導線）を追加した。動的カラー不採用と状態色は維持した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameTheme.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListParts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0。Compose画面のため自動テストは無く、見た目はBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 16:40
   summary: Bluetooth限定のダイヤル操作画面を追加する（BL-243、スマートフォンのみ）
   details:
