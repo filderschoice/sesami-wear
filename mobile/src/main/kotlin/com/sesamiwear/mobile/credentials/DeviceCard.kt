@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +38,7 @@ import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
+import com.sesamiwear.mobile.dial.DialActivity
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.ui.SesameRouteIcon
@@ -98,6 +100,11 @@ internal fun DeviceCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            // ダイヤル操作（BL-243）。Bluetoothで直接回す、施錠・解錠が効かないときなどの手段。
+            val context = LocalContext.current
+            IconButton(onClick = { context.startActivity(DialActivity.createIntent(context, credentials.uuid)) }) {
+                Icon(imageVector = Icons.Default.Lock, contentDescription = DIAL_DESCRIPTION)
             }
             IconButton(onClick = onEdit) {
                 Icon(imageVector = Icons.Default.Edit, contentDescription = EDIT_DESCRIPTION)
@@ -195,6 +202,7 @@ private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
     return snapshot
 }
 
+private const val DIAL_DESCRIPTION = "ダイヤル操作（Bluetooth）"
 private const val EDIT_DESCRIPTION = "編集"
 private const val DELETE_DESCRIPTION = "削除"
 private const val SEPARATOR = "・"

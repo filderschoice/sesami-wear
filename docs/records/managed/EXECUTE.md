@@ -5,6 +5,36 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 16:40
+  summary: Bluetooth限定のダイヤル操作画面を追加する（BL-243、スマートフォンのみ）
+  details:
+    変更内容: >-
+      `mobile.dial`パッケージを追加した。`DialSweep`（円形スワイプの回転量の積み上げ、150度で確定、
+      角度→針の向き、状態の反対のコマンド）、`DialUiState`（画面の状態と文言）、`DialController`
+      （`SesameBleClient`を直接呼び、Web APIへ倒さない。成功後に角度を読み直して保存・同期）、
+      `DialActivity`（Composeのダイヤル画面）。デバイスカードへ錠アイコンの入口を追加し、Manifestへ
+      Activityを宣言した。任意角度の操作はBL-244（要確認）のまま実装していない。
+      単体テスト`DialSweepTest`（8件）・`DialUiStateTest`（4件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialSweep.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialUiState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/dial/DialSweepTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/dial/DialUiStateTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（途中でdetektのLongMethodとktlintの構文エラーで失敗したため、描画処理を
+      関数へ分け余分な括弧を除いて再実行）。実機でのBLE操作と針の向きはBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 15:40
   summary: 解錠したまま時間がたったときに通知する機能を追加する（BL-241、既定オフ）
   details:

@@ -116,6 +116,12 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- ダイヤル操作画面（BL-243）。デバイスカードから開く。Bluetoothでのみ操作する。 -->
+        <activity
+            android:name=".dial.DialActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SesamiWear" />
+
         <!--
             クイック設定パネルの「Sesame」タイル（BL-240）。システムだけがバインドできるよう権限で守る。
             ACTIVE_TILE にはせず、パネルを開いたときに保存値から描き直す（通信はタップしたときだけ）。
