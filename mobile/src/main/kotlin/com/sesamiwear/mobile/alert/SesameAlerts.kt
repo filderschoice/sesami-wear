@@ -4,6 +4,7 @@ import android.content.Context
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameStatusSnapshot
+import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 
 /**
@@ -41,10 +42,20 @@ class SesameAlerts(
         }
     }
 
-    private fun displayNameOf(uuid: String): String =
-        loadCredentials().find { it.uuid == uuid }?.displayName?.ifBlank { null } ?: UNNAMED_DEVICE
+    private fun displayNameOf(uuid: String): String = nameOf(loadCredentials(), uuid)
 
-    private companion object {
-        const val UNNAMED_DEVICE = "セサミ"
+    companion object {
+        private const val UNNAMED_DEVICE = "セサミ"
+
+        /** 通知に出す名前。利用者が付けた表示名で、未設定なら「セサミ」（uuidは出さない）。 */
+        fun displayNameOf(
+            context: Context,
+            uuid: String,
+        ): String = nameOf(SesameDeviceStores.credentials(context).loadAll(), uuid)
+
+        private fun nameOf(
+            credentials: List<SesameCredentials>,
+            uuid: String,
+        ): String = credentials.find { it.uuid == uuid }?.displayName?.ifBlank { null } ?: UNNAMED_DEVICE
     }
 }

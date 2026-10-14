@@ -12,7 +12,10 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.mobile.alert.SesameAlertSettingsStore
 import com.sesamiwear.mobile.alert.SesameAlerts
+import com.sesamiwear.mobile.alert.UnlockReminderCommands
+import com.sesamiwear.mobile.alert.UnlockReminderWorker
 import com.sesamiwear.mobile.ble.SesameBleAddressCache
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBlePermissions
@@ -52,7 +55,20 @@ object SesameDeviceCommandExecutorFactory {
      * 撮影用の実行口を返す（BL-212、[ShowcaseMode]）。リリース版では常に実物の実行口になる。
      */
     fun create(context: Context): SesameDeviceCommands =
-        ShowcaseMode.commandsOrNull(context.applicationContext) ?: createExecutor(context.applicationContext)
+        ShowcaseMode.commandsOrNull(context.applicationContext) ?: withUnlockReminder(context.applicationContext)
+
+    /**
+     * 解錠したままの通知（BL-241）の予約を差し込む。解錠の成功で予約し、施錠の成功で取り消す。
+     * 分数は操作のたびに設定から読む（設定を変えた直後から効かせるため）。
+     */
+    private fun withUnlockReminder(appContext: Context): SesameDeviceCommands {
+        val settings = SesameAlertSettingsStore(SharedPreferencesKeyValueStore.forAlerts(appContext))
+        return UnlockReminderCommands(
+            delegate = createExecutor(appContext),
+            scheduler = UnlockReminderWorker.Scheduler(appContext),
+            reminderMinutes = settings::unlockReminderMinutes,
+        )
+    }
 
     /** 実物の実行口。保存先は撮影モードに関わらず実物のものを直接開く（[SesameDeviceStores]を通さない）。 */
     private fun createExecutor(appContext: Context): SesameDeviceCommandExecutor {

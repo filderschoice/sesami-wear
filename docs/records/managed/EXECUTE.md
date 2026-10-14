@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 15:40
+  summary: 解錠したまま時間がたったときに通知する機能を追加する（BL-241、既定オフ）
+  details:
+    変更内容: >-
+      `UnlockReminderCommands`（実行口のデコレータ。解錠成功で予約、施錠成功で取り消し、状態取得では予約しない）、
+      `UnlockReminderWorker`（WorkManagerで1回だけ状態を取得し通知。予約の実装`Scheduler`を内包）、
+      `UnlockReminderDecision`（通知の要否と本文）を追加し、`SesameDeviceCommandExecutorFactory.create`で
+      実物の実行口を包んだ。「お知らせ」の設定へオフ／5／10／30分の選択（FilterChip）を追加し、
+      `SesameAlertNotifier`・`SesameAlerts`へ閉め忘れの通知と名前の解決を足した。単体テスト
+      `UnlockReminderCommandsTest`（6件）・`UnlockReminderDecisionTest`（5件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderCommands.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderDecision.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderWorker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlerts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/UnlockReminderCommandsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/UnlockReminderDecisionTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのReturnCountで失敗したため、確認処理を関数へ分けて再実行）。
+      実機での遅延実行と通知はBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 14:55
   summary: クイック設定パネルに「Sesame」タイルを追加する（BL-240）
   details:

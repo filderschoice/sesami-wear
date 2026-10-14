@@ -42,6 +42,20 @@ class SesameAlertNotifier(private val context: Context) {
         )
     }
 
+    /** [deviceName]を解錠したまま時間がたったことを知らせる（BL-241）。本文は`UnlockReminderDecision`が決める。 */
+    fun notifyStillUnlocked(
+        uuid: String,
+        deviceName: String,
+        message: String,
+    ) {
+        notify(
+            tag = uuid,
+            id = UNLOCK_REMINDER_NOTIFICATION_ID,
+            title = UnlockReminderDecision.title(deviceName),
+            text = message,
+        )
+    }
+
     @SuppressLint("MissingPermission") // 権限は[canNotify]で確かめている（SesameRouteNotifierと同じ扱い）。
     private fun notify(
         tag: String,
@@ -96,5 +110,6 @@ class SesameAlertNotifier(private val context: Context) {
         const val CHANNEL_NAME = "お知らせ（電池残量・閉め忘れ）"
         const val CHANNEL_DESCRIPTION = "電池残量が少なくなったときや、解錠したままのときに知らせます"
         const val LOW_BATTERY_NOTIFICATION_ID = 2001
+        const val UNLOCK_REMINDER_NOTIFICATION_ID = 2002
     }
 }
