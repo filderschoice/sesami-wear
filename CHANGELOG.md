@@ -7,6 +7,17 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-15（BL-244 任意角度の操作を対応不要として閉じる）
+
+ダイヤル操作（BL-243）から任意の角度まで回す機能（BL-244、要確認）を、対応不要として閉じました。
+ユーザー指示「公式に公開されている情報で角度操作がない場合は対応不要」に基づきます。
+
+- 確認した一次情報: CANDY HOUSE公式SDK `CANDY-HOUSE/SesameSDK_Android_with_DemoApp`（master）の
+  `sesameSdk/src/main/java/co/candyhouse/sesame/ble/os3/sesame5/CHSesame5.kt`。公開されている操作は
+  `lock` / `unlock` / `toggle` / `magnet` / `configureLockPosition` / `autolock` / `opSensorControl` で、
+  任意角度へ回す操作は無い（`configureLockPosition`は施錠・解錠位置の登録で、回す操作ではない）
+- `docs/records/managed/BACKLOG.md` からBL-244を削除し、`DESIGN.md` のダイヤル操作の節へ判断と根拠を記載
+
 ## 2026-10-15（0.14.3の追加機能に合わせた機能一覧の更新）
 
 0.14.3で追加した機能（クイック設定パネルのタイル、アプリアイコンの長押しメニュー、電池残量・解錠したままの通知、
