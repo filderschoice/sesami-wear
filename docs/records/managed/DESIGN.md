@@ -358,6 +358,24 @@
 - 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
   `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
 
+### お知らせ（スマートフォンの通知）
+
+上部バーの設定メニューの「お知らせ」から設定する、利用者が行動すべき知らせの通知（BL-238〜）。
+
+- 電池残量の低下（BL-238）: 状態取得・操作で得た電池残量が20%（`LowBatteryAlertTracker.THRESHOLD_PERCENTAGE`）
+  未満へ**下がったときに1回だけ**通知する。下回ったままの間は再通知せず、20%以上へ戻ったら次の低下で
+  再び通知する。通知済みの記録はuuidごとに保存し、再起動をまたいでも重複させない。**既定はオン**
+  （判定は既存の取得結果だけで行い、追加の通信をしないため）。設定がオフの間も判定は進め、オンへ戻した
+  直後に既に下回っていた分がまとめて出ないようにする。デモ用デバイスは対象外。
+- 配線は`SesameDeviceCommandExecutorFactory`の`LockStateNotifier.local`から`mobile.alert.SesameAlerts`を呼ぶ。
+  ウォッチ経由・ウィジェット経由のどちらで得た値でも同じく判定される。
+- 判定（`LowBatteryAlertTracker`）と設定（`SesameAlertSettingsStore`）はAndroid非依存でユニットテスト対象。
+  保存先は非暗号化SharedPreferences（`sesami_wear_alerts`、機密を含まない）。
+- 通知（`SesameAlertNotifier`）は経路の変化の通知（BL-190）と**チャネルを分け**（`sesame_alerts`）、
+  重要度は既定（音・バナーあり）にする。経路の変化は補助的な知らせ、こちらは電池切れという利用者が
+  行動すべき知らせのため。通知はデバイスごと（tag=uuid）に分けて同種を上書きし、タップで主画面を開く。
+  文言には表示名だけを出し、uuidは出さない。
+
 ### セサミの状態一覧（スマートフォン）
 
 デバイスのカード一覧（BL-177）で、各デバイスの名前の下に状態を出す（BL-169）。

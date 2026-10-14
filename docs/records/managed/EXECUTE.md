@@ -5,6 +5,40 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 13:50
+  summary: セサミの電池残量が20%を下回ったときにスマートフォンへ1回だけ通知する（BL-238）
+  details:
+    変更内容: >-
+      `mobile.alert`パッケージを追加した。`SesameAlertSettingsStore`（お知らせの設定。電池残量は既定オン、
+      解錠したままの通知は既定オフでBL-241で使う）、`LowBatteryAlertTracker`（20%未満へ下がったときに1回だけ
+      trueを返し、20%以上へ戻ると再通知可能にする）、`SesameAlertNotifier`（専用チャネル`sesame_alerts`、
+      tag=uuidで上書き、タップで主画面）、`SesameAlerts`（配線）。`SesameDeviceCommandExecutorFactory`の
+      `LockStateNotifier.local`から呼ぶ。設定メニューへ「お知らせ」を追加した（`AlertSettingsState`）。
+      単体テスト`LowBatteryAlertTrackerTest`（5件）・`SesameAlertSettingsStoreTest`（4件）を追加した。
+      また、UIデザインのモダン化をBL-245として登録した（2026-10-15のユーザー指示）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertSettingsStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTracker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlerts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/res/drawable/ic_notification_alert.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTrackerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/SesameAlertSettingsStoreTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのMatchingDeclarationNameで失敗したため、ファイル名を
+      AlertSettingsState.ktへ改めて再実行）。実機での通知の見え方はBL-242（人手検証）で確認する。
+
 - date: 2026-10-15 13:10
   summary: 設定メニューの「診断ログ」を「操作履歴（診断ログ）」へ改名する（BL-237）
   details:

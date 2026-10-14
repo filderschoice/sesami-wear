@@ -12,6 +12,7 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.mobile.alert.SesameAlerts
 import com.sesamiwear.mobile.ble.SesameBleAddressCache
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBlePermissions
@@ -57,12 +58,17 @@ object SesameDeviceCommandExecutorFactory {
     private fun createExecutor(appContext: Context): SesameDeviceCommandExecutor {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(appContext))
         val apiUsageCounter = ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(appContext))
+        val alerts = SesameAlerts(appContext, credentialsStore::loadAll)
         return SesameDeviceCommandExecutor(
             loadCredentials = credentialsStore::loadAll,
             lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)),
             notifier =
                 LockStateNotifier(
-                    local = { _, _ -> SesameWidgetUpdater.updateAll(appContext) },
+                    local = { uuid, snapshot ->
+                        SesameWidgetUpdater.updateAll(appContext)
+                        // 電池残量が少なくなったときの通知（BL-238）。取得・操作の結果に含まれる値だけで判定する。
+                        alerts.onStatusChanged(uuid, snapshot)
+                    },
                     watch = { uuid, snapshot -> SesameStatusSyncer(appContext).sync(uuid, snapshot) },
                 ),
             routes =
