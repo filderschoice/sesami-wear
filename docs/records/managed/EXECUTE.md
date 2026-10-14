@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-15 12:00
+  summary: ホーム画面ウィジェットの取得時刻を「たった今」「N分前」から日時表示（M/d HH:mm）へ統一する（BL-236）
+  details:
+    変更内容: >-
+      ウィジェットは再描画まで文言が固まり、「たった今」が実際の取得時刻から離れて残るため、いつ取得した
+      状態か分からなかった。`SesameStatusFreshness.dateTimeLabel`を追加し、ウィジェット専用の
+      `SesameStatusDetail.detailedLabel`が経過時間によらず「9/18 12:05」を返すようにした。使われなくなった
+      `nowEpochMillis`引数を`detailedLabel`・`SesameWidgetModelResolver.resolve`から削除した。Tile・
+      Complication・ウォッチ・スマートフォンのデバイス一覧は相対表記のまま。単体テストを更新・追加した。
+      狭いウィジェットで日時が省略されないかは実機確認が必要なため、BL-236として人手検証へ登録した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusFreshness.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusFreshnessTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleの品質ゲートは終了コード0。Markdown・記録ファイルの検証は下記の実行結果のとおり。
+
 - date: 2026-10-12 08:20
   summary: 2 × 1のウィジェットで右側の状態文言が省略される問題を、幅の配分を可変にして直す（BL-233）
   details:

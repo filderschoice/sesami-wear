@@ -11,13 +11,13 @@ class SesameStatusDetailTest {
     @Test
     fun `without a failure it shows how old the state is`() {
         assertEquals("5分前", SesameStatusDetail.compactLabel(null, NOW - 5 * 60_000L, NOW, ZONE))
-        assertEquals("5分前", SesameStatusDetail.detailedLabel(null, NOW - 5 * 60_000L, NOW, ZONE))
+        assertEquals("9/18 11:55", SesameStatusDetail.detailedLabel(null, NOW - 5 * 60_000L, ZONE))
     }
 
     @Test
     fun `without a failure and without a fetch it shows never fetched`() {
         assertEquals("未取得", SesameStatusDetail.compactLabel(null, null, NOW, ZONE))
-        assertEquals("未取得", SesameStatusDetail.detailedLabel(null, null, NOW, ZONE))
+        assertEquals("未取得", SesameStatusDetail.detailedLabel(null, null, ZONE))
     }
 
     @Test
@@ -38,11 +38,11 @@ class SesameStatusDetailTest {
     fun `the widget wording adds what to do next`() {
         assertEquals(
             "認証エラー（設定を確認）",
-            SesameStatusDetail.detailedLabel(SesameStatusFailure.AUTH_OR_QUOTA, NOW, NOW, ZONE),
+            SesameStatusDetail.detailedLabel(SesameStatusFailure.AUTH_OR_QUOTA, NOW, ZONE),
         )
         assertEquals(
             "通信エラー（電波状況を確認）",
-            SesameStatusDetail.detailedLabel(SesameStatusFailure.COMMUNICATION, NOW, NOW, ZONE),
+            SesameStatusDetail.detailedLabel(SesameStatusFailure.COMMUNICATION, NOW, ZONE),
         )
     }
 
@@ -93,11 +93,11 @@ class SesameStatusDetailTest {
     @Test
     fun `the detailed label also carries the route icon`() {
         assertEquals(
-            "🔗たった今",
+            "🔗9/18 12:00",
             SesameStatusDetail.detailedLabel(
                 failure = null,
                 updatedAtEpochMillis = NOW,
-                nowEpochMillis = NOW,
+                zoneId = ZONE,
                 route = SesameStatusRoute.BLE,
             ),
         )

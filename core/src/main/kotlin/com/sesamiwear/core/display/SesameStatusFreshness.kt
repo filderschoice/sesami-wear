@@ -47,6 +47,20 @@ object SesameStatusFreshness {
     }
 
     /**
+     * ホーム画面ウィジェット向けの日時表記（「9/18 12:05」）を返す。相対表記（「たった今」「3分前」）は
+     * 次の描画まで変わらないため、表示を見た利用者がいつ取得した状態か分からなくなる。そこで
+     * 経過時間によらず取得日時を出す。未取得（null）は[NEVER_FETCHED_LABEL]。
+     */
+    fun dateTimeLabel(
+        updatedAtEpochMillis: Long?,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        if (updatedAtEpochMillis == null) return NEVER_FETCHED_LABEL
+        val dateTime = Instant.ofEpochMilli(updatedAtEpochMillis).atZone(zoneId)
+        return "%d/%d %02d:%02d".format(dateTime.monthValue, dateTime.dayOfMonth, dateTime.hour, dateTime.minute)
+    }
+
+    /**
      * 複数デバイスを1つの表示へ集約する（「全デバイス」対象、BL-071）ときの代表値。
      * 最も古い取得時刻を返し、1台でも未取得があれば全体を未取得（null）として扱う。
      * 集約状態の判定（[com.sesamiwear.core.TileDisplayStateResolver.resolveAggregate]）が
