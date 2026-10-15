@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-16 09:00
+  summary: 0.14.3の追加機能をデバッグ版の撮影モードで実機なしに表示確認できるようにする（BL-246）
+  details:
+    変更内容: >-
+      ユーザー指示（2026-10-15）に基づき、デバッグ版限定の撮影モードを広げた。ダイヤル操作の型
+      `mobile.dial.DialOperations`を設け、撮影モード中は`ShowcaseDialOperations`（src/debug。Bluetoothを使わず
+      撮影用の状態を表示・操作する。未取得は途中の位置、失敗は届かないときの文言）を`DialActivity`へ渡す。
+      リリース版の`ShowcaseMode`スタブへ`dialOperationsOrNull`（常にnull）を足した。撮影用の状態を書き換えたとき
+      電池残量の通知の判定へ渡し、撮影用の実行口にも解錠したままの通知の予約を差し込んだ。
+      撮影モードの操作画面へ確かめ方の説明を追加した。リリース版の挙動は変わらない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperations.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseSync.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperationsTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（`test`がリリース版のスタブも含めてコンパイル）。
+      ShowcaseDialOperationsTest 5件を追加。画面上の確認はBL-242（人手検証）で行う。
+
 - date: 2026-10-15 17:30
   summary: スマートフォンアプリのUIをモダン化する（BL-245。ブランド色のテーマ・カード・空状態・API回数）
   details:

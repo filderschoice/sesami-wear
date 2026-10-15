@@ -53,18 +53,24 @@ object SesameDeviceCommandExecutorFactory {
     /**
      * 施錠/解錠・状態取得の実行口を返す。デバッグ版の撮影モード中は、実物へ一切通信しない
      * 撮影用の実行口を返す（BL-212、[ShowcaseMode]）。リリース版では常に実物の実行口になる。
+     * 撮影用の実行口にも解錠したままの通知の予約を差し込み、実機なしで通知まで確かめられるようにする（BL-246）。
      */
-    fun create(context: Context): SesameDeviceCommands =
-        ShowcaseMode.commandsOrNull(context.applicationContext) ?: withUnlockReminder(context.applicationContext)
+    fun create(context: Context): SesameDeviceCommands {
+        val appContext = context.applicationContext
+        return withUnlockReminder(appContext, ShowcaseMode.commandsOrNull(appContext) ?: createExecutor(appContext))
+    }
 
     /**
      * 解錠したままの通知（BL-241）の予約を差し込む。解錠の成功で予約し、施錠の成功で取り消す。
      * 分数は操作のたびに設定から読む（設定を変えた直後から効かせるため）。
      */
-    private fun withUnlockReminder(appContext: Context): SesameDeviceCommands {
+    private fun withUnlockReminder(
+        appContext: Context,
+        delegate: SesameDeviceCommands,
+    ): SesameDeviceCommands {
         val settings = SesameAlertSettingsStore(SharedPreferencesKeyValueStore.forAlerts(appContext))
         return UnlockReminderCommands(
-            delegate = createExecutor(appContext),
+            delegate = delegate,
             scheduler = UnlockReminderWorker.Scheduler(appContext),
             reminderMinutes = settings::unlockReminderMinutes,
         )

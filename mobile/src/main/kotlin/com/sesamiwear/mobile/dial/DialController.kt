@@ -26,7 +26,7 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 class DialController(
     context: Context,
     private val credentials: SesameCredentials,
-) {
+) : DialOperations {
     private val appContext = context.applicationContext
     private val client =
         SesameBleClient(
@@ -35,7 +35,7 @@ class DialController(
         )
 
     /** 接続して現在の角度を読む。 */
-    suspend fun load(lastResult: String? = null): DialUiState {
+    override suspend fun load(lastResult: String?): DialUiState {
         val outcome = client.fetchStatus(credentials)
         val status = outcome.status
         return if (status != null) {
@@ -47,7 +47,7 @@ class DialController(
     }
 
     /** [command]をBluetoothで送り、送ったあとの角度を読み直す。 */
-    suspend fun run(command: SesameCommand): DialUiState {
+    override suspend fun run(command: SesameCommand): DialUiState {
         val succeeded = client.execute(credentials, command).result == SesameBleClient.Result.SUCCESS
         val message = DialUiState.resultMessage(command, succeeded)
         if (succeeded) {

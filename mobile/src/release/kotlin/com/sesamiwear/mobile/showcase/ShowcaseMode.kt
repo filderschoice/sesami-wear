@@ -1,8 +1,10 @@
 package com.sesamiwear.mobile.showcase
 
 import android.content.Context
+import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameKeyValueStore
 import com.sesamiwear.mobile.command.SesameDeviceCommands
+import com.sesamiwear.mobile.dial.DialOperations
 
 /**
  * 撮影モード（BL-212）の**リリース版スタブ**。撮影モードはデバッグ版だけの機能で、リリース版
@@ -23,4 +25,9 @@ object ShowcaseMode {
     fun widgetAssignmentsKeyValueStore(context: Context): SesameKeyValueStore? = null
 
     fun commandsOrNull(context: Context): SesameDeviceCommands? = null
+
+    fun dialOperationsOrNull(
+        context: Context,
+        credentials: SesameCredentials,
+    ): DialOperations? = null
 }

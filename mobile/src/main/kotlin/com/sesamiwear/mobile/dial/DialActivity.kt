@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.ui.SesameTheme
 import kotlinx.coroutines.launch
@@ -71,7 +72,8 @@ class DialActivity : ComponentActivity() {
             finish()
             return
         }
-        val controller = DialController(this, credentials)
+        // デバッグ版の撮影モード中は、Bluetoothを使わず撮影用の状態で動かす（BL-246）。
+        val controller = ShowcaseMode.dialOperationsOrNull(this, credentials) ?: DialController(this, credentials)
         setContent {
             SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -94,7 +96,7 @@ class DialActivity : ComponentActivity() {
 @Composable
 private fun DialScreen(
     credentials: SesameCredentials,
-    controller: DialController,
+    controller: DialOperations,
     onClose: () -> Unit,
 ) {
     var state by remember { mutableStateOf<DialUiState>(DialUiState.Connecting) }

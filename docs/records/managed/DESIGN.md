@@ -1482,6 +1482,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - メニュー項目と表示も`ShowcaseModeUi`（`src/debug`に実装、`src/release`に何も出さないスタブ）越しに
   呼ぶ。メニュー項目の型`ShowcaseMenuEntry`だけはmainに置く。
 - 撮影用の実行口・保存先・選択肢のテストは`src/testDebug`（デバッグ版の単体テストにだけ含まれる）。
+- **0.14.3の追加機能の表示確認（BL-246、2026-10-15のユーザー指示）。** 撮影モード中は、Sesame実機・
+  実資格情報なしで次を画面上で確かめられる（操作画面の説明文にも同じ内容を出す）。
+  - ダイヤル操作（BL-243）: `DialActivity`は`ShowcaseMode.dialOperationsOrNull`が返せば撮影用の
+    `ShowcaseDialOperations`を、返さなければ実物の`DialController`を使う（共通の型は`mobile.dial.DialOperations`）。
+    撮影用は**Bluetoothを使わず**、撮影用の状態を読む。施錠中・解錠中は実測の角度（-180 / -270）で操作できる表示、
+    未取得は中間（-225）の「途中の位置」、失敗は届かないときの文言（認証→ログイン失敗、端末設定→許可なし、
+    通信→届かない）。なぞって確定すると撮影用の実行口で状態を切り替える。接続・送信の待ちを見せるため0.8秒待つ。
+  - 電池残量の通知（BL-238）: 操作画面で撮影用の状態を書き換えたとき（`ShowcaseSync.applyState`）、
+    実物の取得と同じ`SesameAlerts.onStatusChanged`へ渡す。電池を5%にすると1回だけ通知される。
+  - 解錠したままの通知（BL-241）: `SesameDeviceCommandExecutorFactory.create`は撮影用の実行口にも
+    `UnlockReminderCommands`を差し込む。確認のWorkerは撮影用の実行口で状態を読み直す（実物へは通信しない）。
+  - クイック設定のタイル（BL-240）・アプリアイコンの長押し（BL-239）・カードとウィジェットの日時表示
+    （BL-236 / BL-245）は、もとから撮影用の保存先と実行口で動く（変更なし）。
 - 実機検証（BL-214、2026-09-23、Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5、**ユーザーが実施**）:
   インストールと手順書をClaude Code、操作と判定をユーザーが担当し、15項目すべてで期待どおりに動いた。
   - 切り替えと表示: 設定メニューの「撮影モード」はデバッグ版だけに出た。見本の3台を入れてオンにすると、

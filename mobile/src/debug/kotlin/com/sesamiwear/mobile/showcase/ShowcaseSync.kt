@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.google.android.gms.wearable.Wearable
 import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.mobile.alert.SesameAlerts
 import com.sesamiwear.mobile.messaging.DataLayerBestEffort
 import com.sesamiwear.mobile.messaging.SesameDeviceListSyncer
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
@@ -66,9 +67,14 @@ object ShowcaseSync {
         val store = ShowcaseMode.showcaseLockStateStore(appContext)
         state.writeTo(store, uuid, System.currentTimeMillis())
         if (ShowcaseMode.isActive(appContext)) {
-            store.load(uuid)?.let { SesameStatusSyncer(appContext).sync(uuid, it) }
+            val snapshot = store.load(uuid)
+            snapshot?.let { SesameStatusSyncer(appContext).sync(uuid, it) }
                 ?: deleteSyncedStatus(appContext, uuid)
             SesameWidgetUpdater.updateAll(appContext)
+            // 電池残量の通知（BL-238）を実機なしで確かめられるよう、実物の取得と同じ判定へ渡す（BL-246）。
+            // 20%未満へ下げたときに1回だけ出る。もう一度出すには一度20%以上へ戻す。
+            val alerts = SesameAlerts(appContext, ShowcaseMode.showcaseDevices(appContext)::loadAll)
+            snapshot?.let { alerts.onStatusChanged(uuid, it) }
         }
     }
 

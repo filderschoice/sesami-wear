@@ -1,10 +1,12 @@
 package com.sesamiwear.mobile.showcase
 
 import android.content.Context
+import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameKeyValueStore
 import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameDeviceCommands
+import com.sesamiwear.mobile.dial.DialOperations
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -61,6 +63,22 @@ object ShowcaseMode {
                     local = { _, _ -> SesameWidgetUpdater.updateAll(appContext) },
                     watch = { uuid, snapshot -> SesameStatusSyncer(appContext).sync(uuid, snapshot) },
                 ),
+        )
+    }
+
+    /**
+     * ダイヤル操作画面（BL-243）の撮影用の操作（BL-246）。Bluetoothを使わず、撮影用の状態を読み書きする。
+     * 撮影モード中でなければnull（実物の[com.sesamiwear.mobile.dial.DialController]を使う）。
+     */
+    fun dialOperationsOrNull(
+        context: Context,
+        credentials: SesameCredentials,
+    ): DialOperations? {
+        val commands = commandsOrNull(context) ?: return null
+        return ShowcaseDialOperations(
+            uuid = credentials.uuid,
+            lockStateStore = showcaseLockStateStore(context.applicationContext),
+            commands = commands,
         )
     }
 

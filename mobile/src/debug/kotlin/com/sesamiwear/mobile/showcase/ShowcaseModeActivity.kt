@@ -181,6 +181,17 @@ private fun ModeSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // 0.14.3で追加した機能を実機なしで確かめる方法（BL-246）。
+        Text(
+            text =
+                "【実機なしで確かめる】カードの「ダイヤル操作」はBluetoothを使わず下の状態で動きます" +
+                    "（未取得＝途中の位置、失敗＝届かないときの表示）。電池を20%未満（5%）にすると電池残量の通知、" +
+                    "解錠すると「お知らせ」で選んだ分数のあとに解錠したままの通知が出ます" +
+                    "（「お知らせ」の設定と通知の許可が必要）。クイック設定のタイルとアプリアイコンの長押しも" +
+                    "撮影用デバイスに対して動きます。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         FlowRowOf(spacing = 8) {
             OutlinedButton(onClick = actions.onLoadPresets, enabled = enabled) { Text("見本の3台に置き換える") }
             OutlinedButton(onClick = actions.onLockAll, enabled = enabled) { Text("全台を施錠中") }
