@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 02:10
+  summary: デバッグ版の撮影モードに、掲載用に目印を10分隠す操作を追加する（BL-249）
+  details:
+    変更内容: >-
+      リリースに向けたスクリーンショットの撮り直し（ユーザー指示、BL-250）の前提として、撮影モードの操作画面に
+      「目印を10分隠す」を追加した。押すと題名の横の「📷 撮影モード」と⋮メニューの「撮影モード」が10分間出なくなり、
+      主画面をタスクごと開き直す。判定は純Kotlinの`ShowcaseMarkHiding`（src/debug）へ切り出し、時計を戻して
+      終了時刻が10分より先になった場合は隠さない。リリース版には含まれず、挙動は変わらない。
+      README.mdの撮影モードの手順とDESIGN.mdへ追記した。実機（Pixel 8 Pro）で、押した後に主画面の目印と
+      メニュー項目が出ないことを確認した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMarkHiding.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMarkHidingTest.kt
+      - README.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。ShowcaseMarkHidingTest 3件を追加。
+
 - date: 2026-10-17 01:30
   summary: 「お知らせ」画面の解錠したままの通知の説明に、ダイヤル操作での解錠は対象外と明記する（BL-248）
   details:

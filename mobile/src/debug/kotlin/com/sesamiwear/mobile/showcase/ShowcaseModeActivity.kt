@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.showcase
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.mobile.MainActivity
 import com.sesamiwear.mobile.ui.SesameTheme
 import kotlinx.coroutines.launch
 
@@ -137,6 +139,14 @@ private fun ShowcaseModeScreen(onBack: () -> Unit) {
                             onLoadPresets = { run { ShowcaseSync.loadPresets(context) } },
                             onLockAll = { applyAll { it.copy(isLocked = true, ageMillis = 0) } },
                             onUnlockAll = { applyAll { it.copy(isLocked = false, ageMillis = 0) } },
+                            onHideMarks = {
+                                ShowcaseMode.hideMarks(context)
+                                // 主画面は作ったときの目印を持ち続けるため、タスクごと開き直して目印の無い画面にする。
+                                val intent =
+                                    Intent(context, MainActivity::class.java)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                context.startActivity(intent)
+                            },
                         ),
                 )
             }
@@ -158,6 +168,7 @@ private class ModeActions(
     val onLoadPresets: () -> Unit,
     val onLockAll: () -> Unit,
     val onUnlockAll: () -> Unit,
+    val onHideMarks: () -> Unit,
 )
 
 @Composable
@@ -193,10 +204,20 @@ private fun ModeSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // 掲載用にアプリ内の画面を撮るときの目印の隠し方（BL-249）。
+        Text(
+            text =
+                "【アプリ内の画面を掲載用に撮る】「目印を10分隠す」を押すと、主画面の「📷 撮影モード」と" +
+                    "⋮メニューの「撮影モード」が10分間出なくなります（撮影モードはオンのまま）。" +
+                    "10分たつと自動で戻ります。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         FlowRowOf(spacing = 8) {
             OutlinedButton(onClick = actions.onLoadPresets, enabled = enabled) { Text("見本の3台に置き換える") }
             OutlinedButton(onClick = actions.onLockAll, enabled = enabled) { Text("全台を施錠中") }
             OutlinedButton(onClick = actions.onUnlockAll, enabled = enabled) { Text("全台を解錠中") }
+            OutlinedButton(onClick = actions.onHideMarks, enabled = enabled) { Text("目印を10分隠す") }
         }
     }
 }

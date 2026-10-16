@@ -1484,6 +1484,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - メニュー項目と表示も`ShowcaseModeUi`（`src/debug`に実装、`src/release`に何も出さないスタブ）越しに
   呼ぶ。メニュー項目の型`ShowcaseMenuEntry`だけはmainに置く。
 - 撮影用の実行口・保存先・選択肢のテストは`src/testDebug`（デバッグ版の単体テストにだけ含まれる）。
+- **掲載用に目印を隠す（BL-249、2026-10-17のユーザー指示）。** 撮影モードの操作画面の「目印を10分隠す」で、
+  題名の横の「📷 撮影モード」と⋮メニューの項目を10分間出さない（`ShowcaseMarkHiding`。終了時刻を
+  `sesami_wear_showcase_mode`の`marks_hidden_until`へ保存し、時計を戻して10分より先になった場合は隠さない）。
+  メニュー項目も隠れて戻す操作を置けないため、時間で自動的に戻す。押すと主画面をタスクごと開き直す
+  （主画面は作ったときの目印を持ち続けるため）。撮影モード自体はオンのまま。アプリ内の画面を掲載用に撮るためのもの。
 - **0.14.3の追加機能の表示確認（BL-246、2026-10-15のユーザー指示）。** 撮影モード中は、Sesame実機・
   実資格情報なしで次を画面上で確かめられる（操作画面の説明文にも同じ内容を出す）。
   - ダイヤル操作（BL-243）: `DialActivity`は`ShowcaseMode.dialOperationsOrNull`が返せば撮影用の

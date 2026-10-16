@@ -29,6 +29,7 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 object ShowcaseMode {
     private const val MODE_PREFS_FILE_NAME = "sesami_wear_showcase_mode"
     private const val KEY_ACTIVE = "active"
+    private const val KEY_MARKS_HIDDEN_UNTIL = "marks_hidden_until"
     private const val CREDENTIALS_PREFS_FILE_NAME = "sesami_wear_showcase_credentials"
     private const val LOCK_STATE_PREFS_FILE_NAME = "sesami_wear_showcase_lock_state"
     private const val WIDGET_ASSIGNMENTS_PREFS_FILE_NAME = "sesami_wear_showcase_widget_assignments"
@@ -97,6 +98,22 @@ object ShowcaseMode {
         active: Boolean,
     ) {
         modePrefs(context).edit().putBoolean(KEY_ACTIVE, active).commit()
+    }
+
+    /** 撮影モードの目印をしばらく隠している最中か（BL-249。判定は[ShowcaseMarkHiding]）。 */
+    fun areMarksHidden(
+        context: Context,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    ): Boolean = ShowcaseMarkHiding.isHidden(modePrefs(context).getLong(KEY_MARKS_HIDDEN_UNTIL, 0L), nowEpochMillis)
+
+    /** 撮影モードの目印を今から[ShowcaseMarkHiding.HIDE_MILLIS]だけ隠す（BL-249）。 */
+    internal fun hideMarks(
+        context: Context,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    ) {
+        modePrefs(
+            context,
+        ).edit().putLong(KEY_MARKS_HIDDEN_UNTIL, ShowcaseMarkHiding.hiddenUntil(nowEpochMillis)).commit()
     }
 
     private fun modePrefs(context: Context) =
