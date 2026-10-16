@@ -176,6 +176,7 @@ private const val LOW_BATTERY_DESCRIPTION =
         "このための通信は行いません。"
 private const val UNLOCK_REMINDER_TITLE = "解錠したままのとき"
 private const val UNLOCK_REMINDER_DESCRIPTION =
-    "このアプリで解錠してからおよそ選んだ時間後に1回だけ状態を確かめ、解錠したままなら通知します。" +
+    "このアプリ（ダイヤル操作を除く）で解錠してからおよそ選んだ時間後に1回だけ状態を確かめ、" +
+        "解錠したままなら通知します。" +
         "その間にこのアプリで施錠すれば確かめません。確かめるときは、Bluetoothで届かなければ" +
         "Web APIのリクエストを1回使います。"

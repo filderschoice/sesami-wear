@@ -5,6 +5,22 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 01:30
+  summary: 「お知らせ」画面の解錠したままの通知の説明に、ダイヤル操作での解錠は対象外と明記する（BL-248）
+  details:
+    変更内容: >-
+      ユーザー指示に基づき、右上「⋮」→「お知らせ」のダイアログの「解錠したままのとき」の説明文を
+      「このアプリ（ダイヤル操作を除く）で解錠してから…」に改めた。ダイヤル操作は解錠したままの通知の予約を
+      差し込む実行口を通らないため（BL-247）。0.14.3のリリースノートの同じ説明も合わせた。挙動は変えていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。表示文言の変更のみでテストの追加は無い。
+
 - date: 2026-10-17 01:10
   summary: 撮影モードの説明文を、ダイヤル操作での解錠では解錠したままの通知が出ない仕様に合わせる（BL-247）
   details:
