@@ -5,6 +5,25 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 01:10
+  summary: 撮影モードの説明文を、ダイヤル操作での解錠では解錠したままの通知が出ない仕様に合わせる（BL-247）
+  details:
+    変更内容: >-
+      2026-10-17の撮影モードでの実機確認（BL-242）で、ダイヤル操作は`SesameBleClient`（撮影モードでは
+      撮影用の実行口）を直接使い`UnlockReminderCommands`を通らないため、ダイヤルでの解錠では解錠したままの
+      通知を予約しないことが分かった。撮影モードの操作画面の説明文が「解錠すると通知が出る」と読めたため、
+      ユーザー指示に基づき「ウィジェット・クイック設定のタイル・ウォッチから解錠すると」に改め、ダイヤル操作での
+      解錠は製品版と同じく対象外と明記した。挙動は変えていない。DESIGN.mdとUSER_GUIDE.mdにも同じ但し書きを足した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。説明文の変更のみでテストの追加は無い。
+
 - date: 2026-10-16 09:00
   summary: 0.14.3の追加機能をデバッグ版の撮影モードで実機なしに表示確認できるようにする（BL-246）
   details:
