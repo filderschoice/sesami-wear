@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 02:50
+  summary: 0.14.3の表示で掲載スクリーンショット（スマートフォン8点）とウィジェットのプレビュー画像を撮り直す（BL-250）
+  details:
+    変更内容: >-
+      リリースに向けたユーザー指示に基づき、Pixel 8 Pro実機のデバッグ版・撮影モード（見本の3台、ダークテーマ）で
+      phone_1〜phone_7を撮り直し、ダイヤル操作のphone_8_dial.pngを加えた。アプリ内の画面は「目印を10分隠す」（BL-249）
+      を押してから撮り、Skill store-screenshot-maskingでステータスバー（ホーム画面はドックも）をモザイク、壁紙をぼかし、
+      1350x2400へ整えた。編集画面のapikey欄は保存せずにダミー値へ打ち替えて撮った。phone_1からウィジェット一覧の
+      プレビュー画像（widget_preview.png / widget_preview_small.png）を`scripts/make-widget-previews.py`で作り直した。
+      ウォッチの6点は表示に影響する変更が無いため据え置いた。docs/store/README.md・STORE_LISTING.md、
+      Skill store-screenshot-maskingの手順を更新した。元画像はGit管理外のcaptures/に置いている。
+    変更ファイル:
+      - docs/store/images/screenshots/phone_1_widget_locked.png
+      - docs/store/images/screenshots/phone_2_widget_unlock_confirm.png
+      - docs/store/images/screenshots/phone_3_widget_unlocked.png
+      - docs/store/images/screenshots/phone_4_device_list.png
+      - docs/store/images/screenshots/phone_5_menu.png
+      - docs/store/images/screenshots/phone_6_device_edit.png
+      - docs/store/images/screenshots/phone_7_help.png
+      - docs/store/images/screenshots/phone_8_dial.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview_small.png
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - .claude/skills/store-screenshot-masking/SKILL.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。加工後の画像は縮小版で、目印・実機の状態が写っていないことを確認した。
+
 - date: 2026-10-17 02:10
   summary: デバッグ版の撮影モードに、掲載用に目印を10分隠す操作を追加する（BL-249）
   details:
