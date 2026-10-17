@@ -30,6 +30,7 @@
         <span>Sesami Wear</span>
       </a>
       <nav class="nav" aria-label="ページ内の移動">
+        <a href="#flow">操作の流れ</a>
         <a href="#features">機能</a>
         <a href="#screens">画面</a>
         <a href="#how">仕組み</a>
@@ -61,6 +62,37 @@
         <div class="hero-visual">
           <img src="assets/phone-widget.png" alt="スマートフォンのホーム画面に置いた Sesami Wear の大小2つのウィジェット。全デバイスが施錠中の状態と取得日時、更新・変更のボタンが表示されている（壁紙とステータスバーはぼかし加工）" width="450" height="800">
         </div>
+      </div>
+    </section>
+
+    <!-- ================= 操作の流れ ================= -->
+    <section id="flow">
+      <div class="container">
+        <h2>操作の流れ</h2>
+        <p class="section-lead">解錠までの操作は 3 ステップです。施錠は確認なしの 1 タップで、結果は振動で伝わります。</p>
+        <div class="flow-grid">
+          <div class="demo" role="img" aria-label="ウォッチの操作イメージ。タイルをタップし、確認画面で全解錠を押すと、タイルが解錠中の表示に変わる（約9秒で繰り返すアニメーション）">
+            <img class="demo-frame f1" src="assets/wear-tile-locked.png" alt="" width="384" height="384">
+            <img class="demo-frame f2" src="assets/wear-unlock-confirm.png" alt="" width="384" height="384">
+            <img class="demo-frame f3" src="assets/wear-3-tile-unlocked.png" alt="" width="384" height="384">
+            <p class="demo-caption c1">① タイルの大きなボタンをタップ</p>
+            <p class="demo-caption c2">② 確認画面で「全解錠」を押す</p>
+            <p class="demo-caption c3">③ 解錠。成功は振動でも伝わる</p>
+          </div>
+          <ol class="flow-steps">
+            <li><strong>タップ</strong>タイルのボタンが、現在の状態と次の操作を示します。</li>
+            <li><strong>確認</strong>解錠だけは確認を挟み、手首が当たった程度では開きません。施錠は確認なしです。</li>
+            <li><strong>結果</strong>成功と失敗は異なる振動パターンで伝わります。画面を見返す必要はありません。</li>
+          </ol>
+        </div>
+        <h3 class="spaced">スマートフォンのウィジェットでも同じ操作</h3>
+        <ul class="flow-row">
+          <li><img class="phone" src="assets/phone-widget.png" alt="ホーム画面のウィジェット。全デバイスが施錠中で、全解錠のボタンが緑色に表示されている" width="450" height="800" loading="lazy"><span>① 施錠中のウィジェットをタップ</span></li>
+          <li class="arrow" aria-hidden="true">→</li>
+          <li><img class="phone" src="assets/phone-2-widget-unlock-confirm.png" alt="ウィジェットの下に「全デバイスを解錠しますか？」の確認ダイアログが出ている" width="450" height="800" loading="lazy"><span>② 確認ダイアログで「全解錠」</span></li>
+          <li class="arrow" aria-hidden="true">→</li>
+          <li><img class="phone" src="assets/phone-3-widget-unlocked.png" alt="ウィジェットが赤色の「解錠中」の表示に変わっている" width="450" height="800" loading="lazy"><span>③ 赤い「解錠中」に変わる</span></li>
+        </ul>
       </div>
     </section>
 
@@ -134,6 +166,7 @@
     <section id="screens">
       <div class="container">
         <h2>画面</h2>
+        <h3>ウォッチ</h3>
         <p class="section-lead">Pixel Watch 2 での表示です（0.14.0。コンプリケーションは以前の版で撮影）。</p>
         <!-- TEMPLATE: 画面のスクリーンショット（1 枚 = 1 つの li。不要ならセクションごと削除） -->
         <ul class="features">
@@ -156,6 +189,45 @@
             <img src="assets/wear-complication.png" alt="ウォッチフェイス。時刻の下に並ぶコンプリケーションのひとつに「施錠」と表示されている" width="384" height="384">
             <h3>コンプリケーション</h3>
             <p>文字盤から現在の状態を確認できます。</p>
+          </li>
+          <li class="card">
+            <img src="assets/wear-3-tile-unlocked.png" alt="ウォッチのタイル。全デバイスが解錠中で、タップで全施錠できることを示す赤いボタンが表示されている" width="384" height="384" loading="lazy">
+            <h3>タイル（解錠中）</h3>
+            <p>もう一度タップすれば、確認なしで全施錠します。</p>
+          </li>
+          <li class="card">
+            <img src="assets/wear-6-device-select.png" alt="ウォッチのデバイス選択画面。タイルで操作する対象のデバイスを選ぶ一覧" width="384" height="384" loading="lazy">
+            <h3>操作対象の選択</h3>
+            <p>玄関・勝手口など、タイルごとに操作する Sesame を選べます。</p>
+          </li>
+        </ul>
+        <h3 class="spaced">スマートフォン</h3>
+        <p class="section-lead">Pixel 8 Pro での表示です（0.14.3。個人情報の写る部分は加工しています）。</p>
+        <ul class="features">
+          <li class="card">
+            <img class="phone" src="assets/phone-4-device-list.png" alt="アプリのデバイス一覧。玄関・勝手口・ガレージの3台が、施錠状態・電池残量・経路とともに並ぶ" width="450" height="800" loading="lazy">
+            <h3>デバイス一覧</h3>
+            <p>状態・電池残量・操作した経路を、デバイスごとに確認できます。</p>
+          </li>
+          <li class="card">
+            <img class="phone" src="assets/phone-8-dial.png" alt="ダイヤル操作の画面。円の中の針でサムターンの角度を示し、円を半周なぞると施錠・解錠できる" width="450" height="800" loading="lazy">
+            <h3>ダイヤル操作</h3>
+            <p>サムターンを回す感覚で、円を半周なぞって施錠・解錠します。</p>
+          </li>
+          <li class="card">
+            <img class="phone" src="assets/phone-6-device-edit.png" alt="Sesame の編集画面。表示名・uuid・apikey・secretKey の入力欄が並ぶ（画面の値はダミー）" width="450" height="800" loading="lazy">
+            <h3>資格情報の登録</h3>
+            <p>3 点を入力するだけ。端末内に暗号化して保存します（画面の値はダミー）。</p>
+          </li>
+          <li class="card">
+            <img class="phone" src="assets/phone-5-menu.png" alt="アプリのメニュー。操作の経路、通知、ヘルプ、操作履歴（診断ログ）の項目が並ぶ" width="450" height="800" loading="lazy">
+            <h3>設定メニュー</h3>
+            <p>経路の優先順位や通知、操作履歴（診断ログ）をここから設定します。</p>
+          </li>
+          <li class="card">
+            <img class="phone" src="assets/phone-7-help.png" alt="アプリ内ヘルプ。値の取得方法やデモで試す方法などの項目が一覧になっている" width="450" height="800" loading="lazy">
+            <h3>アプリ内ヘルプ</h3>
+            <p>値の取得方法やデモの使い方を、アプリの中で確認できます。</p>
           </li>
         </ul>
       </div>
