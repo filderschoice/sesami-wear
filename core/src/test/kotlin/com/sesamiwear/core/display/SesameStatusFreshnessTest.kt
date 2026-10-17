@@ -53,6 +53,22 @@ class SesameStatusFreshnessTest {
     }
 
     @Test
+    fun `date time label shows the fetch date and time regardless of elapsed time`() {
+        assertEquals("未取得", SesameStatusFreshness.dateTimeLabel(null, ZONE))
+        assertEquals("9/18 12:00", SesameStatusFreshness.dateTimeLabel(NOW, ZONE))
+        assertEquals("9/18 11:05", SesameStatusFreshness.dateTimeLabel(NOW - 55 * 60_000L, ZONE))
+        assertEquals("12/31 08:00", SesameStatusFreshness.dateTimeLabel(instantOf(2025, 12, 31, 8), ZONE))
+    }
+
+    @Test
+    fun `date time label uses the given zone`() {
+        val utcEvening = instantOf(2026, 9, 16, 20, ZoneId.of("UTC"))
+
+        assertEquals("9/16 20:00", SesameStatusFreshness.dateTimeLabel(utcEvening, ZoneId.of("UTC")))
+        assertEquals("9/17 05:00", SesameStatusFreshness.dateTimeLabel(utcEvening, ZONE))
+    }
+
+    @Test
     fun `aggregate uses the oldest timestamp`() {
         assertEquals(100L, SesameStatusFreshness.oldestOf(listOf(300L, 100L, 200L)))
     }

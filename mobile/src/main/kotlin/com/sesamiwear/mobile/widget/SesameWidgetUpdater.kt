@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
+import com.sesamiwear.mobile.quicksettings.SesameQuickSettingsTileService
 
 /**
  * ホーム画面ウィジェットの再描画を要求する（BL-121）。資格情報の保存・削除、対象デバイスの割り当て、
@@ -16,8 +17,12 @@ object SesameWidgetUpdater {
      *
      * 初期サイズ違いの2種類（[SesameWidget] / [SesameWidgetSmall]、BL-186）はレシーバが別のため、
      * **両方のクラスを走査する**。片方だけだと、もう一方で置いたウィジェットへ再描画が届かない。
+     *
+     * クイック設定パネルのタイル（BL-240）も同じ保存値から描くため、ここで描き直しを要求する。
+     * 操作の開始・終了とロック状態の変化はすべてこの関数を通るため、契機を1か所にまとめられる。
      */
     suspend fun updateAll(context: Context) {
+        SesameQuickSettingsTileService.requestUpdate(context)
         val manager = GlanceAppWidgetManager(context)
         listOf(SesameWidget(), SesameWidgetSmall()).forEach { widget ->
             manager.getGlanceIds(widget.javaClass).forEach { refresh(context, widget, it) }

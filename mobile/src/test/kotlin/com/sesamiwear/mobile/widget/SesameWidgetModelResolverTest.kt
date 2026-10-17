@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
+import com.sesamiwear.core.display.SesameStatusFreshness
 import com.sesamiwear.core.display.SesameTileContent
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -29,7 +30,6 @@ class SesameWidgetModelResolverTest {
         registeredDevices = registered,
         snapshotOf = { uuid -> snapshotOf(uuid) },
         isCommandInProgress = isCommandInProgress,
-        nowEpochMillis = NOW,
     )
 
     private fun snapshotOf(uuid: String): SesameStatusSnapshot? {
@@ -167,7 +167,7 @@ class SesameWidgetModelResolverTest {
         lockStates["uuid-front"] = true
         updatedAtMillis["uuid-front"] = NOW - 5 * 60_000L
 
-        assertEquals("5分前", configured(resolve("uuid-front", listOf(front))).detailLabel)
+        assertEquals(dateTime(NOW - 5 * 60_000L), configured(resolve("uuid-front", listOf(front))).detailLabel)
     }
 
     @Test
@@ -184,7 +184,7 @@ class SesameWidgetModelResolverTest {
 
         val model = configured(resolve(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, listOf(front, back)))
 
-        assertEquals("1時間前", model.detailLabel)
+        assertEquals(dateTime(NOW - 90 * 60_000L), model.detailLabel)
     }
 
     @Test
@@ -247,7 +247,7 @@ class SesameWidgetModelResolverTest {
         val model = configured(resolve(front.uuid, listOf(front)))
 
         assertEquals(85, model.batteryPercentage)
-        assertEquals("たった今 🔋85%", model.detailWithBatteryLabel)
+        assertEquals("${dateTime(NOW)} 🔋85%", model.detailWithBatteryLabel)
     }
 
     @Test
@@ -257,7 +257,7 @@ class SesameWidgetModelResolverTest {
         val model = configured(resolve(front.uuid, listOf(front)))
 
         assertEquals(null, model.batteryPercentage)
-        assertEquals("たった今", model.detailWithBatteryLabel)
+        assertEquals(dateTime(NOW), model.detailWithBatteryLabel)
     }
 
     @Test
@@ -293,7 +293,7 @@ class SesameWidgetModelResolverTest {
         val model = configured(resolve(front.uuid, listOf(front)))
 
         assertEquals(SesameStatusRoute.BLE, model.route)
-        assertEquals("3分前", model.detailLabel)
+        assertEquals(dateTime(NOW - 3 * 60_000L), model.detailLabel)
     }
 
     @Test
@@ -316,8 +316,11 @@ class SesameWidgetModelResolverTest {
         assertEquals(null, model.detailWithBatteryLabel)
     }
 
+    /** 端末のタイムゾーンでの「M/d HH:mm」。実装と同じ既定のタイムゾーンで期待値を作る。 */
+    private fun dateTime(epochMillis: Long): String = SesameStatusFreshness.dateTimeLabel(epochMillis)
+
     private companion object {
-        // 2026-09-18 12:00 JST 相当の固定値。相対表記の判定だけに使うため、日付の意味は持たせない。
+        // 取得時刻の固定値。日付表記はテスト実行環境のタイムゾーンに依存するため[dateTime]で期待値を作る。
         const val NOW = 1_789_700_000_000L
     }
 }

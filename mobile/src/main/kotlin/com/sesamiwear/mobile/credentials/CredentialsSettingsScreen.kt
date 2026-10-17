@@ -17,7 +17,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -103,6 +102,7 @@ fun CredentialsSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             onEdit = { editorTarget = EditorTarget(editing = it) },
             onDelete = { deleteTarget = it },
+            onAdd = { editorTarget = EditorTarget(editing = null) },
         )
     }
 }
@@ -134,7 +134,7 @@ private fun AddDeviceButton(onClick: () -> Unit) {
 }
 
 /**
- * 画面本体（BL-177）。今月のAPI呼び出し回数とデバイスのカードを縦に並べる。
+ * 画面本体（BL-177）。今月のAPI呼び出し回数とデバイスのカードを縦に並べる。未登録なら登録を促す表示（BL-245）。
  * 画面全体が縦スクロールする（もとは`Column`の中に`LazyColumn`が入れ子になっており、
  * 一覧の外側はスクロールできなかった）。接続の設定は設定メニューへ移した（BL-180）。
  */
@@ -144,22 +144,18 @@ private fun DeviceListContent(
     modifier: Modifier,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
+    onAdd: () -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                text = ApiUsageCounter.label(rememberApiUsageCount()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        // 未登録のときは回数が常に0で意味が無いため、登録を促す表示だけにする（BL-245）。
         if (devices.isEmpty()) {
-            item { Text(text = EMPTY_MESSAGE, style = MaterialTheme.typography.bodyMedium) }
+            item { EmptyDeviceState(onAdd = onAdd) }
         } else {
+            item { ApiUsageCard(count = rememberApiUsageCount()) }
             items(devices, key = { it.uuid }) { credentials ->
                 DeviceCard(
                     credentials = credentials,
@@ -213,7 +209,6 @@ private data class EditorTarget(val editing: SesameCredentials?)
 private const val SCREEN_TITLE = "Sesami Wear"
 private const val ADD_LABEL = "Sesameを追加"
 private const val SAVED_MESSAGE = "保存しました"
-private const val EMPTY_MESSAGE = "まだSesameが登録されていません。右下の「Sesameを追加」から登録してください。"
 private const val DELETE_WARNING =
     "登録した資格情報と、このセサミの状態が端末から消えます。" +
         "登録し直すにはSESAME Bizからapikey・secretKeyを取り直す必要があります。"

@@ -29,6 +29,7 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
         private const val API_USAGE_PREFS_FILE_NAME = "sesami_wear_api_usage"
         private const val BLE_REACHABILITY_PREFS_FILE_NAME = "sesami_wear_ble_reachability"
         private const val DIAGNOSTICS_PREFS_FILE_NAME = "sesami_wear_diagnostics"
+        private const val ALERTS_PREFS_FILE_NAME = "sesami_wear_alerts"
 
         /** ロック状態（[LockStateStore]）用のストア。 */
         fun forLockState(context: Context): SharedPreferencesKeyValueStore = create(context, LOCK_STATE_PREFS_FILE_NAME)
@@ -53,6 +54,12 @@ class SharedPreferencesKeyValueStore(private val prefs: SharedPreferences) : Ses
          */
         fun forDiagnostics(context: Context): SharedPreferencesKeyValueStore =
             create(context, DIAGNOSTICS_PREFS_FILE_NAME)
+
+        /**
+         * 「お知らせ」の設定と通知済みの記録（`mobile.alert`、BL-238 / BL-241）用のストア。
+         * 設定値とuuidごとの真偽だけで機密情報を含まないため非暗号化でよい。
+         */
+        fun forAlerts(context: Context): SharedPreferencesKeyValueStore = create(context, ALERTS_PREFS_FILE_NAME)
 
         private fun create(
             context: Context,

@@ -12,6 +12,10 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.mobile.alert.SesameAlertSettingsStore
+import com.sesamiwear.mobile.alert.SesameAlerts
+import com.sesamiwear.mobile.alert.UnlockReminderCommands
+import com.sesamiwear.mobile.alert.UnlockReminderWorker
 import com.sesamiwear.mobile.ble.SesameBleAddressCache
 import com.sesamiwear.mobile.ble.SesameBleClient
 import com.sesamiwear.mobile.ble.SesameBlePermissions
@@ -49,20 +53,44 @@ object SesameDeviceCommandExecutorFactory {
     /**
      * 施錠/解錠・状態取得の実行口を返す。デバッグ版の撮影モード中は、実物へ一切通信しない
      * 撮影用の実行口を返す（BL-212、[ShowcaseMode]）。リリース版では常に実物の実行口になる。
+     * 撮影用の実行口にも解錠したままの通知の予約を差し込み、実機なしで通知まで確かめられるようにする（BL-246）。
      */
-    fun create(context: Context): SesameDeviceCommands =
-        ShowcaseMode.commandsOrNull(context.applicationContext) ?: createExecutor(context.applicationContext)
+    fun create(context: Context): SesameDeviceCommands {
+        val appContext = context.applicationContext
+        return withUnlockReminder(appContext, ShowcaseMode.commandsOrNull(appContext) ?: createExecutor(appContext))
+    }
+
+    /**
+     * 解錠したままの通知（BL-241）の予約を差し込む。解錠の成功で予約し、施錠の成功で取り消す。
+     * 分数は操作のたびに設定から読む（設定を変えた直後から効かせるため）。
+     */
+    private fun withUnlockReminder(
+        appContext: Context,
+        delegate: SesameDeviceCommands,
+    ): SesameDeviceCommands {
+        val settings = SesameAlertSettingsStore(SharedPreferencesKeyValueStore.forAlerts(appContext))
+        return UnlockReminderCommands(
+            delegate = delegate,
+            scheduler = UnlockReminderWorker.Scheduler(appContext),
+            reminderMinutes = settings::unlockReminderMinutes,
+        )
+    }
 
     /** 実物の実行口。保存先は撮影モードに関わらず実物のものを直接開く（[SesameDeviceStores]を通さない）。 */
     private fun createExecutor(appContext: Context): SesameDeviceCommandExecutor {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(appContext))
         val apiUsageCounter = ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(appContext))
+        val alerts = SesameAlerts(appContext, credentialsStore::loadAll)
         return SesameDeviceCommandExecutor(
             loadCredentials = credentialsStore::loadAll,
             lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)),
             notifier =
                 LockStateNotifier(
-                    local = { _, _ -> SesameWidgetUpdater.updateAll(appContext) },
+                    local = { uuid, snapshot ->
+                        SesameWidgetUpdater.updateAll(appContext)
+                        // 電池残量が少なくなったときの通知（BL-238）。取得・操作の結果に含まれる値だけで判定する。
+                        alerts.onStatusChanged(uuid, snapshot)
+                    },
                     watch = { uuid, snapshot -> SesameStatusSyncer(appContext).sync(uuid, snapshot) },
                 ),
             routes =

@@ -34,16 +34,18 @@ object SesameStatusDetail {
             failure?.shortLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId),
         )
 
-    /** ホーム画面ウィジェット向け（表示領域に余裕がある面）。 */
+    /**
+     * ホーム画面ウィジェット向け（表示領域に余裕がある面）。鮮度は次の描画まで変わらない相対表記ではなく
+     * 取得日時（「9/18 12:05」）で出す。
+     */
     fun detailedLabel(
         failure: SesameStatusFailure?,
         updatedAtEpochMillis: Long?,
-        nowEpochMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
         route: SesameStatusRoute? = null,
     ): String =
         SesameRouteLabel.withIcon(
             route,
-            failure?.detailedLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId),
+            failure?.detailedLabel ?: SesameStatusFreshness.dateTimeLabel(updatedAtEpochMillis, zoneId),
         )
 }

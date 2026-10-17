@@ -84,7 +84,7 @@ sealed interface SesameWidgetModel {
  * 通信中の表示（IN_PROGRESS）はタップ操作（BL-122）で[isCommandInProgress]を渡す。
  *
  * 状態は保存済みスナップショット（[SesameStatusSnapshot]）から読み、状態文言の下へ添える1行
- * （最後に取得した時刻の古さ、または直近の失敗の理由）もあわせて決める（BL-142 / BL-140）。
+ * （最後に取得した日時、または直近の失敗の理由）もあわせて決める（BL-142 / BL-140）。
  * 自動状態取得を廃止したため表示は最後に分かった状態を出し続ける。「全デバイス」対象では
  * 最も古い取得時刻を代表値とし、1台でも未取得なら全体を「未取得」とする。失敗は1台でもあれば
  * 表示し、利用者が対処できる認証エラーを優先する。
@@ -95,7 +95,6 @@ object SesameWidgetModelResolver {
         registeredDevices: List<SesameDeviceSummary>,
         snapshotOf: (String) -> SesameStatusSnapshot?,
         isCommandInProgress: Boolean = false,
-        nowEpochMillis: Long = System.currentTimeMillis(),
     ): SesameWidgetModel {
         val uuid = assignedUuid ?: return SesameWidgetModel.Unconfigured
         val targetUuids = targetUuidsOf(uuid, registeredDevices)
@@ -108,7 +107,7 @@ object SesameWidgetModelResolver {
                 displayName = SesameDeviceTargets.displayName(uuid, registeredDevices),
                 state = state,
                 isAllDevices = SesameDeviceTargets.isAllDevices(uuid),
-                detailLabel = detailLabelOf(targetUuids, snapshotOf, nowEpochMillis),
+                detailLabel = detailLabelOf(targetUuids, snapshotOf),
                 batteryPercentage = batteryPercentageOf(targetUuids, snapshotOf),
                 route = routeOf(targetUuids, snapshotOf),
             )
@@ -189,7 +188,6 @@ object SesameWidgetModelResolver {
     private fun detailLabelOf(
         targetUuids: List<String>,
         snapshotOf: (String) -> SesameStatusSnapshot?,
-        nowEpochMillis: Long,
     ): String? =
         if (targetUuids.isEmpty()) {
             null
@@ -201,7 +199,6 @@ object SesameWidgetModelResolver {
             SesameStatusDetail.detailedLabel(
                 failure = SesameStatusFailure.worstOf(snapshots.map { it?.lastFailure }),
                 updatedAtEpochMillis = SesameStatusFreshness.oldestOf(snapshots.map { it?.updatedAtEpochMillis }),
-                nowEpochMillis = nowEpochMillis,
             )
         }
 }

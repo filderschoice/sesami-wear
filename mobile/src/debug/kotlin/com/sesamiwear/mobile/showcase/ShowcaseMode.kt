@@ -1,10 +1,12 @@
 package com.sesamiwear.mobile.showcase
 
 import android.content.Context
+import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameKeyValueStore
 import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameDeviceCommands
+import com.sesamiwear.mobile.dial.DialOperations
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.state.LockStateStore
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -27,6 +29,7 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
 object ShowcaseMode {
     private const val MODE_PREFS_FILE_NAME = "sesami_wear_showcase_mode"
     private const val KEY_ACTIVE = "active"
+    private const val KEY_MARKS_HIDDEN_UNTIL = "marks_hidden_until"
     private const val CREDENTIALS_PREFS_FILE_NAME = "sesami_wear_showcase_credentials"
     private const val LOCK_STATE_PREFS_FILE_NAME = "sesami_wear_showcase_lock_state"
     private const val WIDGET_ASSIGNMENTS_PREFS_FILE_NAME = "sesami_wear_showcase_widget_assignments"
@@ -64,6 +67,22 @@ object ShowcaseMode {
         )
     }
 
+    /**
+     * ダイヤル操作画面（BL-243）の撮影用の操作（BL-246）。Bluetoothを使わず、撮影用の状態を読み書きする。
+     * 撮影モード中でなければnull（実物の[com.sesamiwear.mobile.dial.DialController]を使う）。
+     */
+    fun dialOperationsOrNull(
+        context: Context,
+        credentials: SesameCredentials,
+    ): DialOperations? {
+        val commands = commandsOrNull(context) ?: return null
+        return ShowcaseDialOperations(
+            uuid = credentials.uuid,
+            lockStateStore = showcaseLockStateStore(context.applicationContext),
+            commands = commands,
+        )
+    }
+
     /** 撮影用デバイスの保存値（施錠状態など）。撮影モード中でなくても撮影用の保存先から読む。 */
     fun showcaseLockStateStore(context: Context): LockStateStore =
         LockStateStore(prefsStore(context, LOCK_STATE_PREFS_FILE_NAME))
@@ -79,6 +98,22 @@ object ShowcaseMode {
         active: Boolean,
     ) {
         modePrefs(context).edit().putBoolean(KEY_ACTIVE, active).commit()
+    }
+
+    /** 撮影モードの目印をしばらく隠している最中か（BL-249。判定は[ShowcaseMarkHiding]）。 */
+    fun areMarksHidden(
+        context: Context,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    ): Boolean = ShowcaseMarkHiding.isHidden(modePrefs(context).getLong(KEY_MARKS_HIDDEN_UNTIL, 0L), nowEpochMillis)
+
+    /** 撮影モードの目印を今から[ShowcaseMarkHiding.HIDE_MILLIS]だけ隠す（BL-249）。 */
+    internal fun hideMarks(
+        context: Context,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    ) {
+        modePrefs(
+            context,
+        ).edit().putLong(KEY_MARKS_HIDDEN_UNTIL, ShowcaseMarkHiding.hiddenUntil(nowEpochMillis)).commit()
     }
 
     private fun modePrefs(context: Context) =

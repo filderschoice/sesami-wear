@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.sesamiwear.mobile.credentials.CredentialsSettingsScreen
+import com.sesamiwear.mobile.shortcut.AppShortcutPublisher
 import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.ui.SesameTheme
@@ -29,6 +30,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         showcaseActiveAtCreate = ShowcaseMode.isActive(applicationContext)
         val credentialsStore = SesameDeviceStores.credentials(applicationContext)
+        // アプリアイコン長押しメニュー（BL-239）。失敗してもアプリ本体の表示は妨げない。
+        lifecycleScope.launch {
+            EntryPointGuard.run(onFailure = { Log.w(TAG, "shortcut publish failed: $it") }) {
+                AppShortcutPublisher.publish(applicationContext)
+            }
+        }
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
             LaunchedEffect(isDarkTheme) { applySystemBarIcons(isDarkTheme) }

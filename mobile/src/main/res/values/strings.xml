@@ -5,4 +5,6 @@
     <!-- 2x1版（BL-186）。一覧で4x2版と区別できるよう、名前と説明に大きさを書く。 -->
     <string name="widget_label_small">Sesami Wear（小）</string>
     <string name="widget_description_small">名前と状態だけの小さい表示。置いたあとで大きさを変えられます</string>
+    <!-- クイック設定パネルのタイル（BL-240）の追加画面に出る名前。 -->
+    <string name="qs_tile_label">Sesame</string>
 </resources>

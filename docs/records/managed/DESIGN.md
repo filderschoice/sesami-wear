@@ -173,6 +173,12 @@
   既に参考値であり日付まで分かれば足りるため。端末時計のずれで未来の時刻が保存されていた場合も
   「たった今」へ丸める。日付表記のタイムゾーンは引数で受け、既定は端末のタイムゾーン
   （`java.time`はminSdk 26で利用でき、desugaringは不要）。
+- ホーム画面ウィジェットだけは相対表記を使わず、経過時間によらず取得日時「M/d HH:mm」（例「9/18 12:05」、
+  `SesameStatusFreshness.dateTimeLabel`、未取得は「未取得」）を出す（BL-236）。ウィジェットは状態変化の
+  通知があるまで再描画されず、「たった今」「3分前」の文言が次の描画まで固まるため、利用者がいつ取得した
+  状態かを判断できなくなっていた。`SesameStatusDetail.detailedLabel`（ウィジェット専用）が使い、
+  `nowEpochMillis`引数は不要になったため削除した。Tile・Complication・ウォッチの状態一覧・スマートフォンの
+  デバイス一覧は従来の相対表記のまま（文字数の余裕がない面があるため、本変更の対象外）。
 - 「全デバイス」対象では`oldestOf`が最も古い取得時刻を代表値として返し、1台でも未取得なら全体を
   未取得（null）として扱う。集約状態の判定（`TileDisplayStateResolver.resolveAggregate`が1台でも
   未取得なら「状態不明」にする）と同じ、最悪値を採る考え方で揃えている。
@@ -244,6 +250,8 @@
   ウィジェット（暗色固定）・Tile（黒背景）とも食い違っていた。
   **Material Youの動的カラーは使わない。** 施錠状態の色（緑／赤／紫、`SesameTileContent`）が
   壁紙由来の色と競合し、状態の読み取りを鈍らせるため。テーマは地の色だけを担う。
+  **主色はアプリアイコン・ストア画像と同じ紺`#1E3A5F`**（BL-245、2026-10-15のユーザー判断。それまでは
+  M3既定の紫系）。ライトは紺そのもの、ダークは紺を明るくした`#A4C8FF`を主色にし、面の色はM3の既定のまま。
   Activityのウィンドウ側は`res/values/themes.xml`と`res/values-night/themes.xml`の
   `Theme.SesamiWear` / `Theme.SesamiWear.Dialog`（AppCompatを使わないため親はplatformの
   `Theme.Material`系）。システムバーのアイコン色は`MainActivity.applySystemBarIcons`が
@@ -254,11 +262,16 @@
   入力フォームが1画面へ縦に並び、文字ばかりで情報の区切りが見えなかった。現在の構成:
   - 画面全体が1つの`LazyColumn`で縦スクロールする。もとは`Column`の中に`LazyColumn`が入れ子に
     なっており、一覧の外側（入力フォーム）はスクロールできなかった。
-  - 1台＝1枚の`Card`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のアイコンと
+  - 1台＝1枚の`ElevatedCard`（`mobile.credentials.DeviceCard`）。行を3つに分け、(1) 施錠状態のバッジと
     表示名、(2) 施錠状態・電池残量・角度、(3) 最後に取得した時刻（または失敗の理由）と経路、を出す。
     **1行へ詰め込まない**（詰め込むと端末の幅に収まらず折り返される）。行の組み立ては
     `core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
-    編集・削除はカード内のアイコンボタン（`Icons.Default.Edit` / `Icons.Default.Delete`）。
+    BL-245で見た目を整理した: 施錠状態は絵文字ではなく**状態色（`SesameTileContent`の緑・赤・紫・灰）の
+    丸いバッジに錠のアイコン**（絵文字は端末のフォントで見た目が変わり、色で読めなかったため）。
+    編集・削除はカード右上の⋮メニューへまとめ、カード下部に「ダイヤル操作」（BL-243）の文字付きボタンを置く。
+  - 一覧の先頭は今月のAPI呼び出し回数の要約カード（`ApiUsageCard`、回数を大きく出し目安である旨を注記）。
+    未登録のときは要約カードを出さず、錠のアイコン・説明・「Sesameを追加」・ヘルプへの導線を並べた
+    空状態（`EmptyDeviceState`）を出す（BL-245）。
   - **追加・編集は全画面ダイアログ**（`mobile.credentials.CredentialsEditorDialog`、BL-178）。
     `Dialog`＋`DialogProperties(usePlatformDefaultWidth = false)`で、上部に「×」（キャンセル）と
     「保存」を置く。`enabled = isInputValid`の制御は従来どおり（BL-024）。
@@ -329,6 +342,9 @@
 
 うまく動かないときに、利用者から内容を連携してもらって解析するための記録（BL-188）。
 上部バーの設定メニュー（BL-180）から全画面ダイアログで開く。
+利用者向けの名前は「**操作履歴（診断ログ）**」（BL-237、2026-10-15のユーザー判断）。操作の履歴を
+探す利用者が見つけられるよう、メニューとダイアログの表題を改名した。専用の履歴画面は中身が
+重複するため作らない。
 
 - 記録するのは施錠・解錠・状態取得の**成功と失敗の両方**で、直近50件
   （2026-09-20のユーザー判断。失敗だけだと「そのとき何が起きていたか」の前後関係が分からないため）。
@@ -348,6 +364,95 @@
   Androidのバージョン・機種名だけを添える（端末を特定できるシリアル・広告IDは載せない）。
 - 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
   `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
+
+### クイック設定パネルのタイル（スマートフォン）
+
+通知シェードのクイック設定パネルへ「Sesame」タイルを出す（BL-240、`SesameQuickSettingsTileService`）。
+
+- パネルのタイルは端末に1つで対象を選ぶ画面を持たせにくいため、対象は**登録1台ならその1台、2台以上なら
+  全デバイス**に固定する（`QuickSettingsTileContent.targetUuid`）。
+- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中→解錠の
+  確認画面、解錠中・一部解錠→確認なしで施錠、通信中→何もしない）。ウィジェットとの差分は2つで、
+  (1) 状態不明のタップは状態の取得しなおし（パネルに「更新」を置けないため）、(2) 表示名が未設定のときは
+  uuidではなく「Sesame」と出す（パネルはロック画面からも見えるため）。判定は`QuickSettingsTileContent`
+  （Android非依存、ユニットテスト対象）。
+- タイルの状態は施錠中＝`STATE_ACTIVE`、通信中＝`STATE_UNAVAILABLE`、それ以外＝`STATE_INACTIVE`。
+- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、解錠は同じ`WidgetUnlockConfirmActivity`へ
+  渡す。確認画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
+- 描き直しは`onStartListening`（パネルを開いたとき）と、`SesameWidgetUpdater.updateAll`からの
+  `requestListeningState`（操作の開始・終了、ロック状態の変化）。**表示のために通信はしない**（BL-142）。
+- `ACTIVE_TILE`は宣言しない。サービスは`BIND_QUICK_SETTINGS_TILE`で守る。
+
+### ダイヤル操作（スマートフォンのみ、Bluetooth限定）
+
+施錠・解錠が効かないときなどの緊急時に、手元のスマートフォンからBluetoothで直接回す画面（BL-243、
+2026-10-15のユーザー指示）。デバイスカードの錠アイコンから`DialActivity`を開く。
+
+- **Bluetoothでのみ操作し、Web APIへは倒さない。** 通常の実行口（`SesameDeviceCommandExecutor`）は届かなければ
+  Web APIへ倒すため使わず、`DialController`が`SesameBleClient`を直接呼ぶ（上限は既定の合計12秒。前景で
+  待つ操作のため、ウィジェットの受信の制限時間に縛られない）。届かない・権限が無い・ログインできない
+  ときは理由と対処を出して何もしない。
+- 開いたときにBLEで状態（`MECH_STATUS`）を読み、角度（`position`）を針で描く。`position`は度として扱う
+  （実測で施錠-180・解錠-270と差が90で、サムターンの回転量と合うため。厳密な単位は未確認）。
+- **円形スワイプ**（`DialSweep`）: 中心の周りを指が回った角度を積み上げ、どちら回りでも150度以上で確定する。
+  向きで施錠/解錠を分けないのは、サムターンの回る向きが扉への取り付け方で変わりアプリから分からないため。
+  確定時は**現在の状態の反対**（施錠範囲→解錠、解錠範囲→施錠、どちらでもない→送らない）を送る。
+  一定以上回す操作を意図の確認とみなし、解錠でも確認ダイアログは挟まない。
+- 成功したら角度を読み直し、`LockStateStore`へ保存してウィジェット・ウォッチ（DataItem）へ反映する。
+  読み直せなければ送ったコマンドが意図した状態を保存する（BL-015と同じ）。
+- **任意の角度へ回す操作は実装しない**（BL-244、2026-10-15に対応不要と判断）。CANDY HOUSEが公開している
+  公式SDK（`CANDY-HOUSE/SesameSDK_Android_with_DemoApp`）の`CHSesame5`が持つ操作は`lock` / `unlock` /
+  `toggle` / `magnet` / `configureLockPosition`（施錠・解錠位置の**登録**）/ `autolock` / `opSensorControl`
+  だけで、任意の角度へ回す操作は無い。ユーザー指示（公式に公開された操作が無ければ対応不要）に従い、
+  位置の登録を書き換えて回す方式（失敗すると施錠位置が壊れる）は採らない。
+- 判定と文言は`DialSweep` / `DialUiState`（Android非依存、ユニットテスト対象）。診断ログへは記録しない。
+
+### アプリアイコンの長押しメニュー（スマートフォン）
+
+ランチャーのアプリアイコン長押しメニュー（App Shortcuts）へ「全施錠」「状態を更新」を出す（BL-239）。
+
+- 対象は常に登録済みの全デバイス（`ALL_DEVICES_TARGET_UUID`）。**解錠は載せない**（長押しは誤操作が
+  起きやすく、確認なしで解錠できる導線を増やさないため）。登録0台ならトーストで伝えて何もしない
+  （デモ用デバイスは対象外）。
+- **動的ショートカット**（`AppShortcutPublisher`、`MainActivity.onCreate`で毎回登録し直す）。静的
+  ショートカットはIntentのパッケージ名を固定で書く必要があり、デバッグ版（`.debug`、BL-131）で起動先が
+  見つからなくなるため。
+- 受け口は画面を持たない`AppShortcutActivity`（`exported="false"`。ランチャーは本アプリとして起動するため
+  非公開でよく、他アプリからの施錠の入口を作らない）。実行はウィジェットと同じ`WidgetCommandReceiver`へ
+  ブロードキャストで渡す（`goAsync`で実行でき、重複抑止・振動・ウィジェットとウォッチへの反映が揃う）。
+- 操作の解釈と文言は`AppShortcutAction`（Android非依存、ユニットテスト対象）。
+
+### お知らせ（スマートフォンの通知）
+
+上部バーの設定メニューの「お知らせ」から設定する、利用者が行動すべき知らせの通知（BL-238 / BL-241）。
+
+- 電池残量の低下（BL-238）: 状態取得・操作で得た電池残量が20%（`LowBatteryAlertTracker.THRESHOLD_PERCENTAGE`）
+  未満へ**下がったときに1回だけ**通知する。下回ったままの間は再通知せず、20%以上へ戻ったら次の低下で
+  再び通知する。通知済みの記録はuuidごとに保存し、再起動をまたいでも重複させない。**既定はオン**
+  （判定は既存の取得結果だけで行い、追加の通信をしないため）。設定がオフの間も判定は進め、オンへ戻した
+  直後に既に下回っていた分がまとめて出ないようにする。デモ用デバイスは対象外。
+- 解錠したままの通知（BL-241）: 本アプリでの解錠成功から設定の分数（オフ／5／10／30分、**既定オフ**。
+  2026-10-15のユーザー判断）後に1回だけ状態を取得し、解錠中なら通知する。取得はBLE圏内ならBLE、
+  それ以外はWeb APIを1回消費するため、既定オフにして設定画面で消費を明示する。
+  - 予約は`UnlockReminderCommands`（`SesameDeviceCommands`のデコレータ。`SesameDeviceCommandExecutorFactory.create`
+    が実物の実行口を包む）。解錠の成功で予約、施錠の成功で取り消し、失敗・重複無視では変えない。
+    **状態取得では予約しない**（解錠のままの間ずっとAPIを消費し続けないため。通知は解錠1回につき1回まで）。
+    ウォッチ・ウィジェット・パネル・ショートカットのどの経路でも同じ実行口を通るため一律に効く。
+    ダイヤル操作（BL-243）は`SesameBleClient`を直接使い実行口を通らないため、ダイヤルでの解錠は予約しない
+    （2026-10-17の実機確認で判明。撮影モードの説明文もこれに合わせた。BL-247）。
+  - 実行は`UnlockReminderWorker`（WorkManagerの一回限りの作業。uuidごとの一意名で`REPLACE`）。正確な時刻の
+    アラームは追加権限（`SCHEDULE_EXACT_ALARM`）が要るため使わず、Dozeで遅れうることを利用者向けに説明する。
+    実行時に設定がオフなら何もしない。失敗しても再試行しない（再試行のたびにAPIを消費するため）。
+  - 通知の要否は`UnlockReminderDecision`。取得できて解錠中なら通知、取得できなくても最後の状態が解錠中なら
+    「確かめられなかった」旨を添えて通知する（閉め忘れの見逃しのほうが害が大きいため）。施錠と分かれば通知しない。
+- 配線は`SesameDeviceCommandExecutorFactory`の`LockStateNotifier.local`から`mobile.alert.SesameAlerts`を呼ぶ。
+  ウォッチ経由・ウィジェット経由のどちらで得た値でも同じく判定される。
+- 判定（`LowBatteryAlertTracker`）と設定（`SesameAlertSettingsStore`）はAndroid非依存でユニットテスト対象。
+  保存先は非暗号化SharedPreferences（`sesami_wear_alerts`、機密を含まない）。
+- 通知（`SesameAlertNotifier`）は経路の変化の通知（BL-190）と**チャネルを分け**（`sesame_alerts`）、
+  重要度は既定（音・バナーあり）にする。経路の変化は補助的な知らせ、こちらは電池切れという利用者が
+  行動すべき知らせのため（閉め忘れも同じチャネル）。通知はデバイスごと（tag=uuid）に分けて同種を上書きし、タップで主画面を開く。
+  文言には表示名だけを出し、uuidは出さない。
 
 ### セサミの状態一覧（スマートフォン）
 
@@ -1379,6 +1484,25 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - メニュー項目と表示も`ShowcaseModeUi`（`src/debug`に実装、`src/release`に何も出さないスタブ）越しに
   呼ぶ。メニュー項目の型`ShowcaseMenuEntry`だけはmainに置く。
 - 撮影用の実行口・保存先・選択肢のテストは`src/testDebug`（デバッグ版の単体テストにだけ含まれる）。
+- **掲載用に目印を隠す（BL-249、2026-10-17のユーザー指示）。** 撮影モードの操作画面の「目印を10分隠す」で、
+  題名の横の「📷 撮影モード」と⋮メニューの項目を10分間出さない（`ShowcaseMarkHiding`。終了時刻を
+  `sesami_wear_showcase_mode`の`marks_hidden_until`へ保存し、時計を戻して10分より先になった場合は隠さない）。
+  メニュー項目も隠れて戻す操作を置けないため、時間で自動的に戻す。押すと主画面をタスクごと開き直す
+  （主画面は作ったときの目印を持ち続けるため）。撮影モード自体はオンのまま。アプリ内の画面を掲載用に撮るためのもの。
+- **0.14.3の追加機能の表示確認（BL-246、2026-10-15のユーザー指示）。** 撮影モード中は、Sesame実機・
+  実資格情報なしで次を画面上で確かめられる（操作画面の説明文にも同じ内容を出す）。
+  - ダイヤル操作（BL-243）: `DialActivity`は`ShowcaseMode.dialOperationsOrNull`が返せば撮影用の
+    `ShowcaseDialOperations`を、返さなければ実物の`DialController`を使う（共通の型は`mobile.dial.DialOperations`）。
+    撮影用は**Bluetoothを使わず**、撮影用の状態を読む。施錠中・解錠中は実測の角度（-180 / -270）で操作できる表示、
+    未取得は中間（-225）の「途中の位置」、失敗は届かないときの文言（認証→ログイン失敗、端末設定→許可なし、
+    通信→届かない）。なぞって確定すると撮影用の実行口で状態を切り替える。接続・送信の待ちを見せるため0.8秒待つ。
+  - 電池残量の通知（BL-238）: 操作画面で撮影用の状態を書き換えたとき（`ShowcaseSync.applyState`）、
+    実物の取得と同じ`SesameAlerts.onStatusChanged`へ渡す。電池を5%にすると1回だけ通知される。
+  - 解錠したままの通知（BL-241）: `SesameDeviceCommandExecutorFactory.create`は撮影用の実行口にも
+    `UnlockReminderCommands`を差し込む。確認のWorkerは撮影用の実行口で状態を読み直す（実物へは通信しない）。
+    撮影用のダイヤル操作は撮影用の実行口を直接使うため、製品版と同じくダイヤルでの解錠は予約しない（BL-247）。
+  - クイック設定のタイル（BL-240）・アプリアイコンの長押し（BL-239）・カードとウィジェットの日時表示
+    （BL-236 / BL-245）は、もとから撮影用の保存先と実行口で動く（変更なし）。
 - 実機検証（BL-214、2026-09-23、Pixel 8 Pro + Pixel Watch 2 + 登録済みのSesame 5、**ユーザーが実施**）:
   インストールと手順書をClaude Code、操作と判定をユーザーが担当し、15項目すべてで期待どおりに動いた。
   - 切り替えと表示: 設定メニューの「撮影モード」はデバッグ版だけに出た。見本の3台を入れてオンにすると、

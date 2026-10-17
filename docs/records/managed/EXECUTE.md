@@ -5,6 +5,348 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 02:50
+  summary: 0.14.3の表示で掲載スクリーンショット（スマートフォン8点）とウィジェットのプレビュー画像を撮り直す（BL-250）
+  details:
+    変更内容: >-
+      リリースに向けたユーザー指示に基づき、Pixel 8 Pro実機のデバッグ版・撮影モード（見本の3台、ダークテーマ）で
+      phone_1〜phone_7を撮り直し、ダイヤル操作のphone_8_dial.pngを加えた。アプリ内の画面は「目印を10分隠す」（BL-249）
+      を押してから撮り、Skill store-screenshot-maskingでステータスバー（ホーム画面はドックも）をモザイク、壁紙をぼかし、
+      1350x2400へ整えた。編集画面のapikey欄は保存せずにダミー値へ打ち替えて撮った。phone_1からウィジェット一覧の
+      プレビュー画像（widget_preview.png / widget_preview_small.png）を`scripts/make-widget-previews.py`で作り直した。
+      ウォッチの6点は表示に影響する変更が無いため据え置いた。docs/store/README.md・STORE_LISTING.md、
+      Skill store-screenshot-maskingの手順を更新した。元画像はGit管理外のcaptures/に置いている。
+    変更ファイル:
+      - docs/store/images/screenshots/phone_1_widget_locked.png
+      - docs/store/images/screenshots/phone_2_widget_unlock_confirm.png
+      - docs/store/images/screenshots/phone_3_widget_unlocked.png
+      - docs/store/images/screenshots/phone_4_device_list.png
+      - docs/store/images/screenshots/phone_5_menu.png
+      - docs/store/images/screenshots/phone_6_device_edit.png
+      - docs/store/images/screenshots/phone_7_help.png
+      - docs/store/images/screenshots/phone_8_dial.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview.png
+      - mobile/src/main/res/drawable-nodpi/widget_preview_small.png
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - .claude/skills/store-screenshot-masking/SKILL.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。加工後の画像は縮小版で、目印・実機の状態が写っていないことを確認した。
+
+- date: 2026-10-17 02:10
+  summary: デバッグ版の撮影モードに、掲載用に目印を10分隠す操作を追加する（BL-249）
+  details:
+    変更内容: >-
+      リリースに向けたスクリーンショットの撮り直し（ユーザー指示、BL-250）の前提として、撮影モードの操作画面に
+      「目印を10分隠す」を追加した。押すと題名の横の「📷 撮影モード」と⋮メニューの「撮影モード」が10分間出なくなり、
+      主画面をタスクごと開き直す。判定は純Kotlinの`ShowcaseMarkHiding`（src/debug）へ切り出し、時計を戻して
+      終了時刻が10分より先になった場合は隠さない。リリース版には含まれず、挙動は変わらない。
+      README.mdの撮影モードの手順とDESIGN.mdへ追記した。実機（Pixel 8 Pro）で、押した後に主画面の目印と
+      メニュー項目が出ないことを確認した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMarkHiding.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeUi.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMarkHidingTest.kt
+      - README.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。ShowcaseMarkHidingTest 3件を追加。
+
+- date: 2026-10-17 01:30
+  summary: 「お知らせ」画面の解錠したままの通知の説明に、ダイヤル操作での解錠は対象外と明記する（BL-248）
+  details:
+    変更内容: >-
+      ユーザー指示に基づき、右上「⋮」→「お知らせ」のダイアログの「解錠したままのとき」の説明文を
+      「このアプリ（ダイヤル操作を除く）で解錠してから…」に改めた。ダイヤル操作は解錠したままの通知の予約を
+      差し込む実行口を通らないため（BL-247）。0.14.3のリリースノートの同じ説明も合わせた。挙動は変えていない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。表示文言の変更のみでテストの追加は無い。
+
+- date: 2026-10-17 01:10
+  summary: 撮影モードの説明文を、ダイヤル操作での解錠では解錠したままの通知が出ない仕様に合わせる（BL-247）
+  details:
+    変更内容: >-
+      2026-10-17の撮影モードでの実機確認（BL-242）で、ダイヤル操作は`SesameBleClient`（撮影モードでは
+      撮影用の実行口）を直接使い`UnlockReminderCommands`を通らないため、ダイヤルでの解錠では解錠したままの
+      通知を予約しないことが分かった。撮影モードの操作画面の説明文が「解錠すると通知が出る」と読めたため、
+      ユーザー指示に基づき「ウィジェット・クイック設定のタイル・ウォッチから解錠すると」に改め、ダイヤル操作での
+      解錠は製品版と同じく対象外と明記した。挙動は変えていない。DESIGN.mdとUSER_GUIDE.mdにも同じ但し書きを足した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。説明文の変更のみでテストの追加は無い。
+
+- date: 2026-10-16 09:00
+  summary: 0.14.3の追加機能をデバッグ版の撮影モードで実機なしに表示確認できるようにする（BL-246）
+  details:
+    変更内容: >-
+      ユーザー指示（2026-10-15）に基づき、デバッグ版限定の撮影モードを広げた。ダイヤル操作の型
+      `mobile.dial.DialOperations`を設け、撮影モード中は`ShowcaseDialOperations`（src/debug。Bluetoothを使わず
+      撮影用の状態を表示・操作する。未取得は途中の位置、失敗は届かないときの文言）を`DialActivity`へ渡す。
+      リリース版の`ShowcaseMode`スタブへ`dialOperationsOrNull`（常にnull）を足した。撮影用の状態を書き換えたとき
+      電池残量の通知の判定へ渡し、撮影用の実行口にも解錠したままの通知の予約を差し込んだ。
+      撮影モードの操作画面へ確かめ方の説明を追加した。リリース版の挙動は変わらない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperations.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseSync.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperationsTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（`test`がリリース版のスタブも含めてコンパイル）。
+      ShowcaseDialOperationsTest 5件を追加。画面上の確認はBL-242（人手検証）で行う。
+
+- date: 2026-10-15 17:30
+  summary: スマートフォンアプリのUIをモダン化する（BL-245。ブランド色のテーマ・カード・空状態・API回数）
+  details:
+    変更内容: >-
+      ユーザー判断（2026-10-15、4項目すべて採用）に基づき、`SesameTheme`の主色をアイコンと同じ紺`#1E3A5F`
+      （ダークは`#A4C8FF`）へ変えた。`DeviceCard`を`ElevatedCard`にし、絵文字の状態表示を状態色の丸いバッジ
+      （錠アイコン）へ、編集・削除をカード右上の⋮メニューへ、ダイヤル操作を文字付きのFilledTonalButtonへ
+      変えた。`DeviceListParts.kt`へ`ApiUsageCard`（回数を大きく表示）と`EmptyDeviceState`（未登録時の
+      案内。追加ボタンとヘルプへの導線）を追加した。動的カラー不採用と状態色は維持した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ui/SesameTheme.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListParts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0。Compose画面のため自動テストは無く、見た目はBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 16:40
+  summary: Bluetooth限定のダイヤル操作画面を追加する（BL-243、スマートフォンのみ）
+  details:
+    変更内容: >-
+      `mobile.dial`パッケージを追加した。`DialSweep`（円形スワイプの回転量の積み上げ、150度で確定、
+      角度→針の向き、状態の反対のコマンド）、`DialUiState`（画面の状態と文言）、`DialController`
+      （`SesameBleClient`を直接呼び、Web APIへ倒さない。成功後に角度を読み直して保存・同期）、
+      `DialActivity`（Composeのダイヤル画面）。デバイスカードへ錠アイコンの入口を追加し、Manifestへ
+      Activityを宣言した。任意角度の操作はBL-244（要確認）のまま実装していない。
+      単体テスト`DialSweepTest`（8件）・`DialUiStateTest`（4件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialSweep.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialUiState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/dial/DialSweepTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/dial/DialUiStateTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（途中でdetektのLongMethodとktlintの構文エラーで失敗したため、描画処理を
+      関数へ分け余分な括弧を除いて再実行）。実機でのBLE操作と針の向きはBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 15:40
+  summary: 解錠したまま時間がたったときに通知する機能を追加する（BL-241、既定オフ）
+  details:
+    変更内容: >-
+      `UnlockReminderCommands`（実行口のデコレータ。解錠成功で予約、施錠成功で取り消し、状態取得では予約しない）、
+      `UnlockReminderWorker`（WorkManagerで1回だけ状態を取得し通知。予約の実装`Scheduler`を内包）、
+      `UnlockReminderDecision`（通知の要否と本文）を追加し、`SesameDeviceCommandExecutorFactory.create`で
+      実物の実行口を包んだ。「お知らせ」の設定へオフ／5／10／30分の選択（FilterChip）を追加し、
+      `SesameAlertNotifier`・`SesameAlerts`へ閉め忘れの通知と名前の解決を足した。単体テスト
+      `UnlockReminderCommandsTest`（6件）・`UnlockReminderDecisionTest`（5件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderCommands.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderDecision.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/UnlockReminderWorker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlerts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/UnlockReminderCommandsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/UnlockReminderDecisionTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのReturnCountで失敗したため、確認処理を関数へ分けて再実行）。
+      実機での遅延実行と通知はBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 14:55
+  summary: クイック設定パネルに「Sesame」タイルを追加する（BL-240）
+  details:
+    変更内容: >-
+      `mobile.quicksettings`パッケージを追加した。`QuickSettingsTileContent`（対象の決定＝1台ならその1台、
+      2台以上なら全デバイス。ウィジェットの判定を流用し、状態不明は再取得、表示名が無いときはuuidを出さない）と
+      `SesameQuickSettingsTileService`（`Tile`への反映、施錠・取得は`WidgetCommandReceiver`、解錠は
+      `WidgetUnlockConfirmActivity`）。`SesameWidgetUpdater.updateAll`からパネルの描き直しを要求する。
+      Manifestへサービスを宣言し（`BIND_QUICK_SETTINGS_TILE`）、アイコン`ic_qs_lock_open`を追加した。
+      単体テスト`QuickSettingsTileContentTest`（6件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetUpdater.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_qs_lock_open.xml
+      - mobile/src/main/res/values/strings.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。パネル上の表示と操作はBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 14:20
+  summary: アプリアイコンの長押しメニューへ「全施錠」「状態を更新」を追加する（BL-239）
+  details:
+    変更内容: >-
+      `mobile.shortcut`パッケージを追加した。`AppShortcutAction`（操作の解釈と文言。解錠は受け付けない）、
+      `AppShortcutPublisher`（動的ショートカットの登録。`MainActivity.onCreate`から呼ぶ）、
+      `AppShortcutActivity`（画面を持たない非公開の受け口。`WidgetCommandReceiver`へ全デバイスを対象に
+      ブロードキャストする）。静的ショートカットはデバッグ版のapplicationId（`.debug`）で起動先を
+      固定できないため動的にした。単体テスト`AppShortcutActionTest`（4件）を追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutPublisher.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/MainActivity.kt
+      - mobile/src/main/AndroidManifest.xml
+      - mobile/src/main/res/drawable/ic_shortcut_lock.xml
+      - mobile/src/main/res/drawable/ic_shortcut_refresh.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/shortcut/AppShortcutActionTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのLongParameterListで失敗したため、ラベル類を
+      AppShortcutActionへ移して再実行）。ランチャー上の表示と実行はBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 13:50
+  summary: セサミの電池残量が20%を下回ったときにスマートフォンへ1回だけ通知する（BL-238）
+  details:
+    変更内容: >-
+      `mobile.alert`パッケージを追加した。`SesameAlertSettingsStore`（お知らせの設定。電池残量は既定オン、
+      解錠したままの通知は既定オフでBL-241で使う）、`LowBatteryAlertTracker`（20%未満へ下がったときに1回だけ
+      trueを返し、20%以上へ戻ると再通知可能にする）、`SesameAlertNotifier`（専用チャネル`sesame_alerts`、
+      tag=uuidで上書き、タップで主画面）、`SesameAlerts`（配線）。`SesameDeviceCommandExecutorFactory`の
+      `LockStateNotifier.local`から呼ぶ。設定メニューへ「お知らせ」を追加した（`AlertSettingsState`）。
+      単体テスト`LowBatteryAlertTrackerTest`（5件）・`SesameAlertSettingsStoreTest`（4件）を追加した。
+      また、UIデザインのモダン化をBL-245として登録した（2026-10-15のユーザー指示）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertSettingsStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTracker.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlertNotifier.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/SesameAlerts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/state/SharedPreferencesKeyValueStore.kt
+      - mobile/src/main/res/drawable/ic_notification_alert.xml
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTrackerTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/alert/SesameAlertSettingsStoreTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（初回はdetektのMatchingDeclarationNameで失敗したため、ファイル名を
+      AlertSettingsState.ktへ改めて再実行）。実機での通知の見え方はBL-242（人手検証）で確認する。
+
+- date: 2026-10-15 13:10
+  summary: 設定メニューの「診断ログ」を「操作履歴（診断ログ）」へ改名する（BL-237）
+  details:
+    変更内容: >-
+      操作の履歴を探す利用者が見つけられるよう、設定メニューの項目名と副題、ダイアログの表題を変えた。
+      記録の内容（直近50件・資格情報を含まない）は変えていない。専用の履歴画面は診断ログと中身が重複するため
+      作らない（2026-10-15のユーザー判断）。掲載スクリーンショットの撮り直しはBL-242（人手検証）へ登録した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogDialog.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0、markdownlintは40ファイル0件（対象件数とgit管理対象の件数が一致）
+
+- date: 2026-10-15 12:00
+  summary: ホーム画面ウィジェットの取得時刻を「たった今」「N分前」から日時表示（M/d HH:mm）へ統一する（BL-236）
+  details:
+    変更内容: >-
+      ウィジェットは再描画まで文言が固まり、「たった今」が実際の取得時刻から離れて残るため、いつ取得した
+      状態か分からなかった。`SesameStatusFreshness.dateTimeLabel`を追加し、ウィジェット専用の
+      `SesameStatusDetail.detailedLabel`が経過時間によらず「9/18 12:05」を返すようにした。使われなくなった
+      `nowEpochMillis`引数を`detailedLabel`・`SesameWidgetModelResolver.resolve`から削除した。Tile・
+      Complication・ウォッチ・スマートフォンのデバイス一覧は相対表記のまま。単体テストを更新・追加した。
+      狭いウィジェットで日時が省略されないかは実機確認が必要なため、BL-236として人手検証へ登録した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusFreshness.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusFreshnessTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleの品質ゲートは終了コード0。Markdown・記録ファイルの検証は下記の実行結果のとおり。
+
 - date: 2026-10-12 08:20
   summary: 2 × 1のウィジェットで右側の状態文言が省略される問題を、幅の配分を可変にして直す（BL-233）
   details:

@@ -13,21 +13,27 @@ import androidx.compose.ui.platform.LocalContext
  * - 設定メニューの項目: 撮影モードの操作画面（[ShowcaseModeActivity]）を開く。副題にオン/オフを出す。
  * - 表示: 撮影モード中だけ、画面のタイトルの横へ小さく「📷 撮影モード」を出す。撮影の邪魔にならないよう
  *   帯にはしない（ユーザーの選択）。ウォッチとウィジェットには出さない。
+ * - 掲載用の撮影のために目印を隠している間（BL-249、[ShowcaseMarkHiding]）は、メニューの項目も表示も出さない。
  */
 object ShowcaseModeUi {
     private const val MENU_TITLE = "撮影モード"
     private const val INDICATOR_TEXT = "📷 撮影モード"
 
     fun menuEntryOrNull(context: Context): ShowcaseMenuEntry? =
-        ShowcaseMenuEntry(
-            title = MENU_TITLE,
-            subtitle = if (ShowcaseMode.isActive(context)) "オン（実機は操作しません）" else "オフ",
-            intent = Intent(context, ShowcaseModeActivity::class.java),
-        )
+        if (ShowcaseMode.areMarksHidden(context)) {
+            null
+        } else {
+            ShowcaseMenuEntry(
+                title = MENU_TITLE,
+                subtitle = if (ShowcaseMode.isActive(context)) "オン（実機は操作しません）" else "オフ",
+                intent = Intent(context, ShowcaseModeActivity::class.java),
+            )
+        }
 
     @Composable
     fun Indicator() {
-        if (!ShowcaseMode.isActive(LocalContext.current)) return
+        val context = LocalContext.current
+        if (!ShowcaseMode.isActive(context) || ShowcaseMode.areMarksHidden(context)) return
         Text(
             text = INDICATOR_TEXT,
             style = MaterialTheme.typography.labelSmall,
