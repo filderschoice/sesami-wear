@@ -21,13 +21,17 @@ import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
  * 古さを表す。nullの場合は何も表示しない（デモモードは取得という概念が無いため）。
  *
  * [route]は最後に使った経路（BL-168）。[detailLabel]には経路のアイコンを含めない（BL-206）。
- * Tileは経路をデバイス名の帯へベクターアイコンで出し、Complicationは画像を持てないため
+ * Tileは経路をデバイス名の帯へベクターアイコンで出し、Complicationの文字の型は画像を持てないため
  * [detailLabelWithRouteIcon]（絵文字を前置した文言）を使う。
+ *
+ * [batteryPercentage]は電池残量（%、未取得ならnull）。Complicationの`RANGED_VALUE`枠が使う（BL-256）。
+ * 全デバイスのときは、分かっている中で最も少ない値（交換が近いものを見落とさないため）。
  */
 data class SesameTileStatus(
     val state: TileDisplayState,
     val detailLabel: String?,
     val route: SesameStatusRoute? = null,
+    val batteryPercentage: Int? = null,
 ) {
     /** [detailLabel]の先頭へ経路の絵文字（🔗 / 🌐）を付けたもの。Complication向け（BL-168）。 */
     val detailLabelWithRouteIcon: String?
@@ -92,6 +96,7 @@ object SesameTileStateResolver {
             state = TileDisplayStateResolver.resolve(nodeId != null, false, snapshot?.isLocked),
             detailLabel = detailLabelOf(snapshot?.lastFailure, snapshot?.updatedAtEpochMillis),
             route = snapshot?.lastRoute,
+            batteryPercentage = snapshot?.batteryPercentage,
         )
     }
 
@@ -109,6 +114,7 @@ object SesameTileStateResolver {
             state = TileDisplayStateResolver.resolveAggregate(nodeId != null, false, snapshots.map { it?.isLocked }),
             detailLabel = detailLabelOf(worstFailure, oldestUpdatedAt),
             route = SesameRouteLabel.commonRoute(snapshots.map { it?.lastRoute }),
+            batteryPercentage = snapshots.mapNotNull { it?.batteryPercentage }.minOrNull(),
         )
     }
 

@@ -3,11 +3,7 @@ package com.sesamiwear.wear.complication
 import android.app.PendingIntent
 import android.util.Log
 import androidx.wear.watchface.complications.data.ComplicationData
-import androidx.wear.watchface.complications.data.ComplicationText
 import androidx.wear.watchface.complications.data.ComplicationType
-import androidx.wear.watchface.complications.data.LongTextComplicationData
-import androidx.wear.watchface.complications.data.PlainComplicationText
-import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import com.sesamiwear.core.TileDisplayState
@@ -42,6 +38,10 @@ import kotlinx.coroutines.withTimeout
  * 3. マニフェストの`UPDATE_PERIOD_SECONDS`を定期更新ありに変更し、更新要求が届かない場合でも
  *    次の定期更新で表示が回復するようにする。
  *
+ * 文字の入らない小さな枠向けに、アイコンだけの型（`MONOCHROMATIC_IMAGE` / `SMALL_IMAGE`）と、電池残量を
+ * ゲージで出す型（`RANGED_VALUE`、ゲージの中央に状態のアイコン）にも対応する（BL-256）。
+ * どの型でも通信は増えない（同じスナップショットから作り分けるだけ）。
+ *
  * Android Complications APIへの依存のためユニットテスト対象外（表示文言ロジックは
  * [SesameComplicationContent]でテスト済み、実機表示はBL-072/BL-055の人手検証で2026-09-05に
  * 確認済み）。
@@ -70,7 +70,7 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         complicationInstanceId: Int,
         type: ComplicationType,
     ): ComplicationData? {
-        if (type != ComplicationType.SHORT_TEXT && type != ComplicationType.LONG_TEXT) {
+        if (type !in SUPPORTED_TYPES) {
             Log.w(TAG, "unsupported complication type=$type id=$complicationInstanceId")
             return null
         }
@@ -88,7 +88,8 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
                 buildComplicationData(
                     type,
                     SesameComplicationContent.shortText(TileDisplayState.UNKNOWN),
-                    configurationTapAction(complicationInstanceId),
+                    TileDisplayState.UNKNOWN,
+                    tapAction = configurationTapAction(complicationInstanceId),
                 )
             }
         }
@@ -102,14 +103,21 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(applicationContext)
         val status = SesameTileStateResolver.resolveStatus(applicationContext, deviceUuid, nodeId)
         Log.d(TAG, "buildConfiguredComplicationData nodeId=${nodeId != null} state=${status.state}")
+        // SHORT_TEXT以外（LONG_TEXTと画像・ゲージの型の読み上げ文言）はデバイス名も含める。
         val text =
-            if (type == ComplicationType.LONG_TEXT) {
+            if (type != ComplicationType.SHORT_TEXT) {
                 val displayName = SesameTileStateResolver.resolveDisplayName(applicationContext, deviceUuid)
                 SesameComplicationContent.longText(displayName, status.state, status.detailLabelWithRouteIcon)
             } else {
                 SesameComplicationContent.shortText(status.state)
             }
-        return buildComplicationData(type, text, configurationTapAction(complicationInstanceId))
+        return buildComplicationData(
+            type,
+            text,
+            status.state,
+            status.batteryPercentage,
+            configurationTapAction(complicationInstanceId),
+        )
     }
 
     private fun buildUnconfiguredComplicationData(
@@ -119,6 +127,7 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
         buildComplicationData(
             type,
             text = UNCONFIGURED_TEXT,
+            state = TileDisplayState.UNKNOWN,
             tapAction = configurationTapAction(complicationInstanceId),
         )
 
@@ -140,12 +149,18 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     override fun getPreviewData(type: ComplicationType): ComplicationData? =
         when (type) {
             ComplicationType.SHORT_TEXT ->
-                buildComplicationData(type, SesameComplicationContent.shortText(TileDisplayState.LOCKED))
+                buildComplicationData(
+                    type,
+                    SesameComplicationContent.shortText(TileDisplayState.LOCKED),
+                    TileDisplayState.LOCKED,
+                )
 
-            ComplicationType.LONG_TEXT ->
+            in SUPPORTED_TYPES ->
                 buildComplicationData(
                     type,
                     SesameComplicationContent.longText(PREVIEW_DISPLAY_NAME, TileDisplayState.LOCKED),
+                    TileDisplayState.LOCKED,
+                    PREVIEW_BATTERY_PERCENTAGE,
                 )
 
             else -> null
@@ -154,19 +169,11 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
     private fun buildComplicationData(
         type: ComplicationType,
         text: String,
+        state: TileDisplayState,
+        batteryPercentage: Int? = null,
         tapAction: PendingIntent? = null,
-    ): ComplicationData {
-        val complicationText: ComplicationText = PlainComplicationText.Builder(text).build()
-        return if (type == ComplicationType.LONG_TEXT) {
-            LongTextComplicationData.Builder(text = complicationText, contentDescription = complicationText)
-                .setTapAction(tapAction)
-                .build()
-        } else {
-            ShortTextComplicationData.Builder(text = complicationText, contentDescription = complicationText)
-                .setTapAction(tapAction)
-                .build()
-        }
-    }
+    ): ComplicationData =
+        SesameComplicationDataBuilder(applicationContext).build(type, text, state, batteryPercentage, tapAction)
 
     private companion object {
         const val TAG = "SesameComplication"
@@ -176,6 +183,19 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
 
         // Complicationピッカーのプレビューで使うダミーのデバイス名（実データは参照しない）。
         const val PREVIEW_DISPLAY_NAME = "玄関"
+
+        // Complicationピッカーのプレビューで使うダミーの電池残量（RANGED_VALUE、BL-256）。
+        const val PREVIEW_BATTERY_PERCENTAGE = 85
+
+        // 対応する型。マニフェストのSUPPORTED_TYPESと揃える（BL-072でLONG_TEXT、BL-256で画像とゲージを追加）。
+        val SUPPORTED_TYPES =
+            setOf(
+                ComplicationType.SHORT_TEXT,
+                ComplicationType.LONG_TEXT,
+                ComplicationType.MONOCHROMATIC_IMAGE,
+                ComplicationType.SMALL_IMAGE,
+                ComplicationType.RANGED_VALUE,
+            )
 
         // 状態解決（Wearable APIの往復）を打ち切る上限。Complicationのデータは
         // onComplicationRequestから概ね20秒以内に返す必要があるため、余裕を持って短めに設定する。

@@ -36,4 +36,67 @@ object SesameComplicationContent {
         val base = "$displayName ${shortText(state)}"
         return if (detailLabel == null) base else "$base（$detailLabel）"
     }
+
+    /**
+     * アイコンだけの型（`MONOCHROMATIC_IMAGE` / `SMALL_IMAGE`）と`RANGED_VALUE`の画像に使うアイコンの種類（BL-256）。
+     * 実際の画像（drawable）への対応付けはAndroid依存のため呼び出し側が持つ。
+     */
+    enum class StateIcon {
+        LOCKED,
+        UNLOCKED,
+        IN_PROGRESS,
+        DISCONNECTED,
+        UNKNOWN,
+    }
+
+    /**
+     * 表示状態からアイコンの種類を決める。一部解錠（MIXED）は「開いている扉がある」ことを示すため
+     * 解錠のアイコンにする（文字の無い枠で施錠のアイコンを出すと、全台施錠済みと誤読されるため）。
+     */
+    fun stateIcon(state: TileDisplayState): StateIcon =
+        when (state) {
+            TileDisplayState.LOCKED -> StateIcon.LOCKED
+            TileDisplayState.UNLOCKED, TileDisplayState.MIXED -> StateIcon.UNLOCKED
+            TileDisplayState.IN_PROGRESS -> StateIcon.IN_PROGRESS
+            TileDisplayState.DISCONNECTED -> StateIcon.DISCONNECTED
+            TileDisplayState.UNKNOWN -> StateIcon.UNKNOWN
+        }
+
+    /** 電池残量のゲージ（`RANGED_VALUE`、BL-256）の下限・上限。 */
+    const val BATTERY_MIN_VALUE = 0f
+    const val BATTERY_MAX_VALUE = 100f
+
+    /** 電池残量が未取得のときにゲージへ添える文字。0%と誤読されないよう数字を出さない。 */
+    const val BATTERY_UNKNOWN_TEXT = "--"
+
+    /** 電池残量のゲージの値と、ゲージへ添える短い文字（「85%」）。 */
+    data class BatteryGauge(
+        val value: Float,
+        val text: String,
+    )
+
+    /**
+     * 電池残量（%）からゲージを作る。未取得（null）ならゲージを空にして[BATTERY_UNKNOWN_TEXT]を添える。
+     * 範囲外の値は0〜100へ丸める（文字盤側が範囲外の値を受け付けないため）。
+     */
+    fun batteryGauge(percentage: Int?): BatteryGauge {
+        val clamped = percentage?.coerceIn(BATTERY_MIN_VALUE.toInt(), BATTERY_MAX_VALUE.toInt())
+        return if (clamped == null) {
+            BatteryGauge(BATTERY_MIN_VALUE, BATTERY_UNKNOWN_TEXT)
+        } else {
+            BatteryGauge(clamped.toFloat(), "$clamped%")
+        }
+    }
+
+    /**
+     * `RANGED_VALUE`枠の読み上げ文言。状態の文言（[stateDescription]）に電池残量を添える
+     * （「玄関 施錠 電池85%」「玄関 施錠 電池残量不明」）。
+     */
+    fun batteryDescription(
+        stateDescription: String,
+        percentage: Int?,
+    ): String {
+        val battery = if (percentage == null) "電池残量不明" else "電池${batteryGauge(percentage).text}"
+        return "$stateDescription $battery"
+    }
 }

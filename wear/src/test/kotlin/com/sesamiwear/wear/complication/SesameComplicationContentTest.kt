@@ -7,6 +7,52 @@ import org.junit.Test
 
 class SesameComplicationContentTest {
     @Test
+    fun `state icons distinguish locked from anything that is open`() {
+        assertEquals(
+            SesameComplicationContent.StateIcon.LOCKED,
+            SesameComplicationContent.stateIcon(TileDisplayState.LOCKED),
+        )
+        assertEquals(
+            SesameComplicationContent.StateIcon.UNLOCKED,
+            SesameComplicationContent.stateIcon(TileDisplayState.UNLOCKED),
+        )
+        // 一部解錠は施錠のアイコンにしない（全台施錠済みと誤読させない、BL-256）。
+        assertEquals(
+            SesameComplicationContent.StateIcon.UNLOCKED,
+            SesameComplicationContent.stateIcon(TileDisplayState.MIXED),
+        )
+        assertEquals(
+            SesameComplicationContent.StateIcon.UNKNOWN,
+            SesameComplicationContent.stateIcon(TileDisplayState.UNKNOWN),
+        )
+    }
+
+    @Test
+    fun `battery gauge shows the percentage`() {
+        assertEquals(SesameComplicationContent.BatteryGauge(85f, "85%"), SesameComplicationContent.batteryGauge(85))
+    }
+
+    @Test
+    fun `battery gauge without a reading is empty and shows no number`() {
+        assertEquals(
+            SesameComplicationContent.BatteryGauge(0f, SesameComplicationContent.BATTERY_UNKNOWN_TEXT),
+            SesameComplicationContent.batteryGauge(null),
+        )
+    }
+
+    @Test
+    fun `battery gauge clamps values out of range`() {
+        assertEquals(100f, SesameComplicationContent.batteryGauge(120).value)
+        assertEquals(0f, SesameComplicationContent.batteryGauge(-5).value)
+    }
+
+    @Test
+    fun `battery description reads the state and the battery`() {
+        assertEquals("玄関 施錠 電池85%", SesameComplicationContent.batteryDescription("玄関 施錠", 85))
+        assertEquals("玄関 施錠 電池残量不明", SesameComplicationContent.batteryDescription("玄関 施錠", null))
+    }
+
+    @Test
     fun `short text is defined for every state`() {
         TileDisplayState.entries.forEach { state ->
             assertTrue(SesameComplicationContent.shortText(state).isNotBlank())
