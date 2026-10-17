@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 14:30
+  summary: ウィジェットの選択画面で、現在の対象デバイスに「（選択中）」を付ける（BL-261）
+  details:
+    変更内容: >-
+      Android非依存のmobile.widget.WidgetChoiceLabelを追加し、WidgetConfigurationActivityが割り当て済みのuuidを
+      読んで選択肢のボタンの文言へ反映するようにした。あわせてUSER_GUIDE.mdの「ウィジェットでは振動による通知は
+      行いません」という0.12.0以降の実装（BL-129）と食い違う記述を直した。DESIGN.md・RELEASE_NOTES.mdを更新した。
+      コードと記録を2コミットに分けた（記録の更新スクリプトが途中で止まったまま先にコードをコミットしたため）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetChoiceLabel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetConfigurationActivity.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetChoiceLabelTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-261
+      - BL-264
+
 - date: 2026-10-17 14:00
   summary: ホーム画面ウィジェットの押せる部分へTalkBackの読み上げ文言を付ける（BL-260）
   details:

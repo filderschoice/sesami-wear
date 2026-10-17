@@ -694,6 +694,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - `mobile.widget.WidgetConfigurationActivity`: `appwidget-provider`の`android:configure`で追加時に開き、
   「変更」「タップして設定」からも開く。選択肢は`SesameDeviceTargets.choices`（Tileと同じ）で、0台時は
   「デモモード」の見出しと説明を添える。選択で割り当てを保存し再描画を要求してから`RESULT_OK`で閉じる。
+  現在割り当てている選択肢には「（選択中）」を付ける（BL-261、Android非依存の`WidgetChoiceLabel`、ユニットテスト対象）。
+  「変更」や長押しメニューから開いたとき、どれが現在の対象か分からず選び直しの要否を判断できなかったため。
+  ボタンの色・形は変えず文言だけで示す（色だけの区別はTalkBackや色覚によって伝わらないため）。未割り当て
+  （追加直後）や割り当て先が選択肢に無い場合は何も付けない。
 - 実機検証（BL-126、2026-09-16、Pixel 8 Pro + Pixel Watch 2）: Claude Codeがadb経由のUI操作
   （`input tap`/`input draganddrop`と`exec-out screencap`、`logcat`）で実施した。実資格情報を使わない
   ため、BL-131の併存インストールでデバッグ版を入れ、デモモードとダミー資格情報で確認している。
