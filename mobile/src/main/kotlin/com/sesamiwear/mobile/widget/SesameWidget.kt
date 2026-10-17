@@ -183,7 +183,7 @@ private fun SesameWidgetContent(
     val containerModifier =
         GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(Color(WIDGET_BACKGROUND_ARGB)))
+            .background(WidgetColors.background)
             .cornerRadius(CORNER_RADIUS_DP.dp)
             .padding(CONTAINER_PADDING_DP.dp)
     when (model) {
@@ -199,7 +199,7 @@ private fun SesameWidgetContent(
                 val isCompact = layout == SesameWidgetLayout.COMPACT
                 val message = if (isCompact) COMPACT_UNCONFIGURED_MESSAGE else SesameWidgetModel.Unconfigured.MESSAGE
                 val sizeSp = if (layout == SesameWidgetLayout.FULL) BODY_SP else CAPTION_SP
-                Text(text = message, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, sizeSp), maxLines = 2)
+                Text(text = message, style = widgetTextStyle(WidgetColors.text, sizeSp), maxLines = 2)
             }
         is SesameWidgetModel.Configured ->
             when (layout) {
@@ -330,9 +330,6 @@ private const val REFRESH_LABEL = "更新"
 
 /** 1マス表示で「タップして設定」の代わりに出す文言（BL-128）。 */
 private const val COMPACT_UNCONFIGURED_MESSAGE = "設定"
-
-// ウィジェット全体の背景（wearのTileの黒背景に相当する暗色）と、左側チップの文字色。
-private const val WIDGET_BACKGROUND_ARGB = 0xFF121212.toInt()
 
 // 寸法はwearのTile（当時の左列76dp・チップ角丸12dp・間隔6dp）を、スマホのホーム画面の広さに合わせて広げたもの。
 // Tileの左列はBL-209で56dpへ狭めたが、ウィジェットは見切れの指摘が無いため据え置いている。

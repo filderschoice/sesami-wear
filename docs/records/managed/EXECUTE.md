@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 15:50
+  summary: ホーム画面ウィジェットの中立色を端末のライト/ダークテーマへ追随させる（BL-263）
+  details:
+    変更内容: >-
+      Android非依存のmobile.widget.SesameWidgetPalette（DAY / NIGHT）を追加し、背景・チップ・デバイス名の帯・
+      中立色の文字をGlanceのColorProvider(day, night)で描くようにした（SesameWidgetChipsのWidgetColors）。
+      ダークは従来の値のまま、状態色とウォッチのTile・解錠確認画面は変えない。文字と各面のコントラスト比
+      （4.5:1以上）とチップ・帯の明暗の関係をSesameWidgetPaletteTestで検査する。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.mdを更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetPalette.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetPaletteTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-263
+      - BL-264
+
 - date: 2026-10-17 15:10
   summary: アプリの設定メニューからホーム画面へウィジェットを置けるようにする（BL-262）
   details:

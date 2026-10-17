@@ -32,6 +32,7 @@ import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.ui.SesameRouteIcon
+import androidx.glance.color.ColorProvider as DayNightColorProvider
 
 /**
  * ホーム画面ウィジェットの部品と寸法のうち、[SesameWidget]（Tile相当の表示）と
@@ -57,12 +58,12 @@ internal fun NeutralChip(
         modifier =
             modifier
                 .let { if (fillWidth) it.fillMaxWidth() else it }
-                .background(ColorProvider(Color(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)))
+                .background(WidgetColors.chip)
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(CHIP_INNER_PADDING_DP.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, sizeSp), maxLines = maxLines)
+        Text(text = text, style = widgetTextStyle(WidgetColors.text, sizeSp), maxLines = maxLines)
     }
 }
 
@@ -109,7 +110,7 @@ internal fun NameHeader(
         modifier =
             GlanceModifier
                 .fillMaxWidth()
-                .background(ColorProvider(Color(SesameTileContent.NAME_HEADER_COLOR_ARGB)))
+                .background(WidgetColors.nameHeader)
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(horizontal = CHIP_INNER_PADDING_DP.dp, vertical = NAME_HEADER_VERTICAL_PADDING_DP.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -121,12 +122,12 @@ internal fun NameHeader(
             Image(
                 provider = ImageProvider(iconRes),
                 contentDescription = SesameRouteLabel.name(route),
-                colorFilter = ColorFilter.tint(ColorProvider(Color(NEUTRAL_TEXT_ARGB))),
+                colorFilter = ColorFilter.tint(WidgetColors.text),
                 modifier = GlanceModifier.size(ROUTE_ICON_SIZE_DP.dp),
             )
             Spacer(modifier = GlanceModifier.width(ROUTE_ICON_GAP_DP.dp))
         }
-        Text(text = displayName, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, CAPTION_SP), maxLines = 1)
+        Text(text = displayName, style = widgetTextStyle(WidgetColors.text, CAPTION_SP), maxLines = 1)
     }
 }
 
@@ -143,14 +144,40 @@ internal fun widgetTextStyle(
     argb: Int,
     sizeSp: Int,
     bold: Boolean = false,
+) = widgetTextStyle(ColorProvider(Color(argb)), sizeSp, bold)
+
+internal fun widgetTextStyle(
+    color: ColorProvider,
+    sizeSp: Int,
+    bold: Boolean = false,
 ) = TextStyle(
-    color = ColorProvider(Color(argb)),
+    color = color,
     fontSize = sizeSp.sp,
     fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
     textAlign = TextAlign.Center,
 )
 
-/** チップの文字色（暗い背景に白）。 */
+/**
+ * ウィジェットの中立色（背景・チップ・デバイス名の帯・文字）。端末のライト/ダークテーマへ追随する（BL-263）。
+ * 値は[SesameWidgetPalette]が持つ。状態色（右下）はテーマによらず[SesameTileContent]の値を使う。
+ */
+internal object WidgetColors {
+    val background: ColorProvider = dayNight { it.background }
+    val chip: ColorProvider = dayNight { it.chip }
+    val nameHeader: ColorProvider = dayNight { it.nameHeader }
+    val text: ColorProvider = dayNight { it.text }
+
+    private fun dayNight(pick: (SesameWidgetPalette.Scheme) -> Int): ColorProvider =
+        DayNightColorProvider(
+            day = Color(pick(SesameWidgetPalette.DAY)),
+            night = Color(pick(SesameWidgetPalette.NIGHT)),
+        )
+}
+
+/**
+ * 解錠確認画面（[WidgetUnlockConfirmActivity]）の「キャンセル」の文字色（暗いチップに白）。
+ * 確認画面はダイアログのテーマで描くためウィジェットのテーマ追随（BL-263）の対象外で、従来の値のまま。
+ */
 internal const val NEUTRAL_TEXT_ARGB = 0xFFFFFFFF.toInt()
 
 // 寸法はwearのTile（チップ角丸12dp・内側パディング6dp）に合わせている。
