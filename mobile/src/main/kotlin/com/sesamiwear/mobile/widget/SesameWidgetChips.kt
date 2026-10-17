@@ -21,6 +21,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -129,6 +131,13 @@ internal fun NameHeader(
 }
 
 internal fun GlanceModifier.clickableOrSelf(action: Action?): GlanceModifier = action?.let { clickable(it) } ?: this
+
+/**
+ * 状態表示の読み上げ文言（BL-260）。絵文字の状態アイコンを読ませず、デバイス名・状態・押したときの操作を1文で読ませる。
+ * 中の文字ごとに読ませると「施錠中」と「タップで解錠」が別の項目になり、どちらを押せばよいか分かりにくい。
+ */
+internal fun GlanceModifier.statusSemantics(model: SesameWidgetModel.Configured): GlanceModifier =
+    semantics { contentDescription = WidgetAccessibilityLabels.status(model) }
 
 internal fun widgetTextStyle(
     argb: Int,

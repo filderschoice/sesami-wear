@@ -40,6 +40,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.Text
 import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
@@ -187,7 +189,10 @@ private fun SesameWidgetContent(
     when (model) {
         SesameWidgetModel.Unconfigured ->
             Box(
-                modifier = containerModifier.clickable(actions.configure),
+                modifier =
+                    containerModifier
+                        .clickable(actions.configure)
+                        .semantics { contentDescription = WidgetAccessibilityLabels.UNCONFIGURED },
                 contentAlignment = Alignment.Center,
             ) {
                 // 1マスでは「タップして設定」（7文字）が収まらないため短縮する（BL-128）。
@@ -216,7 +221,7 @@ private fun SesameWidgetContent(
                     }
                 SesameWidgetLayout.FULL ->
                     Row(modifier = containerModifier) {
-                        LeftColumn(actions = actions)
+                        LeftColumn(displayName = model.displayName, actions = actions)
                         Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
                         Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
                             NameHeader(displayName = model.displayName, route = model.route)
@@ -241,7 +246,11 @@ private fun CompactStatusBox(
     onClick: Action?,
 ) {
     Box(
-        modifier = modifier.clickableOrSelf(onClick).background(ColorProvider(Color(model.backgroundColorArgb))),
+        modifier =
+            modifier
+                .clickableOrSelf(onClick)
+                .statusSemantics(model)
+                .background(ColorProvider(Color(model.backgroundColorArgb))),
         contentAlignment = Alignment.Center,
     ) {
         StatusIconAndLabel(model)
@@ -253,11 +262,28 @@ private fun CompactStatusBox(
  * BL-205より前は上がデバイス名だったが、デバイス名は右上の帯（[NameHeader]）へ移した。
  */
 @Composable
-private fun LeftColumn(actions: WidgetActions) {
+private fun LeftColumn(
+    displayName: String,
+    actions: WidgetActions,
+) {
     Column(modifier = GlanceModifier.width(LEFT_COLUMN_WIDTH_DP.dp).fillMaxHeight()) {
-        NeutralChip(text = REFRESH_LABEL, modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh))
+        NeutralChip(
+            text = REFRESH_LABEL,
+            modifier =
+                GlanceModifier
+                    .defaultWeight()
+                    .clickableOrSelf(actions.refresh)
+                    .semantics { contentDescription = WidgetAccessibilityLabels.refresh(displayName) },
+        )
         Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
-        NeutralChip(text = CHANGE_LABEL, modifier = GlanceModifier.defaultWeight().clickable(actions.configure))
+        NeutralChip(
+            text = CHANGE_LABEL,
+            modifier =
+                GlanceModifier
+                    .defaultWeight()
+                    .clickable(actions.configure)
+                    .semantics { contentDescription = WidgetAccessibilityLabels.CHANGE },
+        )
     }
 }
 
@@ -285,6 +311,7 @@ private fun ColumnScope.StatusBox(
             GlanceModifier
                 .defaultWeight()
                 .clickableOrSelf(onClick)
+                .statusSemantics(model)
                 .fillMaxWidth()
                 .background(ColorProvider(Color(model.backgroundColorArgb)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)

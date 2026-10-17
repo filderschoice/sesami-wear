@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 14:00
+  summary: ホーム画面ウィジェットの押せる部分へTalkBackの読み上げ文言を付ける（BL-260）
+  details:
+    変更内容: >-
+      Android非依存のmobile.widget.WidgetAccessibilityLabelsを追加し、状態表示（デバイス名・状態・最終取得時刻・
+      電池残量・操作を1文に）、「更新」「変更」「◀」「▶」、未設定時の全面の読み上げ文言を組み立てる。
+      GlanceのGlanceModifier.semanticsでFULL・MEDIUM・COMPACTの各部へ付けた。絵文字は読ませず、
+      電池残量の低下は言葉で伝える。DESIGN.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabels.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetChips.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetMedium.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabelsTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-260
+      - BL-264
+
 - date: 2026-10-17 12:10
   summary: 電池残量が20%未満のとき、ウィジェットとウォッチの状態一覧の電池表示へ警告の記号を付ける（BL-257）
   details:
