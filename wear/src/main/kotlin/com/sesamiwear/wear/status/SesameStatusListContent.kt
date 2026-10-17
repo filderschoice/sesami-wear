@@ -2,6 +2,7 @@ package com.sesamiwear.wear.status
 
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusSnapshot
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameStatusDetail
@@ -24,6 +25,9 @@ import java.time.ZoneId
  * （[SesameTileActions]。施錠中→解錠、解錠中→施錠）で、解錠は呼び出し先の確認画面を挟む。
  * Tileでは操作なしとなる状態不明の行は、施錠・解錠のどちらとも決められないため、
  * タップでそのデバイスの状態取得を送る（[TapAction.Refresh]）。通信はタップしたときの1回だけ。
+ *
+ * 一覧の末尾には、タップしたときだけ状態取得を送る「更新」と、2台以上のときの「全施錠」を置く
+ * （BL-255、[footerChips]）。全解錠は置かない（迷ったら安全側の方針。Tileの一部解錠→全施錠と同じ）。
  *
  * Android非依存のためユニットテスト対象。
  */
@@ -49,6 +53,25 @@ object SesameStatusListContent {
 
     /** 状態不明の行に添える操作の文言（[TapAction.Refresh]）。 */
     const val REFRESH_ACTION_LABEL = "タップで更新"
+
+    /** 1台のときの末尾の状態取得チップの文言（BL-255）。 */
+    const val REFRESH_CHIP_LABEL = "更新"
+
+    /** 2台以上のときの末尾の状態取得チップの文言。全デバイスへ送ることを示す。 */
+    const val REFRESH_ALL_CHIP_LABEL = "すべて更新"
+
+    /** 2台以上のときの末尾の一括施錠チップの文言。Tileの「全施錠」と同じ言い方にする。 */
+    const val LOCK_ALL_CHIP_LABEL = "全施錠"
+
+    /**
+     * 一覧の末尾に置くチップ（BL-255）。[targetUuid]は送信先（2台以上なら
+     * [SesameWearProtocol.ALL_DEVICES_TARGET_UUID]）で、[action]はタップしたときの動作。
+     */
+    data class FooterChip(
+        val label: String,
+        val targetUuid: String,
+        val action: TapAction,
+    )
 
     /** 行をタップしたときの動作（BL-254）。 */
     sealed interface TapAction {
@@ -106,6 +129,26 @@ object SesameStatusListContent {
                 tapAction = tapActionOf(state),
                 actionLabel = SesameTileContent.actionLabel(state) ?: REFRESH_ACTION_LABEL,
             )
+        }
+
+    /**
+     * 一覧の末尾に置くチップ。0台なら何も置かない（案内文だけを出す）。
+     * 1台なら「更新」だけ、2台以上なら「全施錠」「すべて更新」の順に置く。
+     * 一括操作を2台以上に限るのは、1台なら行のタップで足りるため（Tileの「全デバイス」と同じ条件）。
+     */
+    fun footerChips(devices: List<SesameDeviceSummary>): List<FooterChip> =
+        when (devices.size) {
+            0 -> emptyList()
+            1 -> listOf(FooterChip(REFRESH_CHIP_LABEL, devices.single().uuid, TapAction.Refresh))
+            else ->
+                listOf(
+                    FooterChip(
+                        LOCK_ALL_CHIP_LABEL,
+                        SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
+                        TapAction.Command(SesameCommand.LOCK),
+                    ),
+                    FooterChip(REFRESH_ALL_CHIP_LABEL, SesameWearProtocol.ALL_DEVICES_TARGET_UUID, TapAction.Refresh),
+                )
         }
 
     /** Tileと同じ規則でコマンドを決め、決まらない（状態不明）ときは状態取得にする。 */

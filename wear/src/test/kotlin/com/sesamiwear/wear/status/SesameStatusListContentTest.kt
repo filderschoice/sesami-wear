@@ -4,6 +4,7 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
@@ -104,6 +105,59 @@ class SesameStatusListContentTest {
         assertEquals(TileDisplayState.UNKNOWN, row.state)
         assertEquals(SesameStatusListContent.TapAction.Refresh, row.tapAction)
         assertEquals(SesameStatusListContent.REFRESH_ACTION_LABEL, row.actionLabel)
+    }
+
+    @Test
+    fun `no footer chips are shown without devices`() {
+        assertTrue(SesameStatusListContent.footerChips(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `a single device gets only a refresh chip for that device`() {
+        val chips = SesameStatusListContent.footerChips(listOf(SesameDeviceSummary("a", "玄関")))
+
+        assertEquals(
+            listOf(
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.REFRESH_CHIP_LABEL,
+                    "a",
+                    SesameStatusListContent.TapAction.Refresh,
+                ),
+            ),
+            chips,
+        )
+    }
+
+    @Test
+    fun `two or more devices get lock all and refresh all for every device`() {
+        val chips =
+            SesameStatusListContent.footerChips(
+                listOf(SesameDeviceSummary("a", "玄関"), SesameDeviceSummary("b", "勝手口")),
+            )
+
+        assertEquals(
+            listOf(
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.LOCK_ALL_CHIP_LABEL,
+                    SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
+                    SesameStatusListContent.TapAction.Command(SesameCommand.LOCK),
+                ),
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.REFRESH_ALL_CHIP_LABEL,
+                    SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
+                    SesameStatusListContent.TapAction.Refresh,
+                ),
+            ),
+            chips,
+        )
+    }
+
+    @Test
+    fun `footer chips never unlock`() {
+        val devices = listOf("a", "b", "c").map { SesameDeviceSummary(it, "") }
+        val chips = SesameStatusListContent.footerChips(devices)
+
+        assertTrue(chips.none { it.action == SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK) })
     }
 
     @Test

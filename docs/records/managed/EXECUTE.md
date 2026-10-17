@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 11:00
+  summary: ウォッチの状態一覧の末尾に「更新」と、2台以上のときの「全施錠」を置く（BL-255）
+  details:
+    変更内容: >-
+      wear.status.SesameStatusListContentへfooterChips（0台はなし、1台は「更新」、2台以上は「全施錠」
+      「すべて更新」を全デバイス対象で）を加え、SesameStatusListScreenの一覧の末尾へ出すようにした。
+      タップはBL-254と同じくSesameActionActivity / SesameStatusRefreshActivityを開く。全解錠は置かない。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-255
+
 - date: 2026-10-17 10:30
   summary: ウォッチの状態一覧の各行をタップして施錠・解錠できるようにする（BL-254）
   details:

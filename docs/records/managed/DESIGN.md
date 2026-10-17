@@ -1265,6 +1265,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   行の背景・文字色はTileの状態チップと同じ（`backgroundColorArgb` / `statusTextColorArgb`、
   角丸12dp・内側6dp）にして、押せる面であることと状態を同時に示す。
   スマートフォン未接続の判定はしない（送信時に接続ノードが無ければ`SesameActionActivity`が何も送らずに閉じる）。
+- **一覧の末尾に「更新」と「全施錠」を置く（BL-255、`SesameStatusListContent.footerChips`）。**
+  0台なら置かない（案内文だけ）。1台なら「更新」（そのuuidへ状態取得）だけ、2台以上なら「全施錠」
+  「すべて更新」の順に置き、送信先は`ALL_DEVICES_TARGET_UUID`（各Activityが登録済み全uuidへ個別に送る、
+  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。Tileの一部解錠→全施錠と同じ方針）。
+  一括操作を2台以上に限るのは、1台なら行のタップで足りるため。どちらもタップしたときだけ通信する。
+  見た目は「更新」系がTileの左列と同じ中立色（0xFF424242・白文字）、「全施錠」が施錠中の状態色。
+  末尾は円形画面の下端に寄り横幅が狭くなるため、チップの左右の外側余白を行（12dp）より広い24dpにしている。
 - 画面が再開するたび（`ON_RESUME`）に読み直す。Tileで操作してからアプリへ戻ったときに追随させるため。
   このために`wear`へ`lifecycle-runtime-compose`を追加した（mobileが使っているものと同じ版で、
   compose-uiが推移的に持ち込む`lifecycle-runtime`と同一バージョンのため依存グラフは変わらない）。
