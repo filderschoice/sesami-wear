@@ -1,10 +1,13 @@
 package com.sesamiwear.wear.status
 
 import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,7 +16,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -22,6 +28,9 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.sesamiwear.core.display.SesameTileContent
+import com.sesamiwear.wear.action.SesameActionActivity
+import com.sesamiwear.wear.action.SesameStatusRefreshActivity
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
 
@@ -37,6 +46,10 @@ import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
  * Tileからの操作が同期されるのを待つ。
  *
  * 画面が再開するたび（`ON_RESUME`）に読み直す。Tileで操作してからアプリへ戻ったときに追随させるため。
+ *
+ * 各行はタップで操作できる（BL-254）。施錠・解錠はTileと同じ[SesameActionActivity]を開き
+ * （解錠は確認画面を挟む）、状態不明の行は[SesameStatusRefreshActivity]で状態取得を送る。
+ * 行の背景はTileの状態チップと同じ状態色にし、押せる面であることと状態を同時に示す。
  * Compose画面のためユニットテスト対象外（行の組み立ては[SesameStatusListContent]でテスト済み）。
  */
 @Composable
@@ -53,7 +66,7 @@ fun SesameStatusListScreen() {
         if (rows.isEmpty()) {
             item { EmptyMessage() }
         } else {
-            items(rows) { row -> DeviceStatusItem(row) }
+            items(rows) { row -> DeviceStatusItem(row, onClick = { openTapAction(context, row) }) }
         }
     }
 }
@@ -67,6 +80,21 @@ private suspend fun loadRows(context: Context): List<SesameStatusListContent.Dev
         snapshotOf = { snapshots[it] },
         nowEpochMillis = System.currentTimeMillis(),
     )
+}
+
+/** 行のタップを、Tileと同じ操作画面（または状態取得）の起動へ変える（BL-254）。 */
+private fun openTapAction(
+    context: Context,
+    row: SesameStatusListContent.DeviceRow,
+) {
+    val intent =
+        when (val action = row.tapAction) {
+            is SesameStatusListContent.TapAction.Command ->
+                SesameActionActivity.createIntent(context, action.command, row.uuid)
+            SesameStatusListContent.TapAction.Refresh ->
+                SesameStatusRefreshActivity.createIntent(context, row.uuid)
+        }
+    context.startActivity(intent)
 }
 
 @Composable
@@ -93,37 +121,55 @@ private fun EmptyMessage() {
     )
 }
 
-/** 1台分の表示。デバイス名・施錠状態と電池・最終取得時刻と経路を3行で出す。 */
+/**
+ * 1台分の表示。デバイス名・施錠状態と電池・最終取得時刻と経路・操作の文言を4行で出す。
+ * 背景と文字色はTileの状態チップと同じ（[SesameTileContent]）。
+ */
 @Composable
-private fun DeviceStatusItem(row: SesameStatusListContent.DeviceRow) {
+private fun DeviceStatusItem(
+    row: SesameStatusListContent.DeviceRow,
+    onClick: () -> Unit,
+) {
+    val textColor = Color(SesameTileContent.statusTextColorArgb(row.state))
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = HORIZONTAL_PADDING_DP.dp, vertical = ITEM_VERTICAL_PADDING_DP.dp),
+                .padding(horizontal = HORIZONTAL_PADDING_DP.dp, vertical = ITEM_VERTICAL_PADDING_DP.dp)
+                .clip(RoundedCornerShape(ITEM_CORNER_RADIUS_DP.dp))
+                .background(Color(SesameTileContent.backgroundColorArgb(row.state)))
+                .clickable(onClick = onClick)
+                .padding(ITEM_INNER_PADDING_DP.dp),
     ) {
-        Text(
-            text = row.displayName,
-            style = MaterialTheme.typography.caption1,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = row.statusLine,
-            style = MaterialTheme.typography.body2,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = row.detailLine,
-            style = MaterialTheme.typography.caption2,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        ItemLine(row.displayName, MaterialTheme.typography.caption1, textColor)
+        ItemLine(row.statusLine, MaterialTheme.typography.body2, textColor)
+        ItemLine(row.detailLine, MaterialTheme.typography.caption2, textColor)
+        ItemLine(row.actionLabel, MaterialTheme.typography.caption2, textColor)
     }
+}
+
+@Composable
+private fun ItemLine(
+    text: String,
+    style: TextStyle,
+    color: Color,
+) {
+    Text(
+        text = text,
+        style = style,
+        color = color,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /** 円形画面の縁で文字が見切れないための左右パディング（dp、BL-114と同じ考え方）。 */
 private const val HORIZONTAL_PADDING_DP = 12
 
 private const val ITEM_VERTICAL_PADDING_DP = 4
+
+/** 行の角丸半径（dp）。Tileのチップ・操作画面のチップと同じ値。 */
+private const val ITEM_CORNER_RADIUS_DP = 12
+
+/** 行の内側の余白（dp）。Tileのチップと同じ値。 */
+private const val ITEM_INNER_PADDING_DP = 6

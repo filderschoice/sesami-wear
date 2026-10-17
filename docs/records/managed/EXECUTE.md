@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 10:30
+  summary: ウォッチの状態一覧の各行をタップして施錠・解錠できるようにする（BL-254）
+  details:
+    変更内容: >-
+      wear.status.SesameStatusListContentの行へuuid・表示状態・タップ時の動作（TapAction。Tileと同じ
+      core.display.SesameTileActionsでCommandを決め、決まらない状態不明はRefresh）・操作の文言を加えた。
+      SesameStatusListScreenは行をTileの状態色の角丸チップにし、タップでSesameActionActivity（解錠は確認画面）
+      またはSesameStatusRefreshActivityを開く。画面を開いただけでは通信しない方針は維持した。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/MainActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-254
+
 - date: 2026-10-17 02:50
   summary: 0.14.3の表示で掲載スクリーンショット（スマートフォン8点）とウィジェットのプレビュー画像を撮り直す（BL-250）
   details:

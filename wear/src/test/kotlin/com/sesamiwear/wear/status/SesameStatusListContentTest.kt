@@ -4,6 +4,8 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
+import com.sesamiwear.core.TileDisplayState
+import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -78,6 +80,33 @@ class SesameStatusListContentTest {
     }
 
     @Test
+    fun `a locked device offers unlock like the tile`() {
+        val row = rowsOf(SesameStatusSnapshot(true, NOW)).single()
+
+        assertEquals("uuid-1", row.uuid)
+        assertEquals(TileDisplayState.LOCKED, row.state)
+        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK), row.tapAction)
+        assertEquals("タップで解錠", row.actionLabel)
+    }
+
+    @Test
+    fun `an unlocked device offers lock like the tile`() {
+        val row = rowsOf(SesameStatusSnapshot(false, NOW)).single()
+
+        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.LOCK), row.tapAction)
+        assertEquals("タップで施錠", row.actionLabel)
+    }
+
+    @Test
+    fun `a device in an unknown state is refreshed instead of operated`() {
+        val row = rowsOf(null).single()
+
+        assertEquals(TileDisplayState.UNKNOWN, row.state)
+        assertEquals(SesameStatusListContent.TapAction.Refresh, row.tapAction)
+        assertEquals(SesameStatusListContent.REFRESH_ACTION_LABEL, row.actionLabel)
+    }
+
+    @Test
     fun `every device gets a row in the given order`() {
         val rows =
             SesameStatusListContent.rows(
@@ -107,7 +136,7 @@ class SesameStatusListContentTest {
                 ),
             )
 
-        listOf(rows.single().statusLine, rows.single().detailLine).forEach { line ->
+        listOf(rows.single().statusLine, rows.single().detailLine, rows.single().actionLabel).forEach { line ->
             assertTrue(line, widthOf(line) <= SesameStatusListContent.MAX_LINE_CHARS)
         }
     }
