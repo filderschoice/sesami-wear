@@ -5,6 +5,114 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 12:10
+  summary: 電池残量が20%未満のとき、ウィジェットとウォッチの状態一覧の電池表示へ警告の記号を付ける（BL-257）
+  details:
+    変更内容: >-
+      core.display.SesameTileContentへLOW_BATTERY_THRESHOLD_PERCENTAGE（20）・LOW_BATTERY_ICON（⚠）・isLowBatteryを加え、
+      batteryLabelが基準未満で「⚠🔋15%」を返すようにした。mobile.alert.LowBatteryAlertTracker.THRESHOLD_PERCENTAGEは
+      この定数を参照し、通知と表示の基準を1か所にした。BACKLOG起票時の案だった🪫はEmoji 14でAndroid 12以前
+      （minSdk 26）に表示できないため⚠を選んだ（仕様上の既定値の選択で、表示記号のみのため安全性に影響しない）。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新し、人手検証BL-258へ確認項目を加えた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTracker.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-257
+      - BL-258
+
+- date: 2026-10-17 11:40
+  summary: Complicationへアイコンだけの型と電池残量のゲージの型を追加する（BL-256）
+  details:
+    変更内容: >-
+      SesameComplicationDataSourceServiceの対応型へMONOCHROMATIC_IMAGE・SMALL_IMAGE・RANGED_VALUEを加え、
+      マニフェストのSUPPORTED_TYPESを揃えた。型ごとの組み立てはSesameComplicationDataBuilderへ分けた
+      （detekt TooManyFunctions対策）。アイコンの種類（一部解錠は解錠のアイコン）・電池ゲージ（未取得は空で「--」、
+      0〜100へ丸め）・読み上げ文言はSesameComplicationContentに置いてテストした。SesameTileStatusへ電池残量を加え、
+      全デバイス時は分かっている中の最小値にした。状態アイコン5種（Material Icons）をwear/res/drawableへ追加した。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataBuilder.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/res/drawable/ic_state_locked.xml
+      - wear/src/main/res/drawable/ic_state_unlocked.xml
+      - wear/src/main/res/drawable/ic_state_in_progress.xml
+      - wear/src/main/res/drawable/ic_state_disconnected.xml
+      - wear/src/main/res/drawable/ic_state_unknown.xml
+      - wear/src/test/kotlin/com/sesamiwear/wear/complication/SesameComplicationContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。初回はdetekt TooManyFunctions（サービスの関数11個）で
+      失敗し、組み立てを別クラスへ分けて解消した。文字盤上の表示は実機での人手検証（BL-258）とする。
+    関連ID:
+      - BL-256
+      - BL-258
+
+- date: 2026-10-17 11:00
+  summary: ウォッチの状態一覧の末尾に「更新」と、2台以上のときの「全施錠」を置く（BL-255）
+  details:
+    変更内容: >-
+      wear.status.SesameStatusListContentへfooterChips（0台はなし、1台は「更新」、2台以上は「全施錠」
+      「すべて更新」を全デバイス対象で）を加え、SesameStatusListScreenの一覧の末尾へ出すようにした。
+      タップはBL-254と同じくSesameActionActivity / SesameStatusRefreshActivityを開く。全解錠は置かない。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-255
+
+- date: 2026-10-17 10:30
+  summary: ウォッチの状態一覧の各行をタップして施錠・解錠できるようにする（BL-254）
+  details:
+    変更内容: >-
+      wear.status.SesameStatusListContentの行へuuid・表示状態・タップ時の動作（TapAction。Tileと同じ
+      core.display.SesameTileActionsでCommandを決め、決まらない状態不明はRefresh）・操作の文言を加えた。
+      SesameStatusListScreenは行をTileの状態色の角丸チップにし、タップでSesameActionActivity（解錠は確認画面）
+      またはSesameStatusRefreshActivityを開く。画面を開いただけでは通信しない方針は維持した。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/MainActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-254
+
 - date: 2026-10-17 02:50
   summary: 0.14.3の表示で掲載スクリーンショット（スマートフォン8点）とウィジェットのプレビュー画像を撮り直す（BL-250）
   details:

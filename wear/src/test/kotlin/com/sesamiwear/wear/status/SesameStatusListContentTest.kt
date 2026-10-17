@@ -4,6 +4,9 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
+import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.core.TileDisplayState
+import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,6 +34,14 @@ class SesameStatusListContentTest {
         assertEquals("玄関", rows.single().displayName)
         assertEquals("🔒施錠中 🔋85%", rows.single().statusLine)
         assertEquals("🔗3分前", rows.single().detailLine)
+    }
+
+    @Test
+    fun `a low battery is shown with a warning that still fits`() {
+        val row = rowsOf(SesameStatusSnapshot(true, NOW, batteryPercentage = 15)).single()
+
+        assertEquals("🔒施錠中 ⚠🔋15%", row.statusLine)
+        assertTrue(row.statusLine, widthOf(row.statusLine) <= SesameStatusListContent.MAX_LINE_CHARS)
     }
 
     @Test
@@ -78,6 +89,86 @@ class SesameStatusListContentTest {
     }
 
     @Test
+    fun `a locked device offers unlock like the tile`() {
+        val row = rowsOf(SesameStatusSnapshot(true, NOW)).single()
+
+        assertEquals("uuid-1", row.uuid)
+        assertEquals(TileDisplayState.LOCKED, row.state)
+        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK), row.tapAction)
+        assertEquals("タップで解錠", row.actionLabel)
+    }
+
+    @Test
+    fun `an unlocked device offers lock like the tile`() {
+        val row = rowsOf(SesameStatusSnapshot(false, NOW)).single()
+
+        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.LOCK), row.tapAction)
+        assertEquals("タップで施錠", row.actionLabel)
+    }
+
+    @Test
+    fun `a device in an unknown state is refreshed instead of operated`() {
+        val row = rowsOf(null).single()
+
+        assertEquals(TileDisplayState.UNKNOWN, row.state)
+        assertEquals(SesameStatusListContent.TapAction.Refresh, row.tapAction)
+        assertEquals(SesameStatusListContent.REFRESH_ACTION_LABEL, row.actionLabel)
+    }
+
+    @Test
+    fun `no footer chips are shown without devices`() {
+        assertTrue(SesameStatusListContent.footerChips(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `a single device gets only a refresh chip for that device`() {
+        val chips = SesameStatusListContent.footerChips(listOf(SesameDeviceSummary("a", "玄関")))
+
+        assertEquals(
+            listOf(
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.REFRESH_CHIP_LABEL,
+                    "a",
+                    SesameStatusListContent.TapAction.Refresh,
+                ),
+            ),
+            chips,
+        )
+    }
+
+    @Test
+    fun `two or more devices get lock all and refresh all for every device`() {
+        val chips =
+            SesameStatusListContent.footerChips(
+                listOf(SesameDeviceSummary("a", "玄関"), SesameDeviceSummary("b", "勝手口")),
+            )
+
+        assertEquals(
+            listOf(
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.LOCK_ALL_CHIP_LABEL,
+                    SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
+                    SesameStatusListContent.TapAction.Command(SesameCommand.LOCK),
+                ),
+                SesameStatusListContent.FooterChip(
+                    SesameStatusListContent.REFRESH_ALL_CHIP_LABEL,
+                    SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
+                    SesameStatusListContent.TapAction.Refresh,
+                ),
+            ),
+            chips,
+        )
+    }
+
+    @Test
+    fun `footer chips never unlock`() {
+        val devices = listOf("a", "b", "c").map { SesameDeviceSummary(it, "") }
+        val chips = SesameStatusListContent.footerChips(devices)
+
+        assertTrue(chips.none { it.action == SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK) })
+    }
+
+    @Test
     fun `every device gets a row in the given order`() {
         val rows =
             SesameStatusListContent.rows(
@@ -107,7 +198,7 @@ class SesameStatusListContentTest {
                 ),
             )
 
-        listOf(rows.single().statusLine, rows.single().detailLine).forEach { line ->
+        listOf(rows.single().statusLine, rows.single().detailLine, rows.single().actionLabel).forEach { line ->
             assertTrue(line, widthOf(line) <= SesameStatusListContent.MAX_LINE_CHARS)
         }
     }

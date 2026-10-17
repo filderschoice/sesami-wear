@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.alert
 
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.core.display.SesameTileContent
 
 /**
  * 電池残量が少なくなったことを通知すべきかを判定する（BL-238）。
@@ -36,8 +37,11 @@ class LowBatteryAlertTracker(private val store: SesameKeyValueStore) {
     }
 
     companion object {
-        /** これ未満で「電池残量が少ない」とみなす（%）。 */
-        const val THRESHOLD_PERCENTAGE = 20
+        /**
+         * これ未満で「電池残量が少ない」とみなす（%）。ウィジェット・ウォッチの電池表示の警告（BL-257）と
+         * 基準を揃えるため、coreの定数を参照する。
+         */
+        const val THRESHOLD_PERCENTAGE = SesameTileContent.LOW_BATTERY_THRESHOLD_PERCENTAGE
 
         private const val KEY_PREFIX = "low_battery_notified:"
         private const val NOTIFIED = "true"

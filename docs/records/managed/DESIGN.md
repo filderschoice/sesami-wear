@@ -1071,6 +1071,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   出す）と同じく、利用者が対処すべき側を見せる。1台も分かっていなければ出さない。
 - 電池の書き方（`🔋85%`）は`core.display.SesameTileContent.batteryLabel`が持ち、
   ウォッチの状態一覧（BL-170）と共通にしている。
+- **残量が少ないときは警告の記号を前に付ける（「⚠🔋15%」、BL-257）。** 基準は
+  `SesameTileContent.LOW_BATTERY_THRESHOLD_PERCENTAGE`（20%未満）で、スマートフォンの電池残量の通知
+  （`mobile.alert.LowBatteryAlertTracker.THRESHOLD_PERCENTAGE`、BL-238）はこの定数を参照し、通知と表示の基準を
+  1か所にしている。記号は「電池残量が少ない」絵文字（🪫、Emoji 14）ではなく⚠（U+26A0）にする。
+  🪫はAndroid 12以前で表示できず（minSdk 26）、ウィジェットは端末のフォントで描かれるため。
+  色は変えない（ウィジェットは状態色を右下だけに使う方針、BL-205）。ウォッチの状態一覧でも1行の幅の目安
+  （全角11文字相当）に収まることを`SesameStatusListContentTest`で固定している。
 
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 
@@ -1242,7 +1249,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 スタブだったが、**登録済みセサミの状態一覧**にした（BL-170）。Tileは操作のための面で表示余白が無く、
 電池残量や経路までは入らないため、その置き場にする。
 
-- 1台につき3行（デバイス名 / 「🔒施錠中 🔋85%」 / 「🔗3分前」）。
+- 1台につき4行（デバイス名 / 「🔒施錠中 🔋85%」 / 「🔗3分前」 / 「タップで解錠」）。
   円形画面では行が長いと行頭・行末が見切れるため（BL-114）、スマートフォンの1行表示
   （`core.display.SesameDeviceStatusLine`）はそのまま使わず、短い行へ分ける。
   各行が幅の目安（全角11文字相当）に収まることは`SesameStatusListContentTest`で固定している。
@@ -1252,8 +1259,26 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   同じ状態が別の言い方で出ないようにする。**スマートフォンとの接続状態は見ない**
   （この画面は最後に同期された値を見るためのもので、つながっていなければ値が古くなるだけであり、
   それは最終取得時刻の行が示す）。
-- **この画面から状態取得のリクエストは送らない。** 開くたびにリクエストが飛ぶと、月間リクエスト
+- **この画面を開いただけでは状態取得のリクエストを送らない。** 開くたびにリクエストが飛ぶと、月間リクエスト
   上限（BL-141）を画面を開いた回数だけ消費するため（BL-142で自動取得を廃止した理由と同じ）。
+  通信は次の行タップのときだけ行う。
+- **各行はタップで操作できる（BL-254）。** Tileを置いていない利用者や、Tileで選んでいない別のデバイスを
+  直接操作したい利用者のため（実機ではTileを1つしか置けない、後述「Tile」の未確認事項）。
+  提示コマンドはTileと同じ`core.display.SesameTileActions`（施錠中→解錠、解錠中→施錠）で、
+  `SesameActionActivity.createIntent`を開くため解錠の確認画面・デモ分岐・送信方式もTileと同じ。
+  Tileでは操作なしになる状態不明（UNKNOWN）の行は、施錠・解錠のどちらとも決められないため
+  `SesameStatusRefreshActivity`でそのデバイスの状態取得を送る（`SesameStatusListContent.TapAction.Refresh`）。
+  行の4行目に操作の文言（`SesameTileContent.actionLabel`、状態不明は「タップで更新」）を添え、
+  行の背景・文字色はTileの状態チップと同じ（`backgroundColorArgb` / `statusTextColorArgb`、
+  角丸12dp・内側6dp）にして、押せる面であることと状態を同時に示す。
+  スマートフォン未接続の判定はしない（送信時に接続ノードが無ければ`SesameActionActivity`が何も送らずに閉じる）。
+- **一覧の末尾に「更新」と「全施錠」を置く（BL-255、`SesameStatusListContent.footerChips`）。**
+  0台なら置かない（案内文だけ）。1台なら「更新」（そのuuidへ状態取得）だけ、2台以上なら「全施錠」
+  「すべて更新」の順に置き、送信先は`ALL_DEVICES_TARGET_UUID`（各Activityが登録済み全uuidへ個別に送る、
+  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。Tileの一部解錠→全施錠と同じ方針）。
+  一括操作を2台以上に限るのは、1台なら行のタップで足りるため。どちらもタップしたときだけ通信する。
+  見た目は「更新」系がTileの左列と同じ中立色（0xFF424242・白文字）、「全施錠」が施錠中の状態色。
+  末尾は円形画面の下端に寄り横幅が狭くなるため、チップの左右の外側余白を行（12dp）より広い24dpにしている。
 - 画面が再開するたび（`ON_RESUME`）に読み直す。Tileで操作してからアプリへ戻ったときに追随させるため。
   このために`wear`へ`lifecycle-runtime-compose`を追加した（mobileが使っているものと同じ版で、
   compose-uiが推移的に持ち込む`lifecycle-runtime`と同一バージョンのため依存グラフは変わらない）。
@@ -1335,7 +1360,7 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 ### Complication
 
 - `wear.complication.SesameComplicationDataSourceService`（`ComplicationDataSourceService`実装、
-  `SUPPORTED_TYPES=SHORT_TEXT,LONG_TEXT`）: `SesameTileStateResolver`を共用し、要求された
+  `SUPPORTED_TYPES=SHORT_TEXT,LONG_TEXT,MONOCHROMATIC_IMAGE,SMALL_IMAGE,RANGED_VALUE`）: `SesameTileStateResolver`を共用し、要求された
   `ComplicationType`に応じて`ShortTextComplicationData`（状態文言のみ）または
   `LongTextComplicationData`（デバイス名＋状態文言）で状態を表示する（BL-009, BL-071, BL-072）。
   タップは設定画面（デバイス変更）を開くだけで施錠/解錠のコマンド送信は行わないため、
@@ -1343,6 +1368,19 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   状態解決は`withTimeout`（10秒）で打ち切り、例外・タイムアウト時も「不明」表示へフォールバック
   して必ず`listener.onComplicationData`を呼ぶ（データ未返却＝空欄表示を作らないための防御、
   BL-072）。切り分け用に`Log`（TAG=`SesameComplication`）で要求された型とデータ返却有無を出力する。
+- **アイコン・ゲージの型（BL-256）**: 文字の入らない小さな枠へも置けるよう、`SUPPORTED_TYPES`へ
+  `MONOCHROMATIC_IMAGE`・`SMALL_IMAGE`（`SmallImageType.ICON`）・`RANGED_VALUE`を加えた（マニフェストの
+  meta-dataとサービスの`SUPPORTED_TYPES`を揃える）。画像の型は状態のアイコンだけを出し、読み上げ文言は
+  `LONG_TEXT`と同じ「デバイス名＋状態（＋鮮度）」。`RANGED_VALUE`は電池残量（0〜100）をゲージにし、中央に
+  状態のアイコン、文字に「85%」を出す。電池残量が未取得ならゲージを空（0）にし、0%と誤読されないよう
+  文字は「--」にする。全デバイス選択時の電池残量は、分かっている中で最も少ない値（交換が近いものを
+  見落とさないため。`SesameTileStatus.batteryPercentage`）。アイコンはMaterial Icons（lock / lock_open / sync /
+  link_off / help）を`wear/res/drawable/ic_state_*.xml`へ置き、**一部解錠（MIXED）は解錠のアイコン**にする
+  （文字の無い枠で施錠のアイコンを出すと全台施錠済みと誤読されるため）。未設定の枠は状態不明のアイコンで、
+  タップの動作（設定画面）は文字の型と同じ。どの型も同じスナップショットから作り分けるだけで通信は増えない。
+  型ごとの組み立てはサービスの関数数（detekt `TooManyFunctions`）を抑えるため
+  `SesameComplicationDataBuilder`へ分け、アイコンの種類・ゲージの値・読み上げ文言は
+  `SesameComplicationContent`（`stateIcon` / `batteryGauge` / `batteryDescription`）でテストする。
 - `wear.complication.SesameComplicationContent`（Android非依存）: `TileDisplayState`→短い表示文言
   （MIXED用の🔀アイコン・「一部解錠」ラベルを含む。BL-071、文言はBL-104で短縮）と、`LONG_TEXT`枠向けの
   「デバイス名＋状態文言」（BL-072）。
@@ -2290,6 +2328,7 @@ Android非依存のクラスへ切り出し、ユニットテストで検証で�
 - 成功/失敗をハプティクスパターンで区別する。
 - スマホ未接続時はTile上で明示し操作不可にする。
 - Complicationで常時ロック状態を文字盤表示する。
+- ウォッチのアプリ本体（状態一覧）からも、各行のタップでTileと同じ規則で施錠・解錠できる（BL-254）。
 - 登録済みデバイスが2台以上の場合、Tile/Complicationのデバイス選択に「全デバイス」を選べる
   （BL-071）。
 - 登録済みデバイスが0台の場合は、デモ用デバイスのみを選択肢として提示し、Sesame実機を持たない

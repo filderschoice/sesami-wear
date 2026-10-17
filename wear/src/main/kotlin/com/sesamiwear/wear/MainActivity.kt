@@ -13,7 +13,7 @@ import com.sesamiwear.wear.status.SesameStatusListScreen
  * ウォッチのアプリ本体。登録済みセサミの状態一覧を出す（BL-170）。
  *
  * 初回実装以降「Sesami Wear」と表示するだけのスタブだったが、Tileには入りきらない情報
- * （電池残量・経路）の置き場として状態一覧にした。操作はTile・Complicationから行う。
+ * （電池残量・経路）の置き場として状態一覧にした。各行のタップでも施錠・解錠できる（BL-254）。
  * 画面そのものの実装は[SesameStatusListScreen]にある。
  */
 class MainActivity : ComponentActivity() {

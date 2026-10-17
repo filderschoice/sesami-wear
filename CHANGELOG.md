@@ -7,6 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-17（0.15.0の掲載文・紹介ページ更新の起票、BL-259）
+
+- BL-254〜BL-257の実装を受け、Google Play掲載文と `site/` への反映を BL-259 として
+  [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) へ起票しました。どちらもリリース時に更新する
+  運用のため、実機での人手検証（BL-258）の後に行います。
+
+## 2026-10-17（ウィジェット・ウォッチの追加機能の起票、BL-254〜BL-257）
+
+- 自律ループ実行モード（作業ブランチ `feature/loop-20261017-uiux-features`）の第1イテレーションとして、
+  ユーザーが追加機能候補から選んだ4件を [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) へ
+  起票しました（ウォッチの状態一覧からの操作 BL-254、一覧の「更新」「全施錠」BL-255、
+  コンプリケーションの型追加 BL-256、電池低下の強調表示 BL-257）。
+
 ## 2026-10-17（site/ の画像と操作イメージの拡充）
 
 - `site/` に「操作の流れ」セクション（ウォッチの操作を CSS だけで繰り返し見せるアニメーションと、ウィジェットの
