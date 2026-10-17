@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-17 12:10
+  summary: 電池残量が20%未満のとき、ウィジェットとウォッチの状態一覧の電池表示へ警告の記号を付ける（BL-257）
+  details:
+    変更内容: >-
+      core.display.SesameTileContentへLOW_BATTERY_THRESHOLD_PERCENTAGE（20）・LOW_BATTERY_ICON（⚠）・isLowBatteryを加え、
+      batteryLabelが基準未満で「⚠🔋15%」を返すようにした。mobile.alert.LowBatteryAlertTracker.THRESHOLD_PERCENTAGEは
+      この定数を参照し、通知と表示の基準を1か所にした。BACKLOG起票時の案だった🪫はEmoji 14でAndroid 12以前
+      （minSdk 26）に表示できないため⚠を選んだ（仕様上の既定値の選択で、表示記号のみのため安全性に影響しない）。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md（0.15.0、未リリース）を更新し、人手検証BL-258へ確認項目を加えた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/alert/LowBatteryAlertTracker.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは40ファイルで0件）。
+    関連ID:
+      - BL-257
+      - BL-258
+
 - date: 2026-10-17 11:40
   summary: Complicationへアイコンだけの型と電池残量のゲージの型を追加する（BL-256）
   details:

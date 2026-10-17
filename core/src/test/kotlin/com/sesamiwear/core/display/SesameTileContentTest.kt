@@ -87,4 +87,22 @@ class SesameTileContentTest {
             SesameTileContent.statusTextColorArgb(state)
         }
     }
+
+    @Test
+    fun `battery label is plain at and above the low battery threshold`() {
+        assertEquals("🔋20%", SesameTileContent.batteryLabel(SesameTileContent.LOW_BATTERY_THRESHOLD_PERCENTAGE))
+        assertEquals("🔋85%", SesameTileContent.batteryLabel(85))
+    }
+
+    @Test
+    fun `battery label warns below the low battery threshold`() {
+        assertEquals("⚠🔋19%", SesameTileContent.batteryLabel(19))
+        assertEquals("⚠🔋0%", SesameTileContent.batteryLabel(0))
+    }
+
+    @Test
+    fun `battery label is absent without a reading`() {
+        assertNull(SesameTileContent.batteryLabel(null))
+        assertEquals(false, SesameTileContent.isLowBattery(null))
+    }
 }

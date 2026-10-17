@@ -80,10 +80,31 @@ object SesameTileContent {
     const val BATTERY_ICON = "🔋"
 
     /**
+     * 電池残量が少ないときに[BATTERY_ICON]の前へ付ける警告の記号（BL-257）。
+     * 「電池残量が少ない」絵文字（🪫、Emoji 14）はAndroid 12以前で表示できない（minSdkは26）ため、
+     * どの版でも出る⚠（U+26A0）を使う。
+     */
+    const val LOW_BATTERY_ICON = "⚠"
+
+    /**
+     * これ未満で「電池残量が少ない」とみなす（%）。スマートフォンの電池残量の通知
+     * （`mobile.alert.LowBatteryAlertTracker`、BL-238）と同じ基準を使い、通知と表示を食い違わせない（BL-257）。
+     */
+    const val LOW_BATTERY_THRESHOLD_PERCENTAGE = 20
+
+    /** [percentage]が[LOW_BATTERY_THRESHOLD_PERCENTAGE]未満ならtrue。未取得（null）はfalse。 */
+    fun isLowBattery(percentage: Int?): Boolean = percentage != null && percentage < LOW_BATTERY_THRESHOLD_PERCENTAGE
+
+    /**
      * 電池残量の表示（「🔋85%」）。未取得（null）なら表示しないためnullを返す。
+     * 残量が少ないときは警告の記号を前に付ける（「⚠🔋15%」、BL-257）。
      * ウォッチの状態一覧・ホーム画面ウィジェットで同じ書き方になるよう、ここに置く。
      */
-    fun batteryLabel(percentage: Int?): String? = percentage?.let { "$BATTERY_ICON$it%" }
+    fun batteryLabel(percentage: Int?): String? =
+        percentage?.let {
+            val label = "$BATTERY_ICON$it%"
+            if (isLowBattery(it)) "$LOW_BATTERY_ICON$label" else label
+        }
 
     /**
      * 状態色と無関係な中立チップ（Tileのデバイス名/デバイス変更チップ、施錠/解錠確認画面の

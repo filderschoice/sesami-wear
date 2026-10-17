@@ -1071,6 +1071,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   出す）と同じく、利用者が対処すべき側を見せる。1台も分かっていなければ出さない。
 - 電池の書き方（`🔋85%`）は`core.display.SesameTileContent.batteryLabel`が持ち、
   ウォッチの状態一覧（BL-170）と共通にしている。
+- **残量が少ないときは警告の記号を前に付ける（「⚠🔋15%」、BL-257）。** 基準は
+  `SesameTileContent.LOW_BATTERY_THRESHOLD_PERCENTAGE`（20%未満）で、スマートフォンの電池残量の通知
+  （`mobile.alert.LowBatteryAlertTracker.THRESHOLD_PERCENTAGE`、BL-238）はこの定数を参照し、通知と表示の基準を
+  1か所にしている。記号は「電池残量が少ない」絵文字（🪫、Emoji 14）ではなく⚠（U+26A0）にする。
+  🪫はAndroid 12以前で表示できず（minSdk 26）、ウィジェットは端末のフォントで描かれるため。
+  色は変えない（ウィジェットは状態色を右下だけに使う方針、BL-205）。ウォッチの状態一覧でも1行の幅の目安
+  （全角11文字相当）に収まることを`SesameStatusListContentTest`で固定している。
 
 ### Data Layer APIプロトコル定義（`core.SesameWearProtocol`）
 

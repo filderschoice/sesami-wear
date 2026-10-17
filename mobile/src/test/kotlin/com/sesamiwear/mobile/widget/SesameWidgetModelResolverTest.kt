@@ -251,6 +251,16 @@ class SesameWidgetModelResolverTest {
     }
 
     @Test
+    fun `a low battery is shown with a warning (BL-257)`() {
+        lockStates[front.uuid] = true
+        batteries[front.uuid] = 15
+
+        val model = configured(resolve(front.uuid, listOf(front)))
+
+        assertEquals("${dateTime(NOW)} ⚠🔋15%", model.detailWithBatteryLabel)
+    }
+
+    @Test
     fun `no battery reading leaves the line as it was`() {
         lockStates[front.uuid] = true
 

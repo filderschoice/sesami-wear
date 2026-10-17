@@ -37,6 +37,14 @@ class SesameStatusListContentTest {
     }
 
     @Test
+    fun `a low battery is shown with a warning that still fits`() {
+        val row = rowsOf(SesameStatusSnapshot(true, NOW, batteryPercentage = 15)).single()
+
+        assertEquals("🔒施錠中 ⚠🔋15%", row.statusLine)
+        assertTrue(row.statusLine, widthOf(row.statusLine) <= SesameStatusListContent.MAX_LINE_CHARS)
+    }
+
+    @Test
     fun `a device without a battery reading shows only the state`() {
         val rows = rowsOf(SesameStatusSnapshot(false, NOW, lastRoute = SesameStatusRoute.WEB_API))
 
