@@ -7,6 +7,16 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-17（ウィジェットの改善の起票と不採用案の記録、BL-260〜BL-264）
+
+- 自律ループ実行モード（作業ブランチ `feature/loop-20261017-widget-value`）でホーム画面ウィジェットの改善候補を
+  検討し、ユーザーが選んだ「アプリからの配置」「ライト/ダーク追随」と、確認不要と判断した「読み上げ文言」
+  「選択画面の選択中表示」を [docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md) へ起票しました
+  （実装の記録は EXECUTE.md）。実機での確認は BL-264（人手検証）です。
+- 不採用とした「複数台の一覧ウィジェット」「解錠確認の省略」は、判断と理由を
+  [docs/records/managed/DESIGN.md](docs/records/managed/DESIGN.md) のホーム画面ウィジェットの節へ記録しました。
+- 0.15.0（未リリース）の「このリリースの新機能」欄の要約へ、ウィジェットの3項目を追記しました。
+
 ## 2026-10-17（0.15.0の掲載文・紹介ページ更新の起票、BL-259）
 
 - BL-254〜BL-257の実装を受け、Google Play掲載文と `site/` への反映を BL-259 として
