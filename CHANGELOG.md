@@ -7,6 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-17（0.14.3のリリース準備）
+
+ウィジェットの取得時刻の日時表示、通知、クイック設定パネルのタイル、アプリアイコンの長押しメニュー、
+ダイヤル操作（BL-236〜BL-252）を中心とした 0.14.3 を Google Play のクローズドテストへ配信するための
+準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.14.3 を「未リリース」から「2026-10-17」へ確定しました
+  （「ストア掲載用の要約」は記載済み）。
+- **`scripts/version.properties`** を `versionCode 12` / `wear 1010` / `versionName 0.14.3` へ更新し、
+  署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.14.3`）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.14.3 の配信とタグ・
+  GitHub Releaseの作成を BL-253 として起票しました（Play Consoleの操作のためユーザー担当）。
+
 ## 2026-10-17（BL-252 紹介ページを0.14.3の内容へ見直す）
 
 紹介ページ（`site/`）を0.14.3の内容へ更新しました（ユーザー指示）。公開（`gh-pages` への反映）は
