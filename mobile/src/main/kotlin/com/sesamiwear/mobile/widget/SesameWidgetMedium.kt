@@ -18,6 +18,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.unit.ColorProvider
 
 /**
@@ -40,7 +42,11 @@ internal fun MediumLeftColumn(
     Column(modifier = GlanceModifier.width(widthDp.dp).fillMaxHeight()) {
         NeutralChip(
             text = displayName,
-            modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh),
+            modifier =
+                GlanceModifier
+                    .defaultWeight()
+                    .clickableOrSelf(actions.refresh)
+                    .semantics { contentDescription = WidgetAccessibilityLabels.refresh(displayName) },
             sizeSp = FOOTNOTE_SP,
             maxLines = 1,
         )
@@ -50,7 +56,12 @@ internal fun MediumLeftColumn(
             // 先頭のチップが全幅を占めて「▶」が押し出される（BL-183）。
             NeutralChip(
                 text = CYCLE_BACKWARD_LABEL,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight().clickableOrSelf(actions.cycleBackward),
+                modifier =
+                    GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickableOrSelf(actions.cycleBackward)
+                        .semantics { contentDescription = WidgetAccessibilityLabels.CYCLE_BACKWARD },
                 sizeSp = FOOTNOTE_SP,
                 maxLines = 1,
                 fillWidth = false,
@@ -58,7 +69,12 @@ internal fun MediumLeftColumn(
             Spacer(modifier = GlanceModifier.width(MEDIUM_SPACING_DP.dp))
             NeutralChip(
                 text = CYCLE_FORWARD_LABEL,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight().clickableOrSelf(actions.cycleForward),
+                modifier =
+                    GlanceModifier
+                        .defaultWeight()
+                        .fillMaxHeight()
+                        .clickableOrSelf(actions.cycleForward)
+                        .semantics { contentDescription = WidgetAccessibilityLabels.CYCLE_FORWARD },
                 sizeSp = FOOTNOTE_SP,
                 maxLines = 1,
                 fillWidth = false,
@@ -84,6 +100,7 @@ internal fun RowScope.MediumStatusBox(
                 .defaultWeight()
                 .fillMaxHeight()
                 .clickableOrSelf(onClick)
+                .statusSemantics(model)
                 .background(ColorProvider(Color(model.backgroundColorArgb)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
                 .padding(CHIP_INNER_PADDING_DP.dp),

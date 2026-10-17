@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
  * wearのTileには追加時に設定画面を開く標準機構が無いが、選べる内容はTileと同じ
  * （[SesameDeviceTargets.choices]。登録済みデバイス、2台以上なら先頭に「全デバイス」、0台ならデモ用デバイス）。
  *
+ * 「変更」などから開いたときは、現在の対象に「（選択中）」を付けて区別する（BL-261、[WidgetChoiceLabel]）。
  * 選択するとappWidgetIdごとに割り当てを保存し、そのウィジェットの再描画を要求してから`RESULT_OK`で閉じる。
  * 選ばずに戻った場合は`RESULT_CANCELED`のままになり、追加時であればホーム画面はウィジェットを配置しない。
  * 画面の組み立てだけのAndroid依存クラスのためユニットテスト対象外（選択肢はcoreでテスト済み）。
@@ -54,11 +55,13 @@ class WidgetConfigurationActivity : ComponentActivity() {
         val registeredDevices = SesameWidgetRepository.loadRegisteredDevices(this)
         val choices = SesameDeviceTargets.choices(registeredDevices)
         val isDemoMode = SesameDemoMode.isAvailable(registeredDevices)
+        val assignedUuid = SesameWidgetRepository.assignmentStore(this).assignedDeviceUuid(appWidgetId)
         setContent {
             SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WidgetDeviceSelectionScreen(
                         choices = choices,
+                        assignedUuid = assignedUuid,
                         isDemoMode = isDemoMode,
                         onSelected = { uuid -> onDeviceSelected(appWidgetId, uuid) },
                         onCancel = ::finish,
@@ -93,6 +96,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 @Composable
 private fun WidgetDeviceSelectionScreen(
     choices: List<SesameDeviceTargets.Choice>,
+    assignedUuid: String?,
     isDemoMode: Boolean,
     onSelected: (String) -> Unit,
     onCancel: () -> Unit,
@@ -112,7 +116,7 @@ private fun WidgetDeviceSelectionScreen(
         ) {
             items(choices, key = { it.uuid }) { choice ->
                 Button(onClick = { onSelected(choice.uuid) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(choice.label)
+                    Text(WidgetChoiceLabel.of(choice, assignedUuid))
                 }
             }
         }

@@ -96,6 +96,11 @@
             android:name=".widget.WidgetCommandReceiver"
             android:exported="false" />
 
+        <!-- 設定メニューから置いたウィジェットの配置完了通知（BL-262）。自アプリのPendingIntentからのみ呼ぶ。 -->
+        <receiver
+            android:name=".widget.WidgetPinnedReceiver"
+            android:exported="false" />
+
         <activity
             android:name=".widget.WidgetUnlockConfirmActivity"
             android:exported="false"

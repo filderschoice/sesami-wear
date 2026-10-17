@@ -40,6 +40,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.Text
 import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
@@ -181,20 +183,23 @@ private fun SesameWidgetContent(
     val containerModifier =
         GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(Color(WIDGET_BACKGROUND_ARGB)))
+            .background(WidgetColors.background)
             .cornerRadius(CORNER_RADIUS_DP.dp)
             .padding(CONTAINER_PADDING_DP.dp)
     when (model) {
         SesameWidgetModel.Unconfigured ->
             Box(
-                modifier = containerModifier.clickable(actions.configure),
+                modifier =
+                    containerModifier
+                        .clickable(actions.configure)
+                        .semantics { contentDescription = WidgetAccessibilityLabels.UNCONFIGURED },
                 contentAlignment = Alignment.Center,
             ) {
                 // 1マスでは「タップして設定」（7文字）が収まらないため短縮する（BL-128）。
                 val isCompact = layout == SesameWidgetLayout.COMPACT
                 val message = if (isCompact) COMPACT_UNCONFIGURED_MESSAGE else SesameWidgetModel.Unconfigured.MESSAGE
                 val sizeSp = if (layout == SesameWidgetLayout.FULL) BODY_SP else CAPTION_SP
-                Text(text = message, style = widgetTextStyle(NEUTRAL_TEXT_ARGB, sizeSp), maxLines = 2)
+                Text(text = message, style = widgetTextStyle(WidgetColors.text, sizeSp), maxLines = 2)
             }
         is SesameWidgetModel.Configured ->
             when (layout) {
@@ -216,7 +221,7 @@ private fun SesameWidgetContent(
                     }
                 SesameWidgetLayout.FULL ->
                     Row(modifier = containerModifier) {
-                        LeftColumn(actions = actions)
+                        LeftColumn(displayName = model.displayName, actions = actions)
                         Spacer(modifier = GlanceModifier.width(SPACING_DP.dp))
                         Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
                             NameHeader(displayName = model.displayName, route = model.route)
@@ -241,7 +246,11 @@ private fun CompactStatusBox(
     onClick: Action?,
 ) {
     Box(
-        modifier = modifier.clickableOrSelf(onClick).background(ColorProvider(Color(model.backgroundColorArgb))),
+        modifier =
+            modifier
+                .clickableOrSelf(onClick)
+                .statusSemantics(model)
+                .background(ColorProvider(Color(model.backgroundColorArgb))),
         contentAlignment = Alignment.Center,
     ) {
         StatusIconAndLabel(model)
@@ -253,11 +262,28 @@ private fun CompactStatusBox(
  * BL-205より前は上がデバイス名だったが、デバイス名は右上の帯（[NameHeader]）へ移した。
  */
 @Composable
-private fun LeftColumn(actions: WidgetActions) {
+private fun LeftColumn(
+    displayName: String,
+    actions: WidgetActions,
+) {
     Column(modifier = GlanceModifier.width(LEFT_COLUMN_WIDTH_DP.dp).fillMaxHeight()) {
-        NeutralChip(text = REFRESH_LABEL, modifier = GlanceModifier.defaultWeight().clickableOrSelf(actions.refresh))
+        NeutralChip(
+            text = REFRESH_LABEL,
+            modifier =
+                GlanceModifier
+                    .defaultWeight()
+                    .clickableOrSelf(actions.refresh)
+                    .semantics { contentDescription = WidgetAccessibilityLabels.refresh(displayName) },
+        )
         Spacer(modifier = GlanceModifier.height(SPACING_DP.dp))
-        NeutralChip(text = CHANGE_LABEL, modifier = GlanceModifier.defaultWeight().clickable(actions.configure))
+        NeutralChip(
+            text = CHANGE_LABEL,
+            modifier =
+                GlanceModifier
+                    .defaultWeight()
+                    .clickable(actions.configure)
+                    .semantics { contentDescription = WidgetAccessibilityLabels.CHANGE },
+        )
     }
 }
 
@@ -285,6 +311,7 @@ private fun ColumnScope.StatusBox(
             GlanceModifier
                 .defaultWeight()
                 .clickableOrSelf(onClick)
+                .statusSemantics(model)
                 .fillMaxWidth()
                 .background(ColorProvider(Color(model.backgroundColorArgb)))
                 .cornerRadius(CHIP_CORNER_RADIUS_DP.dp)
@@ -303,9 +330,6 @@ private const val REFRESH_LABEL = "更新"
 
 /** 1マス表示で「タップして設定」の代わりに出す文言（BL-128）。 */
 private const val COMPACT_UNCONFIGURED_MESSAGE = "設定"
-
-// ウィジェット全体の背景（wearのTileの黒背景に相当する暗色）と、左側チップの文字色。
-private const val WIDGET_BACKGROUND_ARGB = 0xFF121212.toInt()
 
 // 寸法はwearのTile（当時の左列76dp・チップ角丸12dp・間隔6dp）を、スマホのホーム画面の広さに合わせて広げたもの。
 // Tileの左列はBL-209で56dpへ狭めたが、ウィジェットは見切れの指摘が無いため据え置いている。
