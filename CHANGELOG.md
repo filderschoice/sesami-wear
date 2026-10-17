@@ -7,6 +7,16 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-17（0.14.3の配信完了とv0.14.3の公開、BL-253）
+
+- **BL-253（完了）**: 0.14.3（mobile の `versionCode 12` / wear の `versionCode 1010`）が、Google Playの
+  クローズドテストの両トラックで公開中になりました。リリース準備のマージコミット（`300967a`）へ
+  注釈付きタグ `v0.14.3` を作成し、[GitHub Release](https://github.com/filderschoice/sesami-wear/releases/tag/v0.14.3)
+  を公開しました（`docs/RELEASE_NOTES.md` の0.14.3から、Play用の要約を除いて転記。0.xのため
+  pre-releaseとしています）。
+- ユーザーの作業が終わったため、BACKLOG.mdから削除しています。BL-242（実機での人手検証）は
+  未完了のまま残しています。
+
 ## 2026-10-17（0.14.3のリリース準備）
 
 ウィジェットの取得時刻の日時表示、通知、クイック設定パネルのタイル、アプリアイコンの長押しメニュー、
