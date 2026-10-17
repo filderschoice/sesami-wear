@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogDialog
 import com.sesamiwear.mobile.showcase.ShowcaseModeUi
+import com.sesamiwear.mobile.widget.WidgetPinRequester
 
 /**
  * 上部バーの設定メニュー（BL-180）。
@@ -27,6 +28,7 @@ import com.sesamiwear.mobile.showcase.ShowcaseModeUi
  * 実際の操作はそれぞれのダイアログで行う（2026-09-20、ユーザー指示）。
  * 同じ理由で、診断ログ（BL-188）と、経路が変わったときの通知の設定（BL-190）、「お知らせ」の設定
  * （電池残量・解錠したまま、BL-238 / BL-241）もこのメニューから開く。
+ * ホーム画面ウィジェットの配置（BL-262）もここから要求する（2026-10-17、ユーザー判断で置き場所を設定メニューに決定）。
  *
  * **現在の状態はメニュー項目の副題に出す。** 設定を開かなくても、メニューを開いた時点で
  * 経路の方針とBluetoothの許可状況が分かるようにするため。
@@ -81,6 +83,7 @@ internal fun SettingsMenu() {
             subtitle = alertSettings.shortStatus,
             onClick = { open { dialogs.alertSettings = true } },
         )
+        AddWidgetMenuItem(onDone = { expanded = false })
         SettingsMenuItem(
             title = HELP_MENU_TITLE,
             subtitle = null,
@@ -163,6 +166,25 @@ private fun SettingsMenuItem(
     )
 }
 
+/**
+ * 「ホーム画面にウィジェットを追加」（BL-262）。押すとランチャーの確認画面が開く（[WidgetPinRequester]）。
+ * ランチャーが配置の要求に対応しない場合は押せない項目にし、副題で長押しからの追加を案内する。
+ */
+@Composable
+private fun AddWidgetMenuItem(onDone: () -> Unit) {
+    val context = LocalContext.current
+    val isSupported = remember { WidgetPinRequester.isSupported(context) }
+    SettingsMenuItem(
+        title = ADD_WIDGET_MENU_TITLE,
+        subtitle = if (isSupported) ADD_WIDGET_MENU_SUBTITLE else ADD_WIDGET_UNSUPPORTED_SUBTITLE,
+        enabled = isSupported,
+        onClick = {
+            onDone()
+            WidgetPinRequester.request(context)
+        },
+    )
+}
+
 /** どのダイアログを出しているか。メニュー本体の行数を抑えるためにまとめている。 */
 private class SettingsDialogState {
     var routePicker by mutableStateOf(false)
@@ -175,6 +197,10 @@ private class SettingsDialogState {
 
 private const val MENU_DESCRIPTION = "設定"
 private const val HELP_MENU_TITLE = "ヘルプ"
+
+private const val ADD_WIDGET_MENU_TITLE = "ホーム画面にウィジェットを追加"
+private const val ADD_WIDGET_MENU_SUBTITLE = "アプリを開かずに状態の確認と施錠・解錠ができます"
+private const val ADD_WIDGET_UNSUPPORTED_SUBTITLE = "このホームアプリでは、ホーム画面の長押しから追加してください"
 
 // 利用者が「操作の履歴」を探したときに見つけられるよう、履歴であることを先に出す（BL-237）。
 private const val DIAGNOSTICS_MENU_TITLE = "操作履歴（診断ログ）"

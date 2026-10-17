@@ -1083,6 +1083,29 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   色は変えない（ウィジェットは状態色を右下だけに使う方針、BL-205）。ウォッチの状態一覧でも1行の幅の目安
   （全角11文字相当）に収まることを`SesameStatusListContentTest`で固定している。
 
+### アプリからのウィジェットの配置
+
+スマートフォンのアプリの設定メニュー（⋮）に「ホーム画面にウィジェットを追加」を置き、
+`AppWidgetManager.requestPinAppWidget`でホーム画面へウィジェットを置けるようにする（BL-262）。
+ホーム画面の長押し→ウィジェット一覧から探す手順では、ウィジェットの存在自体に気付きにくかったため。
+置き場所は設定メニュー（2026-10-17、ユーザー判断。ヘルプ内・両方の案から選択）。
+
+- `mobile.widget.WidgetPinRequester`（Android依存）: 既定の大きさ（4 × 2）の`SesameWidgetReceiver`の配置を要求する。
+  配置完了の通知先は自アプリの非公開レシーバ`WidgetPinnedReceiver`（`exported="false"`）を明示した
+  PendingIntentで、ランチャーが`EXTRA_APPWIDGET_ID`を書き足せるよう`FLAG_MUTABLE`にする。
+- ランチャーが要求に対応しない（`isRequestPinAppWidgetSupported`がfalse）ときは、メニュー項目を押せない状態にし、
+  副題で「ホーム画面の長押しから追加」を案内する。対応時の副題は「アプリを開かずに状態の確認と施錠・解錠ができます」。
+- **配置後に選択画面を自分からは開かない。** `requestPinAppWidget`で置いたウィジェットに対して
+  `android:configure`の選択画面を開くかはランチャー次第で、開くランチャーでは二重になる。また配置完了通知は
+  バックグラウンドの受信のため、Activityの起動が制限される。代わりに`WidgetPinnedReceiver`が、
+  未割り当てで選択肢が1つ（登録1台、または0台でデモのみ）ならそれを割り当てて再描画する
+  （判定はAndroid非依存の`WidgetPinPlacement`、ユニットテスト対象）。選択肢が2つ以上なら割り当てず、
+  従来どおり「タップして設定」から選んでもらう。割り当て済みなら上書きしない
+  （ランチャーが選択画面を開き、利用者が選び終えている場合）。BACKLOG起票時は「配置後に選択画面を開く」
+  としていたが、上記の理由で自動割り当てへ変えた（安全性に関わらない仕様上の既定値の選択）。
+- アプリ内ヘルプ（`HelpContent`の「ホーム画面ウィジェットの使い方」）と`docs/USER_GUIDE.md`へ導線を追記した。
+  ヘルプの手順4はBL-205で「デバイス名」が「更新」へ変わったのに追随していなかったため、あわせて直した。
+
 ### ウィジェットの読み上げ文言（TalkBack）
 
 ホーム画面ウィジェットの押せる部分へ、TalkBackで役割が分かる読み上げ文言（contentDescription）を付ける
