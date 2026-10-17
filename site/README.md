@@ -21,7 +21,8 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 | `icon.svg` | アプリのアイコン | `mobile/src/main/res/drawable/ic_launcher_*.xml`（リングの `trimPath` は円弧へ置き換え） |
 | `how-it-works.svg` | 仕組みの図解 | DESIGN.md「アーキテクチャ方針」 |
 | `phone-widget.png` | ヒーローの画面（ホーム画面ウィジェット） | `docs/store/images/screenshots/phone_1_widget_locked.png` を 450x800 へ縮小 |
-| `wear-*.png` | 「画面」セクションのウォッチ画面 | `docs/store/images/screenshots/wear_1`・`wear_2`・`wear_4`・`wear_5`（384x384 のまま） |
+| `wear-*.png` | 「操作の流れ」「画面」セクションのウォッチ画面 | `docs/store/images/screenshots/wear_1`〜`wear_6`（384x384 のまま） |
+| `phone-*.png` | 「操作の流れ」「画面」セクションのスマートフォン画面 | `docs/store/images/screenshots/phone_2`〜`phone_8` を 450x800 へ縮小（`phone-widget.png` は phone_1） |
 
 スクリーンショットは Google Play 掲載用に加工済み（ステータスバー等のモザイク・壁紙のぼかし）の画像から作っています。
 掲載画像を撮り直したときは、同じファイルからここも作り直してください。
@@ -37,7 +38,9 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 
 ## テンプレート（Romcha）からの差分
 
-- 「画面」セクション（`#screens`）を追加した。機能カードと同じ `.features` の並びに、スクリーンショットを載せたカードを置く。
+- 「操作の流れ」セクション（`#flow`）を追加した。ウォッチのタイル→確認→解錠を CSS だけで切り替えるアニメーション
+  （`prefers-reduced-motion` では 3 枚の並びにする）と、ウィジェットの 3 コマを載せている。
+- 「画面」セクション（`#screens`）を追加した（ウォッチ・スマートフォンの 2 組）。機能カードと同じ `.features` の並びに、スクリーンショットを載せたカードを置く。
 - 上記のため `style.css` に `.card img` を 1 つ追加した（丸いウォッチ画面に合わせて円形に切り抜く）。
   四角い画面のアプリへ流用するときは `border-radius` を外す。
 - ヒーローの画面は SVG の図解ではなく、実機のスクリーンショット（加工済み）を使っている。

@@ -250,6 +250,155 @@ section h2 {
   border-radius: 50%;
 }
 
+.card img.phone {
+  width: min(100%, 200px);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+#screens h3,
+#flow h3 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+}
+
+/* ---- 操作の流れ（CSS だけのアニメーション。JavaScript は使わない） ---- */
+.flow-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  align-items: center;
+  gap: 32px;
+}
+
+.demo {
+  display: grid;
+  justify-items: center;
+}
+
+.demo-frame {
+  grid-area: 1 / 1;
+  width: min(100%, 280px);
+  border-radius: 50%;
+  opacity: 0;
+  animation: demo-fade 9s infinite;
+}
+
+.demo-frame.f2,
+.demo-caption.c2 {
+  animation-delay: 3s;
+}
+
+.demo-frame.f3,
+.demo-caption.c3 {
+  animation-delay: 6s;
+}
+
+.demo-caption {
+  grid-area: 2 / 1;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0;
+  animation: demo-fade 9s infinite;
+}
+
+@keyframes demo-fade {
+  0% { opacity: 0; }
+  6%, 30% { opacity: 1; }
+  36%, 100% { opacity: 0; }
+}
+
+.flow-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: flow;
+}
+
+.flow-steps li {
+  position: relative;
+  padding: 16px 20px 16px 64px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  counter-increment: flow;
+}
+
+.flow-steps li::before {
+  content: counter(flow);
+  position: absolute;
+  left: 20px;
+  top: 16px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.flow-steps strong {
+  display: block;
+  color: var(--text);
+}
+
+.flow-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flow-row li {
+  flex: 0 1 200px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.flow-row li.arrow {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 1.6rem;
+  color: var(--accent-strong);
+}
+
+.flow-row img {
+  margin: 0 auto 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+/* 動きを減らす設定では、アニメーションをやめて 3 枚を並べる */
+@media (prefers-reduced-motion: reduce) {
+  .demo {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .demo-frame,
+  .demo-caption {
+    animation: none;
+    opacity: 1;
+    grid-area: auto;
+  }
+
+  .demo-caption {
+    grid-row: 2;
+  }
+}
+
 /* ---- 図 ---- */
 .figure {
   margin: 0;
@@ -406,6 +555,22 @@ section h2 {
 
   .spec th {
     width: 38%;
+  }
+
+  .flow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-row {
+    flex-wrap: wrap;
+  }
+
+  .flow-row li {
+    flex-basis: 40%;
+  }
+
+  .flow-row li.arrow {
+    display: none;
   }
 }
 
