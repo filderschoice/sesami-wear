@@ -7,6 +7,15 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-18（0.15.0の配信完了とv0.15.0の公開、BL-265）
+
+- **BL-265（完了）**: 0.15.0（mobile の `versionCode 13` / wear の `versionCode 1011`）が、Google Playの
+  クローズドテストの両トラックで公開中になりました。リリース準備のマージコミット（`352fd95`）へ
+  注釈付きタグ `v0.15.0` を作成し、[GitHub Release](https://github.com/filderschoice/sesami-wear/releases/tag/v0.15.0)
+  を公開しました（`docs/RELEASE_NOTES.md` の0.15.0から、Play用の要約を除いて転記。0.xのため
+  pre-releaseとしています）。紹介ページ（`site/`）も `gh-pages` へ反映済みです。
+- ユーザーの作業が終わったため、BACKLOG.mdから削除しています。
+
 ## 2026-10-18（0.15.0のリリース準備）
 
 ウォッチの一覧からの操作、コンプリケーションの型追加、電池低下の警告表示、ウィジェットの改善
