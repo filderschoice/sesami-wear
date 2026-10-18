@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-18（0.15.0のリリース準備）
+
+ウォッチの一覧からの操作、コンプリケーションの型追加、電池低下の警告表示、ウィジェットの改善
+（BL-254〜BL-263）を中心とした 0.15.0 を Google Play のクローズドテストへ配信するための準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.15.0 を「未リリース」から「2026-10-18」へ確定しました
+  （「ストア掲載用の要約」は記載済み）。
+- **`scripts/version.properties`** を `versionCode 13` / `wear 1011` / `versionName 0.15.0` へ更新し、
+  署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.15.0`。両AABのSHA256一致を確認）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.15.0 の配信とタグ・
+  GitHub Releaseの作成を BL-265 として起票しました（Play Consoleの操作のためユーザー担当）。
+
 ## 2026-10-18（0.15.0の掲載文・紹介ページの更新、BL-259）
 
 - 0.15.0の実機検証（BL-258 / BL-264）の完了を受け、`docs/store/STORE_LISTING.md` の主な機能と文字数の実測値
