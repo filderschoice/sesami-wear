@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-20 12:00
+  summary: Tile追加ピッカーにプレビューを宣言し、一覧に出ない場合の案内を追記する（Issue #90、BL-266）
+  details:
+    変更内容: >-
+      Issue #90（Pixel Watch 4 / Wear OS 7のタイル追加画面にSesami Wearが表示されない）の調査。
+      ウォッチ実機でないと再現できないため原因は確定できていない。被疑箇所は (a) すでに追加済みのタイルが
+      ピッカーに出ない（DESIGN.mdに実機確認済みの仕様として記録済み）、(b) SesameTileServiceに
+      androidx.wear.tiles.PREVIEWが未宣言、の2点。(b)を防御的に解消するためwearへtile_preview.xmlを追加し
+      マニフェストで宣言した。(a)に備えUSER_GUIDE.mdのSTEP 3へ「追加済みでないか確認」の案内を加えた。
+      Issueへの返信は外部発信のためループでは行わない。
+    変更ファイル:
+      - wear/src/main/res/drawable/tile_preview.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/USER_GUIDE.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: 成功 - 終了コード0。ピッカーでの表示はウォッチ実機が必要なためBL-266（人手検証）に残す。
+    関連ID:
+      - BL-266
+
 - date: 2026-10-17 15:50
   summary: ホーム画面ウィジェットの中立色を端末のライト/ダークテーマへ追随させる（BL-263）
   details:

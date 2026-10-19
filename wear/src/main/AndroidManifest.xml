@@ -133,6 +133,12 @@
             <intent-filter>
                 <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
             </intent-filter>
+            <!--
+                Tile追加ピッカーのプレビュー（Issue #90）。未宣言だとピッカーに表示できる画像が無い。
+            -->
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/tile_preview" />
         </service>
 
         <service
