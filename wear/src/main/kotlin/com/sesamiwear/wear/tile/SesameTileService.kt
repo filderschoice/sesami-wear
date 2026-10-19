@@ -58,7 +58,11 @@ class SesameTileService : TileService() {
         val tileId = requestParams.tileId
         Log.d(TAG, "onTileRequest tileId=$tileId")
         CoroutineScope(Dispatchers.IO).launch {
-            val deviceUuid = TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId)
+            val deviceUuid =
+                SesameTileStateResolver.effectiveAssignment(
+                    applicationContext,
+                    TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId),
+                )
             Log.d(TAG, "onTileRequest tileId=$tileId deviceAssigned=${deviceUuid != null}")
             future.set(
                 if (deviceUuid == null) {

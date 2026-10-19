@@ -75,7 +75,10 @@ class SesameComplicationDataSourceService : ComplicationDataSourceService() {
             return null
         }
         val deviceUuid =
-            ComplicationDeviceAssignmentStore(applicationContext).assignedDeviceUuid(complicationInstanceId)
+            SesameTileStateResolver.effectiveAssignment(
+                applicationContext,
+                ComplicationDeviceAssignmentStore(applicationContext).assignedDeviceUuid(complicationInstanceId),
+            )
         return if (deviceUuid == null) {
             buildUnconfiguredComplicationData(complicationInstanceId, type)
         } else {

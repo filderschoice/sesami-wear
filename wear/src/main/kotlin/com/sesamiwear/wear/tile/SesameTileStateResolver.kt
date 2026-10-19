@@ -60,6 +60,20 @@ data class SesameTileStatus(
  * [SesameStatusFreshness]でテスト済み）。
  */
 object SesameTileStateResolver {
+    /**
+     * 保存済みの割り当て[assignedUuid]を、描画に使う割り当てへ読み替える（BL-267）。
+     * デモ用デバイスのままスマホへ実デバイスが登録された場合はnull（未設定）を返し、
+     * Tile・Complicationに「タップして設定」を出して選び直させる。
+     */
+    suspend fun effectiveAssignment(
+        context: Context,
+        assignedUuid: String?,
+    ): String? {
+        if (assignedUuid == null || !SesameDemoMode.isDemoDevice(assignedUuid)) return assignedUuid
+        val registered = SesameDeviceListReader.readLatest(context)
+        return assignedUuid.takeUnless { SesameDemoMode.isStaleAssignment(it, registered) }
+    }
+
     suspend fun resolveDisplayName(
         context: Context,
         deviceUuid: String,

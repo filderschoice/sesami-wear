@@ -162,6 +162,10 @@
                     android:scheme="wear"
                     android:host="*"
                     android:pathPrefix="/sesami-wear/status" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:path="/sesami-wear/devices" />
             </intent-filter>
         </service>
     </application>
