@@ -15,6 +15,8 @@
       androidx.wear.tiles.PREVIEWが未宣言、の2点。(b)を防御的に解消するためwearへtile_preview.xmlを追加し
       マニフェストで宣言した。(a)に備えUSER_GUIDE.mdのSTEP 3へ「追加済みでないか確認」の案内を加えた。
       Issueへの返信は外部発信のためループでは行わない。
+      追加の検討で、Pixel Watch 2と同じWear OS 7でありマニフェストにも端末を絞る宣言が無いことから、
+      最有力をウォッチ側アプリ未インストールとし、USER_GUIDE.md STEP 3へウォッチ側のインストール手順を追記した。
     変更ファイル:
       - wear/src/main/res/drawable/tile_preview.xml
       - wear/src/main/AndroidManifest.xml
