@@ -20,6 +20,15 @@ class SesameDemoModeTest {
     }
 
     @Test
+    fun `demo assignment is stale only once a device is registered`() {
+        val registered = listOf(SesameDeviceSummary("uuid-1", "玄関"))
+        assertTrue(SesameDemoMode.isStaleAssignment(SesameDemoMode.DEMO_DEVICE_UUID, registered))
+        assertFalse(SesameDemoMode.isStaleAssignment(SesameDemoMode.DEMO_DEVICE_UUID, emptyList()))
+        assertFalse(SesameDemoMode.isStaleAssignment("uuid-1", registered))
+        assertFalse(SesameDemoMode.isStaleAssignment(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, registered))
+    }
+
+    @Test
     fun `selectable devices fall back to the demo device when nothing is registered`() {
         val devices = SesameDemoMode.selectableDevices(emptyList())
 

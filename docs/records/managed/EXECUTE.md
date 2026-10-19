@@ -5,6 +5,60 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-10-20 13:00
+  summary: デモを割り当てたTile・Complicationを、実デバイス登録後に未設定へ戻す（BL-267）
+  details:
+    変更内容: >-
+      ウォッチのTile・Complicationはデモ用デバイスの割り当てのまま登録1台以上になっても、デモ表示（ウォッチ内の
+      ダミー状態）を続けていた。ホーム画面ウィジェットは自動解除するため挙動が不揃いだった。
+      core.SesameDemoMode.isStaleAssignmentを追加し、SesameTileStateResolver.effectiveAssignmentで
+      描画時にデモ割り当てかつ登録1台以上なら未設定として扱う（保存値は書き換えない）。Tile・Complicationの
+      両サービスから使う。登録デバイス一覧のDataItem更新でも再描画するようSesameStatusListenerServiceと
+      マニフェストのdataフィルタを拡張した。単体テスト、DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.mdを更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameDemoMode.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameDemoModeTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/complication/SesameComplicationDataSourceService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameStatusListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。ウォッチ実機での表示確認はBL-268（人手検証）に残す。
+    関連ID:
+      - BL-267
+      - BL-268
+
+- date: 2026-10-20 12:00
+  summary: Tile追加ピッカーにプレビューを宣言し、一覧に出ない場合の案内を追記する（Issue #90、BL-266）
+  details:
+    変更内容: >-
+      Issue #90（Pixel Watch 4 / Wear OS 7のタイル追加画面にSesami Wearが表示されない）の調査。
+      ウォッチ実機でないと再現できないため原因は確定できていない。被疑箇所は (a) すでに追加済みのタイルが
+      ピッカーに出ない（DESIGN.mdに実機確認済みの仕様として記録済み）、(b) SesameTileServiceに
+      androidx.wear.tiles.PREVIEWが未宣言、の2点。(b)を防御的に解消するためwearへtile_preview.xmlを追加し
+      マニフェストで宣言した。(a)に備えUSER_GUIDE.mdのSTEP 3へ「追加済みでないか確認」の案内を加えた。
+      Issueへの返信は外部発信のためループでは行わない。
+      追加の検討で、Pixel Watch 2と同じWear OS 7でありマニフェストにも端末を絞る宣言が無いことから、
+      最有力をウォッチ側アプリ未インストールとし、USER_GUIDE.md STEP 3へウォッチ側のインストール手順を追記した。
+    変更ファイル:
+      - wear/src/main/res/drawable/tile_preview.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/USER_GUIDE.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
+    検証結果: 成功 - 終了コード0。ピッカーでの表示はウォッチ実機が必要なためBL-266（人手検証）に残す。
+    関連ID:
+      - BL-266
+
 - date: 2026-10-17 15:50
   summary: ホーム画面ウィジェットの中立色を端末のライト/ダークテーマへ追随させる（BL-263）
   details:

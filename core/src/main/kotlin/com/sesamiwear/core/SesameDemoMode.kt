@@ -49,6 +49,17 @@ object SesameDemoMode {
     fun isAvailable(registeredDevices: List<SesameDeviceSummary>): Boolean = registeredDevices.isEmpty()
 
     /**
+     * 割り当て済みの[assignedUuid]がデモ用デバイスのまま、登録済みデバイスが1台以上になったか（BL-267）。
+     * 該当するTile・Complicationは未設定として扱い、実デバイスの選び直しを促す
+     * （mobileのホーム画面ウィジェットがデモの割り当てを自動解除するのと同じ規則）。
+     * 一覧が空の間は、未同期の可能性があるためデモを維持する。
+     */
+    fun isStaleAssignment(
+        assignedUuid: String,
+        registeredDevices: List<SesameDeviceSummary>,
+    ): Boolean = isDemoDevice(assignedUuid) && !isAvailable(registeredDevices)
+
+    /**
      * デバイス選択画面へ並べる選択肢。登録済みデバイスがあればそれをそのまま、
      * なければデモ用デバイス1台のみを返す。
      */

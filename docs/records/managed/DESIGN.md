@@ -508,7 +508,12 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - 追加時の設定: ウィジェットは`appwidget-provider`の`android:configure`で追加直後に選択画面を開ける（Tilesには
     同等の標準機構が無く、Tileは「タップして設定」から誘導する）。選べる内容は同じ。
   - デモ状態は端末ごとに独立（ウォッチは`DemoLockStateStore`、スマホは`LockStateStore`のデモuuid）で同期しない。
-    また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する（Tileは表示から消えるのみ）。
+    また登録1台以上になるとウィジェットはデモの割り当てを自動で解除する。Tile・Complicationも、
+    デモを割り当てたまま登録が1台以上になると未設定（「タップして設定」）として描画する（BL-267）。
+    判定は`core.SesameDemoMode.isStaleAssignment`、読み替えは`wear.tile.SesameTileStateResolver.effectiveAssignment`
+    （保存値は書き換えず描画時にだけ読み替える。デバイス一覧が空の間は未同期の可能性があるためデモを維持）。
+    登録デバイス一覧のDataItem（`DEVICE_LIST_DATA_ITEM_PATH`）の更新でも`SesameStatusListenerService`が
+    再描画を要求する。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
   - 結果の通知: wear・ウィジェットとも成否をハプティクスで区別する（BL-129で揃えた）。
     ウィジェットはさらに、失敗の理由を状態文言の下へ表示する（BL-140）。
