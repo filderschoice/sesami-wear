@@ -6,7 +6,7 @@
   "tagline": "Pixel Watch とホーム画面ウィジェットから、CANDY HOUSE Sesame スマートロックを施錠・解錠",
   "platforms": ["Android", "Wear OS"],
   "status": "beta",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "license": "MIT",
   "tags": ["Android", "Wear OS", "Kotlin", "Jetpack Compose", "Tiles", "Bluetooth LE", "Smart Lock"],
   "icon": "assets/icon.svg",
