@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-20（0.15.1のリリース準備）
+
+デモ割り当てのタイル・コンプリケーションを登録後に未設定へ戻す修正（BL-266 / BL-267）を含む 0.15.1 を
+Google Play のクローズドテストへ配信するための準備を行いました。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の 0.15.1 を「未リリース」から「2026-10-20」へ確定し、
+  「ストア掲載用の要約」を追加しました。
+- **`scripts/version.properties`** を `versionCode 14` / `wear 1012` / `versionName 0.15.1` へ更新し、
+  署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.15.1`）。
+- **[docs/records/managed/BACKLOG.md](docs/records/managed/BACKLOG.md)** へ、0.15.1 の配信とタグ・
+  GitHub Releaseの作成を BL-269 として起票しました（Play Consoleの操作のためユーザー担当）。
+
 ## 2026-10-18（0.15.0の配信完了とv0.15.0の公開、BL-265）
 
 - **BL-265（完了）**: 0.15.0（mobile の `versionCode 13` / wear の `versionCode 1011`）が、Google Playの
