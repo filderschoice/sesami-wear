@@ -23,6 +23,11 @@ Sesami Wearは、Pixel Watchやスマートフォンのホーム画面ウィジ�
 （Sesame 5 / Sesame 6 Pro mini + Hub 3、Sesame 3 + Wi-Fiモジュール2で動作を確認）スマートロックを操作するためのアプリです。スマートフォンのホーム画面ウィジェットはウォッチが無くても
 使えます。
 
+**スマートウォッチで使う場合は、スマートフォンとは別に、ウォッチにも「Sesami Wear」をインストールしてください。**
+スマートフォンにインストールしただけではウォッチには入りません。ウォッチのGoogle Playを開き、
+「Sesami Wear」を検索するか、「お使いのスマートフォンにあるアプリ」から入れてください
+（手順は利用ガイドの「STEP 3」を参照）。
+
 ### 主な機能
 
 - Wear OSのタイル（Tile）から施錠・解錠をワンタップで実行できます
@@ -78,7 +83,7 @@ Play Consoleのデータセーフティで収集・共有を申告している�
 
 使い方の詳細、更新内容の確認先、不具合の報告方法は、GitHubリポジトリで公開しています。
 
-- 利用ガイド: <https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md>
+- ウォッチへのインストール手順（STEP 3）を含む利用ガイド: <https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md>
 - 更新内容（リリースノート）: <https://github.com/filderschoice/sesami-wear/blob/main/docs/RELEASE_NOTES.md>
 - サポート情報・お問い合わせ: <https://github.com/filderschoice/sesami-wear/blob/main/docs/SUPPORT.md>
 
@@ -125,7 +130,7 @@ Play Console提出用の512x512 PNG（アルファチャンネルなし）を用
 | --- | --- | --- |
 | アプリ名 | 11 | 30 |
 | 短い説明 | 57 | 80 |
-| 詳細な説明 | 2989 | 4000 |
+| 詳細な説明 | 3206 | 4000 |
 | このリリースの新機能（`../RELEASE_NOTES.md` の最新バージョン） | 314 | 500 |
 
 「詳細な説明」の実測値はMarkdown記法を含む本ファイル上の文字数です。Play Consoleの入力欄は
