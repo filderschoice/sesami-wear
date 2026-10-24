@@ -115,12 +115,23 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
   配布先用の空の初期状態のため、配布元の変更履歴は含まない）。
 - 取り込み時の扱い: 配布物は次の3つに分けて取り込む。
   - そのままコピーする: `rules/`、`docs/guidelines/`、`docs/records/spec/FORMAT.md`、`docs/records/README.md`、
-    `CONTRIBUTING.md`、`.github/copilot-instructions.md`、`.github/instructions/`、`templates/`、配布スキル
+    `CONTRIBUTING.md`、`.github/instructions/`、`templates/`、配布スキル
   - 配布先固有の内容とマージする: `CLAUDE.md`（品質ゲート定義など固有に書き換えた節を残す）、
-    `.claude/settings.json`（`permissions.allow` をマージ）
+    `.claude/settings.json`（`permissions.allow` をマージ）、`.github/copilot-instructions.md`（下記）
+  - `.github/copilot-instructions.md` は Copilot が自動読み込みする唯一の規約ファイルのため、Copilot にも
+    効かせる必要がある固有の規約（実資格情報を扱わない旨、利用者向けリリースノートなど記録対象の追加）は
+    `CONTRIBUTING.local.md` へ逃がせず、同ファイルへ書くしかない。固有の追記は「参照するドキュメント」表の行と、
+    該当する節の末尾に設ける「本リポジトリ固有の補足」小節に限り、取り込み時はそれ以外を配布元版で置き換える。
+    固有の追記が無ければそのままコピーしてよい
   - 触らない: `CONTRIBUTING.local.md`、`CHANGELOG.md`、`docs/records/managed/` 配下の記録ファイル
   - リポジトリ固有の内容を「そのままコピーする」ファイルへ書くと、次の取り込みで上書きされて失われる。
     `CONTRIBUTING.md` への追記は `CONTRIBUTING.local.md` へ置く。
+  - `CONTRIBUTING.local.md` を持たない配布先（同ファイル導入前の版から追従する場合を含む）は、取り込み時に
+    `templates/CONTRIBUTING.local-template.md` から作成する。無くても `CONTRIBUTING.md` の既定値で動くが、
+    規定ブランチ・レビュー責任者・自律ループ実行モードの採否が暗黙のままになる。
+  - `.gitignore` や `.markdownlint-cli2.yaml` の `ignores` でローカル専用メモを `*.local.md` のように
+    除外している場合、`CONTRIBUTING.local.md` もバージョン管理・検査の対象から落ちる。`.gitignore` へ
+    `!/CONTRIBUTING.local.md` を追加するか、除外パターンを `docs/**/*.local.md` のように絞る。
 
 ## 4. 既存リポジトリへの適用手順
 

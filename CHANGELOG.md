@@ -7,6 +7,29 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-10-24（ガードレール配布元 v0.29.0 の取り込み）
+
+配布元 `copilot-rules` の v0.29.0（`dist/copilot-rules-v0.29.0`）を取り込みました（前回は v0.28.0）。
+規範（禁止事項・git操作の範囲・品質ゲート・記録の更新）の追加・削除はありません。
+
+- **そのまま取り込み**: `CONTRIBUTING.md`（Copilot にも効かせる固有規約は `.github/copilot-instructions.md` へ
+  追記する旨を追加）、`docs/guidelines/ADOPTION.md`（`.github/copilot-instructions.md` の取り込み区分を
+  「マージ」へ変更、`CONTRIBUTING.local.md` の作成と `*.local.md` 除外の回避策を追記）。
+  `rules/` 2ファイル・`RULE.md`・`FORMAT.md` の本文・配布スキルなどその他の共通ファイルは差分なし
+- **マージして取り込み**:
+  - `.markdownlint-cli2.yaml`: `gitignore: true` を追加。`docs/**/*.local.md` の除外は `.gitignore` の
+    `*.local.md` で同じ効果になるため削除した（`MD024: siblings_only` と `build` / `node_modules` の除外は維持）。
+    `Linting: 40 files` が git 管理下の `.md` 件数と一致することを確認
+  - `.github/copilot-instructions.md`: 規定ブランチの行へ `CONTRIBUTING.local.md` の参照を追加
+- **固有の追記の配置は現状維持**（ユーザー判断）: v0.29.0 の `ADOPTION.md` は `.github/copilot-instructions.md` への
+  固有の追記を「参照するドキュメント」表の行と「本リポジトリ固有の補足」小節に限るとしたが、冒頭のアプリ概要と
+  「記録対象」の3項目（`CHANGELOG.md` / `docs/RELEASE_NOTES.md` / 利用者向けドキュメント）は現在の位置のまま残した。
+  取り込みのたびに手作業でマージする（Skill `guardrail-sync-local` に記録）
+- **採らなかったもの**: Skill `dependabot-alert-triage`（ユーザー判断。脆弱性チェックが未導入で Dependabot の
+  運用も無いため）、`templates/CONTRIBUTING.local-template.md`（作成済みのため不要）、`.claude/settings.json`・
+  `.github/CODEOWNERS`・`PULL_REQUEST_TEMPLATE.md`・`.vscode/`（本リポジトリ版を維持）
+- 常時読み込み（`CLAUDE.md` + 共通規約 + guardrails）: 40,389 → 40,460 bytes（+71。規定ブランチの行の参照追加分）
+
 ## 2026-10-22（ウォッチ側の導入導線の改善、Issue #90 / BL-266）
 
 Issue #90 の報告者が、スマートフォンへのインストール時にGoogle Playの画面へウォッチへ入れられる旨の

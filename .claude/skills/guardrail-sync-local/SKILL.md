@@ -14,7 +14,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | --- | --- |
 | 配布元リポジトリ | `C:\Dev\repo\play\copilot-rules`（2026-09-23時点。旧所在 `C:\Dev\repo\copilot-rules` から移動した。見つからなければユーザーへ所在を確認する） |
 | 追従判断の根拠 | 同リポジトリの `CHANGELOG.md`（バージョン節に意図と計測値がある） |
-| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮）、v0.28.0（2026-10-13。出力要件の「提示の仕方」、禁止カテゴリの `guardrails-app` への移設） |
+| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮）、v0.28.0（2026-10-13。出力要件の「提示の仕方」、禁止カテゴリの `guardrails-app` への移設）、v0.29.0（2026-10-24。markdownlint の `gitignore: true`、`copilot-instructions.md` のマージ区分化） |
 
 **配布元の変更の多くは本リポジトリからの逆輸入**（v0.26.0 など）。逆輸入の際に配布元は本リポジトリ固有の
 記述を汎用文面へ置き換えているため、「配布元にある＝採る」ではない。差分の `-` 側（本リポジトリにしか無い行）が
@@ -45,7 +45,8 @@ description: ガードレール・エージェント指示ルールを配布元�
 | ファイル | 残す固有の内容 |
 | --- | --- |
 | `CLAUDE.md` | アーキテクチャ概要、処理フロー、参照先マップ、`--tests` と実機インストールのコマンド、品質ゲート定義 |
-| `.github/copilot-instructions.md` | 参照ドキュメント表の本リポジトリ行、実資格情報を使わない旨のセキュリティ補足、記録対象の `docs/RELEASE_NOTES.md` と利用者向けドキュメント |
+| `.github/copilot-instructions.md` | 冒頭のアプリ概要2行、参照ドキュメント表の本リポジトリ行、実資格情報を使わない旨のセキュリティ補足、記録対象の `CHANGELOG.md`・`docs/RELEASE_NOTES.md`・利用者向けドキュメント。v0.29.0 の `ADOPTION.md` は固有の追記を「表の行」と「本リポジトリ固有の補足」小節に限るとするが、アプリ概要と記録対象の3項目は**ユーザー判断で現在の位置に残している**（2026-10-24）。小節へ寄せ直すかは配布元の規則を理由に独断で変えない |
+| `.markdownlint-cli2.yaml` | `MD024: siblings_only`（`docs/RELEASE_NOTES.md` がバージョンごとに同名見出しを繰り返すため）。v0.29.0 の `gitignore: true` は採用済みで、`docs/**/*.local.md` はそれで除外される |
 | `docs/records/spec/FORMAT.md` | `BACKLOG.md` の記述例（Pixel Watch実機・ハプティクスの文面。配布元は汎用文面へ置換済み） |
 | `.claude/skills/autonomous-loop/SKILL.md` | description は配布元版を採る。本文の人手検証の3類型、`docs/RELEASE_NOTES.md` の更新、「利用量を抑える」節、`PLAN.md` の参照は本リポジトリ固有 |
 
@@ -56,17 +57,19 @@ Issueテンプレート・`README.md`・`docs/SUPPORT.md` はそちらを指す�
 上書きしてよい（固有内容を書き足さないこと）。
 
 `CONTRIBUTING.local.md` は `.gitignore` の `*.local.md` に当たるため、`!/CONTRIBUTING.local.md` で例外にしている。
-`.markdownlint-cli2.yaml` の除外も `docs/**/*.local.md` に絞っている（`**/*.local.md` だと同ファイルが
-検査から落ちる）。
+markdownlint は `gitignore: true` で `.gitignore` の除外に従うため、同ファイルは検査対象に残る
+（`ignores` へ `**/*.local.md` を足すと同ファイルが検査から落ちるので足さない）。
 
 ### 配布元を採らない（本リポジトリ版を維持する）
 
 | ファイル | 理由 |
 | --- | --- |
-| `.markdownlint-cli2.yaml` | `docs/**/*.local.md` の除外と `MD024: siblings_only` を追加済み（`docs/RELEASE_NOTES.md` がバージョンごとに同名見出しを繰り返すため） |
 | `.github/PULL_REQUEST_TEMPLATE.md` | 品質ゲート・資格情報混入確認のチェックリストを持つ独自版 |
 | `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ）。`* @filderschoice` で `rules/` 配下の新ファイルも担当済み |
 | `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み |
+| `.vscode/settings.json` / `extensions.json` | ターミナル自動承認と Gradle 拡張の非推奨指定を追加済み |
+| `.claude/skills/dependabot-alert-triage/` | 取り込まない（2026-10-24 ユーザー判断）。脆弱性チェックが未導入で Dependabot の運用も無い |
+| `templates/CONTRIBUTING.local-template.md` | `CONTRIBUTING.local.md` を作成済みのため不要 |
 
 ## 取り込み後に必ず確認すること
 
@@ -172,3 +175,6 @@ git ls-files --cached --others --exclude-standard "*.md" | wc -l
 - 2026-10-13: 配布元 v0.28.0 の取り込みを経て更新。`CONTRIBUTING.md` を配布元版へ置換し、固有内容を
   `CONTRIBUTING.local.md` へ分離（`.gitignore` と markdownlint 除外の調整を含む）。markdownlint を
   1コマンドに戻し、`pr-create` の固有改変が無くなった点を反映した。
+- 2026-10-24: 配布元 v0.29.0 の取り込みを経て更新。`.markdownlint-cli2.yaml` をマージ区分へ移し
+  （`gitignore: true` を採用）、`copilot-instructions.md` の固有の追記を現在の位置に残す判断と、
+  取り込まないファイル（`dependabot-alert-triage`、`CONTRIBUTING.local-template.md`、`.vscode/`）を記録した。
