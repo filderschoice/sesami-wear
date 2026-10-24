@@ -1,9 +1,3 @@
-# ローカル専用メモ（.gitignoreで除外、リポジトリ管理対象外）は検査しない
-ignores:
-  - "docs/**/*.local.md"
-  # ビルド生成物のMarkdownは対象外（git管理対象の *.md 件数と Linting: N files を一致させるため）
-  - "**/build/**"
-  - "**/node_modules/**"
 config:
   MD013:
     line_length: 120
@@ -14,3 +8,9 @@ config:
   # （同ファイル「運用ルール」参照）。同一階層内での重複のみを検出対象とする。
   MD024:
     siblings_only: true
+# .gitignore で除外したファイル（ローカル専用メモ docs/**/*.local.md 等）とビルド生成物は対象外。
+# git 管理対象の *.md 件数（品質ゲートの合否基準）と一致させるため
+gitignore: true
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
