@@ -2431,6 +2431,20 @@ BLEの接続は施錠/解錠・更新の背景で行われ利用者から見え�
   測り直したら再補正する。
 - 未確認: スマホ未接続時の表示、ウォッチを閉じたときのスマホ側の停止（判定できるログが無い）。
 
+#### 接続保持の計測の足場（BL-282、2026-11-08）
+
+BL-278（接続保持の実測）とBL-276（ウォッチを閉じたときの停止の確認）のための、計測用の仕掛け。
+
+- **`SesameBleHoldDebugReceiver`（`src/debug`のみ。リリースへ含まれない）**: adbから対象のSesameへ接続・ログインして
+  **そのまま保持**し、切断したときの保持時間を`SesameBleHold`のログへ出す
+  （`HOLD login ok` / `HOLD message n=… at=…s` / `HOLD closed after=…s reason=remote_closed|stopped|max_sec`）。
+  `--es op start --es uuid <uuid> [--ei max_sec 1800]`で始め、`--es op stop`で止める。**何も送らない**
+  （施錠・解錠はもちろん、維持用の通信も送らない。本アプリが実装しているコマンド（ItemCode）に、安全に送れる維持用のものが
+  無いため。維持用の通信の要否は、未実装のコマンドを調べるまで未確認）。同時に保持できるのは1本。uuid・鍵・アドレスは出さない。
+- **`SesameBleProbeRelay`のログ**: 確認の開始（`probe session started`）と終了（`probe session ended: stopped|finished`）を
+  `SesameBleProbeRelay`へ出す。ウォッチの画面を閉じたとき、停止要求が届いて`stopped`になったかを判定できる。
+  `finished`は上限時間（90秒）などで自然に終わった場合。
+
 #### まとめて接続確認（BL-280、2026-11-07）
 
 登録した全デバイスを一度に確かめる。**探索は1回のスキャンで複数台を同時に追い、接続確認はSesameが同時に

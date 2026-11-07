@@ -16,6 +16,7 @@ import com.sesamiwear.mobile.ble.SesameBleMultiProber
 import com.sesamiwear.mobile.ble.SesameBleProber
 import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -72,6 +73,11 @@ object SesameBleProbeRelay {
                     }
                 }
             }
+        Log.d(TAG, "probe session started all=${deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID}")
+        // 止まった（停止要求・置き換え）か、上限時間・終了で終わったかを残す。ウォッチを閉じたときに停止が届いたかの判定用。
+        job.invokeOnCompletion { cause ->
+            Log.d(TAG, "probe session ended: ${if (cause is CancellationException) "stopped" else "finished"}")
+        }
         session = Session(job, requests)
     }
 

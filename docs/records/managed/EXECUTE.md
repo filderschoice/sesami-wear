@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 12:00
+  summary: 接続保持の計測用のデバッグ手段と、確認の中継のログを追加する（BL-282）
+  details:
+    変更内容: >-
+      BL-278（接続保持の実測）のため、デバッグ版だけの SesameBleHoldDebugReceiver を追加した。adbから対象のSesameへ
+      接続・ログインして保持し、切断した時刻（保持時間と理由）を SesameBleHold のログへ出す。何も送らない
+      （維持用の通信を送れる安全なコマンドが本アプリには無いため）。BL-276（ウォッチを閉じたときのスマホ側の停止）の
+      判定のため、SesameBleProbeRelay が確認の開始と終了（stopped / finished）をログへ出すようにした。
+      リリースビルドには計測用の受信口を含めない（src/debugとデバッグ用マニフェストのみ）。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleHoldDebugReceiver.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。計測用の受信口の実機での動作は、続けてBL-278の測定で確認する。
+    関連ID:
+      - BL-282
+
 - date: 2026-11-08 03:00
   summary: まとめて接続確認の実機検証で見つけた、uuidの大文字小文字の照合バグを直す（BL-280 / BL-281）
   details:
