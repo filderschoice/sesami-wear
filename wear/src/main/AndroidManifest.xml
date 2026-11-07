@@ -60,6 +60,12 @@
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.DeviceDefault" />
 
+        <!-- 「Bluetooth接続を確認」画面（BL-273）。アプリ本体の一覧から開く。ウォッチはBLEを使わずスマホへ依頼する。 -->
+        <activity
+            android:name=".radar.BleRadarActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault" />
+
         <activity
             android:name=".tile.TileConfigurationActivity"
             android:exported="true"

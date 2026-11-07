@@ -28,6 +28,9 @@ import kotlinx.coroutines.tasks.await
  */
 class SesameMessageListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
+        // 「Bluetooth接続を確認」（BL-273）。確認は画面が開いている間の継続処理で、
+        // 施錠/解錠のデバウンス・結果返送とは別系統のため、ここで振り分ける。
+        if (handleBleProbe(messageEvent)) return
         CoroutineScope(Dispatchers.IO).launch {
             // 例外をここで止める（BL-134）。落とすとウォッチからの操作でスマホ側アプリが終了する。
             EntryPointGuard.run(onFailure = { Log.w(TAG, "onMessageReceived failed: $it") }) {
@@ -40,6 +43,28 @@ class SesameMessageListenerService : WearableListenerService() {
             }
         }
     }
+
+    /** 接続確認の要求（開始・接続・停止）なら処理してtrueを返す。それ以外はfalse。 */
+    private fun handleBleProbe(messageEvent: MessageEvent): Boolean =
+        when (messageEvent.path) {
+            SesameWearProtocol.PATH_BLE_PROBE_START -> {
+                SesameBleProbeRelay.start(
+                    applicationContext,
+                    SesameWearProtocol.decodeDeviceUuid(messageEvent.data),
+                    messageEvent.sourceNodeId,
+                )
+                true
+            }
+            SesameWearProtocol.PATH_BLE_PROBE_CONNECT -> {
+                SesameBleProbeRelay.connect()
+                true
+            }
+            SesameWearProtocol.PATH_BLE_PROBE_STOP -> {
+                SesameBleProbeRelay.stop()
+                true
+            }
+            else -> false
+        }
 
     private suspend fun handleCommandRequest(
         executor: SesameDeviceCommands,

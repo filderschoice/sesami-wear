@@ -63,6 +63,27 @@ object SesameWearProtocol {
     const val KEY_DEVICE_LIST_JSON = "device_list_json"
 
     /**
+     * 「Bluetooth接続を確認」（BL-271、レーダー画面）の開始・停止要求（wear → mobile）と、進捗の返送
+     * （mobile → wear）。開始・接続・停止のペイロードは対象デバイスのuuid（[encodeDeviceUuid]）。
+     * 進捗は[com.sesamiwear.core.ble.SesameBleProbeSnapshot.encode]のJSONで、保存する価値が無いため
+     * DataItemではなく揮発のMessageClientで送る。ウォッチ自身はBLEを使わず、スマホが確認を実行する。
+     */
+    const val PATH_BLE_PROBE_START = "/sesami-wear/ble-probe/start"
+    const val PATH_BLE_PROBE_STOP = "/sesami-wear/ble-probe/stop"
+    const val PATH_BLE_PROBE_PROGRESS = "/sesami-wear/ble-probe/progress"
+
+    /** 接続・ログインまで試す要求（payloadは対象uuid）。開始済みの確認の中で、スキャンを止めて接続を試す。 */
+    const val PATH_BLE_PROBE_CONNECT = "/sesami-wear/ble-probe/connect"
+
+    /**
+     * 「まとめて接続確認」（BL-280）の進捗の返送（mobile → wear）。開始・接続・停止の要求のペイロードへ
+     * [ALL_DEVICES_TARGET_UUID]を載せると、登録済み全デバイスを対象にした確認になり、進捗は単体の
+     * [PATH_BLE_PROBE_PROGRESS]ではなく本パスへ、[com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot.encode]の
+     * JSONで返る。接続確認はSesameが同時に1接続しか持てないため1台ずつ順番に行う。
+     */
+    const val PATH_BLE_PROBE_PROGRESS_ALL = "/sesami-wear/ble-probe/progress-all"
+
+    /**
      * Tile/Complicationの対象デバイスとして「登録済み全デバイス」を表す特別な値
      * （BL-071、複数デバイス一括操作）。wear側のデバイス割当ストアへ実際のuuidの代わりに保存し、
      * Tile/Complication表示・コマンド送信時に判定する。

@@ -127,6 +127,12 @@
             android:exported="false"
             android:theme="@style/Theme.SesamiWear" />
 
+        <!-- 「Bluetooth接続を確認」画面（BL-272）。デバイスカードから開く。スキャンと接続確認だけを行う。 -->
+        <activity
+            android:name=".radar.BleRadarActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SesamiWear" />
+
         <!--
             クイック設定パネルの「Sesame」タイル（BL-240）。システムだけがバインドできるよう権限で守る。
             ACTIVE_TILE にはせず、パネルを開いたときに保存値から描き直す（通信はタップしたときだけ）。

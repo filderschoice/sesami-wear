@@ -5,6 +5,383 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 23:00
+  summary: ウォッチの接続確認が、近くにいるスマホだけを依頼先にするよう直す（BL-276）
+  details:
+    変更内容: >-
+      BL-276の最後の項目（スマホ未接続の表示）を実機で確かめたところ、スマホを機内モードにしてもウォッチが「探索中」のままだった。
+      SesameConnectedNodeProvider.firstConnectedNodeId が、スマホが近くにいなくてもクラウド経由で届くノードを返すため。
+      近くにいる（isNearby）ノードだけを返す firstNearbyNodeId を追加し、接続確認の画面（単体・全デバイス）だけがこれを使うようにした
+      （施錠・解錠の依頼は遠隔でも届けばよいため従来のまま）。修正後は、機内モードで「スマホ未接続」が出て、設定を戻すと通常の表示へ
+      復帰することを実機で確認した。BL-276を完了として削除した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameConnectedNodeProvider.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarAllContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機で、機内モードでの「スマホ未接続」の表示と復帰を確認した。
+    関連ID:
+      - BL-276
+
+- date: 2026-11-08 20:00
+  summary: 全デバイスの接続確認から、台をタップしてダイヤル操作へ移れるようにする（BL-283）
+  details:
+    変更内容: >-
+      スマホの全デバイス画面で、台の行とレーダー上のブリップ・名前ラベルをタップすると、その台のDialActivityへ移る。
+      押せるのは発見または接続OKの台だけ（SesameBleProbeSnapshot.canOpenDial）。レーダーのタップ判定は
+      Android非依存の RadarHitTest（ブリップとラベルを合わせた四角、余白14dp、近い中心を優先）として切り出し、単体テストした。
+      実機（撮影モードの見本の3台）で、向きをuuidのハッシュで決めていたため近い2台のブリップ・ラベルが重なることを確認し、
+      全台のときは全周を均等に分ける（RadarHitTest.evenBearing）ように直した。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/RadarHitTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/radar/RadarHitTestTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro）で、行・ラベルのタップでダイヤル画面が開くことと、空白では開かないことを確認した。
+    関連ID:
+      - BL-283
+
+- date: 2026-11-08 18:30
+  summary: 接続確認に成功したら接続を3分間保持し、施錠・解錠・状態取得で再利用する（BL-279）
+  details:
+    変更内容: >-
+      「Bluetooth接続を確認」に成功したあと、ログイン済みの接続を3分間保持し、その間の施錠・解錠・状態取得は探索・接続・
+      ログインを省いて再利用する。保持の入れ物 HeldSessionStore（所有権を渡す方式、寿命で自動で閉じる、Android非依存）と、
+      保持するセッション SesameBleHeldSession（保持中も通知を読んで復号し、暗号カウンタのずれを防ぐ。最新の機構状態を覚える）、
+      プロセス単位の置き場 SesameBleHeldSessions を追加した。SesameBleClient は、保持があれば取り出して再利用し、送る前に
+      失敗したら通常の接続へ戻る。fetchStatus に retain を追加し、接続確認（SesameBleProber）だけが true で呼ぶ。
+      接続確認の画面に保持の説明を出す。実機で、状態取得が保持なし4.4〜6.4秒に対し保持中は約0.4秒、3分後は約6.2秒へ戻ることを
+      確認した。BL-278（保持の前提の実測）の結果をDESIGN.mdへ記録し、BL-278とBL-279を完了として削除した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/HeldSessionStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleHeldSession.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/HeldSessionStoreTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro + Sesame 5が2台）で、保持の再利用と3分後の時間切れを確認した。
+    関連ID:
+      - BL-279
+      - BL-278
+
+- date: 2026-11-08 16:30
+  summary: 接続保持の計測用の受信口が、停止したときも終了ログを出すよう直す（BL-282 / BL-278）
+  details:
+    変更内容: >-
+      SesameBleHoldDebugReceiver（デバッグ版のみ）は、停止要求（取り消し）で終了したとき「HOLD closed」の行を出せていなかった
+      （取り消し例外が終了ログの行へ届かないため）。try/finallyで、停止・上限時間・Sesame側の切断のいずれでも
+      終了ログ（保持時間と理由）を必ず1行残すようにした。実機で、開始→停止→「closed after=12s reason=stopped」を確認した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleHoldDebugReceiver.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-282
+      - BL-278
+
+- date: 2026-11-08 12:00
+  summary: 接続保持の計測用のデバッグ手段と、確認の中継のログを追加する（BL-282）
+  details:
+    変更内容: >-
+      BL-278（接続保持の実測）のため、デバッグ版だけの SesameBleHoldDebugReceiver を追加した。adbから対象のSesameへ
+      接続・ログインして保持し、切断した時刻（保持時間と理由）を SesameBleHold のログへ出す。何も送らない
+      （維持用の通信を送れる安全なコマンドが本アプリには無いため）。BL-276（ウォッチを閉じたときのスマホ側の停止）の
+      判定のため、SesameBleProbeRelay が確認の開始と終了（stopped / finished）をログへ出すようにした。
+      リリースビルドには計測用の受信口を含めない（src/debugとデバッグ用マニフェストのみ）。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleHoldDebugReceiver.kt
+      - mobile/src/debug/AndroidManifest.xml
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。計測用の受信口の実機での動作は、続けてBL-278の測定で確認する。
+    関連ID:
+      - BL-282
+
+- date: 2026-11-08 03:00
+  summary: まとめて接続確認の実機検証で見つけた、uuidの大文字小文字の照合バグを直す（BL-280 / BL-281）
+  details:
+    変更内容: >-
+      実機で全デバイス画面を開くと、近くに2台あるのに全台が圏外のままだった。登録のuuidは大文字、スキャンで得る
+      uuidは小文字のため、SesameBleMultiSightingTracker（台ごとのキー）と
+      SesameBleMultiProbeSnapshot.withSnapshotの照合が一致していなかった（単体のレーダーはuuidで照合しないので動いていた）。
+      どちらも大文字小文字を区別しない照合へ直し、単体テストを追加した。修正後の再確認で、スマホ・ウォッチ・撮影モードの
+      全項目が期待どおりに動いた。結果をDESIGN.mdへ記録し、BL-281を完了として削除した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshotTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro + Pixel Watch 2 + Sesame 5が2台）で確認した。
+    関連ID:
+      - BL-280
+      - BL-281
+
+- date: 2026-11-08 01:00
+  summary: 「まとめて接続確認」（スマートフォン・ウォッチ・撮影モード）を追加する（BL-280）
+  details:
+    変更内容: >-
+      登録した全デバイスを一度に確かめられるようにした。探索は1回のスキャンで複数台を追い
+      （SesameBleScanner.sightings。旧rssiFlowを複数uuid対応へ置き換え）、接続確認はSesameが同時に1接続しか
+      持てないため1台ずつ順番に行う（checkSequentially。1台の失敗で止めない）。coreへ
+      SesameBleMultiProbeSnapshot（名前つきの台ごとの進捗とJSON、ウォッチ向けの1行）、SesameBleMultiSightingTracker、
+      SesameBleMultiProbeThrottle を追加し、PATH_BLE_PROBE_PROGRESS_ALL を定義した。mobileは
+      BleMultiProbeOperations / SesameBleMultiProber、BleRadarAllScreen（全台のブリップを名前つきで1枚のレーダーへ）、
+      主画面の「全デバイスの接続確認」（2台以上のとき）、SesameBleProbeRelay の全デバイス対応を追加した。
+      ウォッチは接続確認の対象選択の先頭へ「全デバイス」を足し、台ごとの2行リスト（RadarAllContent）と「全台を試す」を
+      追加した。撮影モードは ShowcaseBleMultiProbe（台ごとの撮影用の動きを並べる）で対応した。単体テストを追加し、
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeThrottle.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshotTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeThrottleTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/BleMultiProbeOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMultiProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleMultiProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/MultiProbeChecksTest.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleMultiProbeTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarAllContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（スマートフォン2台・ウォッチ）での動作確認は未実施。
+    関連ID:
+      - BL-280
+
+- date: 2026-11-07 23:00
+  summary: 撮影モードにBluetooth接続確認（レーダー）を対応させる
+  details:
+    変更内容: >-
+      ダイヤル操作と同じ差し替えの仕組みで、撮影モード中はBluetoothを使わず撮影用の状態で動くようにした。
+      探索の入口を mobile.ble.BleProbeOperations（usesBluetooth / observe / checkConnection）へ切り出し、
+      実物の SesameBleProber と、debug専用の ShowcaseBleProbe が実装する。BleRadarActivity と
+      SesameBleProbeRelay（ウォッチ経由）が ShowcaseMode.probeOperationsOrNull で差し替える（releaseのスタブは常にnull）。
+      撮影用は、失敗なし＝発見（経路がBluetoothなら約2m、それ以外は約4m。±1dBの決まった揺らぎ）と接続OK、
+      通信エラー＝圏外、認証エラー＝接続に失敗、端末設定＝権限なしに対応させる。撮影モード画面の説明文へ追記し、
+      単体テストを追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/BleProbeOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbeTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。撮影モードの実機での見た目は未確認。
+    関連ID:
+      - BL-272
+      - BL-273
+
+- date: 2026-11-07 22:00
+  summary: BLE接続確認の距離の減衰係数を実測に基づき2.2から2.6へ補正する（BL-276）
+  details:
+    変更内容: >-
+      実機（玄関上）の実測（1m=-61.5 / 3m=-70 / 5m=-84dBm）で、減衰係数2.2では5mの予測が実測より約9dB強く、
+      距離を過大評価（遠く）に出していた。SesameBleProximity.PATH_LOSS_EXPONENTを2.6へ変更した（当てはめは約3.0だが、
+      測定が1か所・1台のため中間値にした）。段階の境界・距離文言・輪の位置のテストを追従させ、画面イメージ画像を
+      作り直した。DESIGN.mdへ実機検証の結果を追記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProximity.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProximityTest.kt
+      - site/assets/radar-phone-found.png
+      - site/assets/radar-phone-connected.png
+      - site/assets/radar-wear-found.png
+      - site/assets/radar-wear-connected.png
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-276
+
+- date: 2026-11-07 19:00
+  summary: BLE接続確認（レーダー）の画面イメージ画像を生成するスクリプトを追加する（BL-277）
+  details:
+    変更内容: >-
+      scripts/generate-radar-images.py（Pillow）を追加した。実装の寸法・色・文言を転記し、スマートフォン
+      （450x800、既存画像と同じ9:16・帯#1E3A5F）とウォッチ（384x384の円形）の「Bluetooth接続を確認」画面を、
+      探索中・発見・接続OK・圏外の4状態ぶん、site/assets/radar-{phone,wear}-<状態>.png へ出力する。
+      距離の換算定数（1m地点のRSSI・減衰係数）はSesameBleProximity.ktから読み、実装との食い違いを避ける。
+      実機のスクリーンショットではなくイメージ画像であることを、スクリプト先頭とsite/README.mdへ明記した。
+      index.htmlへは掲載していない（ユーザー要望は「いずれsite等で活用できる形」での出力）。
+    変更ファイル:
+      - scripts/generate-radar-images.py
+      - site/assets/radar-phone-scanning.png
+      - site/assets/radar-phone-found.png
+      - site/assets/radar-phone-connected.png
+      - site/assets/radar-phone-notfound.png
+      - site/assets/radar-wear-scanning.png
+      - site/assets/radar-wear-found.png
+      - site/assets/radar-wear-connected.png
+      - site/assets/radar-wear-notfound.png
+      - site/README.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      python scripts/generate-radar-images.py / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test
+      assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - 画像8枚が生成され（縮小シートで目視確認）、品質ゲートはいずれも終了コード0。
+    関連ID:
+      - BL-277
+
+- date: 2026-11-07 18:00
+  summary: ウォッチへ「Bluetooth接続を確認」画面を追加し、スマホ経由で探索・接続確認を行う（BL-273）
+  details:
+    変更内容: >-
+      ウォッチのアプリ本体の一覧の末尾に「接続確認」チップを追加し、wear.radar.BleRadarActivityを開く
+      （登録が2台以上なら対象を選ぶ。1台なら即開始）。ウォッチはBLEを使わず、PATH_BLE_PROBE_START / CONNECT /
+      STOPでスマホへ依頼し、スマホが返すPATH_BLE_PROBE_PROGRESS（SesameBleProbeSnapshotのJSON）を、
+      円形画面向けのレーダー（輪・掃引線・ブリップ）と2行の文字（段階、距離または電池・角度）で表示する。
+      画面タップで接続確認を依頼する。前面にいる間だけ依頼し、離れると停止を依頼する。mobile側は
+      SesameBleProbeRelay（プロセス単位のスコープ、上限90秒、順序保証つきの送信）と
+      SesameMessageListenerServiceの振り分けを追加した。進捗の送信間引きを core.ble.SesameBleProbeThrottle
+      として切り出して単体テストした。SesameBleProbeSnapshot.compactLinesを、接続OK時は電池・角度を優先する形へ拡張した。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.mdを更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeThrottle.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeThrottleTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarCanvas.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。ウォッチ実機とData Layer越しの動作確認はBL-276（人手検証）に残す。
+    関連ID:
+      - BL-273
+
+- date: 2026-11-07 16:00
+  summary: スマートフォンへ「Bluetooth接続を確認」画面（レーダー表示）を追加する（BL-272）
+  details:
+    変更内容: >-
+      デバイスカードの「接続確認」から開く BleRadarActivity を追加した。対象Sesameの電波を
+      SesameBleScanner.rssiFlow（新設、見つけても止めない連続スキャン）で追い、core.ble.SesameBleSightingTracker
+      （新設。RSSI平滑化と、6秒捉えられなければ「圏外」を1回だけ返す判定）で探索中/発見/圏外へ変換して、
+      輪（1/3/5/10m）・掃引線・距離位置のブリップをCanvasで描く。「接続を試す」は SesameBleClient.fetchStatus へ
+      段階通知（onStage、既定は何もしない）を追加して接続中→ログイン中→接続OK（電池・角度）/失敗を表示する。
+      Web APIへは倒さない。スキャンは前面にいて権限があり確認中でないときだけ行う。実行部は
+      SesameBleProber（BL-273のウォッチ要求からも使う）。進捗の文言関数（summaryLine / connectionDetail）を
+      SesameBleProbeSnapshotへ追加し、単体テストを追加した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機でのスキャン・接続の確認はBL-276（人手検証）に残す。
+    関連ID:
+      - BL-272
+
+- date: 2026-11-07 14:00
+  summary: BLE接続確認（レーダー）の共通ロジックをcoreへ追加する（BL-271）
+  details:
+    変更内容: >-
+      RSSIから目安距離・近さの段階を求める core.ble.SesameBleProximity（対数距離減衰、1m地点-60dBm・
+      減衰係数2.2、レーダーの輪1/3/5/10mへの位置換算を含む）、RSSIの指数移動平均 SesameBleRssiSmoother、
+      確認の段階 SesameBleProbeStage（ウォッチ向けの5文字以内の短縮名つき）、進捗 SesameBleProbeSnapshot
+      （JSONのencode/decode、ウォッチ向け2行の組み立て）を追加した。SesameWearProtocolへ確認の開始・停止・
+      進捗のメッセージパス定数を追加した。定数は実機で補正する前提の初期値（BL-276）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProximity.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleRssiSmoother.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeStage.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProximityTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleRssiSmootherTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-271
+
 - date: 2026-10-20 13:00
   summary: デモを割り当てたTile・Complicationを、実デバイス登録後に未設定へ戻す（BL-267）
   details:

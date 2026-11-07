@@ -23,9 +23,16 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 | `phone-widget.png` | ヒーローの画面（ホーム画面ウィジェット） | `docs/store/images/screenshots/phone_1_widget_locked.png` を 450x800 へ縮小 |
 | `wear-*.png` | 「操作の流れ」「画面」セクションのウォッチ画面 | `docs/store/images/screenshots/wear_1`〜`wear_6`（384x384 のまま） |
 | `phone-*.png` | 「操作の流れ」「画面」セクションのスマートフォン画面 | `docs/store/images/screenshots/phone_2`〜`phone_8` を 450x800 へ縮小（`phone-widget.png` は phone_1） |
+| `radar-phone-*.png` / `radar-wear-*.png` | 「Bluetooth接続を確認」（レーダー）画面のイメージ（探索中・発見・接続OK・圏外の4状態。スマートフォン450x800、ウォッチ384x384）。**実機のスクリーンショットではなく、実装の寸法・色・文言を転記して描いたイメージ画像**で、現時点では`index.html`に掲載していない（今後の掲載・ドキュメント用） | `scripts/generate-radar-images.py`で生成（BL-277） |
 
 スクリーンショットは Google Play 掲載用に加工済み（ステータスバー等のモザイク・壁紙のぼかし）の画像から作っています。
 掲載画像を撮り直したときは、同じファイルからここも作り直してください。
+
+レーダー画面のイメージ画像は、実機ではなくスクリプトで描いているため、**ページへ載せるときは `alt` に
+「画面イメージ（実機のスクリーンショットではない）」と書く**。実装（`core/.../ble/SesameBleProximity.kt`、
+`mobile` / `wear` の `radar/`）を変えたら、`python scripts/generate-radar-images.py` で作り直す
+（Pillow と日本語フォントが要る。手順と転記元はスクリプトの先頭に書いてある）。実機で撮ったものに
+差し替えるときは、同じファイル名で置き換えればよい。
 
 ## 方針
 

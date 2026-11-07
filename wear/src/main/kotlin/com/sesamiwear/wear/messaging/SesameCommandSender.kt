@@ -46,4 +46,18 @@ class SesameCommandSender(private val messageSender: SesameMessageSender) {
             SesameWearProtocol.encodeDeviceUuid(deviceUuid),
         )
     }
+
+    /**
+     * 「Bluetooth接続を確認」（BL-273）の開始・接続・停止をmobile側へ依頼する。ウォッチ自身はBLEを使わず、
+     * スマホが探索・接続を実行して進捗をメッセージで返す（[SesameWearProtocol.PATH_BLE_PROBE_PROGRESS]）。
+     * [path]は[SesameWearProtocol.PATH_BLE_PROBE_START] / [SesameWearProtocol.PATH_BLE_PROBE_CONNECT] /
+     * [SesameWearProtocol.PATH_BLE_PROBE_STOP]のいずれか。
+     */
+    suspend fun requestBleProbe(
+        nodeId: String,
+        path: String,
+        deviceUuid: String,
+    ) {
+        messageSender.send(nodeId, path, SesameWearProtocol.encodeDeviceUuid(deviceUuid))
+    }
 }
