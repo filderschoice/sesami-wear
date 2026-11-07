@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-07 19:00
+  summary: BLE接続確認（レーダー）の画面イメージ画像を生成するスクリプトを追加する（BL-277）
+  details:
+    変更内容: >-
+      scripts/generate-radar-images.py（Pillow）を追加した。実装の寸法・色・文言を転記し、スマートフォン
+      （450x800、既存画像と同じ9:16・帯#1E3A5F）とウォッチ（384x384の円形）の「Bluetooth接続を確認」画面を、
+      探索中・発見・接続OK・圏外の4状態ぶん、site/assets/radar-{phone,wear}-<状態>.png へ出力する。
+      距離の換算定数（1m地点のRSSI・減衰係数）はSesameBleProximity.ktから読み、実装との食い違いを避ける。
+      実機のスクリーンショットではなくイメージ画像であることを、スクリプト先頭とsite/README.mdへ明記した。
+      index.htmlへは掲載していない（ユーザー要望は「いずれsite等で活用できる形」での出力）。
+    変更ファイル:
+      - scripts/generate-radar-images.py
+      - site/assets/radar-phone-scanning.png
+      - site/assets/radar-phone-found.png
+      - site/assets/radar-phone-connected.png
+      - site/assets/radar-phone-notfound.png
+      - site/assets/radar-wear-scanning.png
+      - site/assets/radar-wear-found.png
+      - site/assets/radar-wear-connected.png
+      - site/assets/radar-wear-notfound.png
+      - site/README.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      python scripts/generate-radar-images.py / ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test
+      assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - 画像8枚が生成され（縮小シートで目視確認）、品質ゲートはいずれも終了コード0。
+    関連ID:
+      - BL-277
+
 - date: 2026-11-07 18:00
   summary: ウォッチへ「Bluetooth接続を確認」画面を追加し、スマホ経由で探索・接続確認を行う（BL-273）
   details:
