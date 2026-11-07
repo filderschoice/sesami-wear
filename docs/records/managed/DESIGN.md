@@ -513,7 +513,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     判定は`core.SesameDemoMode.isStaleAssignment`、読み替えは`wear.tile.SesameTileStateResolver.effectiveAssignment`
     （保存値は書き換えず描画時にだけ読み替える。デバイス一覧が空の間は未同期の可能性があるためデモを維持）。
     登録デバイス一覧のDataItem（`DEVICE_LIST_DATA_ITEM_PATH`）の更新でも`SesameStatusListenerService`が
-    再描画を要求する。
+    実機検証（BL-268、2026-11-08、Pixel Watch 2、**Claude Codeがadbで実施**）: 登録済み（2台）の状態で、Tileの
+    割り当て保存値へデモ（`__demo_device__`）を書き、入れ直したTile（ID 49）の最初の要求が`deviceAssigned=false`
+    （未設定として描画）になり、画面は「タップして設定」だけだった。「タップして設定」から実デバイス（玄関上）を
+    選ぶと`deviceAssigned=true`になり、「玄関上・施錠中・更新・変更」の通常表示になった。検証用のTileと保存値は
+    元へ戻した。**登録0件からの実際の流れ**（登録0件でデモを割り当て → スマホで登録）は、実資格情報を消さないと
+    作れないため行っていない（保存値の書き込みで代替）。**Complicationは文字盤への配置が要るため実機未確認**
+    （判定ロジックはTileと同じ`effectiveAssignment`を使う）。
   - 「スマホ未接続」（DISCONNECTED）はウィジェットに存在しない（スマホ自身がAPIを呼ぶため常に接続扱い）。
   - 結果の通知: wear・ウィジェットとも成否をハプティクスで区別する（BL-129で揃えた）。
     ウィジェットはさらに、失敗の理由を状態文言の下へ表示する（BL-140）。
