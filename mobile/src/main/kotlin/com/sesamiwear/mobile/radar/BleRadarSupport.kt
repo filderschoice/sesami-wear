@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
+import com.sesamiwear.mobile.ble.SesameBleHeldSessions
 import com.sesamiwear.mobile.ble.SesameBlePermissions
 
 /** レーダーへ置く1台ぶんのブリップ。[label]がnullなら名前を出さない（1台だけのとき）。 */
@@ -20,6 +21,16 @@ internal data class RadarBlip(
     val label: String?,
     val snapshot: SesameBleProbeSnapshot,
 )
+
+/**
+ * 接続確認に成功したあと接続を保持していることの説明（BL-279）。保持の寿命は[SesameBleHeldSessions.TTL_MILLIS]。
+ * 保持中の施錠・解錠は、探索・接続・ログインを省いて再利用するため速い。
+ */
+internal val HOLD_HINT: String =
+    "接続を約${SesameBleHeldSessions.TTL_MILLIS / MILLIS_PER_MINUTE}分保持します。" +
+        "この間の施錠・解錠は、接続し直さずに実行されます。"
+
+private const val MILLIS_PER_MINUTE = 60_000L
 
 /** Bluetoothの権限の状態と、許可を求める操作（レーダー画面で共通）。 */
 internal class RadarPermission(

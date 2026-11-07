@@ -85,7 +85,7 @@ class SesameBleClient(
         historyName: String = DEFAULT_HISTORY_NAME,
     ): CommandOutcome {
         val (result, status) =
-            withBudget(credentials, NO_STAGE) { connection, session, _ ->
+            withBudget(credentials, NO_STAGE, retain = false) { connection, session, _ ->
                 val itemCode = if (command == SesameCommand.LOCK) ItemCode.LOCK else ItemCode.UNLOCK
                 val payload = SesameBleMessage.encodeHistoryTag(historyName.ifBlank { DEFAULT_HISTORY_NAME })
                 sendEncrypted(connection, session, itemCode, payload)
@@ -98,13 +98,16 @@ class SesameBleClient(
      *
      * @param onStage 接続・ログインに進むたびに呼ぶ（「Bluetooth接続を確認」の進捗表示用、BL-272）。
      * 既定では何もしない。
+     * @param retain 成功したら、ログイン済みの接続を[SesameBleHeldSessions.TTL_MILLIS]だけ保持する（BL-279）。
+     * 保持中の次の操作は、探索・接続・ログインを省いて再利用する。「Bluetooth接続を確認」だけがtrueで呼ぶ。
      */
     suspend fun fetchStatus(
         credentials: SesameCredentials,
         onStage: (SesameBleProbeStage) -> Unit = {},
+        retain: Boolean = false,
     ): StatusResult {
         val (result, status) =
-            withBudget(credentials, onStage) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
+            withBudget(credentials, onStage, retain) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
         return StatusResult(result, status)
     }
 
@@ -129,23 +132,43 @@ class SesameBleClient(
     private suspend fun withBudget(
         credentials: SesameCredentials,
         onStage: (SesameBleProbeStage) -> Unit,
+        retain: Boolean,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
     ): Pair<Result, SesameBleMechStatus?> =
-        withTimeoutOrNull(timeouts.totalMillis) { withSession(credentials, onStage, block) }
+        withTimeoutOrNull(timeouts.totalMillis) { withSession(credentials, onStage, retain, block) }
             ?: (Result.CONNECTION_FAILED to null)
 
     /**
-     * スキャンからログインまでを行い、[block]を実行してから必ず切断する。
+     * 保持している接続（BL-279）があればそれを再利用し、無ければスキャンからログインまでを行って、[block]を実行する。
+     * 保持を使えず**送る前に**失敗した場合（相手側から切られていた）は通常の接続へ戻る。送ったあとの失敗は、
+     * 二重に送らないよう戻らず、そのまま返す。保持を使い終わって成功したら保持を続け（時間切れを数え直す）、
+     * 失敗したら閉じる。通常の接続は、[retain]がtrueで成功したときだけ保持し、そうでなければ必ず切断する。
      * [block]がnullを返した場合は[Result.COMMAND_REJECTED]として扱う。
-     * 戻り値の2つめは、ログイン時に受け取った機構状態（受け取れていなければnull）。
+     * 戻り値の2つめは、ログイン時（保持の再利用なら最新）に受け取った機構状態（受け取れていなければnull）。
      */
     private suspend fun withSession(
         credentials: SesameCredentials,
         onStage: (SesameBleProbeStage) -> Unit,
+        retain: Boolean,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
     ): Pair<Result, SesameBleMechStatus?> {
         val secretKey = credentials.secretKeyBytesOrNull
         val blocked = preflight(secretKey)
+        if (blocked == null) {
+            val held = SesameBleHeldSessions.take(credentials.uuid)
+            if (held != null) {
+                val outcome = held.run(block)
+                if (outcome.first == Result.SUCCESS) {
+                    SesameBleHeldSessions.retain(
+                        credentials.uuid,
+                        held,
+                    )
+                } else {
+                    held.close()
+                }
+                if (outcome.first != Result.CONNECTION_FAILED) return outcome
+            }
+        }
         return if (blocked != null) {
             blocked to null
         } else {
@@ -155,7 +178,7 @@ class SesameBleClient(
             if (connection == null) {
                 (attempt.failure ?: Result.CONNECTION_FAILED) to null
             } else {
-                runSession(connection, secretKey!!, onStage, block)
+                runSession(connection, credentials, onStage, retain, block)
             }
         }
     }
@@ -168,25 +191,33 @@ class SesameBleClient(
             else -> null
         }
 
-    /** ログインして[block]を実行し、成否によらず必ず切断する。 */
+    /**
+     * ログインして[block]を実行する。[retain]がtrueで成功したら接続を保持し（BL-279）、そうでなければ成否によらず必ず切断する。
+     */
     private suspend fun runSession(
         connection: SesameBleConnection,
-        secretKey: ByteArray,
+        credentials: SesameCredentials,
         onStage: (SesameBleProbeStage) -> Unit,
+        retain: Boolean,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
-    ): Pair<Result, SesameBleMechStatus?> =
-        try {
+    ): Pair<Result, SesameBleMechStatus?> {
+        var held: SesameBleHeldSession? = null
+        return try {
             onStage(SesameBleProbeStage.LOGGING_IN)
-            val session = login(connection, secretKey)
+            val session = login(connection, checkNotNull(credentials.secretKeyBytesOrNull))
             if (session == null) {
                 Result.LOGIN_FAILED to null
             } else {
                 val status = awaitMechStatus(connection, session)
-                (block(connection, session, status) ?: Result.COMMAND_REJECTED) to status
+                val outcome = (block(connection, session, status) ?: Result.COMMAND_REJECTED) to status
+                if (retain && outcome.first == Result.SUCCESS) held = SesameBleHeldSession(connection, session, status)
+                outcome
             }
         } finally {
-            connection.close()
+            val kept = held
+            if (kept != null) SesameBleHeldSessions.retain(credentials.uuid, kept) else connection.close()
         }
+    }
 
     /**
      * 接続直後に届く`INITIAL`通知（4バイトのセッショントークン）を受け、セッション鍵を導出して

@@ -84,7 +84,12 @@ class SesameBleProber(
         val blocked = blockedStage()
         if (blocked != null) return SesameBleProbeSnapshot(blocked)
         val outcome =
-            client.fetchStatus(credentials) { stage -> onProgress(SesameBleProbeSnapshot(stage, lastRssiDbm)) }
+            client.fetchStatus(
+                credentials,
+                onStage = { stage -> onProgress(SesameBleProbeSnapshot(stage, lastRssiDbm)) },
+                // 確認に成功したら接続を保持し、次の施錠・解錠・状態取得で再利用する（BL-279）。
+                retain = true,
+            )
         val status = outcome.status
         return when (outcome.result) {
             SesameBleClient.Result.SUCCESS ->

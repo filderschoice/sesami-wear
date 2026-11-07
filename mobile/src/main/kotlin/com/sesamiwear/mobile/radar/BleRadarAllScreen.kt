@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot
+import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.mobile.ble.BleMultiProbeOperations
 import kotlinx.coroutines.launch
 
@@ -75,6 +76,7 @@ internal fun BleRadarAllScreen(
         shown.entries.forEach { entry ->
             DeviceRow(entry = entry, result = results?.entries?.find { it.uuid == entry.uuid })
         }
+        HoldHint(results)
         Text(
             text = "距離は電波の強さからの目安です。壁・人・向きで大きく変わります。接続の確認は1台ずつ順番に行います。",
             style = MaterialTheme.typography.bodySmall,
@@ -99,6 +101,18 @@ internal fun BleRadarAllScreen(
             OutlinedButton(onClick = permission.request) { Text(text = "Bluetoothの権限を許可") }
         }
     }
+}
+
+/** 1台でも接続OKなら、接続を保持していることを説明する（BL-279）。 */
+@Composable
+private fun HoldHint(results: SesameBleMultiProbeSnapshot?) {
+    if (results?.entries?.any { it.snapshot.stage == SesameBleProbeStage.CONNECTED } != true) return
+    Text(
+        text = HOLD_HINT,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** 1台ぶんの行。名前・段階と距離・（接続確認が済んでいれば）その結果。 */

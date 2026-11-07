@@ -197,6 +197,14 @@ private fun StatusTexts(
             color = if (result.stage.isProblem) problem else MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
+        if (result.stage == SesameBleProbeStage.CONNECTED) {
+            Text(
+                text = HOLD_HINT,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
     if (shown.stage == SesameBleProbeStage.NOT_FOUND || checkResult?.stage == SesameBleProbeStage.NOT_FOUND) {
         Text(

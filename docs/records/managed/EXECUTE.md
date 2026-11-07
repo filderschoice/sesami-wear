@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 18:30
+  summary: 接続確認に成功したら接続を3分間保持し、施錠・解錠・状態取得で再利用する（BL-279）
+  details:
+    変更内容: >-
+      「Bluetooth接続を確認」に成功したあと、ログイン済みの接続を3分間保持し、その間の施錠・解錠・状態取得は探索・接続・
+      ログインを省いて再利用する。保持の入れ物 HeldSessionStore（所有権を渡す方式、寿命で自動で閉じる、Android非依存）と、
+      保持するセッション SesameBleHeldSession（保持中も通知を読んで復号し、暗号カウンタのずれを防ぐ。最新の機構状態を覚える）、
+      プロセス単位の置き場 SesameBleHeldSessions を追加した。SesameBleClient は、保持があれば取り出して再利用し、送る前に
+      失敗したら通常の接続へ戻る。fetchStatus に retain を追加し、接続確認（SesameBleProber）だけが true で呼ぶ。
+      接続確認の画面に保持の説明を出す。実機で、状態取得が保持なし4.4〜6.4秒に対し保持中は約0.4秒、3分後は約6.2秒へ戻ることを
+      確認した。BL-278（保持の前提の実測）の結果をDESIGN.mdへ記録し、BL-278とBL-279を完了として削除した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/HeldSessionStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleHeldSession.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/HeldSessionStoreTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro + Sesame 5が2台）で、保持の再利用と3分後の時間切れを確認した。
+    関連ID:
+      - BL-279
+      - BL-278
+
 - date: 2026-11-08 16:30
   summary: 接続保持の計測用の受信口が、停止したときも終了ログを出すよう直す（BL-282 / BL-278）
   details:
