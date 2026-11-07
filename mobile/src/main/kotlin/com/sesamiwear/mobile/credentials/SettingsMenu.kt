@@ -1,10 +1,12 @@
 package com.sesamiwear.mobile.credentials
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,14 +16,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogDialog
 import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 import com.sesamiwear.mobile.widget.WidgetPinRequester
 
 /**
- * 上部バーの設定メニュー（BL-180）。
+ * 上部バーの設定メニュー（BL-180）。歯車アイコンで開き、項目は「接続／通知／ホーム画面／サポート」の見出しで区切る。
  *
  * もとはヘルプが見出し横のボタン、経路の方針とBluetooth権限が画面本体の2行に常時置かれており、
  * 主画面の情報量を押し上げていた。3つとも「たまに開く設定」なので、⋮のメニューへまとめ、
@@ -55,13 +60,14 @@ internal fun SettingsMenu() {
     )
 
     IconButton(onClick = { expanded = true }) {
-        Icon(imageVector = Icons.Default.MoreVert, contentDescription = MENU_DESCRIPTION)
+        Icon(imageVector = Icons.Default.Settings, contentDescription = MENU_DESCRIPTION)
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         fun open(show: () -> Unit) {
             expanded = false
             show()
         }
+        MenuSection(title = SECTION_CONNECTION, isFirst = true)
         SettingsMenuItem(
             title = ROUTE_POLICY_TITLE,
             subtitle = SesameRouteLabel.policyLabel(routePolicy.policy),
@@ -73,8 +79,9 @@ internal fun SettingsMenu() {
             enabled = blePermission.buttonLabel != null,
             onClick = { open { dialogs.bleRationale = true } },
         )
+        MenuSection(title = SECTION_NOTIFICATION)
         SettingsMenuItem(
-            title = ROUTE_NOTIFICATION_TITLE,
+            title = ROUTE_NOTIFICATION_MENU_TITLE,
             subtitle = routeNotification.shortStatus,
             onClick = { open { dialogs.routeNotification = true } },
         )
@@ -83,21 +90,33 @@ internal fun SettingsMenu() {
             subtitle = alertSettings.shortStatus,
             onClick = { open { dialogs.alertSettings = true } },
         )
+        MenuSection(title = SECTION_HOME_SCREEN)
         AddWidgetMenuItem(onDone = { expanded = false })
-        SettingsMenuItem(
-            title = HELP_MENU_TITLE,
-            subtitle = null,
-            onClick = { open { dialogs.help = true } },
-        )
-        SettingsMenuItem(
-            title = DIAGNOSTICS_MENU_TITLE,
-            subtitle = DIAGNOSTICS_MENU_SUBTITLE,
-            onClick = { open { dialogs.diagnostics = true } },
-        )
-        // 撮影モード（BL-213）。デバッグ版だけが項目を返し、リリース版では現れない。
-        ShowcaseModeUi.menuEntryOrNull(context)?.let { entry ->
-            SettingsMenuItem(entry.title, entry.subtitle) { open { context.startActivity(entry.intent) } }
-        }
+        SupportMenuItems(dialogs = dialogs, open = ::open)
+    }
+}
+
+/** 「サポート」区分の項目（ヘルプ・操作履歴・撮影モード）。 */
+@Composable
+private fun SupportMenuItems(
+    dialogs: SettingsDialogState,
+    open: (() -> Unit) -> Unit,
+) {
+    val context = LocalContext.current
+    MenuSection(title = SECTION_SUPPORT)
+    SettingsMenuItem(
+        title = HELP_MENU_TITLE,
+        subtitle = null,
+        onClick = { open { dialogs.help = true } },
+    )
+    SettingsMenuItem(
+        title = DIAGNOSTICS_MENU_TITLE,
+        subtitle = DIAGNOSTICS_MENU_SUBTITLE,
+        onClick = { open { dialogs.diagnostics = true } },
+    )
+    // 撮影モード（BL-213）。デバッグ版だけが項目を返し、リリース版では現れない。
+    ShowcaseModeUi.menuEntryOrNull(context)?.let { entry ->
+        SettingsMenuItem(entry.title, entry.subtitle) { open { context.startActivity(entry.intent) } }
     }
 }
 
@@ -159,10 +178,27 @@ private fun SettingsMenuItem(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
         },
+    )
+}
+
+/** メニューの区切り見出し。長いメニューを「接続／通知／ホーム画面／サポート」に分けて探しやすくする。 */
+@Composable
+private fun MenuSection(
+    title: String,
+    isFirst: Boolean = false,
+) {
+    if (!isFirst) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
     )
 }
 
@@ -198,10 +234,17 @@ private class SettingsDialogState {
 private const val MENU_DESCRIPTION = "設定"
 private const val HELP_MENU_TITLE = "ヘルプ"
 
-private const val ADD_WIDGET_MENU_TITLE = "ホーム画面にウィジェットを追加"
-private const val ADD_WIDGET_MENU_SUBTITLE = "アプリを開かずに状態の確認と施錠・解錠ができます"
-private const val ADD_WIDGET_UNSUPPORTED_SUBTITLE = "このホームアプリでは、ホーム画面の長押しから追加してください"
+private const val SECTION_CONNECTION = "接続"
+private const val SECTION_NOTIFICATION = "通知"
+private const val SECTION_HOME_SCREEN = "ホーム画面"
+private const val SECTION_SUPPORT = "サポート"
+
+// 区切り見出しが文脈を担うため、項目名は短くする。副題は1行に収める。
+private const val ROUTE_NOTIFICATION_MENU_TITLE = "経路が変わったとき"
+private const val ADD_WIDGET_MENU_TITLE = "ウィジェットを追加"
+private const val ADD_WIDGET_MENU_SUBTITLE = "アプリを開かずに施錠・解錠"
+private const val ADD_WIDGET_UNSUPPORTED_SUBTITLE = "ホーム画面の長押しから追加"
 
 // 利用者が「操作の履歴」を探したときに見つけられるよう、履歴であることを先に出す（BL-237）。
 private const val DIAGNOSTICS_MENU_TITLE = "操作履歴（診断ログ）"
-private const val DIAGNOSTICS_MENU_SUBTITLE = "施錠・解錠・取得の記録を見る・送る"
+private const val DIAGNOSTICS_MENU_SUBTITLE = "記録を見る・送る"

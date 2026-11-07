@@ -50,9 +50,12 @@ internal class AlertSettingsState(
     val shortStatus: String
         get() =
             buildString {
-                append("電池残量：").append(if (isLowBatteryEnabled) "オン" else "オフ")
-                append(" ・ 解錠したまま：").append(reminderLabel(unlockReminderMinutes))
-                if (!isDeliverable) append("（端末の設定で通知が許可されていません）")
+                if (!isDeliverable) {
+                    append("端末の通知が許可されていません")
+                } else {
+                    append("電池：").append(if (isLowBatteryEnabled) "オン" else "オフ")
+                    append(" ・ 解錠：").append(reminderLabel(unlockReminderMinutes))
+                }
             }
 }
 

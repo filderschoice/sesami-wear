@@ -286,8 +286,12 @@
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
     （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
     `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
-  - **ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（⋮、`mobile.credentials.SettingsMenu`）へ
+  - **ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（歯車、`mobile.credentials.SettingsMenu`）へ
     集約する**（BL-180）。3つとも「たまに開く設定」で、主画面に常時置くと情報量を押し上げるため。
+    メニューは歯車アイコンで開き、項目を「接続（操作の経路・Bluetooth）／通知（経路が変わったとき・お知らせ）／
+    ホーム画面（ウィジェットを追加）／サポート（ヘルプ・操作履歴）」の見出し＋区切り線で分ける（2026-11-08、
+    接続確認の追加で項目が増え、文字が多くて探しにくかったため）。区分が文脈を担うので項目名は短くし、副題は1行（省略表示）。
+    主画面は2台以上のとき「全デバイスの接続確認」（Bluetoothアイコン付き）をAPI呼び出し回数カードの上に置く。
     現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、メニューを開くだけで分かるようにする。
     Bluetoothの項目は、許可済みで求めるものが無いとき（`SesameBlePermissionPrompt.buttonLabel`がnull）は
     押せない状態表示になる。状態と文言の決定は`mobile.credentials.RoutePolicyState` /
