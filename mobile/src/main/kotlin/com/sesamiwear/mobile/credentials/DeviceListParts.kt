@@ -20,16 +20,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.mobile.R
+import com.sesamiwear.mobile.settings.SettingsActivity
+import com.sesamiwear.mobile.settings.SettingsPage
 
 /**
  * 主画面の一覧の部品（BL-245）。
@@ -65,8 +66,7 @@ internal fun ApiUsageCard(count: Int) {
 
 @Composable
 internal fun EmptyDeviceState(onAdd: () -> Unit) {
-    var showHelp by remember { mutableStateOf(false) }
-    if (showHelp) HelpDialog(onDismiss = { showHelp = false })
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -102,7 +102,9 @@ internal fun EmptyDeviceState(onAdd: () -> Unit) {
             )
             Text(text = EMPTY_ADD_LABEL, modifier = Modifier.padding(start = 8.dp))
         }
-        TextButton(onClick = { showHelp = true }) { Text(text = EMPTY_HELP_LABEL) }
+        TextButton(onClick = {
+            context.startActivity(SettingsActivity.createIntent(context, SettingsPage.HELP))
+        }) { Text(text = EMPTY_HELP_LABEL) }
     }
 }
 

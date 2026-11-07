@@ -286,21 +286,28 @@
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
     （secretKeyは`KeyboardType.Password`）を既定にしたうえで、`onValueChange`で
     `CredentialsInputSanitizer`を通してから状態へ反映する（BL-112）。表示名欄は対象外。
-  - **ヘルプ・操作の経路・Bluetooth権限は上部バーの設定メニュー（歯車、`mobile.credentials.SettingsMenu`）へ
-    集約する**（BL-180）。3つとも「たまに開く設定」で、主画面に常時置くと情報量を押し上げるため。
-    メニューは歯車アイコンで開き、項目を「接続（操作の経路・Bluetooth）／通知／
-    ホーム画面（ウィジェットを追加）／サポート（ヘルプ・操作履歴）」の見出し＋区切り線で分ける（2026-11-08、
-    接続確認の追加で項目が増え、文字が多くて探しにくかったため）。区分が文脈を担うので項目名は短くし、副題は1行（省略表示）。
-    「通知」は1項目で、開くと`NotificationSettingsDialog`に経路が変わったとき・電池残量・解錠したままの3種類を並べて切り替える
+  - **ヘルプ・操作の経路・Bluetooth権限・通知・操作履歴は、上部バーの歯車から開く設定画面
+    （`mobile.settings.SettingsActivity`）へ集約する**（BL-180。もとは⋮のドロップダウンメニュー）。
+    3つ以上が「たまに開く設定」で、主画面に常時置くと情報量を押し上げるため。設定画面は一覧
+    （`SettingsMainScreen`）で、「接続（操作の経路・Bluetooth）／通知／ホーム画面（ウィジェットを追加）／
+    サポート（ヘルプ・操作履歴）」の見出し＋区切り線で分ける（2026-11-08、接続確認の追加で項目が増え、
+    文字が多くて探しにくかったため）。区分が文脈を担うので項目名は短くし、副題は2行まで。
+    **ダイアログと画面の使い分け**（2026-11-08のユーザー指示）: 択一・確認で完結するもの（操作の経路
+    `RoutePolicyPickerDialog`、Bluetoothの許可説明`BlePermissionRationaleDialog`）はダイアログ、読み物・
+    複数の設定・一覧を含むもの（通知`NotificationSettingsScreen`、ヘルプ`HelpListScreen` / `HelpTopicScreen`、
+    操作履歴`DiagnosticsLogScreen`）は設定画面内のページ（`SettingsHost`が切り替え、戻る操作で一覧へ戻る）。
+    ページを開く行には右に「›」を付ける。空状態の「値の取得方法・デモで試す方法を見る」はヘルプのページから開く
+    （`SettingsActivity.createIntent(context, SettingsPage.HELP)`、戻ると主画面）。
+    「通知」は1項目で、経路が変わったとき・電池残量・解錠したままの3種類を並べて切り替える
     （許可が無いときは許可の案内を1か所に出す。副題は「3項目中N項目がオン」）。
     主画面は2台以上のとき「全デバイスの接続確認」（Bluetoothアイコン付き）をAPI呼び出し回数カードの上に置く。
-    現在の経路の方針とBluetoothの許可状況はメニュー項目の副題に出し、メニューを開くだけで分かるようにする。
+    現在の経路の方針とBluetoothの許可状況は設定一覧の副題に出し、一覧を開くだけで分かるようにする。
     Bluetoothの項目は、許可済みで求めるものが無いとき（`SesameBlePermissionPrompt.buttonLabel`がnull）は
     押せない状態表示になる。状態と文言の決定は`mobile.credentials.RoutePolicyState` /
     `BlePermissionState`（どちらも`remember`で状態を持つComposable関数）が担う。
-  - 詳細な説明はヘルプの`AlertDialog`へ集約する（BL-057, BL-059）。
-    ヘルプは**メニュー形式**で、項目一覧（`HelpMenuDialog`）と本文（`HelpTopicDialog`、「戻る」で
-    一覧へ戻る）の2段構成にする（BL-113）。文言と並び順はAndroid非依存の
+  - 詳細な説明はヘルプへ集約する（BL-057, BL-059）。
+    ヘルプは**メニュー形式**で、項目一覧（`HelpListScreen`）と本文（`HelpTopicScreen`、戻る操作で
+    一覧へ戻る）の2段構成にする（BL-113。2026-11-08にダイアログから設定画面のページへ変更）。文言と並び順はAndroid非依存の
     `mobile.help.HelpContent`（`HelpTopic` / `HelpLink`、ユニットテスト対象）が保持し、
     (1)「値の取得方法」（`https://biz.candyhouse.co/biz/developer`（SESAME Biz 開発者ページ）へ
     遷移する`TextButton`＝`Intent.ACTION_VIEW`を含む。uuid・apikey・secretKeyはいずれもこの

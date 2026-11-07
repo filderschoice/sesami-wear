@@ -6,7 +6,7 @@
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
 - date: 2026-11-08 23:30
-  summary: スマホ側の設定メニューを歯車・4区分に整理し、全デバイスの接続確認を主画面の先頭へ移す
+  summary: スマホ側の設定を歯車→設定画面（SettingsActivity）へ移し、ダイアログと画面を使い分ける
   details:
     変更内容: >-
       右上のメニューを⋮から歯車（Icons.Default.Settings）へ変え、項目を「接続（操作の経路・Bluetooth）／通知（経路が変わったとき・お知らせ）／
@@ -16,9 +16,17 @@
       （旧RouteNotificationDialog・AlertSettingsDialogは削除。メニューの副題は「3項目中N項目がオン」）。
       主画面は、2台以上のとき「全デバイスの接続確認」をBluetoothアイコン付きのFilledTonalButtonにして、API呼び出し回数カードの上へ移した。
       USER_GUIDE.md の「⋮」案内（右上のメニュー分）を歯車へ更新し、RELEASE_NOTES.md に追記した。DESIGN.md を更新した。
-      機能・保存値の変更なし。実機での見た目の確認は未実施。
+      さらにユーザー指示で、⋮のドロップダウン＋全項目ダイアログをやめ、歯車から開く設定画面（SettingsActivity、一覧と
+      ページ切り替えのSettingsHost）へ移した。択一・確認で完結する操作の経路とBluetooth許可はダイアログのまま、
+      読み物・複数設定・一覧を含む通知・ヘルプ・操作履歴は画面のページにした（NotificationSettingsScreen /
+      HelpListScreen・HelpTopicScreen / DiagnosticsLogScreen、共通の骨組みSettingsPageScaffold）。空状態のヘルプ導線は
+      ヘルプのページを直接開く。旧SettingsMenu・HelpDialogs・DiagnosticsLogDialogは削除。機能・保存値の変更なし。
     変更ファイル:
-      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/settings/ （SettingsActivity / SettingsHost / SettingsMainScreen / SettingsPageScaffold）
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/HelpScreens.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListParts.kt
+      - mobile/src/main/AndroidManifest.xml
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RouteNotificationState.kt
