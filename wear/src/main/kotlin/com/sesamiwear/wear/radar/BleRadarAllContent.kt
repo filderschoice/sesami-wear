@@ -63,7 +63,7 @@ internal fun RadarAllContent(devices: List<SesameDeviceSummary>) {
                     colors = ChipDefaults.secondaryChipColors(),
                     onClick = {
                         scope.launch {
-                            SesameConnectedNodeProvider.firstConnectedNodeId(context)?.let {
+                            SesameConnectedNodeProvider.firstNearbyNodeId(context)?.let {
                                 SesameCommandSenderProvider.create(context).requestBleProbe(
                                     it,
                                     SesameWearProtocol.PATH_BLE_PROBE_CONNECT,

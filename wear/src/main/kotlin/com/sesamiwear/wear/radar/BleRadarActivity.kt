@@ -130,7 +130,7 @@ private fun RadarContent(deviceUuid: String) {
                 .fillMaxSize()
                 .clickable(enabled = !phoneMissing) {
                     scope.launch {
-                        SesameConnectedNodeProvider.firstConnectedNodeId(context)?.let {
+                        SesameConnectedNodeProvider.firstNearbyNodeId(context)?.let {
                             SesameCommandSenderProvider.create(context)
                                 .requestBleProbe(it, SesameWearProtocol.PATH_BLE_PROBE_CONNECT, deviceUuid)
                         }
@@ -197,7 +197,7 @@ internal fun ProbeLink(
     }
     LaunchedEffect(deviceUuid, resumed) {
         if (!resumed) return@LaunchedEffect
-        val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context)
+        val nodeId = SesameConnectedNodeProvider.firstNearbyNodeId(context)
         onPhoneMissing(nodeId == null)
         if (nodeId == null) return@LaunchedEffect
         onProgress(SesameBleProbeSnapshot(SesameBleProbeStage.SCANNING))

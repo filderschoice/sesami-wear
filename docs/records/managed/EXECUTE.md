@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 23:00
+  summary: ウォッチの接続確認が、近くにいるスマホだけを依頼先にするよう直す（BL-276）
+  details:
+    変更内容: >-
+      BL-276の最後の項目（スマホ未接続の表示）を実機で確かめたところ、スマホを機内モードにしてもウォッチが「探索中」のままだった。
+      SesameConnectedNodeProvider.firstConnectedNodeId が、スマホが近くにいなくてもクラウド経由で届くノードを返すため。
+      近くにいる（isNearby）ノードだけを返す firstNearbyNodeId を追加し、接続確認の画面（単体・全デバイス）だけがこれを使うようにした
+      （施錠・解錠の依頼は遠隔でも届けばよいため従来のまま）。修正後は、機内モードで「スマホ未接続」が出て、設定を戻すと通常の表示へ
+      復帰することを実機で確認した。BL-276を完了として削除した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameConnectedNodeProvider.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarAllContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機で、機内モードでの「スマホ未接続」の表示と復帰を確認した。
+    関連ID:
+      - BL-276
+
 - date: 2026-11-08 20:00
   summary: 全デバイスの接続確認から、台をタップしてダイヤル操作へ移れるようにする（BL-283）
   details:
