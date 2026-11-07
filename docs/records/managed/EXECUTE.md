@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 16:30
+  summary: 接続保持の計測用の受信口が、停止したときも終了ログを出すよう直す（BL-282 / BL-278）
+  details:
+    変更内容: >-
+      SesameBleHoldDebugReceiver（デバッグ版のみ）は、停止要求（取り消し）で終了したとき「HOLD closed」の行を出せていなかった
+      （取り消し例外が終了ログの行へ届かないため）。try/finallyで、停止・上限時間・Sesame側の切断のいずれでも
+      終了ログ（保持時間と理由）を必ず1行残すようにした。実機で、開始→停止→「closed after=12s reason=stopped」を確認した。
+    変更ファイル:
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/ble/SesameBleHoldDebugReceiver.kt
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-282
+      - BL-278
+
 - date: 2026-11-08 12:00
   summary: 接続保持の計測用のデバッグ手段と、確認の中継のログを追加する（BL-282）
   details:

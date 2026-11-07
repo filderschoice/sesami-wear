@@ -125,13 +125,15 @@ internal object SesameBleHolder {
         }
         synchronized(this) { connection = opened }
         val startedAt = SystemClock.elapsedRealtime()
-        val listened = withTimeoutOrNull(maxSeconds * MILLIS_PER_SECOND) { listen(opened, startedAt) } ?: "max_sec"
-        val reason = if (stopRequested) "stopped" else listened
-        opened.close()
-        Log.w(
-            TAG,
-            "HOLD closed after=${(SystemClock.elapsedRealtime() - startedAt) / MILLIS_PER_SECOND}s reason=$reason",
-        )
+        var reason = "max_sec"
+        try {
+            reason = withTimeoutOrNull(maxSeconds * MILLIS_PER_SECOND) { listen(opened, startedAt) } ?: "max_sec"
+        } finally {
+            // 停止（取り消し）でもここへ来て、終了を必ず1行残す。
+            opened.close()
+            val seconds = (SystemClock.elapsedRealtime() - startedAt) / MILLIS_PER_SECOND
+            Log.w(TAG, "HOLD closed after=${seconds}s reason=${if (stopRequested) "stopped" else reason}")
+        }
     }
 
     /** 接続してログインする。成功すれば開いたままの接続を返す。 */
