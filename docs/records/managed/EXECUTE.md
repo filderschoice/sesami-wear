@@ -5,6 +5,57 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 01:00
+  summary: 「まとめて接続確認」（スマートフォン・ウォッチ・撮影モード）を追加する（BL-280）
+  details:
+    変更内容: >-
+      登録した全デバイスを一度に確かめられるようにした。探索は1回のスキャンで複数台を追い
+      （SesameBleScanner.sightings。旧rssiFlowを複数uuid対応へ置き換え）、接続確認はSesameが同時に1接続しか
+      持てないため1台ずつ順番に行う（checkSequentially。1台の失敗で止めない）。coreへ
+      SesameBleMultiProbeSnapshot（名前つきの台ごとの進捗とJSON、ウォッチ向けの1行）、SesameBleMultiSightingTracker、
+      SesameBleMultiProbeThrottle を追加し、PATH_BLE_PROBE_PROGRESS_ALL を定義した。mobileは
+      BleMultiProbeOperations / SesameBleMultiProber、BleRadarAllScreen（全台のブリップを名前つきで1枚のレーダーへ）、
+      主画面の「全デバイスの接続確認」（2台以上のとき）、SesameBleProbeRelay の全デバイス対応を追加した。
+      ウォッチは接続確認の対象選択の先頭へ「全デバイス」を足し、台ごとの2行リスト（RadarAllContent）と「全台を試す」を
+      追加した。撮影モードは ShowcaseBleMultiProbe（台ごとの撮影用の動きを並べる）で対応した。単体テストを追加し、
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeThrottle.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshotTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeThrottleTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/BleMultiProbeOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleMultiProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleMultiProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/ble/MultiProbeChecksTest.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleMultiProbeTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarAllContent.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（スマートフォン2台・ウォッチ）での動作確認は未実施。
+    関連ID:
+      - BL-280
+
 - date: 2026-11-07 23:00
   summary: 撮影モードにBluetooth接続確認（レーダー）を対応させる
   details:

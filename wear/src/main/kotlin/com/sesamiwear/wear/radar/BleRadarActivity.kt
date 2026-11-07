@@ -40,6 +40,7 @@ import com.google.android.gms.wearable.Wearable
 import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
@@ -99,6 +100,7 @@ private fun BleRadarScreen(initialUuid: String?) {
     val target = uuid
     when {
         target != null && SesameDemoMode.isDemoDevice(target) -> Message(DEMO_MESSAGE)
+        target == SesameWearProtocol.ALL_DEVICES_TARGET_UUID -> RadarAllContent(devices = devices.orEmpty())
         target != null -> RadarContent(deviceUuid = target)
         devices == null -> Message(LOADING_MESSAGE)
         devices.isNullOrEmpty() -> Message(NO_DEVICE_MESSAGE)
@@ -112,9 +114,7 @@ private fun RadarContent(deviceUuid: String) {
     val scope = rememberCoroutineScope()
     var snapshot by remember { mutableStateOf(SesameBleProbeSnapshot(SesameBleProbeStage.SCANNING)) }
     var phoneMissing by remember { mutableStateOf(false) }
-    var resumed by remember { mutableStateOf(true) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumed = true }
-    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { resumed = false }
+    val resumed = rememberResumed()
 
     ProbeLink(
         deviceUuid = deviceUuid,
@@ -156,25 +156,40 @@ private fun RadarContent(deviceUuid: String) {
     }
 }
 
+/** 画面が前面にいるか。前面にいる間だけ確認を依頼するために使う（`ON_PAUSE`で停止を依頼する）。 */
+@Composable
+internal fun rememberResumed(): Boolean {
+    var resumed by remember { mutableStateOf(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumed = true }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { resumed = false }
+    return resumed
+}
+
 /**
- * スマートフォンとの確認のやり取り（BL-273）。進捗のメッセージを受け、前面にいる間だけ確認を依頼し、
+ * スマートフォンとの確認のやり取り（BL-273 / BL-280）。進捗のメッセージ（単体は[onProgress]、全デバイスは
+ * [onProgressAll]）を受け、前面にいる間だけ確認を依頼し、
  * 離れたら停止を依頼する。スマートフォンへつながらないときは[onPhoneMissing]へ知らせる。
  */
 @Composable
-private fun ProbeLink(
+internal fun ProbeLink(
     deviceUuid: String,
     resumed: Boolean,
     onProgress: (SesameBleProbeSnapshot) -> Unit,
     onPhoneMissing: (Boolean) -> Unit,
+    onProgressAll: (SesameBleMultiProbeSnapshot) -> Unit = {},
 ) {
     val context = LocalContext.current
     val currentOnProgress by rememberUpdatedState(onProgress)
+    val currentOnProgressAll by rememberUpdatedState(onProgressAll)
     DisposableEffect(deviceUuid) {
         val client = Wearable.getMessageClient(context)
         val listener =
             MessageClient.OnMessageReceivedListener { event ->
-                if (event.path == SesameWearProtocol.PATH_BLE_PROBE_PROGRESS) {
-                    SesameBleProbeSnapshot.decode(event.data)?.let(currentOnProgress)
+                when (event.path) {
+                    SesameWearProtocol.PATH_BLE_PROBE_PROGRESS ->
+                        SesameBleProbeSnapshot.decode(event.data)?.let(currentOnProgress)
+                    SesameWearProtocol.PATH_BLE_PROBE_PROGRESS_ALL ->
+                        SesameBleMultiProbeSnapshot.decode(event.data)?.let(currentOnProgressAll)
                 }
             }
         client.addListener(listener)
@@ -205,6 +220,17 @@ private fun DevicePicker(
 ) {
     ScalingLazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { Text(text = PICKER_TITLE, style = MaterialTheme.typography.title3, textAlign = TextAlign.Center) }
+        // 2台以上あるときは、全デバイスをまとめて確かめる選択肢を先頭に出す（BL-280）。
+        if (devices.size >= 2) {
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = PICKER_PADDING_DP.dp),
+                    colors = ChipDefaults.primaryChipColors(),
+                    onClick = { onSelected(SesameWearProtocol.ALL_DEVICES_TARGET_UUID) },
+                    label = { Text(text = ALL_DEVICES_LABEL, maxLines = 1) },
+                )
+            }
+        }
         items(devices) { device ->
             Chip(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = PICKER_PADDING_DP.dp),
@@ -229,6 +255,7 @@ private fun Message(text: String) {
 }
 
 private const val PICKER_TITLE = "接続確認"
+private const val ALL_DEVICES_LABEL = "全デバイス"
 private const val HINT_LINE = "タップで接続"
 private const val PHONE_MISSING_LINE = "スマホ未接続"
 private const val LOADING_MESSAGE = "読み込み中"

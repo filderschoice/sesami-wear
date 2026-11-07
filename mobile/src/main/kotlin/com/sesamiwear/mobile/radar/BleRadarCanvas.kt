@@ -46,6 +46,17 @@ internal fun BleRadar(
     snapshot: SesameBleProbeSnapshot,
     deviceUuid: String,
     modifier: Modifier = Modifier,
+) = BleRadar(listOf(RadarBlip(deviceUuid, null, snapshot)), "レーダー。" + snapshot.summaryLine(), modifier)
+
+/**
+ * 複数台を1枚のレーダーへ置く（BL-280、「まとめて接続確認」）。ブリップは名前つきで、台ごとに固定した向きへ置く
+ * （向きに意味は無い）。見えていない台はブリップを出さない。[description]は読み上げ用の説明。
+ */
+@Composable
+internal fun BleRadar(
+    blips: List<RadarBlip>,
+    description: String,
+    modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "radar")
     val sweepAngle by transition.animateFloat(
@@ -64,33 +75,68 @@ internal fun BleRadar(
     val ringColor = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val sweepColor = MaterialTheme.colorScheme.primary
-    val blipColor = blipColorOf(snapshot)
-    val description = "レーダー。" + snapshot.summaryLine()
+    val blipColors = blips.map { blipColorOf(it.snapshot) }
     Canvas(modifier = modifier.aspectRatio(1f).semantics { contentDescription = description }) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = min(size.width, size.height) / 2f - RING_MARGIN_DP.dp.toPx()
         drawRings(center, radius, ringColor, labelColor, textMeasurer)
-        rotate(sweepAngle, center) {
-            drawCircle(
-                brush =
-                    Brush.sweepGradient(
-                        0f to Color.Transparent,
-                        SWEEP_TAIL_STOP to Color.Transparent,
-                        1f to sweepColor.copy(alpha = SWEEP_ALPHA),
-                        center = center,
-                    ),
-                radius = radius,
-                center = center,
-            )
-            drawLine(sweepColor, center, Offset(center.x + radius, center.y), strokeWidth = SWEEP_LINE_DP.dp.toPx())
-        }
+        drawSweep(center, radius, sweepAngle, sweepColor)
         drawCircle(labelColor, radius = CENTER_DOT_DP.dp.toPx(), center = center)
-        snapshot.radarFraction?.let { fraction ->
-            val angle = bearingOf(deviceUuid)
-            val at = Offset(center.x + radius * fraction * cos(angle), center.y + radius * fraction * sin(angle))
-            drawBlip(at, blipColor, pulse)
+        blips.forEachIndexed { index, blip ->
+            val at = blipPosition(blip, center, radius) ?: return@forEachIndexed
+            drawBlip(at, blipColors[index], pulse)
+            blip.label?.let { drawBlipLabel(it, at, bearingOf(blip.deviceUuid), textMeasurer, labelColor) }
         }
     }
+}
+
+/** 回転する掃引線と、その後ろへ薄れていく扇形。 */
+private fun DrawScope.drawSweep(
+    center: Offset,
+    radius: Float,
+    sweepAngle: Float,
+    sweepColor: Color,
+) {
+    rotate(sweepAngle, center) {
+        drawCircle(
+            brush =
+                Brush.sweepGradient(
+                    0f to Color.Transparent,
+                    SWEEP_TAIL_STOP to Color.Transparent,
+                    1f to sweepColor.copy(alpha = SWEEP_ALPHA),
+                    center = center,
+                ),
+            radius = radius,
+            center = center,
+        )
+        drawLine(sweepColor, center, Offset(center.x + radius, center.y), strokeWidth = SWEEP_LINE_DP.dp.toPx())
+    }
+}
+
+/** [blip]の画面上の位置。電波を捉えていなければnull。向きはデバイスごとに固定した値（電波の向きではない）。 */
+private fun blipPosition(
+    blip: RadarBlip,
+    center: Offset,
+    radius: Float,
+): Offset? {
+    val fraction = blip.snapshot.radarFraction ?: return null
+    val angle = bearingOf(blip.deviceUuid)
+    return Offset(center.x + radius * fraction * cos(angle), center.y + radius * fraction * sin(angle))
+}
+
+/** ブリップの横に名前を描く。中心から離れる側（向きの余弦が正なら右、負なら左）へ置く。 */
+private fun DrawScope.drawBlipLabel(
+    label: String,
+    at: Offset,
+    angle: Float,
+    textMeasurer: TextMeasurer,
+    labelColor: Color,
+) {
+    val text =
+        textMeasurer.measure(label, androidx.compose.ui.text.TextStyle(color = labelColor, fontSize = NAME_SP.sp))
+    val gap = (BLIP_DP + LABEL_PADDING_DP).dp.toPx()
+    val x = if (cos(angle) >= 0f) at.x + gap else at.x - gap - text.size.width
+    drawText(text, topLeft = Offset(x, at.y - text.size.height / 2f))
 }
 
 private fun DrawScope.drawRings(
@@ -155,6 +201,7 @@ private const val BLIP_DP = 9
 private const val PULSE_ALPHA = 0.5f
 private const val PULSE_GROWTH = 2.2f
 private const val LABEL_SP = 10
+private const val NAME_SP = 12
 private const val LABEL_PADDING_DP = 4
 private const val COLOR_GOOD = 0xFF2E7D32
 private const val COLOR_WARN = 0xFFEF6C00

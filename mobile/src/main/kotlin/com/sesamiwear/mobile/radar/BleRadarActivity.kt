@@ -36,10 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
+import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.ble.BleProbeOperations
+import com.sesamiwear.mobile.ble.SesameBleMultiProber
 import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleProber
 import com.sesamiwear.mobile.showcase.ShowcaseMode
@@ -60,7 +62,12 @@ class BleRadarActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val uuid = intent.getStringExtra(EXTRA_DEVICE_UUID)
-        val credentials = uuid?.let { SesameDeviceStores.credentials(this).loadAll().find { it.uuid == uuid } }
+        val registered = SesameDeviceStores.credentials(this).loadAll()
+        if (uuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID) {
+            showAll(registered)
+            return
+        }
+        val credentials = uuid?.let { registered.find { it.uuid == uuid } }
         if (credentials == null) {
             finish()
             return
@@ -76,8 +83,28 @@ class BleRadarActivity : ComponentActivity() {
         }
     }
 
+    /** 「まとめて接続確認」（BL-280）。登録が無ければ何も出さず閉じる。 */
+    private fun showAll(devices: List<SesameCredentials>) {
+        if (devices.isEmpty()) {
+            finish()
+            return
+        }
+        val probe = ShowcaseMode.multiProbeOperationsOrNull(this, devices) ?: SesameBleMultiProber(this, devices)
+        setContent {
+            SesameTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    BleRadarAllScreen(devices = devices, probe = probe, onClose = ::finish)
+                }
+            }
+        }
+    }
+
     companion object {
         private const val EXTRA_DEVICE_UUID = "device_uuid"
+
+        /** 登録済み全デバイスの「まとめて接続確認」を開く（BL-280）。 */
+        fun createAllIntent(context: Context): Intent =
+            createIntent(context, SesameWearProtocol.ALL_DEVICES_TARGET_UUID)
 
         fun createIntent(
             context: Context,

@@ -52,7 +52,7 @@ class SesameBleScanner(
                     callbackType: Int,
                     result: ScanResult,
                 ) {
-                    if (matches(result, target)) found.complete(result.device)
+                    if (matchedUuid(result, setOf(target)) == target) found.complete(result.device)
                 }
 
                 override fun onScanFailed(errorCode: Int) {
@@ -77,24 +77,31 @@ class SesameBleScanner(
     /** Bluetoothが有効か。「Bluetooth接続を確認」（BL-272）が、オフと圏外を区別するために使う。 */
     fun isBluetoothEnabled(): Boolean = adapter() != null
 
+    /** スキャンで捉えた1回ぶんの電波。[deviceUuid]は小文字表記。 */
+    data class Sighting(
+        val deviceUuid: String,
+        val rssiDbm: Int,
+    )
+
     /**
-     * [deviceUuid]のデバイスの電波を捉えるたびに、そのRSSI（dBm）を流す（BL-272、レーダー表示用）。
+     * [deviceUuids]のいずれかのデバイスの電波を捉えるたびに、そのuuidとRSSI（dBm）を流す
+     * （BL-272、レーダー表示用。BL-280の「まとめて接続確認」では複数台を1回のスキャンで追う）。
      *
      * [findDevice]と違い、見つけても止めずに収集が終わるまでスキャンを続ける。収集をやめると
      * スキャンも止まる。スキャナを取得できない（Bluetoothが無効）場合と、スキャン開始が
      * 拒否された場合は[IllegalStateException]で終わる。
      */
-    fun rssiFlow(deviceUuid: String): Flow<Int> =
+    fun sightings(deviceUuids: Set<String>): Flow<Sighting> =
         callbackFlow {
             val scanner = checkNotNull(bluetoothLeScanner()) { "BLE scanner unavailable" }
-            val target = deviceUuid.lowercase(Locale.ROOT)
+            val targets = deviceUuids.mapTo(HashSet()) { it.lowercase(Locale.ROOT) }
             val callback =
                 object : ScanCallback() {
                     override fun onScanResult(
                         callbackType: Int,
                         result: ScanResult,
                     ) {
-                        if (matches(result, target)) trySend(result.rssi)
+                        matchedUuid(result, targets)?.let { trySend(Sighting(it, result.rssi)) }
                     }
 
                     override fun onScanFailed(errorCode: Int) {
@@ -151,18 +158,18 @@ class SesameBleScanner(
             ?.adapter
             ?.takeIf { it.isEnabled }
 
-    private fun matches(
+    /** スキャン結果が[targetUuids]（小文字）のSesame 5系の登録済みデバイスなら、そのuuidを返す。違えばnull。 */
+    private fun matchedUuid(
         result: ScanResult,
-        targetUuid: String,
-    ): Boolean {
+        targetUuids: Set<String>,
+    ): String? {
         val advertisement =
             result.scanRecord
                 ?.getManufacturerSpecificData(SesameBleProtocol.COMPANY_ID)
                 ?.let(SesameBleAdvertisement::parse)
-        return advertisement != null &&
-            advertisement.isSesame5Family &&
-            advertisement.isRegistered &&
-            advertisement.deviceUuid == targetUuid
+        return advertisement?.deviceUuid?.takeIf {
+            advertisement.isSesame5Family && advertisement.isRegistered && it in targetUuids
+        }
     }
 
     private fun serviceFilter(): ScanFilter =

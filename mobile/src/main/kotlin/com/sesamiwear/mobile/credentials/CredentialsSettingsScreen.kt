@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -17,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,6 +39,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
+import com.sesamiwear.mobile.radar.BleRadarActivity
 import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -156,6 +159,8 @@ private fun DeviceListContent(
             item { EmptyDeviceState(onAdd = onAdd) }
         } else {
             item { ApiUsageCard(count = rememberApiUsageCount()) }
+            // 2台以上あるときだけ、まとめて接続確認（BL-280）の入口を出す。
+            if (devices.size >= 2) item { ProbeAllButton() }
             items(devices, key = { it.uuid }) { credentials ->
                 DeviceCard(
                     credentials = credentials,
@@ -167,6 +172,16 @@ private fun DeviceListContent(
         // 最後のカードが追加ボタンに隠れないようにする。
         item { Spacer(modifier = Modifier.height(FAB_CLEARANCE_DP.dp)) }
     }
+}
+
+/** 全デバイスの接続を1画面で確かめる「まとめて接続確認」（BL-280）の入口。 */
+@Composable
+private fun ProbeAllButton() {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = { context.startActivity(BleRadarActivity.createAllIntent(context)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text(text = PROBE_ALL_LABEL) }
 }
 
 /**
@@ -208,6 +223,7 @@ private data class EditorTarget(val editing: SesameCredentials?)
 
 private const val SCREEN_TITLE = "Sesami Wear"
 private const val ADD_LABEL = "Sesameを追加"
+private const val PROBE_ALL_LABEL = "全デバイスの接続確認"
 private const val SAVED_MESSAGE = "保存しました"
 private const val DELETE_WARNING =
     "登録した資格情報と、このセサミの状態が端末から消えます。" +

@@ -4,6 +4,7 @@ import android.content.Context
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.mobile.ble.BleMultiProbeOperations
 import com.sesamiwear.mobile.ble.BleProbeOperations
 import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameDeviceCommands
@@ -97,6 +98,22 @@ object ShowcaseMode {
         return ShowcaseBleProbe(
             uuid = credentials.uuid,
             lockStateStore = showcaseLockStateStore(context.applicationContext),
+        )
+    }
+
+    /**
+     * 「まとめて接続確認」（BL-280）の撮影用の動き。[devices]の台ごとに[probeOperationsOrNull]と同じ
+     * 撮影用の動きを並べ、Bluetoothを使わない。撮影モード中でなければnull（実物の
+     * [com.sesamiwear.mobile.ble.SesameBleMultiProber]を使う）。
+     */
+    fun multiProbeOperationsOrNull(
+        context: Context,
+        devices: List<SesameCredentials>,
+    ): BleMultiProbeOperations? {
+        if (!isActive(context)) return null
+        val store = showcaseLockStateStore(context.applicationContext)
+        return ShowcaseBleMultiProbe(
+            devices.map { ShowcaseBleMultiProbe.Member(it.uuid, it.displayName, ShowcaseBleProbe(it.uuid, store)) },
         )
     }
 

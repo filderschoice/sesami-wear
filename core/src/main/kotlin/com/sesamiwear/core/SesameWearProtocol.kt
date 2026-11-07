@@ -76,6 +76,14 @@ object SesameWearProtocol {
     const val PATH_BLE_PROBE_CONNECT = "/sesami-wear/ble-probe/connect"
 
     /**
+     * 「まとめて接続確認」（BL-280）の進捗の返送（mobile → wear）。開始・接続・停止の要求のペイロードへ
+     * [ALL_DEVICES_TARGET_UUID]を載せると、登録済み全デバイスを対象にした確認になり、進捗は単体の
+     * [PATH_BLE_PROBE_PROGRESS]ではなく本パスへ、[com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot.encode]の
+     * JSONで返る。接続確認はSesameが同時に1接続しか持てないため1台ずつ順番に行う。
+     */
+    const val PATH_BLE_PROBE_PROGRESS_ALL = "/sesami-wear/ble-probe/progress-all"
+
+    /**
      * Tile/Complicationの対象デバイスとして「登録済み全デバイス」を表す特別な値
      * （BL-071、複数デバイス一括操作）。wear側のデバイス割当ストアへ実際のuuidの代わりに保存し、
      * Tile/Complication表示・コマンド送信時に判定する。

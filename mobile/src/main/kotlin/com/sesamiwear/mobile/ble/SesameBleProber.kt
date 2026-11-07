@@ -58,7 +58,9 @@ class SesameBleProber(
                     }
                 }
             try {
-                scanner.rssiFlow(credentials.uuid).collect { send(tracker.onSighting(it, System.currentTimeMillis())) }
+                scanner.sightings(setOf(credentials.uuid)).collect {
+                    send(tracker.onSighting(it.rssiDbm, System.currentTimeMillis()))
+                }
             } catch (
                 @Suppress("SwallowedException") e: IllegalStateException,
             ) {

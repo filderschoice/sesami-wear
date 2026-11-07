@@ -2431,6 +2431,33 @@ BLEの接続は施錠/解錠・更新の背景で行われ利用者から見え�
   測り直したら再補正する。
 - 未確認: スマホ未接続時の表示、ウォッチを閉じたときのスマホ側の停止（判定できるログが無い）。
 
+#### まとめて接続確認（BL-280、2026-11-07）
+
+登録した全デバイスを一度に確かめる。**探索は1回のスキャンで複数台を同時に追い、接続確認はSesameが同時に
+1接続しか持てないため1台ずつ順番に行う**（全台で10〜20秒程度）。
+
+- **core**: `SesameBleMultiProbeSnapshot`（名前つきの台ごとの進捗。登録順を保つ。JSONのencode/decode、
+  ウォッチの1行向けの`Entry.statusLine()`＝段階の短縮名＋距離または電池・角度）、`SesameBleMultiSightingTracker`
+  （台ごとの`SesameBleSightingTracker`。見失った台を台ごとに1回だけ圏外で返す）、`SesameBleMultiProbeThrottle`
+  （どれかの台の段階が変わったときは即時、段階が同じ間の変化は800ms以上空いたときだけ送る）。
+- **スキャナ**: `SesameBleScanner.sightings(uuids)`（旧`rssiFlow`を複数uuid対応へ置き換え。台ごとに別のスキャンを
+  始めるとAndroidのスキャン開始の回数制限に当たりやすいため、1回のスキャンを共有する）。単体の`SesameBleProber.observe`も
+  これを使う。
+- **mobile**: 操作の入口は`BleMultiProbeOperations`（`usesBluetooth` / `observe` / `checkConnections`）。実物は
+  `SesameBleMultiProber`（共有スキャン＋`checkSequentially`で1台ずつ`SesameBleProber.checkConnection`）。
+  `checkSequentially`は1台の失敗で止めず残りも確かめ、各台の最後のRSSIを結果の表示へ引き継ぐ。
+  画面は`BleRadarActivity`へ`ALL_DEVICES_TARGET_UUID`を渡して開く`BleRadarAllScreen`: 全台のブリップを名前つきで
+  1枚のレーダーへ置き（`BleRadar(blips, description)`）、台ごとの段階・距離・接続確認の結果を一覧にする。
+  「全台の接続を試す」は接続確認中に探索を止める。入口は主画面の「全デバイスの接続確認」（**2台以上のときだけ**）。
+- **ウォッチ**: 開始・接続・停止の要求のpayloadへ`ALL_DEVICES_TARGET_UUID`を載せると全デバイスの確認になり、
+  進捗は`PATH_BLE_PROBE_PROGRESS_ALL`（`SesameBleMultiProbeSnapshot`のJSON）で返る。スマホ側は
+  `SesameBleProbeRelay`が単体と同じ枠組み（上限90秒・順序保証つきの送信・結果の保持）で動かす。
+  ウォッチの画面は`RadarAllContent`: 円形の小画面ではレーダーを描かず、台ごとに「名前」と「段階・距離」の2行リスト
+  （失敗は赤）にし、末尾の「全台を試す」で接続確認を依頼する。入口は、接続確認の対象選択（2台以上のとき先頭の
+  「全デバイス」）。
+- **撮影モード**: `ShowcaseMode.multiProbeOperationsOrNull`が台ごとの`ShowcaseBleProbe`を並べた
+  `ShowcaseBleMultiProbe`を返す（Bluetoothを使わない。接続確認は実物と同じ`checkSequentially`で1台ずつ）。
+
 #### 段階的移行案
 
 | 段階 | 内容 | 項目 |

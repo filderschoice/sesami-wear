@@ -3,11 +3,16 @@ package com.sesamiwear.mobile.messaging
 import android.content.Context
 import android.util.Log
 import com.google.android.gms.wearable.Wearable
+import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameWearProtocol
+import com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot
+import com.sesamiwear.core.ble.SesameBleMultiProbeThrottle
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.core.ble.SesameBleProbeThrottle
+import com.sesamiwear.mobile.ble.BleMultiProbeOperations
 import com.sesamiwear.mobile.ble.BleProbeOperations
+import com.sesamiwear.mobile.ble.SesameBleMultiProber
 import com.sesamiwear.mobile.ble.SesameBleProber
 import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
@@ -44,7 +49,10 @@ object SesameBleProbeRelay {
         val connectRequests: Channel<Unit>,
     )
 
-    /** [deviceUuid]の確認を始め、進捗を[nodeId]のウォッチへ返す。 */
+    /**
+     * [deviceUuid]の確認を始め、進捗を[nodeId]のウォッチへ返す。[deviceUuid]が全デバイスを表す値
+     * （[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]）なら、登録済み全デバイスの「まとめて接続確認」（BL-280）になる。
+     */
     @Synchronized
     fun start(
         context: Context,
@@ -56,9 +64,13 @@ object SesameBleProbeRelay {
         val requests = Channel<Unit>(Channel.CONFLATED)
         val job =
             scope.launch {
-                withTimeoutOrNull(
-                    MAX_SESSION_MILLIS,
-                ) { run(appContext, deviceUuid, nodeId, requests) }
+                withTimeoutOrNull(MAX_SESSION_MILLIS) {
+                    if (deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID) {
+                        runAll(appContext, nodeId, requests)
+                    } else {
+                        run(appContext, deviceUuid, nodeId, requests)
+                    }
+                }
             }
         session = Session(job, requests)
     }
@@ -129,13 +141,70 @@ object SesameBleProbeRelay {
         context: Context,
         nodeId: String,
         snapshot: SesameBleProbeSnapshot,
+    ) = sendRaw(context, nodeId, SesameWearProtocol.PATH_BLE_PROBE_PROGRESS, snapshot.encode())
+
+    private suspend fun sendRaw(
+        context: Context,
+        nodeId: String,
+        path: String,
+        payload: ByteArray,
     ) {
         DataLayerBestEffort.run(onFailure = { Log.w(TAG, "probe progress send failed: statusCode=$it") }) {
-            Wearable.getMessageClient(context)
-                .sendMessage(nodeId, SesameWearProtocol.PATH_BLE_PROBE_PROGRESS, snapshot.encode())
-                .await()
+            Wearable.getMessageClient(context).sendMessage(nodeId, path, payload).await()
         }
     }
+
+    /** 登録済み全デバイスの「まとめて接続確認」（BL-280）。進捗は[SesameWearProtocol.PATH_BLE_PROBE_PROGRESS_ALL]へ返す。 */
+    private suspend fun runAll(
+        context: Context,
+        nodeId: String,
+        connectRequests: Channel<Unit>,
+    ) {
+        val devices = SesameDeviceStores.credentials(context).loadAll()
+        val multi = ShowcaseMode.multiProbeOperationsOrNull(context, devices) ?: SesameBleMultiProber(context, devices)
+        var latest = SesameBleMultiProbeSnapshot.initial(devices.map { SesameDeviceSummary(it.uuid, it.displayName) })
+        val throttle = SesameBleMultiProbeThrottle()
+        while (true) {
+            val observing =
+                scope.launch {
+                    multi.observe().collect { snapshot ->
+                        latest = snapshot
+                        if (throttle.shouldSend(
+                                snapshot,
+                                System.currentTimeMillis(),
+                            )
+                        ) {
+                            sendAll(context, nodeId, snapshot)
+                        }
+                    }
+                }
+            connectRequests.receive()
+            observing.cancelAndJoin()
+            checkAndReportAll(context, nodeId, multi, latest)
+            delay(RESULT_HOLD_MILLIS)
+            throttle.reset()
+        }
+    }
+
+    /** 全台の接続を1台ずつ試し、途中の段階と結果を順番どおりにウォッチへ送る（理由は[checkAndReport]と同じ）。 */
+    private suspend fun checkAndReportAll(
+        context: Context,
+        nodeId: String,
+        multi: BleMultiProbeOperations,
+        latest: SesameBleMultiProbeSnapshot,
+    ) {
+        val outbox = Channel<SesameBleMultiProbeSnapshot>(Channel.UNLIMITED)
+        val sender = scope.launch { for (snapshot in outbox) sendAll(context, nodeId, snapshot) }
+        outbox.trySend(multi.checkConnections(latest) { outbox.trySend(it) })
+        outbox.close()
+        sender.join()
+    }
+
+    private suspend fun sendAll(
+        context: Context,
+        nodeId: String,
+        snapshot: SesameBleMultiProbeSnapshot,
+    ) = sendRaw(context, nodeId, SesameWearProtocol.PATH_BLE_PROBE_PROGRESS_ALL, snapshot.encode())
 
     /** 確認の最長時間。停止要求が届かない場合の保険。 */
     private const val MAX_SESSION_MILLIS = 90_000L
