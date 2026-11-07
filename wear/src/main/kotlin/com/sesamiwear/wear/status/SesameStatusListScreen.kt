@@ -34,6 +34,7 @@ import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
+import com.sesamiwear.wear.radar.BleRadarActivity
 
 /**
  * ウォッチのアプリ本体に出す、登録済みセサミの状態一覧（BL-170）。
@@ -73,6 +74,8 @@ fun SesameStatusListScreen() {
             items(content.footerChips) { chip ->
                 FooterChipItem(chip, onClick = { openTapAction(context, chip.action, chip.targetUuid) })
             }
+            // Bluetooth接続の確認（BL-273）。対象の選択はレーダー画面側で行う。
+            item { BleProbeChip(onClick = { context.startActivity(BleRadarActivity.createIntent(context)) }) }
         }
     }
 }
@@ -197,6 +200,23 @@ private fun FooterChipItem(
     }
 }
 
+/** 「接続確認」チップ（BL-273）。状態と無関係な操作のため、他の末尾チップと同じ中立色にする。 */
+@Composable
+private fun BleProbeChip(onClick: () -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = FOOTER_HORIZONTAL_PADDING_DP.dp, vertical = ITEM_VERTICAL_PADDING_DP.dp)
+                .clip(RoundedCornerShape(ITEM_CORNER_RADIUS_DP.dp))
+                .background(Color(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB))
+                .clickable(onClick = onClick)
+                .padding(FOOTER_INNER_PADDING_DP.dp),
+    ) {
+        ItemLine(BLE_PROBE_CHIP_LABEL, MaterialTheme.typography.button, Color(NEUTRAL_TEXT_ARGB))
+    }
+}
+
 @Composable
 private fun ItemLine(
     text: String,
@@ -211,6 +231,9 @@ private fun ItemLine(
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/** 「Bluetooth接続を確認」を開くチップの文言（BL-273）。 */
+private const val BLE_PROBE_CHIP_LABEL = "接続確認"
 
 /** 円形画面の縁で文字が見切れないための左右パディング（dp、BL-114と同じ考え方）。 */
 private const val HORIZONTAL_PADDING_DP = 12

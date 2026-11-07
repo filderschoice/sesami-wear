@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-07 18:00
+  summary: ウォッチへ「Bluetooth接続を確認」画面を追加し、スマホ経由で探索・接続確認を行う（BL-273）
+  details:
+    変更内容: >-
+      ウォッチのアプリ本体の一覧の末尾に「接続確認」チップを追加し、wear.radar.BleRadarActivityを開く
+      （登録が2台以上なら対象を選ぶ。1台なら即開始）。ウォッチはBLEを使わず、PATH_BLE_PROBE_START / CONNECT /
+      STOPでスマホへ依頼し、スマホが返すPATH_BLE_PROBE_PROGRESS（SesameBleProbeSnapshotのJSON）を、
+      円形画面向けのレーダー（輪・掃引線・ブリップ）と2行の文字（段階、距離または電池・角度）で表示する。
+      画面タップで接続確認を依頼する。前面にいる間だけ依頼し、離れると停止を依頼する。mobile側は
+      SesameBleProbeRelay（プロセス単位のスコープ、上限90秒、順序保証つきの送信）と
+      SesameMessageListenerServiceの振り分けを追加した。進捗の送信間引きを core.ble.SesameBleProbeThrottle
+      として切り出して単体テストした。SesameBleProbeSnapshot.compactLinesを、接続OK時は電池・角度を優先する形へ拡張した。
+      DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.mdを更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeThrottle.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeThrottleTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameMessageListenerService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarCanvas.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameCommandSender.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。ウォッチ実機とData Layer越しの動作確認はBL-276（人手検証）に残す。
+    関連ID:
+      - BL-273
+
 - date: 2026-11-07 16:00
   summary: スマートフォンへ「Bluetooth接続を確認」画面（レーダー表示）を追加する（BL-272）
   details:

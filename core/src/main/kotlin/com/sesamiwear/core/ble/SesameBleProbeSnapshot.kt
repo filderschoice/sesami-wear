@@ -29,10 +29,17 @@ data class SesameBleProbeSnapshot(
     val radarFraction: Float? get() = SesameBleProximity.radarFraction(rssiDbm)
 
     /**
-     * ウォッチの円形画面向けの2行。1行目は段階、2行目は電波を捉えているときだけ距離を添える
-     * （表示領域が狭いため、これ以上の情報は載せない）。
+     * ウォッチの円形画面向けの2行。1行目は段階、2行目は表示領域が狭いため1つだけ添える
+     * （接続OKなら電池・角度、電波を捉えていれば距離、どちらも無ければnull）。
      */
-    fun compactLines(): Pair<String, String?> = stage.shortLabel to rssiDbm?.let { distanceLabel }
+    fun compactLines(): Pair<String, String?> {
+        val second =
+            when {
+                stage == SesameBleProbeStage.CONNECTED -> connectionDetail() ?: rssiDbm?.let { distanceLabel }
+                else -> rssiDbm?.let { distanceLabel }
+            }
+        return stage.shortLabel to second
+    }
 
     /** スマホ向けの1行（「発見・約3m（近い）」）。電波を捉えていなければ段階だけ。 */
     fun summaryLine(): String = if (rssiDbm == null) stage.label else "${stage.label}・$distanceLabel（${level.label}）"

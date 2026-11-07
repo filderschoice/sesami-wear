@@ -37,6 +37,19 @@ class SesameBleProbeSnapshotTest {
     }
 
     @Test
+    fun `compact lines prefer battery and position once connected`() {
+        assertEquals(
+            "接続OK" to "電池80%・角度12",
+            SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED, rssiDbm = -66, batteryPercentage = 80, position = 12)
+                .compactLines(),
+        )
+        assertEquals(
+            "接続OK" to "約2m",
+            SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED, rssiDbm = -66).compactLines(),
+        )
+    }
+
+    @Test
     fun `short labels fit the watch width`() {
         SesameBleProbeStage.entries.forEach { assertTrue(it.name, it.shortLabel.length <= 5) }
     }
