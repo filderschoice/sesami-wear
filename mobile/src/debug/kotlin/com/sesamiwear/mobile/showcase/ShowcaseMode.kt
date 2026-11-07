@@ -4,6 +4,7 @@ import android.content.Context
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.mobile.ble.BleProbeOperations
 import com.sesamiwear.mobile.command.LockStateNotifier
 import com.sesamiwear.mobile.command.SesameDeviceCommands
 import com.sesamiwear.mobile.dial.DialOperations
@@ -80,6 +81,22 @@ object ShowcaseMode {
             uuid = credentials.uuid,
             lockStateStore = showcaseLockStateStore(context.applicationContext),
             commands = commands,
+        )
+    }
+
+    /**
+     * 「Bluetooth接続を確認」画面（BL-272）とウォッチからの確認要求（BL-273）の撮影用の動き。
+     * Bluetoothを使わず、撮影用の状態（失敗・経路・電池・施錠）をレーダーの段階・距離へ対応させる。
+     * 撮影モード中でなければnull（実物の[com.sesamiwear.mobile.ble.SesameBleProber]を使う）。
+     */
+    fun probeOperationsOrNull(
+        context: Context,
+        credentials: SesameCredentials,
+    ): BleProbeOperations? {
+        if (!isActive(context)) return null
+        return ShowcaseBleProbe(
+            uuid = credentials.uuid,
+            lockStateStore = showcaseLockStateStore(context.applicationContext),
         )
     }
 

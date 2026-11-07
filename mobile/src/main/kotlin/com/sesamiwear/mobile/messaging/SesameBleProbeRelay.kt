@@ -7,7 +7,9 @@ import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.core.ble.SesameBleProbeThrottle
+import com.sesamiwear.mobile.ble.BleProbeOperations
 import com.sesamiwear.mobile.ble.SesameBleProber
+import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +87,7 @@ object SesameBleProbeRelay {
             send(context, nodeId, SesameBleProbeSnapshot(SesameBleProbeStage.FAILED))
             return
         }
-        val prober = SesameBleProber(context, credentials)
+        val prober = ShowcaseMode.probeOperationsOrNull(context, credentials) ?: SesameBleProber(context, credentials)
         var lastRssi: Int? = null
         val throttle = SesameBleProbeThrottle()
         while (true) {
@@ -113,7 +115,7 @@ object SesameBleProbeRelay {
     private suspend fun checkAndReport(
         context: Context,
         nodeId: String,
-        prober: SesameBleProber,
+        prober: BleProbeOperations,
         lastRssi: Int?,
     ) {
         val outbox = Channel<SesameBleProbeSnapshot>(Channel.UNLIMITED)

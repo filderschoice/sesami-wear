@@ -28,12 +28,12 @@ class SesameBleProximityTest {
     @Test
     fun `levels follow the distance thresholds`() {
         assertEquals(Level.VERY_NEAR, SesameBleProximity.level(-55))
-        assertEquals(Level.VERY_NEAR, SesameBleProximity.level(-63))
-        assertEquals(Level.NEAR, SesameBleProximity.level(-64))
-        assertEquals(Level.NEAR, SesameBleProximity.level(-73))
-        assertEquals(Level.MEDIUM, SesameBleProximity.level(-74))
-        assertEquals(Level.MEDIUM, SesameBleProximity.level(-81))
-        assertEquals(Level.FAR, SesameBleProximity.level(-85))
+        assertEquals(Level.VERY_NEAR, SesameBleProximity.level(-64))
+        assertEquals(Level.NEAR, SesameBleProximity.level(-65))
+        assertEquals(Level.NEAR, SesameBleProximity.level(-75))
+        assertEquals(Level.MEDIUM, SesameBleProximity.level(-76))
+        assertEquals(Level.MEDIUM, SesameBleProximity.level(-85))
+        assertEquals(Level.FAR, SesameBleProximity.level(-90))
     }
 
     @Test
@@ -46,8 +46,8 @@ class SesameBleProximityTest {
     @Test
     fun `distance label is rounded and capped at the outer ring`() {
         assertEquals("約1m", SesameBleProximity.distanceLabel(-60))
-        assertEquals("約3m", SesameBleProximity.distanceLabel(-71))
-        assertEquals("10m以上", SesameBleProximity.distanceLabel(-90))
+        assertEquals("約3m", SesameBleProximity.distanceLabel(-72))
+        assertEquals("10m以上", SesameBleProximity.distanceLabel(-95))
     }
 
     @Test
@@ -64,7 +64,8 @@ class SesameBleProximityTest {
     @Test
     fun `radar fraction places rings at even spacing`() {
         // 3m（2番目の輪）は半周の位置に、10m（最外周）は1.0に来る。
-        val threeMeters = SesameBleProximity.REFERENCE_RSSI_AT_1M_DBM - 22 * Math.log10(3.0)
+        val threeMeters =
+            SesameBleProximity.REFERENCE_RSSI_AT_1M_DBM - 10 * SesameBleProximity.PATH_LOSS_EXPONENT * Math.log10(3.0)
         assertEquals(0.5f, SesameBleProximity.radarFraction(Math.round(threeMeters).toInt())!!, 0.05f)
     }
 }

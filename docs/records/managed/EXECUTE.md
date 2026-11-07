@@ -5,6 +5,60 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-07 23:00
+  summary: 撮影モードにBluetooth接続確認（レーダー）を対応させる
+  details:
+    変更内容: >-
+      ダイヤル操作と同じ差し替えの仕組みで、撮影モード中はBluetoothを使わず撮影用の状態で動くようにした。
+      探索の入口を mobile.ble.BleProbeOperations（usesBluetooth / observe / checkConnection）へ切り出し、
+      実物の SesameBleProber と、debug専用の ShowcaseBleProbe が実装する。BleRadarActivity と
+      SesameBleProbeRelay（ウォッチ経由）が ShowcaseMode.probeOperationsOrNull で差し替える（releaseのスタブは常にnull）。
+      撮影用は、失敗なし＝発見（経路がBluetoothなら約2m、それ以外は約4m。±1dBの決まった揺らぎ）と接続OK、
+      通信エラー＝圏外、認証エラー＝接続に失敗、端末設定＝権限なしに対応させる。撮影モード画面の説明文へ追記し、
+      単体テストを追加した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/BleProbeOperations.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameBleProbeRelay.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseModeActivity.kt
+      - mobile/src/release/kotlin/com/sesamiwear/mobile/showcase/ShowcaseMode.kt
+      - mobile/src/testDebug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbeTest.kt
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。撮影モードの実機での見た目は未確認。
+    関連ID:
+      - BL-272
+      - BL-273
+
+- date: 2026-11-07 22:00
+  summary: BLE接続確認の距離の減衰係数を実測に基づき2.2から2.6へ補正する（BL-276）
+  details:
+    変更内容: >-
+      実機（玄関上）の実測（1m=-61.5 / 3m=-70 / 5m=-84dBm）で、減衰係数2.2では5mの予測が実測より約9dB強く、
+      距離を過大評価（遠く）に出していた。SesameBleProximity.PATH_LOSS_EXPONENTを2.6へ変更した（当てはめは約3.0だが、
+      測定が1か所・1台のため中間値にした）。段階の境界・距離文言・輪の位置のテストを追従させ、画面イメージ画像を
+      作り直した。DESIGN.mdへ実機検証の結果を追記した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProximity.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProximityTest.kt
+      - site/assets/radar-phone-found.png
+      - site/assets/radar-phone-connected.png
+      - site/assets/radar-wear-found.png
+      - site/assets/radar-wear-connected.png
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-276
+
 - date: 2026-11-07 19:00
   summary: BLE接続確認（レーダー）の画面イメージ画像を生成するスクリプトを追加する（BL-277）
   details:

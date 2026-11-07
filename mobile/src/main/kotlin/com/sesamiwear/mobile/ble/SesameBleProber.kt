@@ -28,7 +28,9 @@ class SesameBleProber(
     private val context: Context,
     private val credentials: SesameCredentials,
     private val scanner: SesameBleScanner = SesameBleScanner(context),
-) {
+) : BleProbeOperations {
+    override val usesBluetooth: Boolean = true
+
     private val client =
         context.applicationContext.let { appContext ->
             val store = SharedPreferencesKeyValueStore.forBleReachability(appContext)
@@ -39,7 +41,7 @@ class SesameBleProber(
      * 電波を追う。権限が無い・Bluetoothがオフ・スキャンを開始できない場合は、その旨の
      * 終了段階を1つ流して完了する。それ以外は収集をやめるまで続く。
      */
-    fun observe(): Flow<SesameBleProbeSnapshot> =
+    override fun observe(): Flow<SesameBleProbeSnapshot> =
         channelFlow {
             val blocked = blockedStage()
             if (blocked != null) {
@@ -73,7 +75,7 @@ class SesameBleProber(
      *
      * @param lastRssiDbm 直前に捉えていたRSSI。結果の表示で距離を併記するために引き継ぐ。
      */
-    suspend fun checkConnection(
+    override suspend fun checkConnection(
         lastRssiDbm: Int?,
         onProgress: (SesameBleProbeSnapshot) -> Unit,
     ): SesameBleProbeSnapshot {

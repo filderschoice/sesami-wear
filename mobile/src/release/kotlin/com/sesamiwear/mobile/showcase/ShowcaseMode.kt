@@ -3,6 +3,7 @@ package com.sesamiwear.mobile.showcase
 import android.content.Context
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameKeyValueStore
+import com.sesamiwear.mobile.ble.BleProbeOperations
 import com.sesamiwear.mobile.command.SesameDeviceCommands
 import com.sesamiwear.mobile.dial.DialOperations
 
@@ -30,4 +31,9 @@ object ShowcaseMode {
         context: Context,
         credentials: SesameCredentials,
     ): DialOperations? = null
+
+    fun probeOperationsOrNull(
+        context: Context,
+        credentials: SesameCredentials,
+    ): BleProbeOperations? = null
 }

@@ -39,8 +39,10 @@ import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.mobile.ble.BleProbeOperations
 import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleProber
+import com.sesamiwear.mobile.showcase.ShowcaseMode
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.ui.SesameTheme
 import kotlinx.coroutines.launch
@@ -63,7 +65,8 @@ class BleRadarActivity : ComponentActivity() {
             finish()
             return
         }
-        val prober = SesameBleProber(this, credentials)
+        // デバッグ版の撮影モード中は、Bluetoothを使わず撮影用の状態で動かす（ダイヤル操作と同じ差し替え）。
+        val prober = ShowcaseMode.probeOperationsOrNull(this, credentials) ?: SesameBleProber(this, credentials)
         setContent {
             SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -86,14 +89,14 @@ class BleRadarActivity : ComponentActivity() {
 @Composable
 private fun BleRadarScreen(
     credentials: SesameCredentials,
-    prober: SesameBleProber,
+    prober: BleProbeOperations,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    var permissionGranted by remember { mutableStateOf(SesameBlePermissions.hasAll(context)) }
+    var permissionGranted by remember { mutableStateOf(!prober.usesBluetooth || SesameBlePermissions.hasAll(context)) }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            permissionGranted = SesameBlePermissions.hasAll(context)
+            permissionGranted = !prober.usesBluetooth || SesameBlePermissions.hasAll(context)
         }
     var resumed by remember { mutableStateOf(true) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumed = true }
