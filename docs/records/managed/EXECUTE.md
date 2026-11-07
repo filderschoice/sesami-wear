@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-07 14:00
+  summary: BLE接続確認（レーダー）の共通ロジックをcoreへ追加する（BL-271）
+  details:
+    変更内容: >-
+      RSSIから目安距離・近さの段階を求める core.ble.SesameBleProximity（対数距離減衰、1m地点-60dBm・
+      減衰係数2.2、レーダーの輪1/3/5/10mへの位置換算を含む）、RSSIの指数移動平均 SesameBleRssiSmoother、
+      確認の段階 SesameBleProbeStage（ウォッチ向けの5文字以内の短縮名つき）、進捗 SesameBleProbeSnapshot
+      （JSONのencode/decode、ウォッチ向け2行の組み立て）を追加した。SesameWearProtocolへ確認の開始・停止・
+      進捗のメッセージパス定数を追加した。定数は実機で補正する前提の初期値（BL-276）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProximity.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleRssiSmoother.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeStage.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameWearProtocol.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProximityTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleRssiSmootherTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。
+    関連ID:
+      - BL-271
+
 - date: 2026-10-20 13:00
   summary: デモを割り当てたTile・Complicationを、実デバイス登録後に未設定へ戻す（BL-267）
   details:

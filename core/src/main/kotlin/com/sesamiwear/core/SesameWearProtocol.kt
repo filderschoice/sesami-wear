@@ -63,6 +63,16 @@ object SesameWearProtocol {
     const val KEY_DEVICE_LIST_JSON = "device_list_json"
 
     /**
+     * 「Bluetooth接続を確認」（BL-271、レーダー画面）の開始・停止要求（wear → mobile）と、進捗の返送
+     * （mobile → wear）。開始・停止のペイロードは対象デバイスのuuid（[encodeDeviceUuid]）。
+     * 進捗は[com.sesamiwear.core.ble.SesameBleProbeSnapshot.encode]のJSONで、保存する価値が無いため
+     * DataItemではなく揮発のMessageClientで送る。ウォッチ自身はBLEを使わず、スマホが確認を実行する。
+     */
+    const val PATH_BLE_PROBE_START = "/sesami-wear/ble-probe/start"
+    const val PATH_BLE_PROBE_STOP = "/sesami-wear/ble-probe/stop"
+    const val PATH_BLE_PROBE_PROGRESS = "/sesami-wear/ble-probe/progress"
+
+    /**
      * Tile/Complicationの対象デバイスとして「登録済み全デバイス」を表す特別な値
      * （BL-071、複数デバイス一括操作）。wear側のデバイス割当ストアへ実際のuuidの代わりに保存し、
      * Tile/Complication表示・コマンド送信時に判定する。
