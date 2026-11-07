@@ -81,14 +81,9 @@ internal fun SettingsMenu() {
         )
         MenuSection(title = SECTION_NOTIFICATION)
         SettingsMenuItem(
-            title = ROUTE_NOTIFICATION_MENU_TITLE,
-            subtitle = routeNotification.shortStatus,
-            onClick = { open { dialogs.routeNotification = true } },
-        )
-        SettingsMenuItem(
-            title = ALERT_SETTINGS_TITLE,
-            subtitle = alertSettings.shortStatus,
-            onClick = { open { dialogs.alertSettings = true } },
+            title = NOTIFICATION_TITLE,
+            subtitle = notificationSummary(routeNotification, alertSettings),
+            onClick = { open { dialogs.notification = true } },
         )
         MenuSection(title = SECTION_HOME_SCREEN)
         AddWidgetMenuItem(onDone = { expanded = false })
@@ -120,7 +115,7 @@ private fun SupportMenuItems(
     }
 }
 
-/** メニューから開く6つのダイアログ。どれを出しているかは[SettingsDialogState]が持つ。 */
+/** メニューから開くダイアログ。どれを出しているかは[SettingsDialogState]が持つ。 */
 @Composable
 private fun SettingsDialogs(
     dialogs: SettingsDialogState,
@@ -149,11 +144,12 @@ private fun SettingsDialogs(
             onDismiss = { dialogs.bleRationale = false },
         )
     }
-    if (dialogs.routeNotification) {
-        RouteNotificationDialog(state = routeNotification, onDismiss = { dialogs.routeNotification = false })
-    }
-    if (dialogs.alertSettings) {
-        AlertSettingsDialog(state = alertSettings, onDismiss = { dialogs.alertSettings = false })
+    if (dialogs.notification) {
+        NotificationSettingsDialog(
+            route = routeNotification,
+            alerts = alertSettings,
+            onDismiss = { dialogs.notification = false },
+        )
     }
     if (dialogs.help) HelpDialog(onDismiss = { dialogs.help = false })
     if (dialogs.diagnostics) DiagnosticsLogDialog(onDismiss = { dialogs.diagnostics = false })
@@ -225,8 +221,7 @@ private fun AddWidgetMenuItem(onDone: () -> Unit) {
 private class SettingsDialogState {
     var routePicker by mutableStateOf(false)
     var bleRationale by mutableStateOf(false)
-    var routeNotification by mutableStateOf(false)
-    var alertSettings by mutableStateOf(false)
+    var notification by mutableStateOf(false)
     var help by mutableStateOf(false)
     var diagnostics by mutableStateOf(false)
 }
@@ -239,8 +234,7 @@ private const val SECTION_NOTIFICATION = "通知"
 private const val SECTION_HOME_SCREEN = "ホーム画面"
 private const val SECTION_SUPPORT = "サポート"
 
-// 区切り見出しが文脈を担うため、項目名は短くする。副題は1行に収める。
-private const val ROUTE_NOTIFICATION_MENU_TITLE = "経路が変わったとき"
+// 項目名は短くし、副題は1行に収める。
 private const val ADD_WIDGET_MENU_TITLE = "ウィジェットを追加"
 private const val ADD_WIDGET_MENU_SUBTITLE = "アプリを開かずに施錠・解錠"
 private const val ADD_WIDGET_UNSUPPORTED_SUBTITLE = "ホーム画面の長押しから追加"

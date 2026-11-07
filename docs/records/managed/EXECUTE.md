@@ -12,6 +12,8 @@
       右上のメニューを⋮から歯車（Icons.Default.Settings）へ変え、項目を「接続（操作の経路・Bluetooth）／通知（経路が変わったとき・お知らせ）／
       ホーム画面（ウィジェットを追加）／サポート（ヘルプ・操作履歴）」の見出しと区切り線で分けた。項目名と副題を短くし、副題は1行（省略表示）にした
       （お知らせの副題は「電池：オン ・ 解錠：オフ」、通知が許可されていないときは「端末の通知が許可されていません」だけ）。
+      続けて「経路が変わったとき」と「お知らせ」を1つの「通知」項目・ダイアログ（NotificationSettingsDialog）へ統合した
+      （旧RouteNotificationDialog・AlertSettingsDialogは削除。メニューの副題は「3項目中N項目がオン」）。
       主画面は、2台以上のとき「全デバイスの接続確認」をBluetoothアイコン付きのFilledTonalButtonにして、API呼び出し回数カードの上へ移した。
       USER_GUIDE.md の「⋮」案内（右上のメニュー分）を歯車へ更新し、RELEASE_NOTES.md に追記した。DESIGN.md を更新した。
       機能・保存値の変更なし。実機での見た目の確認は未実施。
@@ -19,6 +21,8 @@
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/SettingsMenu.kt
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
       - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/AlertSettingsState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/RouteNotificationState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/NotificationSettingsDialog.kt
       - docs/USER_GUIDE.md
       - docs/RELEASE_NOTES.md
       - docs/records/managed/DESIGN.md
