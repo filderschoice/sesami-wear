@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.radar
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.SesameCredentials
@@ -29,6 +31,7 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.ble.SesameBleMultiProbeSnapshot
 import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.mobile.ble.BleMultiProbeOperations
+import com.sesamiwear.mobile.dial.DialActivity
 import kotlinx.coroutines.launch
 
 /**
@@ -68,13 +71,16 @@ internal fun BleRadarAllScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = ALL_TITLE, style = MaterialTheme.typography.headlineSmall)
-        BleRadar(
-            blips = shown.entries.map { RadarBlip(it.uuid, it.name.ifBlank { DEFAULT_NAME }, it.snapshot) },
-            description = "レーダー。" + shown.entries.joinToString("。") { it.name + "、" + it.snapshot.summaryLine() },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        val context = LocalContext.current
+        // 台の行・レーダーのラベルをタップすると、その台のダイヤル操作へ移る（BL-283）。
+        val openDial = { uuid: String -> context.startActivity(DialActivity.createIntent(context, uuid)) }
+        AllRadar(shown = shown, onOpenDial = openDial)
         shown.entries.forEach { entry ->
-            DeviceRow(entry = entry, result = results?.entries?.find { it.uuid == entry.uuid })
+            DeviceRow(
+                entry = entry,
+                result = results?.entries?.find { it.uuid == entry.uuid },
+                onOpenDial = { openDial(entry.uuid) },
+            )
         }
         HoldHint(results)
         Text(
@@ -115,15 +121,66 @@ private fun HoldHint(results: SesameBleMultiProbeSnapshot?) {
     )
 }
 
-/** 1台ぶんの行。名前・段階と距離・（接続確認が済んでいれば）その結果。 */
+/**
+ * 全台のレーダー。名前つきのブリップを置き、ダイヤルを開ける台（[SesameBleProbeSnapshot.canOpenDial]）の
+ * ブリップと名前ラベルはタップできる（BL-283）。
+ */
+@Composable
+private fun AllRadar(
+    shown: SesameBleMultiProbeSnapshot,
+    onOpenDial: (String) -> Unit,
+) {
+    BleRadar(
+        blips =
+            shown.entries.mapIndexed { index, entry ->
+                RadarBlip(
+                    deviceUuid = entry.uuid,
+                    label = entry.name.ifBlank { DEFAULT_NAME },
+                    snapshot = entry.snapshot,
+                    tappable = entry.snapshot.canOpenDial,
+                    bearing = RadarHitTest.evenBearing(index, shown.entries.size),
+                )
+            },
+        description = "レーダー。" + shown.entries.joinToString("。") { it.name + "、" + it.snapshot.summaryLine() },
+        modifier = Modifier.fillMaxWidth(),
+        onBlipClick = onOpenDial,
+    )
+}
+
+/**
+ * 1台ぶんの行。名前・段階と距離・（接続確認が済んでいれば）その結果。ダイヤルを開ける台
+ * （[SesameBleProbeSnapshot.canOpenDial]）は行全体がタップでき、右に「ダイヤル操作 ›」を出す（BL-283）。
+ */
 @Composable
 private fun DeviceRow(
     entry: SesameBleMultiProbeSnapshot.Entry,
     result: SesameBleMultiProbeSnapshot.Entry?,
+    onOpenDial: () -> Unit,
 ) {
     val problem = MaterialTheme.colorScheme.error
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(text = entry.name.ifBlank { DEFAULT_NAME }, style = MaterialTheme.typography.titleMedium)
+    val canOpen = entry.snapshot.canOpenDial
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(enabled = canOpen, onClickLabel = DIAL_CLICK_LABEL, onClick = onOpenDial)
+                .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = entry.name.ifBlank { DEFAULT_NAME },
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            if (canOpen) {
+                Text(
+                    text = DIAL_HINT,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         Text(
             text = entry.snapshot.summaryLine(),
             style = MaterialTheme.typography.bodyMedium,
@@ -141,3 +198,5 @@ private fun DeviceRow(
 
 private const val ALL_TITLE = "全デバイス"
 private const val DEFAULT_NAME = "Sesame"
+private const val DIAL_HINT = "ダイヤル操作 ›"
+private const val DIAL_CLICK_LABEL = "ダイヤル操作を開く"

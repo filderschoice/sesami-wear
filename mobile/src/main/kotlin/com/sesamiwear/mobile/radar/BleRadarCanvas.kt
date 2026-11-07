@@ -7,10 +7,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -18,11 +20,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
@@ -51,12 +55,15 @@ internal fun BleRadar(
 /**
  * 複数台を1枚のレーダーへ置く（BL-280、「まとめて接続確認」）。ブリップは名前つきで、台ごとに固定した向きへ置く
  * （向きに意味は無い）。見えていない台はブリップを出さない。[description]は読み上げ用の説明。
+ * [RadarBlip.tappable]な台のブリップと名前ラベルをタップすると、その台の識別子を[onBlipClick]へ渡す
+ * （BL-283、ダイヤル操作へ移るため）。
  */
 @Composable
 internal fun BleRadar(
     blips: List<RadarBlip>,
     description: String,
     modifier: Modifier = Modifier,
+    onBlipClick: (String) -> Unit = {},
 ) {
     val transition = rememberInfiniteTransition(label = "radar")
     val sweepAngle by transition.animateFloat(
@@ -76,7 +83,19 @@ internal fun BleRadar(
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val sweepColor = MaterialTheme.colorScheme.primary
     val blipColors = blips.map { blipColorOf(it.snapshot) }
-    Canvas(modifier = modifier.aspectRatio(1f).semantics { contentDescription = description }) {
+    val currentBlips by rememberUpdatedState(blips)
+    val currentOnClick by rememberUpdatedState(onBlipClick)
+    val tapModifier =
+        Modifier.pointerInput(Unit) {
+            detectTapGestures { tap ->
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val radius = min(size.width, size.height) / 2f - RING_MARGIN_DP.dp.toPx()
+                val targets =
+                    currentBlips.filter { it.tappable }.mapNotNull { blipTarget(it, center, radius, textMeasurer) }
+                RadarHitTest.find(tap.x, tap.y, targets, TAP_SLOP_DP.dp.toPx())?.let(currentOnClick)
+            }
+        }
+    Canvas(modifier = modifier.aspectRatio(1f).semantics { contentDescription = description }.then(tapModifier)) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = min(size.width, size.height) / 2f - RING_MARGIN_DP.dp.toPx()
         drawRings(center, radius, ringColor, labelColor, textMeasurer)
@@ -85,7 +104,7 @@ internal fun BleRadar(
         blips.forEachIndexed { index, blip ->
             val at = blipPosition(blip, center, radius) ?: return@forEachIndexed
             drawBlip(at, blipColors[index], pulse)
-            blip.label?.let { drawBlipLabel(it, at, bearingOf(blip.deviceUuid), textMeasurer, labelColor) }
+            blip.label?.let { drawBlipLabel(it, at, blip.bearing, textMeasurer, labelColor) }
         }
     }
 }
@@ -120,11 +139,11 @@ private fun blipPosition(
     radius: Float,
 ): Offset? {
     val fraction = blip.snapshot.radarFraction ?: return null
-    val angle = bearingOf(blip.deviceUuid)
+    val angle = blip.bearing
     return Offset(center.x + radius * fraction * cos(angle), center.y + radius * fraction * sin(angle))
 }
 
-/** ブリップの横に名前を描く。中心から離れる側（向きの余弦が正なら右、負なら左）へ置く。 */
+/** ブリップの横に名前を描く。置き場所は[RadarHitTest.labelOrigin]（タップ判定と共有）。 */
 private fun DrawScope.drawBlipLabel(
     label: String,
     at: Offset,
@@ -134,9 +153,31 @@ private fun DrawScope.drawBlipLabel(
 ) {
     val text =
         textMeasurer.measure(label, androidx.compose.ui.text.TextStyle(color = labelColor, fontSize = NAME_SP.sp))
+    val box = LabelBox(text.size.width.toFloat(), text.size.height.toFloat(), (BLIP_DP + LABEL_PADDING_DP).dp.toPx())
+    val (x, y) = RadarHitTest.labelOrigin(BlipShape(at.x, at.y, BLIP_DP.dp.toPx()), angle, box)
+    drawText(text, topLeft = Offset(x, y))
+}
+
+/** [blip]のタップ領域（ブリップと名前ラベルを合わせた四角）。電波を捉えていなければnull。 */
+private fun Density.blipTarget(
+    blip: RadarBlip,
+    center: Offset,
+    radius: Float,
+    textMeasurer: TextMeasurer,
+): RadarTarget? {
+    val at = blipPosition(blip, center, radius) ?: return null
     val gap = (BLIP_DP + LABEL_PADDING_DP).dp.toPx()
-    val x = if (cos(angle) >= 0f) at.x + gap else at.x - gap - text.size.width
-    drawText(text, topLeft = Offset(x, at.y - text.size.height / 2f))
+    val box =
+        blip.label?.let {
+            val size = textMeasurer.measure(it, androidx.compose.ui.text.TextStyle(fontSize = NAME_SP.sp)).size
+            LabelBox(size.width.toFloat(), size.height.toFloat(), gap)
+        }
+    return RadarHitTest.targetOf(
+        blip.deviceUuid,
+        BlipShape(at.x, at.y, BLIP_DP.dp.toPx()),
+        blip.bearing,
+        box,
+    )
 }
 
 private fun DrawScope.drawRings(
@@ -202,6 +243,9 @@ private const val PULSE_ALPHA = 0.5f
 private const val PULSE_GROWTH = 2.2f
 private const val LABEL_SP = 10
 private const val NAME_SP = 12
+
+/** タップ領域を広げる余白（dp）。指で小さなブリップを押しやすくする。 */
+private const val TAP_SLOP_DP = 14
 private const val LABEL_PADDING_DP = 4
 private const val COLOR_GOOD = 0xFF2E7D32
 private const val COLOR_WARN = 0xFFEF6C00

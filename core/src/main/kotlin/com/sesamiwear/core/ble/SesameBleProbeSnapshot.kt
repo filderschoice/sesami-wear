@@ -25,6 +25,14 @@ data class SesameBleProbeSnapshot(
     /** 距離の表示文言（「約3m」など）。 */
     val distanceLabel: String get() = SesameBleProximity.distanceLabel(rssiDbm)
 
+    /**
+     * この台の「ダイヤル操作」を開いてよいか（BL-283）。電波を捉えている（発見）か、接続を確かめた（接続OK）ときだけ。
+     * 圏外・失敗・探索中・確認の途中は、ダイヤル画面でも届かないため開けない（ダイヤル画面は自分で接続し直すので、
+     * 接続OKに絞らず発見も開ける）。
+     */
+    val canOpenDial: Boolean
+        get() = stage == SesameBleProbeStage.FOUND || stage == SesameBleProbeStage.CONNECTED
+
     /** レーダー上のブリップの位置（0.0=中心〜1.0=最外周）。見えていなければnull。 */
     val radarFraction: Float? get() = SesameBleProximity.radarFraction(rssiDbm)
 

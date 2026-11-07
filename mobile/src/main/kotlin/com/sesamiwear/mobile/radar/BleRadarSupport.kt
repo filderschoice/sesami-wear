@@ -20,6 +20,10 @@ internal data class RadarBlip(
     val deviceUuid: String,
     val label: String?,
     val snapshot: SesameBleProbeSnapshot,
+    /** タップしてダイヤル操作へ移れるか（BL-283）。 */
+    val tappable: Boolean = false,
+    /** レーダー上の向き（ラジアン）。既定はデバイスごとに固定した値。複数台は均等に分ける（[RadarHitTest.evenBearing]）。 */
+    val bearing: Float = bearingOf(deviceUuid),
 )
 
 /**

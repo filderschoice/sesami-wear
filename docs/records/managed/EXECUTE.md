@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 20:00
+  summary: 全デバイスの接続確認から、台をタップしてダイヤル操作へ移れるようにする（BL-283）
+  details:
+    変更内容: >-
+      スマホの全デバイス画面で、台の行とレーダー上のブリップ・名前ラベルをタップすると、その台のDialActivityへ移る。
+      押せるのは発見または接続OKの台だけ（SesameBleProbeSnapshot.canOpenDial）。レーダーのタップ判定は
+      Android非依存の RadarHitTest（ブリップとラベルを合わせた四角、余白14dp、近い中心を優先）として切り出し、単体テストした。
+      実機（撮影モードの見本の3台）で、向きをuuidのハッシュで決めていたため近い2台のブリップ・ラベルが重なることを確認し、
+      全台のときは全周を均等に分ける（RadarHitTest.evenBearing）ように直した。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を更新した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/RadarHitTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarAllScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarSupport.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/radar/RadarHitTestTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro）で、行・ラベルのタップでダイヤル画面が開くことと、空白では開かないことを確認した。
+    関連ID:
+      - BL-283
+
 - date: 2026-11-08 18:30
   summary: 接続確認に成功したら接続を3分間保持し、施錠・解錠・状態取得で再利用する（BL-279）
   details:

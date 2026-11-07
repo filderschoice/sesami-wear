@@ -84,4 +84,12 @@ class SesameBleProbeSnapshotTest {
             SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED, position = 12).connectionDetail(),
         )
     }
+
+    @Test
+    fun `dial can be opened only when found or connected`() {
+        SesameBleProbeStage.entries.forEach { stage ->
+            val expected = stage == SesameBleProbeStage.FOUND || stage == SesameBleProbeStage.CONNECTED
+            assertEquals(stage.name, expected, SesameBleProbeSnapshot(stage).canOpenDial)
+        }
+    }
 }
