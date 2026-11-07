@@ -2359,6 +2359,31 @@ BLEの接続は施錠/解錠・更新の背景で行われ利用者から見え�
   `PATH_BLE_PROBE_PROGRESS`（mobile → wear、snapshotのJSON）。進捗は保存する価値が無いため
   DataItemではなく揮発のMessageClientで送る。ウォッチはsecretKeyもBLEも持たず、スマホが実行する。
 
+#### スマートフォンの「Bluetooth接続を確認」画面（BL-272、2026-11-07）
+
+デバイスカードの「接続確認」（ダイヤル操作の隣）から`mobile.radar.BleRadarActivity`を開く。
+背景で行われるBluetooth接続を、利用者が任意のタイミングで目で確かめるための画面で、
+**距離はRSSIからの目安**（画面にもその旨を出す）。
+
+- **レーダー表示**（`BleRadar`、Canvas）: 中心がスマホ、輪が1m / 3m / 5m / 10m（等間隔、
+  `SesameBleProximity.radarFraction`）、掃引線が3秒で1周する。捉えている間だけ距離の位置にブリップを置き、
+  脈動する輪で示す。色は近い（とても近い・近い）＝緑、やや遠い＝橙、接続失敗＝赤、それ以外は灰。
+  **ブリップの向きに意味は無い**（電波からは向きが分からない）。デバイスごとに固定した向きへ置き、
+  距離の変化だけが動きとして見えるようにする。TalkBack向けに段階と距離をcontentDescriptionへ載せる。
+- **探索**（`SesameBleProber.observe`）: `SesameBleScanner.rssiFlow`（サービスUUIDフィルタ付き、
+  見つけても止めずに連続収集）の値を`SesameBleSightingTracker`でRSSI平滑化し、探索中 / 発見 / 圏外へ変える。
+  6秒捉えられなければ圏外（以後も探索は続け、捉え直せば発見へ戻る）。権限なし・Bluetoothオフ・
+  スキャン開始の拒否は終了段階を1つ流して終わる。**前面にいる間だけスキャンする**（`ON_PAUSE`で止め、
+  Androidのスキャン回数制限と電力を節約する）。
+- **接続確認**（`SesameBleProber.checkConnection`）: 「接続を試す」で、探索を止めてから
+  `SesameBleClient.fetchStatus`（段階通知`onStage`を追加。既定は何もしない）で接続中 → ログイン中 →
+  接続OK（電池残量・角度）/ 接続に失敗 / 圏外を示す。**Web APIへは倒さない**（Bluetoothの確認が目的）。
+  「常にインターネット経由」の設定でも利用者が明示的に求める操作のため実行できる。
+  終わると探索を再開し、確認結果は1行として残す。
+- 圏外のときは、`SesameRouteLabel.OFFICIAL_APP_HINT`（セサミ公式アプリがBluetoothを掴んでいる場合の
+  案内）を添える。
+- 実行部は`SesameBleProber`にまとめ、ウォッチからの要求（BL-273）も同じものを呼ぶ。
+
 #### 段階的移行案
 
 | 段階 | 内容 | 項目 |

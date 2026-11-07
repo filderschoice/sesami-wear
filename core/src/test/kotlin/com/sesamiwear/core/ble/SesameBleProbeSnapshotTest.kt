@@ -48,4 +48,27 @@ class SesameBleProbeSnapshotTest {
         assertTrue(SesameBleProbeStage.CONNECTED.isTerminal)
         assertFalse(SesameBleProbeStage.CONNECTED.isProblem)
     }
+
+    @Test
+    fun `summary line adds distance and level only when seen`() {
+        assertEquals("探索中", SesameBleProbeSnapshot(SesameBleProbeStage.SCANNING).summaryLine())
+        assertEquals(
+            "発見・約3m（近い）",
+            SesameBleProbeSnapshot(SesameBleProbeStage.FOUND, rssiDbm = -71).summaryLine(),
+        )
+    }
+
+    @Test
+    fun `connection detail lists battery and position when known`() {
+        assertNull(SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED).connectionDetail())
+        assertEquals(
+            "電池80%・角度12",
+            SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED, batteryPercentage = 80, position = 12)
+                .connectionDetail(),
+        )
+        assertEquals(
+            "角度12",
+            SesameBleProbeSnapshot(SesameBleProbeStage.CONNECTED, position = 12).connectionDetail(),
+        )
+    }
 }

@@ -34,6 +34,15 @@ data class SesameBleProbeSnapshot(
      */
     fun compactLines(): Pair<String, String?> = stage.shortLabel to rssiDbm?.let { distanceLabel }
 
+    /** スマホ向けの1行（「発見・約3m（近い）」）。電波を捉えていなければ段階だけ。 */
+    fun summaryLine(): String = if (rssiDbm == null) stage.label else "${stage.label}・$distanceLabel（${level.label}）"
+
+    /** ログインまで成功したときの追加情報（「電池80%・角度12」）。得られていなければnull。 */
+    fun connectionDetail(): String? =
+        listOfNotNull(batteryPercentage?.let { "電池$it%" }, position?.let { "角度$it" })
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString("・")
+
     /** ウォッチへ送るバイト列（JSON）。 */
     fun encode(): ByteArray = JSON.encodeToString(serializer(), this).toByteArray(Charsets.UTF_8)
 

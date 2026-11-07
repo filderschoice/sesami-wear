@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-07 16:00
+  summary: スマートフォンへ「Bluetooth接続を確認」画面（レーダー表示）を追加する（BL-272）
+  details:
+    変更内容: >-
+      デバイスカードの「接続確認」から開く BleRadarActivity を追加した。対象Sesameの電波を
+      SesameBleScanner.rssiFlow（新設、見つけても止めない連続スキャン）で追い、core.ble.SesameBleSightingTracker
+      （新設。RSSI平滑化と、6秒捉えられなければ「圏外」を1回だけ返す判定）で探索中/発見/圏外へ変換して、
+      輪（1/3/5/10m）・掃引線・距離位置のブリップをCanvasで描く。「接続を試す」は SesameBleClient.fetchStatus へ
+      段階通知（onStage、既定は何もしない）を追加して接続中→ログイン中→接続OK（電池・角度）/失敗を表示する。
+      Web APIへは倒さない。スキャンは前面にいて権限があり確認中でないときだけ行う。実行部は
+      SesameBleProber（BL-273のウォッチ要求からも使う）。進捗の文言関数（summaryLine / connectionDetail）を
+      SesameBleProbeSnapshotへ追加し、単体テストを追加した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleProbeSnapshotTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleScanner.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleClient.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleProber.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/AndroidManifest.xml
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機でのスキャン・接続の確認はBL-276（人手検証）に残す。
+    関連ID:
+      - BL-272
+
 - date: 2026-11-07 14:00
   summary: BLE接続確認（レーダー）の共通ロジックをcoreへ追加する（BL-271）
   details:

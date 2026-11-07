@@ -3,6 +3,7 @@ package com.sesamiwear.mobile.ble
 import android.content.Context
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.core.ble.SesameBleProbeStage
 import com.sesamiwear.mobile.ble.SesameBleProtocol.ItemCode
 import com.sesamiwear.mobile.ble.SesameBleProtocol.ResultCode
 import kotlinx.coroutines.withTimeoutOrNull
@@ -84,7 +85,7 @@ class SesameBleClient(
         historyName: String = DEFAULT_HISTORY_NAME,
     ): CommandOutcome {
         val (result, status) =
-            withBudget(credentials) { connection, session, _ ->
+            withBudget(credentials, NO_STAGE) { connection, session, _ ->
                 val itemCode = if (command == SesameCommand.LOCK) ItemCode.LOCK else ItemCode.UNLOCK
                 val payload = SesameBleMessage.encodeHistoryTag(historyName.ifBlank { DEFAULT_HISTORY_NAME })
                 sendEncrypted(connection, session, itemCode, payload)
@@ -92,9 +93,18 @@ class SesameBleClient(
         return CommandOutcome(result, status)
     }
 
-    /** [credentials]のデバイスの機構状態をBLEで取得する。ログイン直後に届く通知をそのまま使う。 */
-    suspend fun fetchStatus(credentials: SesameCredentials): StatusResult {
-        val (result, status) = withBudget(credentials) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
+    /**
+     * [credentials]のデバイスの機構状態をBLEで取得する。ログイン直後に届く通知をそのまま使う。
+     *
+     * @param onStage 接続・ログインに進むたびに呼ぶ（「Bluetooth接続を確認」の進捗表示用、BL-272）。
+     * 既定では何もしない。
+     */
+    suspend fun fetchStatus(
+        credentials: SesameCredentials,
+        onStage: (SesameBleProbeStage) -> Unit = {},
+    ): StatusResult {
+        val (result, status) =
+            withBudget(credentials, onStage) { _, _, initialStatus -> initialStatus?.let { Result.SUCCESS } }
         return StatusResult(result, status)
     }
 
@@ -118,9 +128,10 @@ class SesameBleClient(
      */
     private suspend fun withBudget(
         credentials: SesameCredentials,
+        onStage: (SesameBleProbeStage) -> Unit,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
     ): Pair<Result, SesameBleMechStatus?> =
-        withTimeoutOrNull(timeouts.totalMillis) { withSession(credentials, block) }
+        withTimeoutOrNull(timeouts.totalMillis) { withSession(credentials, onStage, block) }
             ?: (Result.CONNECTION_FAILED to null)
 
     /**
@@ -130,6 +141,7 @@ class SesameBleClient(
      */
     private suspend fun withSession(
         credentials: SesameCredentials,
+        onStage: (SesameBleProbeStage) -> Unit,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
     ): Pair<Result, SesameBleMechStatus?> {
         val secretKey = credentials.secretKeyBytesOrNull
@@ -137,12 +149,13 @@ class SesameBleClient(
         return if (blocked != null) {
             blocked to null
         } else {
+            onStage(SesameBleProbeStage.CONNECTING)
             val attempt = connector.connect(credentials.uuid, timeouts.scanMillis, timeouts.connectMillis)
             val connection = attempt.connection
             if (connection == null) {
                 (attempt.failure ?: Result.CONNECTION_FAILED) to null
             } else {
-                runSession(connection, secretKey!!, block)
+                runSession(connection, secretKey!!, onStage, block)
             }
         }
     }
@@ -159,9 +172,11 @@ class SesameBleClient(
     private suspend fun runSession(
         connection: SesameBleConnection,
         secretKey: ByteArray,
+        onStage: (SesameBleProbeStage) -> Unit,
         block: suspend (SesameBleConnection, SesameBleSession, SesameBleMechStatus?) -> Result?,
     ): Pair<Result, SesameBleMechStatus?> =
         try {
+            onStage(SesameBleProbeStage.LOGGING_IN)
             val session = login(connection, secretKey)
             if (session == null) {
                 Result.LOGIN_FAILED to null
@@ -222,5 +237,7 @@ class SesameBleClient(
     companion object {
         /** デバイスの操作履歴へ残す既定の名前。 */
         const val DEFAULT_HISTORY_NAME = "Sesami Wear"
+
+        private val NO_STAGE: (SesameBleProbeStage) -> Unit = {}
     }
 }

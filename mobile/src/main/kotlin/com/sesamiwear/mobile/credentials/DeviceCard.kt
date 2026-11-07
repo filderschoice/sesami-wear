@@ -22,6 +22,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +52,7 @@ import com.sesamiwear.mobile.ble.SesameBlePermissions
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.dial.DialActivity
+import com.sesamiwear.mobile.radar.BleRadarActivity
 import com.sesamiwear.mobile.state.SesameDeviceStores
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
 import com.sesamiwear.mobile.ui.SesameRouteIcon
@@ -119,20 +121,7 @@ internal fun DeviceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // ダイヤル操作（BL-243）。Bluetoothで直接回す、施錠・解錠が効かないときなどの手段。
-            val context = LocalContext.current
-            FilledTonalButton(
-                onClick = { context.startActivity(DialActivity.createIntent(context, credentials.uuid)) },
-                modifier = Modifier.padding(end = 12.dp),
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_route_bluetooth),
-                    contentDescription = null,
-                    modifier = Modifier.size(BUTTON_ICON_SIZE_DP.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = DIAL_LABEL)
-            }
+            BluetoothActions(uuid = credentials.uuid)
         }
     }
 }
@@ -270,6 +259,29 @@ private fun rememberBleConnectionLine(uuid: String): String {
     return line
 }
 
+/**
+ * Bluetoothで行う2つの操作。ダイヤル操作（BL-243）は直接回す手段で、施錠・解錠が効かないときなどに使う。
+ * 接続確認（BL-272）は、背景で行われる接続の様子をレーダーで見せる。
+ */
+@Composable
+private fun BluetoothActions(uuid: String) {
+    val context = LocalContext.current
+    Row(modifier = Modifier.padding(end = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilledTonalButton(onClick = { context.startActivity(DialActivity.createIntent(context, uuid)) }) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_route_bluetooth),
+                contentDescription = null,
+                modifier = Modifier.size(BUTTON_ICON_SIZE_DP.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = DIAL_LABEL)
+        }
+        OutlinedButton(onClick = { context.startActivity(BleRadarActivity.createIntent(context, uuid)) }) {
+            Text(text = RADAR_LABEL)
+        }
+    }
+}
+
 /** 保存済みのスナップショット。画面が再開するたびに読み直す（BL-159）。 */
 @Composable
 private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
@@ -281,6 +293,7 @@ private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
 }
 
 private const val DIAL_LABEL = "ダイヤル操作"
+private const val RADAR_LABEL = "接続確認"
 private const val MENU_DESCRIPTION = "このSesameのメニュー"
 private const val EDIT_DESCRIPTION = "編集"
 private const val DELETE_DESCRIPTION = "削除"

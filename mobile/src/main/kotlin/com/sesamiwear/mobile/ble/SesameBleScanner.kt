@@ -13,6 +13,9 @@ import android.content.Context
 import android.os.Build
 import android.os.ParcelUuid
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
@@ -70,6 +73,37 @@ class SesameBleScanner(
             scanner.stopScan(callback)
         }
     }
+
+    /** Bluetoothが有効か。「Bluetooth接続を確認」（BL-272）が、オフと圏外を区別するために使う。 */
+    fun isBluetoothEnabled(): Boolean = adapter() != null
+
+    /**
+     * [deviceUuid]のデバイスの電波を捉えるたびに、そのRSSI（dBm）を流す（BL-272、レーダー表示用）。
+     *
+     * [findDevice]と違い、見つけても止めずに収集が終わるまでスキャンを続ける。収集をやめると
+     * スキャンも止まる。スキャナを取得できない（Bluetoothが無効）場合と、スキャン開始が
+     * 拒否された場合は[IllegalStateException]で終わる。
+     */
+    fun rssiFlow(deviceUuid: String): Flow<Int> =
+        callbackFlow {
+            val scanner = checkNotNull(bluetoothLeScanner()) { "BLE scanner unavailable" }
+            val target = deviceUuid.lowercase(Locale.ROOT)
+            val callback =
+                object : ScanCallback() {
+                    override fun onScanResult(
+                        callbackType: Int,
+                        result: ScanResult,
+                    ) {
+                        if (matches(result, target)) trySend(result.rssi)
+                    }
+
+                    override fun onScanFailed(errorCode: Int) {
+                        close(IllegalStateException("BLE scan failed: $errorCode"))
+                    }
+                }
+            scanner.startScan(listOf(serviceFilter()), lowLatencySettings(), callback)
+            awaitClose { scanner.stopScan(callback) }
+        }
 
     /**
      * [address]のデバイスを、探索せずに直接指す（BL-189）。
