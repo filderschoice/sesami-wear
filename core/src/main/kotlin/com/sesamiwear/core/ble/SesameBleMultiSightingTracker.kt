@@ -12,16 +12,18 @@ class SesameBleMultiSightingTracker(
     startedAtMillis: Long,
     lostAfterMillis: Long = SesameBleSightingTracker.DEFAULT_LOST_AFTER_MILLIS,
 ) {
-    private val trackers = uuids.associateWith { SesameBleSightingTracker(startedAtMillis, lostAfterMillis) }
+    // 登録のuuidは大文字、スキャンで得るuuidは小文字のため、大文字小文字を区別せず照合する。
+    private val trackers =
+        uuids.associate { it.lowercase() to SesameBleSightingTracker(startedAtMillis, lostAfterMillis) }
 
     /** [uuid]の電波を捉えた。平滑化したRSSIを載せた「発見」を返す。対象外のuuidならnull。 */
     fun onSighting(
         uuid: String,
         rssiDbm: Int,
         nowMillis: Long,
-    ): SesameBleProbeSnapshot? = trackers[uuid]?.onSighting(rssiDbm, nowMillis)
+    ): SesameBleProbeSnapshot? = trackers[uuid.lowercase()]?.onSighting(rssiDbm, nowMillis)
 
-    /** 見失った（または一度も捉えないまま制限時間が過ぎた）台を、台ごとに1回だけ「圏外」で返す。 */
+    /** 見失った（または一度も捉えないまま制限時間が過ぎた）台を、台ごとに1回だけ「圏外」で返す。キーは小文字のuuid。 */
     fun onTick(nowMillis: Long): Map<String, SesameBleProbeSnapshot> =
         trackers.mapNotNull { (uuid, tracker) -> tracker.onTick(nowMillis)?.let { uuid to it } }.toMap()
 }

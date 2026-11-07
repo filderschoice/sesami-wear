@@ -32,12 +32,14 @@ data class SesameBleMultiProbeSnapshot(
         }
     }
 
-    /** [uuid]の1台だけを[snapshot]へ差し替えた進捗。該当が無ければそのまま返す。 */
+    /** [uuid]（大文字小文字は区別しない）の1台だけを[snapshot]へ差し替えた進捗。該当が無ければそのまま返す。 */
     fun withSnapshot(
         uuid: String,
         snapshot: SesameBleProbeSnapshot,
     ): SesameBleMultiProbeSnapshot =
-        copy(entries = entries.map { if (it.uuid == uuid) it.copy(snapshot = snapshot) else it })
+        copy(
+            entries = entries.map { if (it.uuid.equals(uuid, ignoreCase = true)) it.copy(snapshot = snapshot) else it },
+        )
 
     /** ウォッチへ送るバイト列（JSON）。 */
     fun encode(): ByteArray = JSON.encodeToString(serializer(), this).toByteArray(Charsets.UTF_8)

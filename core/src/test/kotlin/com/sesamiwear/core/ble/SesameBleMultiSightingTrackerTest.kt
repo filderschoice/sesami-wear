@@ -51,4 +51,11 @@ class SesameBleMultiSightingTrackerTest {
         assertEquals(setOf("b"), lost.keys)
         assertEquals(SesameBleProbeStage.NOT_FOUND, lost.getValue("b").stage)
     }
+
+    @Test
+    fun `uuid is matched regardless of case`() {
+        val tracker = SesameBleMultiSightingTracker(listOf("AB-CD"), startedAtMillis = 0, lostAfterMillis = 6_000)
+
+        assertEquals(SesameBleProbeStage.FOUND, tracker.onSighting("ab-cd", -70, 1_000)?.stage)
+    }
 }

@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-08 03:00
+  summary: まとめて接続確認の実機検証で見つけた、uuidの大文字小文字の照合バグを直す（BL-280 / BL-281）
+  details:
+    変更内容: >-
+      実機で全デバイス画面を開くと、近くに2台あるのに全台が圏外のままだった。登録のuuidは大文字、スキャンで得る
+      uuidは小文字のため、SesameBleMultiSightingTracker（台ごとのキー）と
+      SesameBleMultiProbeSnapshot.withSnapshotの照合が一致していなかった（単体のレーダーはuuidで照合しないので動いていた）。
+      どちらも大文字小文字を区別しない照合へ直し、単体テストを追加した。修正後の再確認で、スマホ・ウォッチ・撮影モードの
+      全項目が期待どおりに動いた。結果をDESIGN.mdへ記録し、BL-281を完了として削除した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTracker.kt
+      - core/src/main/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshot.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiSightingTrackerTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/ble/SesameBleMultiProbeSnapshotTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug assembleRelease /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0。実機（Pixel 8 Pro + Pixel Watch 2 + Sesame 5が2台）で確認した。
+    関連ID:
+      - BL-280
+      - BL-281
+
 - date: 2026-11-08 01:00
   summary: 「まとめて接続確認」（スマートフォン・ウォッチ・撮影モード）を追加する（BL-280）
   details:

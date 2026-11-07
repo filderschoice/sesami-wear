@@ -64,4 +64,12 @@ class SesameBleMultiProbeSnapshotTest {
         assertEquals(snapshot, SesameBleMultiProbeSnapshot.decode(snapshot.encode()))
         assertNull(SesameBleMultiProbeSnapshot.decode("not json".toByteArray()))
     }
+
+    @Test
+    fun `withSnapshot matches the uuid regardless of case`() {
+        val upper = SesameBleMultiProbeSnapshot.initial(listOf(SesameDeviceSummary("AB-CD", "玄関上")))
+        val found = SesameBleProbeSnapshot(SesameBleProbeStage.FOUND, rssiDbm = -70)
+
+        assertEquals(found, upper.withSnapshot("ab-cd", found).entries.single().snapshot)
+    }
 }
