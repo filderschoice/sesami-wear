@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-09 05:00
+  summary: アニメーションがオフの端末でレーダーの掃引線を描かない（ウォッチで動かない件の原因切り分けと対処）
+  details:
+    変更内容: >-
+      ウォッチの接続確認（レーダー）で回る線が動かないという指摘を、実機（Pixel Watch 2）で切り分けた。
+      ウォッチの animator_duration_scale・transition_animation_scale・window_animation_scale がすべて0.0で、
+      この設定ではComposeの無限アニメーションが進まない。0.0のまま1秒おきに3枚撮った画面は完全に一致（変化0画素）、
+      一時的に1.0へ変えて開き直すと約1.4万画素変化し、掃引線が回ることを確認した（確認後に0.0へ戻した。
+      システムが自動で0.0へ戻す挙動もあった）。アプリの不具合ではなく端末の設定が原因だった。
+      ただし止まった扇形は「その方向に何かある」と誤解されるため、スマートフォン・ウォッチのBleRadarCanvasで
+      ValueAnimator.areAnimatorsEnabled()がfalseのときは掃引線を描かないようにした（輪・点・ブリップは出す）。
+      サイトと設計書の静止画（scripts/generate-radar-images.pyの出力）からも掃引線を外した。
+      USER_GUIDE・RELEASE_NOTES・DESIGNへ追記した。
+      検証中に、画面のずれで「すべて更新」を1回押してしまい、2台ぶんの状態取得（BLEが届かずインターネット経由、
+      Web APIの利用カウント0→2）が走った。施錠・解錠の操作ではない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarCanvas.kt
+      - scripts/generate-radar-images.py
+      - site/assets/radar-*.png
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleの6ゲート・markdownlint・記録検証とも終了コード0。実機（Pixel Watch 2、スケール0.0のまま）で、修正後は止まった扇形が出ず輪と点だけが表示されることを確認した。スマートフォン版は同じ変更だが、実機での表示は未確認。
+    関連ID:
+      - なし
+
 - date: 2026-11-09 03:30
   summary: ヘルプ文言の見直しと、サイト・利用者向け文書に残っていた旧UI表記の更新
   details:
