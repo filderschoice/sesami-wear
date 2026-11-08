@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-09 03:30
+  summary: ヘルプ文言の見直しと、サイト・利用者向け文書に残っていた旧UI表記の更新
+  details:
+    変更内容: >-
+      ヘルプ（HelpContent）の日本語を見直した。「いちばん下」を「一番下」へ、表外字の「繋がって」を「つながって」へ、
+      「値に現れない文字」を「値に使えない文字」へ直し、「施錠・解錠を実行します。施錠はすぐに実行し」のような重複や
+      「カウンタのリセットを待つか…いずれかです」のような回りくどい言い方を整理した。
+      実装との食い違いも直した。タイルの左上は「更新」チップでデバイス名の帯は押せないため、「デバイス名をタップして
+      状態を取り直す」を「更新」の説明へ改めた（登録後のウォッチでの使い方・APIの上限）。ウィジェット追加の案内は
+      「設定メニュー」から歯車の「ウィジェットを追加」へ直した。
+      セサミ公式アプリの案内文（SesameRouteLabel.OFFICIAL_APP_HINT。ヘルプ・通知・レーダーで共通）の「接続を掴み」を
+      「Bluetooth接続を使っているため」へ変えた。HelpContentTestに、「更新」の説明・ひらがな表記・表外字が残らないことの
+      テストを足した。
+      撮影モード画面（デバッグ版）と README の「⋮メニュー」を設定画面へ直した。USER_GUIDE・RELEASE_NOTESの
+      「いちばん下」を「一番下」へ、「接続を掴んでいる」を「占有している」へ、STORE_LISTINGの「設定メニュー」を
+      「設定画面」へ直した。サイト（site/index.html）に、接続確認の機能カードと、レーダー画面のイメージ
+      （ウォッチ・スマートフォン。実機のスクリーンショットではないと alt に明記）を追加した。
+      旧UIのままの掲載スクリーンショット（phone_4・phone_5・phone_7）の撮り直しをBL-284（人手検証）として起票した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ （ShowcaseModeActivity / ShowcaseMarkHiding）
+      - site/index.html
+      - README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0。ヘルプの表示を実機で見る確認は、この後の全体の機能確認でまとめて行う。
+    関連ID:
+      - BL-284
+
 - date: 2026-11-09 02:00
   summary: 全デバイスの接続確認を右上アイコンと一覧末尾へ移し、接続確認のヘルプをアプリ内へ追加する
   details:

@@ -40,6 +40,21 @@ class HelpContentTest {
     }
 
     @Test
+    fun `refresh is explained with the refresh chip, not the device name`() {
+        // タイル・ウィジェットのデバイス名はタップできず、状態の取り直しは「更新」で行う。
+        val all = HelpContent.topics.flatMap { it.paragraphs }.joinToString(separator = "")
+        assertTrue(!all.contains("デバイス名をタップ"))
+        assertTrue(HelpContent.afterRegistration.paragraphs.any { it.contains("「更新」") })
+        assertTrue(HelpContent.apiLimit.paragraphs.any { it.contains("「更新」") })
+    }
+
+    @Test
+    fun `wording avoids hiragana for words that read better in kanji`() {
+        val all = HelpContent.topics.flatMap { it.paragraphs + it.title }.joinToString(separator = "")
+        listOf("いちばん", "繋", "掴").forEach { assertTrue("「$it」が残っている", !all.contains(it)) }
+    }
+
+    @Test
     fun `no topic points at the old overflow menu`() {
         HelpContent.topics.flatMap { it.paragraphs }.forEach { assertTrue(it, !it.contains("⋮")) }
     }

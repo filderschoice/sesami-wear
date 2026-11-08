@@ -210,7 +210,7 @@ private fun ModeSection(
         Text(
             text =
                 "【アプリ内の画面を掲載用に撮る】「目印を10分隠す」を押すと、主画面の「📷 撮影モード」と" +
-                    "⋮メニューの「撮影モード」が10分間出なくなります（撮影モードはオンのまま）。" +
+                    "設定画面の「撮影モード」が10分間出なくなります（撮影モードはオンのまま）。" +
                     "10分たつと自動で戻ります。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
