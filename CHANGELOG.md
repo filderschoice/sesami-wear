@@ -7,6 +7,12 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-08（0.16.0の配信完了、BL-284 / BL-285）
+
+0.16.0 が Google Play の両トラック（電話・タブレット系 / Wear OS 専用）で公開されたため、タグ `v0.16.0`
+（`e1771d5`）と GitHub Release（プレリリース）を作成し、BACKLOG.md の BL-284 / BL-285 を削除しました。
+紹介ページ（`site/`）の gh-pages 反映は `site/README.md` の手順でユーザーが行います。
+
 ## 2026-11-08（Wear OS用の掲載画像を8枚へ絞る、BL-284）
 
 接続確認の画像の追加でWear OS用が9枚になり、Google Playの上限（各8枚）を超えていたため、表示の差が小さい
