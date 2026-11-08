@@ -11,7 +11,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
-| [images/screenshots/](images/screenshots/) | スマートフォン用6枚・Wear OS用6枚 | スクリーンショット |
+| [images/screenshots/](images/screenshots/) | スマートフォン用8枚・Wear OS用8枚 | スクリーンショット |
 
 `images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
 対応します（スマートフォン用とWear OS用は別の枠です）。
@@ -32,13 +32,17 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `wear_4_tile_mixed.png` | タイル（一部解錠、タップで全施錠）。複数デバイスの状態が混在した場合 | 384x384 |
 | `wear_5_unlock_confirm.png` | 解錠時の確認画面（キャンセル／全解錠） | 384x384 |
 | `wear_6_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
+| `wear_7_radar.png` | 接続確認（レーダー）。Sesameの電波を輪の上に示し、段階（発見）と距離の目安（約2m）を表示 | 384x384 |
+| `wear_8_radar_all.png` | 全デバイスの接続確認（台ごとの名前・段階・距離の一覧） | 384x384 |
 
 - 2026-11-08に、設定画面の再編・接続確認の追加に合わせて `phone_4_device_list` / `phone_5_menu` の2点を
   Pixel 8 Pro実機（ダークテーマ・撮影モードの見本の3台・「目印を10分隠す」）で撮り直しました（BL-284）。
   アプリ内の画面のためステータスバーだけをモザイクにしています。Google Playのスマートフォン用は最大8枚のため、
   同じ日に補助画面の `phone_6_device_edit`（追加・編集画面）と `phone_7_help`（ヘルプ）を外し、
   Bluetooth接続の確認（レーダー）の `phone_6_radar` / `phone_7_radar_all` に入れ替えました
-  （撮影モードはBluetoothを使わず見本の電波を出すため、実機のSesameは要りません）。
+  （撮影モードはBluetoothを使わず見本の電波を出すため、実機のSesameは要りません）。Wear OS用にも
+  `wear_7_radar` / `wear_8_radar_all` を追加しました（Pixel Watch 2実機・同じ撮影モード。ウォッチの画面は
+  実機の状態が写らないため加工していません。「接続を試す」の成功後の画面は、撮影モードでは表示が切り替わらず撮れていません）。
 - スマートフォン用の `phone_1`〜`phone_8` は、2026-10-17にPixel 8 Pro実機（ダークテーマ）で撮り直しました
   （0.14.3。ウィジェットの日時表示・UIのモダン化・「操作履歴（診断ログ）」への改名・ダイヤル操作の追加、
   BL-236 / BL-237 / BL-243 / BL-245 を反映。BL-250）。デバッグ版の撮影モード（README.md「撮影モード（デバッグ版のみ）」）
