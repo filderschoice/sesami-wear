@@ -32,13 +32,13 @@
     phone_7_help）を撮り直し済み（2026-11-08、Pixel 8 Pro実機の撮影モード。docs/store/images/screenshots/ と
     site/assets の画像、docs/store/README.md・STORE_LISTING.md・site/index.html の説明も更新済み）。
     あわせて接続確認（レーダー）の画像を追加済み（スマートフォン用 phone_6_radar / phone_7_radar_all は旧 phone_6_device_edit / phone_7_help と入れ替え。Wear OS用 wear_7_radar / wear_8_radar_connected / wear_9_radar_all）。
-    残りは Play Console の掲載画像の差し替えで、スマートフォン用は旧 phone_4〜phone_7 を削除して新しい画像を入れ、Wear OS用は wear_7〜wear_9 を追加する。
+    残りは Play Console の掲載画像の差し替えで、スマートフォン用は旧 phone_4〜phone_7 を削除して新しい画像を入れ、Wear OS用は wear_3 を削除して wear_7〜wear_9 を追加する（上限8枚）。
     紹介ページ（site/）の反映は main へマージ後に site/README.md の手順で行う。
   優先度: P3
   状態: 進行中
   担当: ユーザー
   完了条件: >-
-    Play Console のスマートフォン用（8枚）とWear OS用（9枚）のスクリーンショットが docs/store/images/screenshots/ と一致していること
+    Play Console のスマートフォン用（8枚）とWear OS用（8枚）のスクリーンショットが docs/store/images/screenshots/ と一致していること
   根拠: >-
     Play Console の画像差し替え（ブラウザ操作・外部への公開）は自律ループ実行モードでは行えない
     （rules/guardrails-unified.v1.md セクション12.2）。

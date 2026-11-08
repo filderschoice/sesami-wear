@@ -11,7 +11,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
-| [images/screenshots/](images/screenshots/) | スマートフォン用8枚・Wear OS用9枚 | スクリーンショット |
+| [images/screenshots/](images/screenshots/) | スマートフォン用8枚・Wear OS用8枚 | スクリーンショット |
 
 `images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
 対応します（スマートフォン用とWear OS用は別の枠です）。
@@ -28,7 +28,6 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `phone_8_dial.png` | ダイヤル操作（Bluetoothで直接操作。サムターンの角度を針で表示し、半周なぞって施錠・解錠） | 1350x2400 |
 | `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |
 | `wear_2_tile_locked.png` | タイル（全施錠中、タップで全解錠） | 384x384 |
-| `wear_3_tile_unlocked.png` | タイル（全解錠中、タップで全施錠） | 384x384 |
 | `wear_4_tile_mixed.png` | タイル（一部解錠、タップで全施錠）。複数デバイスの状態が混在した場合 | 384x384 |
 | `wear_5_unlock_confirm.png` | 解錠時の確認画面（キャンセル／全解錠） | 384x384 |
 | `wear_6_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
@@ -61,6 +60,9 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 - ファイル名の番号はPlay Consoleへ投入する順序に対応します。スマートフォン用は「ウィジェットの
   状態表示 → 操作の確認 → アプリ画面 → 設定 → ヘルプ → ダイヤル操作」、Wear OS用は「状態表示 → タイルの
   各状態 → 操作の確認 → 設定」の流れで並べています。
+- Google Playの上限（各8枚）に合わせ、Wear OS用は接続確認の追加で9枚になったため、表示の差が小さい
+  `wear_3_tile_unlocked`（タイル・全解錠中）を外しました（2026-11-08。番号は欠番のままで、投入順は番号順です）。
+  紹介ページ（`site/`）には枚数の上限が無いため、同名の画像を残しています。
 - Wear OS用の `wear_2`〜`wear_4`・`wear_6` は、2026-09-25にPixel Watch 2実機で撮り直しました（0.14.0）。
   タイルは帯の経路マーク（図柄）・左列の幅・帯の色の変更を反映しています。撮影モードの見本の3台
   （玄関・勝手口・ガレージ）で状態を作っているため、実物のセサミは操作しておらず、デバイス選択画面にも

@@ -7,6 +7,13 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-08（Wear OS用の掲載画像を8枚へ絞る、BL-284）
+
+接続確認の画像の追加でWear OS用が9枚になり、Google Playの上限（各8枚）を超えていたため、表示の差が小さい
+`wear_3_tile_unlocked`（タイル・全解錠中）を外しました。`docs/store/README.md`・`STORE_LISTING.md`・
+BACKLOG.mdのBL-284（Play Consoleで `wear_3` を入れずに `wear_7`〜`wear_9` を追加する）を更新しています。
+紹介ページ（`site/`）の同名画像は、枚数の上限が無いため残しています。
+
 ## 2026-11-08（0.16.0のリリース準備、BL-284 / BL-285）
 
 接続確認（BL-271〜BL-283）と設定画面の再編を含む 0.16.0 を Google Play のクローズドテストへ配信するための
