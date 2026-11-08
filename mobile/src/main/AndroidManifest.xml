@@ -122,6 +122,12 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- ダイヤル操作画面（BL-243）。デバイスカードから開く。Bluetoothでのみ操作する。 -->
+        <!-- 設定画面。主画面の歯車から開く（通知・ヘルプ・操作履歴はこの中のページ）。 -->
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SesamiWear" />
+
         <activity
             android:name=".dial.DialActivity"
             android:exported="false"

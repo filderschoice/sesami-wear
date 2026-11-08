@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -34,12 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.SesameCredentials
 import com.sesamiwear.core.SesameCredentialsStore
+import com.sesamiwear.mobile.R
 import com.sesamiwear.mobile.radar.BleRadarActivity
+import com.sesamiwear.mobile.settings.SettingsActivity
 import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 import com.sesamiwear.mobile.state.ApiUsageCounter
 import com.sesamiwear.mobile.state.SharedPreferencesKeyValueStore
@@ -123,8 +129,17 @@ private fun ScreenTopBar() {
             }
         },
         // ヘルプ・操作の経路・Bluetooth権限は、まとめて設定メニューへ入れる（BL-180）。
-        actions = { SettingsMenu() },
+        actions = { SettingsButton() },
     )
+}
+
+/** 歯車。設定画面（[SettingsActivity]）を開く。 */
+@Composable
+private fun SettingsButton() {
+    val context = LocalContext.current
+    IconButton(onClick = { context.startActivity(SettingsActivity.createIntent(context)) }) {
+        Icon(imageVector = Icons.Default.Settings, contentDescription = SETTINGS_DESCRIPTION)
+    }
 }
 
 @Composable
@@ -158,9 +173,9 @@ private fun DeviceListContent(
         if (devices.isEmpty()) {
             item { EmptyDeviceState(onAdd = onAdd) }
         } else {
-            item { ApiUsageCard(count = rememberApiUsageCount()) }
-            // 2台以上あるときだけ、まとめて接続確認（BL-280）の入口を出す。
+            // 2台以上あるときだけ、まとめて接続確認（BL-280）の入口を先頭に出す。操作が先、目安の数字は後。
             if (devices.size >= 2) item { ProbeAllButton() }
+            item { ApiUsageCard(count = rememberApiUsageCount()) }
             items(devices, key = { it.uuid }) { credentials ->
                 DeviceCard(
                     credentials = credentials,
@@ -178,10 +193,18 @@ private fun DeviceListContent(
 @Composable
 private fun ProbeAllButton() {
     val context = LocalContext.current
-    OutlinedButton(
+    FilledTonalButton(
         onClick = { context.startActivity(BleRadarActivity.createAllIntent(context)) },
         modifier = Modifier.fillMaxWidth(),
-    ) { Text(text = PROBE_ALL_LABEL) }
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_route_bluetooth),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = PROBE_ALL_LABEL)
+    }
 }
 
 /**
@@ -224,6 +247,7 @@ private data class EditorTarget(val editing: SesameCredentials?)
 private const val SCREEN_TITLE = "Sesami Wear"
 private const val ADD_LABEL = "Sesameを追加"
 private const val PROBE_ALL_LABEL = "全デバイスの接続確認"
+private const val SETTINGS_DESCRIPTION = "設定"
 private const val SAVED_MESSAGE = "保存しました"
 private const val DELETE_WARNING =
     "登録した資格情報と、このセサミの状態が端末から消えます。" +
