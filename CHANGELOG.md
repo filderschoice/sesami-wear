@@ -23,7 +23,7 @@
   `site/index.html` の説明も追随させました（BL-284。Play Consoleの差し替えは残件）。
 - **接続確認（レーダー）の掲載画像を追加**しました（BL-284）。スマートフォン用は `phone_6_radar` / `phone_7_radar_all`
   （Play Consoleの上限8枚のため旧 `phone_6_device_edit` / `phone_7_help` と入れ替え）、Wear OS用は `wear_7_radar` /
-  `wear_8_radar_all` です（いずれも実機の撮影モード）。
+  `wear_8_radar_connected` / `wear_9_radar_all` です（いずれも実機の撮影モード）。
 - **BACKLOG.md** へ 0.16.0 の配信・タグ・GitHub Release を BL-285（ユーザー担当）として起票し、BL-284 を
   Play Consoleの差し替えだけに絞りました。
 
