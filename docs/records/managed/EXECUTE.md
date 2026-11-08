@@ -20,7 +20,7 @@
     検証コマンド: >-
       ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
       npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
-    検証結果: 成功 - いずれも終了コード0（markdownlintは0 issues）。実機での表示確認は未実施（USB接続を外したため人手検証待ち）。
+    検証結果: 成功 - いずれも終了コード0（markdownlintは0 issues）。実機確認（Pixel 8 Pro、デバッグ版、撮影モードで0台状態を作成。実Sesameは操作せず）: 空状態に追加ボタンが無く右下の「Sesameを追加」だけになること、本文が見切れないこと、右下から入力画面が開くこと（保存せず閉じた）を確認。
     関連ID:
       - なし
 
