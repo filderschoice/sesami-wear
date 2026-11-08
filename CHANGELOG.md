@@ -7,6 +7,23 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-08（0.16.0のリリース準備、BL-284 / BL-285）
+
+接続確認（BL-271〜BL-283）と設定画面の再編を含む 0.16.0 を Google Play のクローズドテストへ配信するための
+準備を行いました（自律ループ実行モード）。
+
+- **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** の「未リリース」を 0.16.0（2026-11-08）へ確定しました
+  （「ストア掲載用の要約」は記載済み）。**`scripts/version.properties`** を `versionCode 15` / `wear 1013` /
+  `versionName 0.16.0` へ更新し、署名付きAAB×2をビルドしました（`scripts/release-build.bat -VersionName 0.16.0`。
+  両AABの署名SHA256は一致）。
+- **紹介ページ**（`site/app.json` / `site/index.html`）の版表記を 0.16.0 へ、**`docs/USER_GUIDE.md`** の
+  「次のバージョン以降」を「0.16.0以降」へ更新しました。
+- **掲載用スクリーンショット3点**（`phone_4_device_list` / `phone_5_menu` / `phone_7_help`）を、Pixel 8 Pro実機の
+  撮影モード（見本の3台）で撮り直しました。紹介ページの同名画像と、`docs/store/README.md`・`STORE_LISTING.md`・
+  `site/index.html` の説明も追随させました（BL-284。Play Consoleの差し替えは残件）。
+- **BACKLOG.md** へ 0.16.0 の配信・タグ・GitHub Release を BL-285（ユーザー担当）として起票し、BL-284 を
+  Play Consoleの差し替えだけに絞りました。
+
 ## 2026-11-09（UIデザイン設計書を現行のUIへ追従）
 
 `docs/design/UI_DESIGN.html` を、2026-10-20版（対象コミット acdb02b）から現行のUIへ更新しました（ユーザー指示。
