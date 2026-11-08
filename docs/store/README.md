@@ -11,7 +11,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
-| [images/screenshots/](images/screenshots/) | スマートフォン用6枚・Wear OS用6枚 | スクリーンショット |
+| [images/screenshots/](images/screenshots/) | スマートフォン用8枚・Wear OS用9枚 | スクリーンショット |
 
 `images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
 対応します（スマートフォン用とWear OS用は別の枠です）。
@@ -21,10 +21,10 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `phone_1_widget_locked.png` | ホーム画面ウィジェット（全施錠中、タップで全解錠）。2x1と4x2を並べて表示。取得時刻は日時表示。アプリのウィジェット一覧のプレビュー画像の元でもある（差し替えたら `scripts/make-widget-previews.py` で作り直す） | 1350x2400 |
 | `phone_2_widget_unlock_confirm.png` | ウィジェットからの解錠確認ダイアログ（全デバイス） | 1350x2400 |
 | `phone_3_widget_unlocked.png` | ホーム画面ウィジェット。2x1は1台（玄関、解錠中）、4x2は全デバイス（一部解錠、タップで全施錠） | 1350x2400 |
-| `phone_4_device_list.png` | アプリ主画面（Sesameごとのカード。状態バッジ・電池・角度・最終取得時刻・経路・Bluetoothの到達状況・ダイヤル操作の入口・API呼び出し回数） | 1350x2400 |
-| `phone_5_menu.png` | 右上の「⋮」メニュー（操作の経路・Bluetoothで直接操作・経路の通知・お知らせ・ヘルプ・操作履歴（診断ログ）） | 1350x2400 |
-| `phone_6_device_edit.png` | Sesameの追加・編集画面（表示名・uuid・apikey・secretKey。値はダミー） | 1350x2400 |
-| `phone_7_help.png` | ヘルプのメニュー（値の取得方法・APIの上限・デモ・ウォッチ・ウィジェット・Bluetooth・モバイル回線） | 1350x2400 |
+| `phone_4_device_list.png` | アプリ主画面（Sesameごとのカード。状態バッジ・電池・角度・最終取得時刻・経路・Bluetoothの到達状況・ダイヤル操作の入口・API呼び出し回数。右上のBluetoothアイコンと、一覧末尾の「全デバイスの接続確認」・各カードの「接続確認」を含む） | 1350x2400 |
+| `phone_5_menu.png` | 右上の歯車「⚙」から開く設定画面（接続＝操作の経路・Bluetoothで直接操作／通知／ホーム画面＝ウィジェットを追加／サポート＝ヘルプ・操作履歴（診断ログ）） | 1350x2400 |
+| `phone_6_radar.png` | Bluetooth接続の確認（レーダー）。Sesameの電波を輪の上に示し、距離の目安・電波強度と、「接続を試す」の成功（電池残量・角度）、接続の保持を表示 | 1350x2400 |
+| `phone_7_radar_all.png` | 全デバイスの接続確認（1枚のレーダーに全台。台ごとの段階・距離・ダイヤル操作への入口。「全台の接続を試す」） | 1350x2400 |
 | `phone_8_dial.png` | ダイヤル操作（Bluetoothで直接操作。サムターンの角度を針で表示し、半周なぞって施錠・解錠） | 1350x2400 |
 | `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |
 | `wear_2_tile_locked.png` | タイル（全施錠中、タップで全解錠） | 384x384 |
@@ -32,7 +32,18 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `wear_4_tile_mixed.png` | タイル（一部解錠、タップで全施錠）。複数デバイスの状態が混在した場合 | 384x384 |
 | `wear_5_unlock_confirm.png` | 解錠時の確認画面（キャンセル／全解錠） | 384x384 |
 | `wear_6_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
+| `wear_7_radar.png` | 接続確認（レーダー）。Sesameの電波を輪の上に示し、段階（発見）と距離の目安（約2m）を表示 | 384x384 |
+| `wear_8_radar_connected.png` | 「接続を試す」に成功した接続確認（接続OK・電池残量・角度） | 384x384 |
+| `wear_9_radar_all.png` | 全デバイスの接続確認（台ごとの名前・段階・距離の一覧） | 384x384 |
 
+- 2026-11-08に、設定画面の再編・接続確認の追加に合わせて `phone_4_device_list` / `phone_5_menu` の2点を
+  Pixel 8 Pro実機（ダークテーマ・撮影モードの見本の3台・「目印を10分隠す」）で撮り直しました（BL-284）。
+  アプリ内の画面のためステータスバーだけをモザイクにしています。Google Playのスマートフォン用は最大8枚のため、
+  同じ日に補助画面の `phone_6_device_edit`（追加・編集画面）と `phone_7_help`（ヘルプ）を外し、
+  Bluetooth接続の確認（レーダー）の `phone_6_radar` / `phone_7_radar_all` に入れ替えました
+  （撮影モードはBluetoothを使わず見本の電波を出すため、実機のSesameは要りません）。Wear OS用にも
+  `wear_7_radar` / `wear_8_radar_connected` / `wear_9_radar_all` を追加しました（Pixel Watch 2実機・同じ撮影モード。ウォッチの画面は
+  実機の状態が写らないため加工していません。「接続を試す」の成功後の画面は、スマートフォンの画面を点けたまま撮る必要があります）。
 - スマートフォン用の `phone_1`〜`phone_8` は、2026-10-17にPixel 8 Pro実機（ダークテーマ）で撮り直しました
   （0.14.3。ウィジェットの日時表示・UIのモダン化・「操作履歴（診断ログ）」への改名・ダイヤル操作の追加、
   BL-236 / BL-237 / BL-243 / BL-245 を反映。BL-250）。デバッグ版の撮影モード（README.md「撮影モード（デバッグ版のみ）」）

@@ -5,25 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-284
+- id: BL-285
   区分: 人手検証
   タスク内容: >-
-    スマートフォンの設定を歯車から開く設定画面へ再編した（2026-11-08）ため、掲載用スクリーンショットのうち
-    旧UIのものを撮り直す。対象は docs/store/images/screenshots/phone_5_menu.png（旧「⋮」メニュー。新しい設定画面へ）、
-    phone_7_help.png（旧ヘルプのダイアログ。新しいヘルプ一覧のページへ）、phone_4_device_list.png（主画面。右上の
-    Bluetoothアイコンと一覧末尾の「全デバイスの接続確認」が入った2台の一覧へ）。撮り直したら docs/store/README.md の
-    説明と、紹介ページ（site/assets の phone-5-menu.png・phone-7-help.png・phone-4-device-list.png と site/index.html の
-    説明文）も同じ元画像から作り直す。撮影は撮影モード（README.md）で実デバイスに触れずにできる。
-    マスク加工は Skill store-screenshot-masking、Play Consoleへの差し替えはユーザーが行う。
-  優先度: P3
+    0.16.0（mobile versionCode 15 / wear versionCode 1013）を Google Play のクローズドテストへ配信する。
+    署名付きAABは作成済み（mobile/build/outputs/bundle/release/mobile-release.aab を電話・タブレット系トラックへ、
+    wear/build/outputs/bundle/release/wear-release.aab を Wear OS 専用トラックへ。両AABの署名SHA256は一致確認済み）。
+    「このリリースの新機能」欄には docs/RELEASE_NOTES.md の0.16.0「ストア掲載用の要約」を転記する。
+    実機検証（docs/verification/VERIFICATION-0.16.0.local.md）の結果を確認してから提出する。
+    両トラックで公開中になったら、リリース準備のマージコミットへ注釈付きタグ v0.16.0 を作成し GitHub Release を
+    公開する（Skill github-release-publish）。紹介ページの gh-pages 反映もこのとき行う。
+  優先度: P2
   状態: 未着手
   担当: ユーザー
   完了条件: >-
-    掲載画像3点と紹介ページの画像が新しいUIに差し替わり、docs/store/README.md と site/index.html の説明が
-    画像の内容と一致していること
+    0.16.0 が両トラックで公開中で、タグ v0.16.0 と GitHub Release が作成されていること
   根拠: >-
-    実機での撮影と、Play Consoleの画像差し替え（ブラウザ操作・外部への公開）が要るため、
-    自律ループ実行モードでは完了できない（rules/guardrails-unified.v1.md セクション12.2）。
+    Play Console の操作・git push・タグ公開はユーザー作業（rules/guardrails-unified.v1.md セクション12.2）。
+    実機検証の合否はユーザーの確認が要る。
+  依存: []
+
+- id: BL-284
+  区分: 人手検証
+  タスク内容: >-
+    設定画面の再編・接続確認の追加に合わせて、掲載用スクリーンショット3点（phone_4_device_list / phone_5_menu /
+    phone_7_help）を撮り直し済み（2026-11-08、Pixel 8 Pro実機の撮影モード。docs/store/images/screenshots/ と
+    site/assets の画像、docs/store/README.md・STORE_LISTING.md・site/index.html の説明も更新済み）。
+    あわせて接続確認（レーダー）の画像を追加済み（スマートフォン用 phone_6_radar / phone_7_radar_all は旧 phone_6_device_edit / phone_7_help と入れ替え。Wear OS用 wear_7_radar / wear_8_radar_connected / wear_9_radar_all）。
+    残りは Play Console の掲載画像の差し替えで、スマートフォン用は旧 phone_4〜phone_7 を削除して新しい画像を入れ、Wear OS用は wear_7〜wear_9 を追加する。
+    紹介ページ（site/）の反映は main へマージ後に site/README.md の手順で行う。
+  優先度: P3
+  状態: 進行中
+  担当: ユーザー
+  完了条件: >-
+    Play Console のスマートフォン用（8枚）とWear OS用（9枚）のスクリーンショットが docs/store/images/screenshots/ と一致していること
+  根拠: >-
+    Play Console の画像差し替え（ブラウザ操作・外部への公開）は自律ループ実行モードでは行えない
+    （rules/guardrails-unified.v1.md セクション12.2）。
   依存: []
 
 - id: BL-195
