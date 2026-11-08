@@ -138,7 +138,7 @@ Markdownを解釈しないため、転記時は見出し・箇条書きの記法
 
 ## スクリーンショット
 
-スマートフォン用8枚とWear OS用9枚を [images/screenshots/](images/screenshots/) に用意済みです。
+スマートフォン用8枚とWear OS用8枚（上限に合わせ `wear_3_tile_unlocked` を外した欠番あり）を [images/screenshots/](images/screenshots/) に用意済みです。
 内訳と加工内容は [README.md](README.md)「ファイル一覧」を参照してください。
 
 - スマートフォン用: `phone_4_device_list` / `phone_5_menu` は0.16.0の表示で2026-11-08に撮り直し、
