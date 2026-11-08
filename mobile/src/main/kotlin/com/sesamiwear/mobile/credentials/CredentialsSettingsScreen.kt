@@ -102,7 +102,7 @@ fun CredentialsSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        topBar = { ScreenTopBar() },
+        topBar = { ScreenTopBar(showProbeAll = controller.devices.size >= 2) },
         floatingActionButton = { AddDeviceButton(onClick = { editorTarget = EditorTarget(editing = null) }) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -111,14 +111,13 @@ fun CredentialsSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             onEdit = { editorTarget = EditorTarget(editing = it) },
             onDelete = { deleteTarget = it },
-            onAdd = { editorTarget = EditorTarget(editing = null) },
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScreenTopBar() {
+private fun ScreenTopBar(showProbeAll: Boolean) {
     TopAppBar(
         title = {
             // デバッグ版の撮影モード中だけ、タイトルの横へ小さく印を出す（BL-213。リリース版は何も出さない）。
@@ -129,7 +128,11 @@ private fun ScreenTopBar() {
             }
         },
         // ヘルプ・操作の経路・Bluetooth権限は、まとめて設定メニューへ入れる（BL-180）。
-        actions = { SettingsButton() },
+        // 2台以上のときだけ、まとめて接続確認（BL-280）をアイコンでも開けるようにする。設定と同じ全体操作の置き場。
+        actions = {
+            if (showProbeAll) ProbeAllIconButton()
+            SettingsButton()
+        },
     )
 }
 
@@ -162,7 +165,6 @@ private fun DeviceListContent(
     modifier: Modifier,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
-    onAdd: () -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -171,10 +173,8 @@ private fun DeviceListContent(
     ) {
         // 未登録のときは回数が常に0で意味が無いため、登録を促す表示だけにする（BL-245）。
         if (devices.isEmpty()) {
-            item { EmptyDeviceState(onAdd = onAdd) }
+            item { EmptyDeviceState() }
         } else {
-            // 2台以上あるときだけ、まとめて接続確認（BL-280）の入口を先頭に出す。操作が先、目安の数字は後。
-            if (devices.size >= 2) item { ProbeAllButton() }
             item { ApiUsageCard(count = rememberApiUsageCount()) }
             items(devices, key = { it.uuid }) { credentials ->
                 DeviceCard(
@@ -183,9 +183,21 @@ private fun DeviceListContent(
                     onDelete = { onDelete(credentials) },
                 )
             }
+            // まとめて接続確認（BL-280）の入口。先頭に置くとよく使うカードが下へ押されるため、カードの後ろへ置く。
+            // 右上のアイコンからも開ける。
+            if (devices.size >= 2) item { ProbeAllButton() }
         }
         // 最後のカードが追加ボタンに隠れないようにする。
         item { Spacer(modifier = Modifier.height(FAB_CLEARANCE_DP.dp)) }
+    }
+}
+
+/** 右上のアイコン。一覧の末尾の[ProbeAllButton]と同じ画面を開く。 */
+@Composable
+private fun ProbeAllIconButton() {
+    val context = LocalContext.current
+    IconButton(onClick = { context.startActivity(BleRadarActivity.createAllIntent(context)) }) {
+        Icon(painter = painterResource(id = R.drawable.ic_route_bluetooth), contentDescription = PROBE_ALL_LABEL)
     }
 }
 

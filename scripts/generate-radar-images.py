@@ -170,20 +170,13 @@ def blip_color(stage, rssi, wear):
 
 
 def draw_radar(img, cx, cy, radius, unit, state, wear, ring_color, sweep_color, dot_color, label_font=None):
-    """レーダー（輪・掃引線・ブリップ）を描く。unitは1dpあたりのpx。"""
+    """レーダー（輪・ブリップ。掃引線は描かない）を描く。unitは1dpあたりのpx。"""
     rgba = img.convert("RGBA")
     layer = Image.new("RGBA", rgba.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    # 掃引（先端から手前90度へ、先端ほど濃い）。
-    sweep_angle = 300
-    steps = 90
-    for i in range(steps):
-        start = sweep_angle - 90 + i
-        alpha = int(255 * 0.45 * (i + 1) / steps)
-        d.pieslice([cx - radius, cy - radius, cx + radius, cy + radius], start, start + 1.5, fill=sweep_color + (alpha,))
-    rad = math.radians(sweep_angle)
-    d.line([cx, cy, cx + radius * math.cos(rad), cy + radius * math.sin(rad)], fill=sweep_color + (255,), width=max(1, int(2 * unit)))
-    # 輪（掃引の上に重ねる）。
+    # 実機の掃引線（3秒で1周するアニメーション）は描かない。静止画では止まった1コマの線が
+    # 「その方向に何かある」と誤解されやすく、ブリップの向きにも意味が無いため（2026-11-09）。
+    # 輪。
     for index in range(1, len(RINGS) + 1):
         r = radius * index / len(RINGS)
         d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=ring_color + (255,), width=max(1, int(unit)))

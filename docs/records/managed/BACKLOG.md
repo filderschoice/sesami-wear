@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-284
+  区分: 人手検証
+  タスク内容: >-
+    スマートフォンの設定を歯車から開く設定画面へ再編した（2026-11-08）ため、掲載用スクリーンショットのうち
+    旧UIのものを撮り直す。対象は docs/store/images/screenshots/phone_5_menu.png（旧「⋮」メニュー。新しい設定画面へ）、
+    phone_7_help.png（旧ヘルプのダイアログ。新しいヘルプ一覧のページへ）、phone_4_device_list.png（主画面。右上の
+    Bluetoothアイコンと一覧末尾の「全デバイスの接続確認」が入った2台の一覧へ）。撮り直したら docs/store/README.md の
+    説明と、紹介ページ（site/assets の phone-5-menu.png・phone-7-help.png・phone-4-device-list.png と site/index.html の
+    説明文）も同じ元画像から作り直す。撮影は撮影モード（README.md）で実デバイスに触れずにできる。
+    マスク加工は Skill store-screenshot-masking、Play Consoleへの差し替えはユーザーが行う。
+  優先度: P3
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    掲載画像3点と紹介ページの画像が新しいUIに差し替わり、docs/store/README.md と site/index.html の説明が
+    画像の内容と一致していること
+  根拠: >-
+    実機での撮影と、Play Consoleの画像差し替え（ブラウザ操作・外部への公開）が要るため、
+    自律ループ実行モードでは完了できない（rules/guardrails-unified.v1.md セクション12.2）。
+  依存: []
+
 - id: BL-195
   区分: 人手検証
   タスク内容: >-

@@ -10,7 +10,16 @@ class HelpContentTest {
     @Test
     fun `menu offers the topics in a fixed order`() {
         assertEquals(
-            listOf("credentials", "api-limit", "demo", "after-registration", "widget", "bluetooth", "mobile-data"),
+            listOf(
+                "credentials",
+                "api-limit",
+                "demo",
+                "after-registration",
+                "widget",
+                "probe",
+                "bluetooth",
+                "mobile-data",
+            ),
             HelpContent.topics.map { it.id },
         )
     }
@@ -20,6 +29,34 @@ class HelpContentTest {
         val paragraphs = HelpContent.bluetooth.paragraphs
         assertTrue(paragraphs.contains(SesameRouteLabel.OFFICIAL_APP_HINT))
         assertTrue(paragraphs.any { it.contains("操作の経路") })
+    }
+
+    @Test
+    fun `probe topic explains the entry points and the connect test using the screen wording`() {
+        val body = HelpContent.probe.paragraphs.joinToString(separator = "")
+        listOf("接続確認", "全デバイスの接続確認", "接続を試す", "1m・3m・5m・10m", "約3分間").forEach { word ->
+            assertTrue("接続確認の説明に「$word」が無い", body.contains(word))
+        }
+    }
+
+    @Test
+    fun `refresh is explained with the refresh chip, not the device name`() {
+        // タイル・ウィジェットのデバイス名はタップできず、状態の取り直しは「更新」で行う。
+        val all = HelpContent.topics.flatMap { it.paragraphs }.joinToString(separator = "")
+        assertTrue(!all.contains("デバイス名をタップ"))
+        assertTrue(HelpContent.afterRegistration.paragraphs.any { it.contains("「更新」") })
+        assertTrue(HelpContent.apiLimit.paragraphs.any { it.contains("「更新」") })
+    }
+
+    @Test
+    fun `wording avoids hiragana for words that read better in kanji`() {
+        val all = HelpContent.topics.flatMap { it.paragraphs + it.title }.joinToString(separator = "")
+        listOf("いちばん", "繋", "掴").forEach { assertTrue("「$it」が残っている", !all.contains(it)) }
+    }
+
+    @Test
+    fun `no topic points at the old overflow menu`() {
+        HelpContent.topics.flatMap { it.paragraphs }.forEach { assertTrue(it, !it.contains("⋮")) }
     }
 
     @Test

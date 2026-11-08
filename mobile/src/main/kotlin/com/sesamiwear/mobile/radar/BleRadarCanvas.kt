@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.radar
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -66,6 +68,9 @@ internal fun BleRadar(
     onBlipClick: (String) -> Unit = {},
 ) {
     val transition = rememberInfiniteTransition(label = "radar")
+    // 端末の「アニメーションを削除」（アニメーション スケール0）がオンのときは、Composeの無限アニメーションが
+    // 進まず、掃引線が一方向で止まる。止まった扇形は「その方向に何かある」と誤解されるため、描かない（2026-11-09）。
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
     val sweepAngle by transition.animateFloat(
         initialValue = 0f,
         targetValue = FULL_TURN_DEGREES,
@@ -99,7 +104,7 @@ internal fun BleRadar(
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = min(size.width, size.height) / 2f - RING_MARGIN_DP.dp.toPx()
         drawRings(center, radius, ringColor, labelColor, textMeasurer)
-        drawSweep(center, radius, sweepAngle, sweepColor)
+        if (animationsEnabled) drawSweep(center, radius, sweepAngle, sweepColor)
         drawCircle(labelColor, radius = CENTER_DOT_DP.dp.toPx(), center = center)
         blips.forEachIndexed { index, blip ->
             val at = blipPosition(blip, center, radius) ?: return@forEachIndexed

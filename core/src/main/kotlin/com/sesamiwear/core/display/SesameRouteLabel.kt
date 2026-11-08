@@ -116,7 +116,7 @@ object SesameRouteLabel {
      * 通知と、ヘルプの「Bluetoothで届かないとき」で同じ対処を案内する。
      */
     const val OFFICIAL_APP_HINT =
-        "セサミ公式アプリを開いていると、そのアプリがBluetoothの接続を掴み、" +
+        "セサミ公式アプリを開いていると、そのアプリがSesameとのBluetooth接続を使っているため、" +
             "こちらから見つけられないことがあります。公式アプリを終了してからお試しください。"
 
     /**

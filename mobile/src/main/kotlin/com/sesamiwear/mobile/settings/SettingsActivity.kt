@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
+import com.sesamiwear.mobile.help.HelpContent
 import com.sesamiwear.mobile.ui.SesameTheme
 
 /**
@@ -27,6 +28,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val start = SettingsPage.fromName(intent.getStringExtra(EXTRA_PAGE))
+        val startTopic = HelpContent.topics.firstOrNull { it.id == intent.getStringExtra(EXTRA_TOPIC) }
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
             LaunchedEffect(isDarkTheme) {
@@ -36,7 +38,7 @@ class SettingsActivity : ComponentActivity() {
             }
             SesameTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    SettingsHost(start = start, onFinish = ::finish)
+                    SettingsHost(start = start, startTopic = startTopic, onFinish = ::finish)
                 }
             }
         }
@@ -44,12 +46,20 @@ class SettingsActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_PAGE = "page"
+        private const val EXTRA_TOPIC = "topic"
 
-        /** [page]から開く。主画面の歯車は一覧、空状態のヘルプ導線はヘルプから開く。 */
+        /**
+         * [page]から開く。主画面の歯車は一覧、空状態のヘルプ導線はヘルプから開く。
+         * [helpTopicId]を渡すと、ヘルプの該当項目の本文を直接開く（接続確認の画面から「見方」を開くため）。
+         */
         fun createIntent(
             context: Context,
             page: SettingsPage = SettingsPage.MAIN,
-        ): Intent = Intent(context, SettingsActivity::class.java).putExtra(EXTRA_PAGE, page.name)
+            helpTopicId: String? = null,
+        ): Intent =
+            Intent(context, SettingsActivity::class.java)
+                .putExtra(EXTRA_PAGE, page.name)
+                .putExtra(EXTRA_TOPIC, helpTopicId)
     }
 }
 

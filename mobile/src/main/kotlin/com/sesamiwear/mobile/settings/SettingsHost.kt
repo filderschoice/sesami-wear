@@ -16,21 +16,23 @@ import com.sesamiwear.mobile.help.HelpTopic
 
 /**
  * 設定画面のページ切り替え。一覧から各ページを開き、戻る操作で一覧（ヘルプの本文なら項目一覧）へ戻る。
- * 一覧を経ずに開いた場合（[start]が一覧以外）は、戻る操作で画面を閉じる。
+ * 一覧を経ずに開いた場合（[start]が一覧以外、または[startTopic]で本文を直接開いた場合）は、戻る操作で画面を閉じる。
  */
 @Composable
 internal fun SettingsHost(
     start: SettingsPage,
+    startTopic: HelpTopic? = null,
     onFinish: () -> Unit,
 ) {
     var page by remember { mutableStateOf(start) }
-    var helpTopic by remember { mutableStateOf<HelpTopic?>(null) }
+    var helpTopic by remember { mutableStateOf(startTopic) }
     val routeNotification = rememberRouteNotificationState()
     val alertSettings = rememberAlertSettingsState()
 
     fun back() {
         when {
-            helpTopic != null -> helpTopic = null
+            // 本文を直接開いた場合は項目一覧を経ていないため、戻る操作で画面を閉じる。
+            helpTopic != null -> if (startTopic != null) onFinish() else helpTopic = null
             page == SettingsPage.MAIN || page == start -> onFinish()
             else -> page = SettingsPage.MAIN
         }

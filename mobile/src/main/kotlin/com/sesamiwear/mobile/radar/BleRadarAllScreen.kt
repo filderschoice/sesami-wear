@@ -103,6 +103,7 @@ internal fun BleRadarAllScreen(
                 },
             ) { Text(text = if (checking == null) "全台の接続を試す" else "確認中…") }
         }
+        RadarHelpLink()
         if (!permission.granted) {
             OutlinedButton(onClick = permission.request) { Text(text = "Bluetoothの権限を許可") }
         }

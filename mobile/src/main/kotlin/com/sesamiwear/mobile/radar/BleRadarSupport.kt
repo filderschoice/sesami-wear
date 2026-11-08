@@ -2,6 +2,8 @@ package com.sesamiwear.mobile.radar
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,6 +16,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.sesamiwear.core.ble.SesameBleProbeSnapshot
 import com.sesamiwear.mobile.ble.SesameBleHeldSessions
 import com.sesamiwear.mobile.ble.SesameBlePermissions
+import com.sesamiwear.mobile.help.HelpContent
+import com.sesamiwear.mobile.settings.SettingsActivity
+import com.sesamiwear.mobile.settings.SettingsPage
 
 /** レーダーへ置く1台ぶんのブリップ。[label]がnullなら名前を出さない（1台だけのとき）。 */
 internal data class RadarBlip(
@@ -66,4 +71,15 @@ internal fun rememberResumed(): Boolean {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumed = true }
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { resumed = false }
     return resumed
+}
+
+/** 接続確認の画面から、ヘルプの「Bluetooth接続の確認（レーダー）」を開くリンク。 */
+@Composable
+internal fun RadarHelpLink() {
+    val context = LocalContext.current
+    TextButton(
+        onClick = {
+            context.startActivity(SettingsActivity.createIntent(context, SettingsPage.HELP, HelpContent.probe.id))
+        },
+    ) { Text(text = "この画面の見方") }
 }

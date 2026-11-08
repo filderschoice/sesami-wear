@@ -5,6 +5,122 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-09 05:00
+  summary: アニメーションがオフの端末でレーダーの掃引線を描かない（ウォッチで動かない件の原因切り分けと対処）
+  details:
+    変更内容: >-
+      ウォッチの接続確認（レーダー）で回る線が動かないという指摘を、実機（Pixel Watch 2）で切り分けた。
+      ウォッチの animator_duration_scale・transition_animation_scale・window_animation_scale がすべて0.0で、
+      この設定ではComposeの無限アニメーションが進まない。0.0のまま1秒おきに3枚撮った画面は完全に一致（変化0画素）、
+      一時的に1.0へ変えて開き直すと約1.4万画素変化し、掃引線が回ることを確認した（確認後に0.0へ戻した。
+      システムが自動で0.0へ戻す挙動もあった）。アプリの不具合ではなく端末の設定が原因だった。
+      ただし止まった扇形は「その方向に何かある」と誤解されるため、スマートフォン・ウォッチのBleRadarCanvasで
+      ValueAnimator.areAnimatorsEnabled()がfalseのときは掃引線を描かないようにした（輪・点・ブリップは出す）。
+      サイトと設計書の静止画（scripts/generate-radar-images.pyの出力）からも掃引線を外した。
+      USER_GUIDE・RELEASE_NOTES・DESIGNへ追記した。
+      検証中に、画面のずれで「すべて更新」を1回押してしまい、2台ぶんの状態取得（BLEが届かずインターネット経由、
+      Web APIの利用カウント0→2）が走った。施錠・解錠の操作ではない。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/BleRadarCanvas.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/radar/BleRadarCanvas.kt
+      - scripts/generate-radar-images.py
+      - site/assets/radar-*.png
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleの6ゲート・markdownlint・記録検証とも終了コード0。実機（Pixel Watch 2、スケール0.0のまま）で、修正後は止まった扇形が出ず輪と点だけが表示されることを確認した。スマートフォン版は同じ変更だが、実機での表示は未確認。
+    関連ID:
+      - なし
+
+- date: 2026-11-09 03:30
+  summary: ヘルプ文言の見直しと、サイト・利用者向け文書に残っていた旧UI表記の更新
+  details:
+    変更内容: >-
+      ヘルプ（HelpContent）の日本語を見直した。「いちばん下」を「一番下」へ、表外字の「繋がって」を「つながって」へ、
+      「値に現れない文字」を「値に使えない文字」へ直し、「施錠・解錠を実行します。施錠はすぐに実行し」のような重複や
+      「カウンタのリセットを待つか…いずれかです」のような回りくどい言い方を整理した。
+      実装との食い違いも直した。タイルの左上は「更新」チップでデバイス名の帯は押せないため、「デバイス名をタップして
+      状態を取り直す」を「更新」の説明へ改めた（登録後のウォッチでの使い方・APIの上限）。ウィジェット追加の案内は
+      「設定メニュー」から歯車の「ウィジェットを追加」へ直した。
+      セサミ公式アプリの案内文（SesameRouteLabel.OFFICIAL_APP_HINT。ヘルプ・通知・レーダーで共通）の「接続を掴み」を
+      「Bluetooth接続を使っているため」へ変えた。HelpContentTestに、「更新」の説明・ひらがな表記・表外字が残らないことの
+      テストを足した。
+      撮影モード画面（デバッグ版）と README の「⋮メニュー」を設定画面へ直した。USER_GUIDE・RELEASE_NOTESの
+      「いちばん下」を「一番下」へ、「接続を掴んでいる」を「占有している」へ、STORE_LISTINGの「設定メニュー」を
+      「設定画面」へ直した。サイト（site/index.html）に、接続確認の機能カードと、レーダー画面のイメージ
+      （ウォッチ・スマートフォン。実機のスクリーンショットではないと alt に明記）を追加した。
+      旧UIのままの掲載スクリーンショット（phone_4・phone_5・phone_7）の撮り直しをBL-284（人手検証）として起票した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameRouteLabel.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ （ShowcaseModeActivity / ShowcaseMarkHiding）
+      - site/index.html
+      - README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - docs/records/managed/BACKLOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - いずれも終了コード0。ヘルプの表示を実機で見る確認は、この後の全体の機能確認でまとめて行う。
+    関連ID:
+      - BL-284
+
+- date: 2026-11-09 02:00
+  summary: 全デバイスの接続確認を右上アイコンと一覧末尾へ移し、接続確認のヘルプをアプリ内へ追加する
+  details:
+    変更内容: >-
+      「全デバイスの接続確認」ボタンが一覧の先頭（カードより前）にあり、よく使うカードを下へ押していたため、
+      右上のBluetoothアイコン（歯車の隣）と、一覧の末尾（カードの後ろ）のボタンの2か所へ移した（どちらも2台以上のときだけ）。
+      接続確認の使い方をヘルプへ「Bluetooth接続の確認（レーダー）」（HelpContent.probe）として追加し、
+      接続確認の画面（単体・全デバイス）に「この画面の見方」を置いて、その項目を直接開く
+      （SettingsActivity.createIntentにhelpTopicIdを追加、SettingsHostにstartTopic。直接開いたときは戻る操作で閉じる）。
+      ヘルプと操作画面の文言に残っていた旧「⋮」の案内3か所を歯車「⚙」へ直した。
+      HelpContentTestに順序・接続確認の文言・「⋮」が残らないことのテストを足した。
+      USER_GUIDE・RELEASE_NOTES・DESIGNを更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialUiState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/ （BleRadarActivity / BleRadarAllScreen / BleRadarSupport）
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/settings/ （SettingsActivity / SettingsHost）
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - Gradleの6ゲート・markdownlint・記録検証とも終了コード0。実機確認（Pixel 8 Pro、デバッグ版、実Sesameは操作せず）で、先頭に接続確認ボタンが無くカードの後ろに末尾ボタン、右上にアイコンがあること、アイコンから全デバイス画面が開くこと、「この画面の見方」でヘルプ本文が直接開き戻る操作で元の画面へ戻ることを確認。単体の接続確認画面の「この画面の見方」は未確認。
+    関連ID:
+      - なし
+
+- date: 2026-11-09 00:30
+  summary: Sesameが0台のときの追加導線を右下のボタンだけにする
+  details:
+    変更内容: >-
+      未登録の空状態（EmptyDeviceState）に「Sesameを追加」ボタンがあり、右下の「Sesameを追加」ボタンと導線が2つ並んでいたため、
+      空状態側のボタンを外した（onAddの受け渡しも削除）。本文は「右下の『Sesameを追加』から登録すると〜」と場所を案内する文にした。
+      ヘルプへの導線（設定画面のヘルプページを開く）は残している。RELEASE_NOTES.md に追記し、DESIGN.md の空状態の記述を更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListParts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは0 issues）。実機確認（Pixel 8 Pro、デバッグ版、撮影モードで0台状態を作成。実Sesameは操作せず）。空状態に追加ボタンが無く右下の「Sesameを追加」だけになること、本文が見切れないこと、右下から入力画面が開くこと（保存せず閉じた）を確認。
+    関連ID:
+      - なし
+
 - date: 2026-11-08 23:30
   summary: スマホ側の設定を歯車→設定画面（SettingsActivity）へ移し、ダイアログと画面を使い分ける
   details:

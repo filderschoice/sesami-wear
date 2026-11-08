@@ -1,5 +1,6 @@
 package com.sesamiwear.wear.radar
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -41,6 +43,9 @@ internal fun BleRadar(
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "radar")
+    // 端末の「アニメーションを削除」（アニメーション スケール0）がオンのときは、Composeの無限アニメーションが
+    // 進まず、掃引線が一方向で止まる。止まった扇形は「その方向に何かある」と誤解されるため、描かない（2026-11-09）。
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
     val sweepAngle by transition.animateFloat(
         initialValue = 0f,
         targetValue = FULL_TURN_DEGREES,
@@ -63,18 +68,20 @@ internal fun BleRadar(
                 style = Stroke(width = RING_STROKE_DP.dp.toPx()),
             )
         }
-        rotate(sweepAngle, center) {
-            drawCircle(
-                brush =
-                    Brush.sweepGradient(
-                        0f to Color.Transparent,
-                        SWEEP_TAIL_STOP to Color.Transparent,
-                        1f to sweepColor.copy(alpha = SWEEP_ALPHA),
-                        center = center,
-                    ),
-                radius = radius,
-                center = center,
-            )
+        if (animationsEnabled) {
+            rotate(sweepAngle, center) {
+                drawCircle(
+                    brush =
+                        Brush.sweepGradient(
+                            0f to Color.Transparent,
+                            SWEEP_TAIL_STOP to Color.Transparent,
+                            1f to sweepColor.copy(alpha = SWEEP_ALPHA),
+                            center = center,
+                        ),
+                    radius = radius,
+                    center = center,
+                )
+            }
         }
         drawCircle(Color.White, radius = CENTER_DOT_DP.dp.toPx(), center = center)
         snapshot.radarFraction?.let { fraction ->
