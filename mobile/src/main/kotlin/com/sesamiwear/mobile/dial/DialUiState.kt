@@ -54,7 +54,7 @@ sealed interface DialUiState {
         fun unavailableMessage(result: SesameBleClient.Result): String =
             when (result) {
                 SesameBleClient.Result.PERMISSION_DENIED ->
-                    "Bluetoothの許可がありません。右上「⋮」→「Bluetoothで直接操作」から許可してください。"
+                    "Bluetoothの許可がありません。右上の歯車「⚙」→「Bluetoothで直接操作」から許可してください。"
                 SesameBleClient.Result.LOGIN_FAILED ->
                     "Sesameに接続できましたが、ログインできませんでした。secretKeyの入力内容を確認してください。"
                 else ->

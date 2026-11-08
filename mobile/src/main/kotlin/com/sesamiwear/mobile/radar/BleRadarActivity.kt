@@ -169,6 +169,7 @@ private fun BleRadarScreen(
                 },
             ) { Text(text = if (checking == null) "接続を試す" else "確認中…") }
         }
+        RadarHelpLink()
         if (!permissionGranted) {
             OutlinedButton(
                 onClick = { permissionLauncher.launch(SesameBlePermissions.missing(context).toTypedArray()) },

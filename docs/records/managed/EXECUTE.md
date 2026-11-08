@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-09 02:00
+  summary: 全デバイスの接続確認を右上アイコンと一覧末尾へ移し、接続確認のヘルプをアプリ内へ追加する
+  details:
+    変更内容: >-
+      「全デバイスの接続確認」ボタンが一覧の先頭（カードより前）にあり、よく使うカードを下へ押していたため、
+      右上のBluetoothアイコン（歯車の隣）と、一覧の末尾（カードの後ろ）のボタンの2か所へ移した（どちらも2台以上のときだけ）。
+      接続確認の使い方をヘルプへ「Bluetooth接続の確認（レーダー）」（HelpContent.probe）として追加し、
+      接続確認の画面（単体・全デバイス）に「この画面の見方」を置いて、その項目を直接開く
+      （SettingsActivity.createIntentにhelpTopicIdを追加、SettingsHostにstartTopic。直接開いたときは戻る操作で閉じる）。
+      ヘルプと操作画面の文言に残っていた旧「⋮」の案内3か所を歯車「⚙」へ直した。
+      HelpContentTestに順序・接続確認の文言・「⋮」が残らないことのテストを足した。
+      USER_GUIDE・RELEASE_NOTES・DESIGNを更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialUiState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/radar/ （BleRadarActivity / BleRadarAllScreen / BleRadarSupport）
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/settings/ （SettingsActivity / SettingsHost）
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/help/HelpContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - Gradleの6ゲート・markdownlint・記録検証とも終了コード0。実機確認（Pixel 8 Pro、デバッグ版、実Sesameは操作せず）で、先頭に接続確認ボタンが無くカードの後ろに末尾ボタン、右上にアイコンがあること、アイコンから全デバイス画面が開くこと、「この画面の見方」でヘルプ本文が直接開き戻る操作で元の画面へ戻ることを確認。単体の接続確認画面の「この画面の見方」は未確認。
+    関連ID:
+      - なし
+
 - date: 2026-11-09 00:30
   summary: Sesameが0台のときの追加導線を右下のボタンだけにする
   details:
