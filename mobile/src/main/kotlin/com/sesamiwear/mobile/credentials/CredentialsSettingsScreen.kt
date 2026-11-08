@@ -111,7 +111,6 @@ fun CredentialsSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             onEdit = { editorTarget = EditorTarget(editing = it) },
             onDelete = { deleteTarget = it },
-            onAdd = { editorTarget = EditorTarget(editing = null) },
         )
     }
 }
@@ -162,7 +161,6 @@ private fun DeviceListContent(
     modifier: Modifier,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
-    onAdd: () -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -171,7 +169,7 @@ private fun DeviceListContent(
     ) {
         // 未登録のときは回数が常に0で意味が無いため、登録を促す表示だけにする（BL-245）。
         if (devices.isEmpty()) {
-            item { EmptyDeviceState(onAdd = onAdd) }
+            item { EmptyDeviceState() }
         } else {
             // 2台以上あるときだけ、まとめて接続確認（BL-280）の入口を先頭に出す。操作が先、目安の数字は後。
             if (devices.size >= 2) item { ProbeAllButton() }

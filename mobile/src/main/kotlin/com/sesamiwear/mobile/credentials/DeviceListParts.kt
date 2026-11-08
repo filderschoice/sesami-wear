@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -65,7 +61,7 @@ internal fun ApiUsageCard(count: Int) {
 }
 
 @Composable
-internal fun EmptyDeviceState(onAdd: () -> Unit) {
+internal fun EmptyDeviceState() {
     val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp),
@@ -94,14 +90,6 @@ internal fun EmptyDeviceState(onAdd: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onAdd) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.IconSize),
-            )
-            Text(text = EMPTY_ADD_LABEL, modifier = Modifier.padding(start = 8.dp))
-        }
         TextButton(onClick = {
             context.startActivity(SettingsActivity.createIntent(context, SettingsPage.HELP))
         }) { Text(text = EMPTY_HELP_LABEL) }
@@ -112,9 +100,8 @@ private const val API_USAGE_TITLE = "今月のAPI呼び出し"
 private const val API_USAGE_NOTE = "このアプリからの分のみ・目安です。上限は契約内容で変わります"
 private const val EMPTY_TITLE = "Sesameを登録しましょう"
 private const val EMPTY_BODY =
-    "SESAME Bizで取得したuuid・apikey・secretKeyを登録すると、ウォッチのタイルやホーム画面の" +
-        "ウィジェットから施錠・解錠できます。"
-private const val EMPTY_ADD_LABEL = "Sesameを追加"
+    "SESAME Bizで取得したuuid・apikey・secretKeyを、右下の「Sesameを追加」から登録すると、" +
+        "ウォッチのタイルやホーム画面のウィジェットから施錠・解錠できます。"
 private const val EMPTY_HELP_LABEL = "値の取得方法・デモで試す方法を見る"
 private const val EMPTY_BADGE_SIZE_DP = 88
 private const val EMPTY_ICON_SIZE_DP = 44

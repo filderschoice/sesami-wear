@@ -5,6 +5,25 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-09 00:30
+  summary: Sesameが0台のときの追加導線を右下のボタンだけにする
+  details:
+    変更内容: >-
+      未登録の空状態（EmptyDeviceState）に「Sesameを追加」ボタンがあり、右下の「Sesameを追加」ボタンと導線が2つ並んでいたため、
+      空状態側のボタンを外した（onAddの受け渡しも削除）。本文は「右下の『Sesameを追加』から登録すると〜」と場所を案内する文にした。
+      ヘルプへの導線（設定画面のヘルプページを開く）は残している。RELEASE_NOTES.md に追記し、DESIGN.md の空状態の記述を更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceListParts.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug /
+      npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: 成功 - いずれも終了コード0（markdownlintは0 issues）。実機での表示確認は未実施（USB接続を外したため人手検証待ち）。
+    関連ID:
+      - なし
+
 - date: 2026-11-08 23:30
   summary: スマホ側の設定を歯車→設定画面（SettingsActivity）へ移し、ダイアログと画面を使い分ける
   details:
