@@ -134,10 +134,12 @@ secretKeyは機密性が高いためウォッチ単体には保持させず、�
 ```bash
 npx markdownlint-cli2 "**/*.md"
 python scripts/validate-records.py
+python scripts/scan-secrets.py --include-unstaged
 ```
 
 `validate-records.py` は `docs/records/managed/` 配下の記録ファイルがYAMLとして読み込めることを
-確認します（PyYAMLが必要）。
+確認します（PyYAMLが必要）。`scan-secrets.py` は差分の追加行に資格情報らしい値が混入していないかを
+検査します（標準ライブラリのみ。コミット前・PR作成前の使い分けは CLAUDE.md の同節を参照）。
 
 ### 撮影モード（デバッグ版のみ）
 

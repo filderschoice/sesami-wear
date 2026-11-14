@@ -33,17 +33,25 @@
 | `.github/PULL_REQUEST_TEMPLATE.md` | PRテンプレート（本文の6節構成とチェックリストの正本） | 必須 |
 | `templates/app-guardrail-template.yaml` | アプリ別ガードレール設定（`replace-me` を解消） | 必須 |
 | `templates/model-risk-register-template.csv` | モデルリスク登録簿（初期リスク2件以上） | 必須 |
-| `scripts/validate-records.py` | 記録ファイルのYAML検証（品質ゲート。PyYAMLが必要） | 必須 |
+| `scripts/validate-records.py` | 記録ファイルのYAML検証と、必須キー・許容値・`id` 重複・`依存` などの機械的な検査（品質ゲート。PyYAMLが必要） | 必須 |
+| `scripts/scan-secrets.py` | コミット前の秘密情報スキャン（品質ゲート。guardrails 12.1。標準ライブラリのみ） | 必須 |
 | `.markdownlint-cli2.yaml` | Markdown 静的解析の設定（品質ゲートのコマンドが `--config` で参照） | 必須 |
 | `.vscode/settings.json` | `pr.instructions.md` を Copilot Chat から参照させる設定 | Copilot のみ |
 | `.vscode/extensions.json` | markdownlint 拡張機能（`DavidAnson.vscode-markdownlint`）の推奨設定 | 任意 |
 | `.github/prompts/pr-create.prompt.md` | PR作成手順の入口（Copilot Chat で `/pr-create`） | Copilot のみ・任意 |
 | `CLAUDE.md` | Claude Code 固有の差分と追加規約（リポジトリルート直下。品質ゲート定義の `replace-me` を解消） | Claude Code のみ |
-| `.claude/settings.json` | 記録ファイル編集を権限プロンプトなしで許可する設定 | Claude Code のみ・任意 |
+| `.claude/settings.json` | 記録ファイル編集を権限プロンプトなしで許可する設定と、記録ファイル編集後の検証フックの登録（`hooks` の登録はフック本体と必ずセットで採否する） | Claude Code のみ・任意 |
+| `.claude/hooks/validate-records-after-edit.py` | 記録ファイルを編集した直後に `scripts/validate-records.py` を実行する PostToolUse フック（`.claude/settings.json` の `hooks` の登録と必ずセットで採否する。`scripts/validate-records.py` が必要） | Claude Code のみ・任意 |
 | `.claude/skills/docs-consistency-review/SKILL.md` | ドキュメント整合性レビューの汎用スキル | Claude Code のみ・任意 |
 | `.claude/skills/autonomous-loop/SKILL.md` | 自律ループ実行モードの実行手順 | Claude Code のみ・モード採用時は必須 |
 | `.claude/skills/pr-create/SKILL.md` | PR作成の実行手順（`gh` での反映） | Claude Code のみ・任意 |
 | `.claude/skills/dependabot-alert-triage/SKILL.md` | Dependabot アラートの出どころ切り分けと対応手順 | Claude Code のみ・任意 |
+| `.claude/skills/loop-orchestration/SKILL.md` | 自律ループをサブエージェントへ委ねて回す進め方（`.claude/agents/` の定義とあわせて使う） | Claude Code のみ・任意 |
+| `templates/project-profile-SKILL-template.md` | 配布先の事情（技術スタック、実機検証、固有の運用、差分レビューの固有の観点、取り込まない資産）をまとめるプロファイルスキルの雛形（`.claude/skills/<名前>/SKILL.md` として作成） | Claude Code のみ・任意 |
+| `.claude/agents/backlog-planner.md` | サブエージェント定義: タスク分解と BACKLOG への起票の計画担当（実装しない） | Claude Code のみ・任意 |
+| `.claude/agents/backlog-implementer.md` | サブエージェント定義: BACKLOG タスクの実装担当（自律ループで実装を委ねる場合） | Claude Code のみ・任意 |
+| `.claude/agents/diff-reviewer.md` | サブエージェント定義: 差分の点検担当（読み取り専用） | Claude Code のみ・任意 |
+| `.claude/agents/quality-gate-runner.md` | サブエージェント定義: 品質ゲートの実行と合否の要約担当（読み取り専用） | Claude Code のみ・任意 |
 
 補足:
 
@@ -61,8 +69,31 @@
 - `.claude/settings.json` を設定しない場合、記録更新のたびに権限確認が入ります。採否は配布先の判断です。
   配布バンドルには記録ファイル関連の許可のみを含む内容で同梱されるため、配布先に同名ファイルが既にある
   場合は上書きせず `permissions.allow` をマージしてください。
+- `.claude/hooks/validate-records-after-edit.py` は、`.claude/settings.json` の `hooks.PostToolUse` に登録して使います
+  （配布バンドルの `.claude/settings.json` に登録済み）。**`hooks` の登録とフック本体（`.claude/hooks/`）は必ずセットで
+  採否してください。** 配布用の `.claude/settings.json` だけを採用してフック本体を置かないと、ファイルを編集するたびに
+  フックのスクリプトが見つからないエラーが出ます。フックを採用しない場合は、`.claude/settings.json` をマージするときに
+  `hooks.PostToolUse` の記録ファイル検証フックの要素を取り込みません。フックは検証に `scripts/validate-records.py`
+  （必須資産）を使うため、同スクリプトも配置します。`docs/records/managed/` 配下の3ファイルを Edit・Write した
+  ときだけ検証を実行し、それ以外の編集では何もせずに終わります。検証に失敗すると終了コード2で結果を Claude へ返し、
+  その場で直させます（編集は取り消されません）。Python・PyYAML・`scripts/validate-records.py` が無い環境では
+  ブロックしないエラー（終了コード1、または起動できない場合のシェルの終了コード）で終わり、編集作業は妨げません。
+  登録コマンドは POSIX sh の書き方で、`python`（無ければ `python3`）でフックを起動します。Windows では Claude Code が
+  フックのコマンドを Git Bash で実行することを前提にしています。フックとフックの登録だけを採用し、
+  `permissions.deny` や、コマンド実行前に禁止操作を拒否するフックは配布しません（deny はユーザーが対話実行で
+  明示的に指示した操作まで止めてしまい、拒否フックはどの操作を通すかが配布先ごとの判断になるため）。
+  設定はセッション開始時に読み込まれるため、配置した直後のセッションでは動かないことがあります。
 - `.claude/skills/` のうち配布されるのは技術スタックに依存しない汎用スキルのみです。配布先固有の作業手順を
   記述したスキルは**配布対象外**であり、導入先で同じ形式により新規作成します。
+- `.claude/agents/` のサブエージェント定義は、ユーザーが明示的に委任を指示した場合（自律ループの分担など）にだけ
+  使われます。プロジェクト固有の観点・コマンドは定義へ書かず、`CLAUDE.md` の品質ゲート表・`DESIGN.md`・
+  `CONTRIBUTING.local.md` から読ませるため、定義はそのままコピーして使えます。`tools` は役割に必要な最小限に
+  絞っており、権限の設定（`.claude/settings.json`）は変えません。定義はセッション開始時に読み込まれるため、
+  配置した直後のセッションでは使えないことがあります。
+- サブエージェント定義が「プロジェクト固有のスキルがあれば読む」としている参照先は、
+  `templates/project-profile-SKILL-template.md` から作るプロファイルスキルを想定しています。配布先の事情を
+  `CLAUDE.md`・`CONTRIBUTING.local.md`・`DESIGN.md` に置けないもの（毎回探し直す事情と正本への道案内）に限って1か所へまとめ、
+  委任文でスキル名を示します。配布先固有のスキルのため、配布元からの取り込みで上書きされません。
 
 ### 1.1 `CLAUDE.md` の `@import` について
 
@@ -86,7 +117,7 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 
 | 資産 | 役割 |
 | --- | --- |
-| `rules/guardrails-unified.v1.md` セクション12 | 統制要件（許可・禁止操作、停止条件、秘密情報の取り扱い）。常時読み込み |
+| `rules/guardrails-unified.v1.md` セクション12 | 統制要件（許可・禁止操作、停止条件、秘密情報の取り扱い、サブエージェントへの委任）。常時読み込み |
 | `CONTRIBUTING.md`「自律ループ実行モードのブランチ・コミット規約」 | ブランチとコミットの運用 |
 | `CLAUDE.md`「自律ループ実行モード（Loop Engineering）」 | 適用条件とスキルの起動方法。常時読み込み |
 | `.claude/skills/autonomous-loop/SKILL.md` | 実行手順の正本。モード起動時のみ読み込み |
@@ -94,7 +125,10 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 実行手順をスキルへ分離しているのは、本モードが明示指示時にしか使われないためです。統制要件は常時読み込み
 されるため、スキルを読み込んでいない状態でも禁止事項は有効です。
 
-採用しない場合は `CLAUDE.md` から該当節を削除し、`.claude/skills/autonomous-loop/` を配置せず、
+実装をサブエージェントへ委ねて会話の利用量を抑える場合は、上記に加えて `.claude/skills/loop-orchestration/SKILL.md` と
+`.claude/agents/` の4定義を配置します（任意）。使うのはユーザーが委任を明示的に指示した場合だけで、統制要件は変わりません。
+
+採用しない場合は `CLAUDE.md` から該当節を削除し、`.claude/skills/autonomous-loop/`（と `loop-orchestration/`）を配置せず、
 `git add` / `git commit` を実行しない既定の運用へ統一してください。`CONTRIBUTING.md`
 「自律ループ実行モードのブランチ・コミット規約」は共通規約として残りますが、`CONTRIBUTING.local.md` に
 不採用と記載すれば適用されません（`CONTRIBUTING.md` 側は編集しません）。
@@ -112,12 +146,18 @@ Claude Code 固有の運用モードです。採用する場合は次の4点が�
 - 推奨方式: 配布先リポジトリに「正本コピー」を配置し、差分を PR で管理する。
 - バージョン管理: ルール本文はファイル名バージョン（例: `guardrails-unified.v1.md`）で管理する。
 - 更新同期: 配布元リポジトリの `CHANGELOG.md` を参照して追従判断する（配布バンドルに含まれる `CHANGELOG.md` は
-  配布先用の空の初期状態のため、配布元の変更履歴は含まない）。
+  配布先用の空の初期状態のため、配布元の変更履歴は含まない）。前回取り込んだ版より新しい版を古い順にたどり、
+  各版の `### <版> 配布先での対応` 小節に挙がった作業（マージするファイルへの反映、新しい資産の配置と採否、
+  配布先のカスタマイズの移し直し）を下記の取り込み時の扱いとあわせて行う。小節の無い版はそのままコピーで足りる。
+  0.29.0 以前の版には小節が無いため、本文の記述から作業を読み取る。
 - 取り込み時の扱い: 配布物は次の3つに分けて取り込む。
   - そのままコピーする: `rules/`、`docs/guidelines/`、`docs/records/spec/FORMAT.md`、`docs/records/README.md`、
-    `CONTRIBUTING.md`、`.github/instructions/`、`templates/`、配布スキル
+    `CONTRIBUTING.md`、`.github/instructions/`、`templates/`、配布スキル、配布サブエージェント定義（`.claude/agents/`）、
+    配布フック（`.claude/hooks/`）
   - 配布先固有の内容とマージする: `CLAUDE.md`（品質ゲート定義など固有に書き換えた節を残す）、
-    `.claude/settings.json`（`permissions.allow` をマージ）、`.github/copilot-instructions.md`（下記）
+    `.claude/settings.json`（`permissions.allow` をマージし、`hooks.PostToolUse` へ記録ファイル検証フックの要素を
+    追加する。同じフックの要素が既にあれば置き換え、配布先固有のフックの要素は残す）、
+    `.github/copilot-instructions.md`（下記）
   - `.github/copilot-instructions.md` は Copilot が自動読み込みする唯一の規約ファイルのため、Copilot にも
     効かせる必要がある固有の規約（実資格情報を扱わない旨、利用者向けリリースノートなど記録対象の追加）は
     `CONTRIBUTING.local.md` へ逃がせず、同ファイルへ書くしかない。固有の追記は「参照するドキュメント」表の行と、

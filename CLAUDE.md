@@ -153,23 +153,29 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 共通規約「品質ゲート」を本リポジトリでの具体的なコマンドと合否基準へ落とし込みます。Copilot・Claude Code など
 全エージェント共通で使用する正本です。
 
-| ゲート | コマンド | 合否基準 |
-| --- | --- | --- |
-| コードスタイル（ktlint） | `./gradlew ktlintCheck` | 終了コード0 |
-| 静的解析（detekt） | `./gradlew detekt` | 終了コード0（`maxIssues: 0`） |
-| Android Lint | `./gradlew lintDebug` | 終了コード0 |
-| 単体テスト | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
-| ビルド | `./gradlew assembleDebug` | 終了コード0 |
-| Markdown静的解析 | `npx markdownlint-cli2 "**/*.md"` | `Summary: 0 issues`、かつ出力の `Linting: N files` が `git ls-files --cached --others --exclude-standard "*.md"` の件数と一致（対象漏れの検出。`.claude/` `.github/` などドット配下も走査される） |
-| 記録ファイルのYAML検証 | `python scripts/validate-records.py`（PyYAMLが必要） | 終了コード0（検査内容はスクリプトのdocstring、体裁の正本は `docs/records/spec/FORMAT.md`） |
-| 脆弱性チェック | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
+| ゲート | 段階 | コマンド | 合否基準 |
+| --- | --- | --- | --- |
+| コードスタイル（ktlint） | コード | `./gradlew ktlintCheck` | 終了コード0 |
+| 静的解析（detekt） | コード | `./gradlew detekt` | 終了コード0（`maxIssues: 0`） |
+| Android Lint | コード | `./gradlew lintDebug` | 終了コード0 |
+| 単体テスト | コード | `./gradlew testDebugUnitTest test` | 終了コード0（`core` / `mobile` / `wear` 全モジュール） |
+| ビルド | コード | `./gradlew assembleDebug` | 終了コード0 |
+| Markdown静的解析 | 毎回 | `npx markdownlint-cli2 "**/*.md"` | `Summary: 0 issues`、かつ出力の `Linting: N files` が `git ls-files --cached --others --exclude-standard "*.md"` の件数と一致（対象漏れの検出。`.claude/` `.github/` などドット配下も走査される） |
+| 記録ファイルのYAML検証 | 毎回 | `python scripts/validate-records.py`（PyYAMLが必要） | 終了コード0（検査内容はスクリプトのdocstring、体裁の正本は `docs/records/spec/FORMAT.md`） |
+| 秘密情報スキャン | 毎回 | ステージ済みの変更がある場面（コミット前）は `git add` の後に `python scripts/scan-secrets.py --require-changes`、ステージしない場面（対話実行・Copilot など）は `python scripts/scan-secrets.py --include-unstaged`、PR作成前・ループの最後は `python scripts/scan-secrets.py --range main...HEAD --require-changes`（標準ライブラリのみ。未コミットの変更とコミット範囲の両方を確かめるときは2回に分けて実行する。ファイルの削除だけをコミットする場面は検査対象が空になるため `--require-changes` を外す） | 終了コード0（検出時は値を出さずにファイル・行・規則名を表示し1。`--require-changes` 付きで検査対象が空のとき、git の実行に失敗したときは2） |
+| 脆弱性チェック | - | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
 
 - 上記コマンドを変更・追加した場合は本セクションを更新する（`CONTRIBUTING.local.md`「品質ゲート」と
   `README.md` は本節を参照しており、コマンドを複製しない。複製を見つけたら本節へ寄せる）
-- 変更の種類ごとの適用（PRのチェックリストで実行済みとしてよい範囲）: Gradle系の5ゲート（ktlint〜ビルド）は
-  `core` / `mobile` / `wear` 配下またはGradle設定を変更した場合、Markdown静的解析は `.md` を変更した場合、
-  記録ファイルのYAML検証は `docs/records/managed/` を変更した場合に実行する。自律ループ実行モードでは
-  変更の種類によらず全ゲートを実行する
+- 段階: `毎回` は自律ループの全イテレーションで実行する。`コード` は `core` / `mobile` / `wear` 配下または
+  Gradle設定を変更したイテレーションで追加して実行する。自律ループの最後とPR作成前は、段階によらず
+  最後のコミットの状態で全ゲートを実行する（Skill `autonomous-loop`・`pr-create`）
+- 対話実行での変更の種類ごとの適用（PRのチェックリストで実行済みとしてよい範囲）: `コード` 段階の5ゲートは
+  上記の変更をした場合、Markdown静的解析は `.md` を変更した場合、記録ファイルのYAML検証は
+  `docs/records/managed/` を変更した場合に実行する。秘密情報スキャンは変更の種類によらず実行する
+- 秘密情報スキャンは差分の追加行だけを見る。テストのダミー値やヘッダ名の定数でも資格情報らしいキーへの
+  リテラル代入は検出されるため、検出されたら値を定数・外部から読む形へ書き換えて通す（スクリプトへ
+  除外指定を足すことは統制の緩和として扱い、独断で行わない）
 - ktlintの違反は `./gradlew ktlintFormat` で自動修正できる（品質ゲートには含めない）
 - 本リポジトリにCIはなく、上記コマンドのローカル実行が唯一の品質ゲート
   （補足は `CONTRIBUTING.local.md`「品質ゲート」参照）
@@ -211,6 +217,13 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 ルールファイル（`CLAUDE.md` / `rules/` / `CONTRIBUTING.md` / `CONTRIBUTING.local.md`）・`.github/` 配下・
 `docs/records/spec/FORMAT.md` の編集は確認を挟みます。
 
+3ファイルを編集すると、`.claude/settings.json` の `hooks` に登録した PostToolUse フック
+（`.claude/hooks/validate-records-after-edit.py`）が `scripts/validate-records.py` を実行します。検証に失敗したと
+伝えられたら、一連の編集を終えた時点で `FORMAT.md` に沿って直します（フックは編集を取り消しません）。
+`permissions.allow` には記録ファイルのほか `core/` `mobile/` `wear/` `scripts/` 配下と `CHANGELOG.md` /
+`README.md` の編集も含めています。配布元はフックが実行するスクリプトを確認なしで書き換えられないよう
+`scripts/` の許可を外していますが、本リポジトリはユーザー判断で残しています（2026-11-14）。
+
 ## 自律ループ実行モード（Loop Engineering）
 
 人の応答を待たずに複数イテレーションを連続実行する、Claude Code 固有の運用モードです（Copilot は対象外）。
@@ -222,8 +235,8 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
   実行してよい（品質ゲート・記録更新・秘密情報の確認は従来どおり）。**新しいセッションでは継続とみなさない**
   （改めて開始の指示が要る）。`git push` とPRの作成・更新・マージは継続中でも行わない（禁止範囲は変わらない）
 - **起動方法（MUST）**: Skill `autonomous-loop` を起動し、その手順に従う。手順を記憶や推測で代用しない
-- 統制要件（禁止操作・停止条件・秘密情報の取り扱い）は常時読み込みの `rules/guardrails-unified.v1.md`
-  セクション12、ブランチ・コミット規約は `CONTRIBUTING.md` の同名節が正本
+- 統制要件（禁止操作・停止条件・秘密情報の取り扱い。サブエージェントへの委任時は 12.7）は常時読み込みの
+  `rules/guardrails-unified.v1.md` セクション12、ブランチ・コミット規約は `CONTRIBUTING.md` の同名節が正本
 
 ## 保守
 
