@@ -7,6 +7,40 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-14（ガードレール配布元 v0.30.0 の追従）
+
+配布元 `copilot-rules` v0.30.0 の配布バンドルを取り込みました（Skill `guardrail-rules-sync` /
+`guardrail-sync-local`）。任意の資産は、採否をユーザーが判断しました（2026-11-14）。
+
+- **そのままコピー**: `rules/guardrails-unified.v1.md`（セクション12.7「サブエージェントへの委任」の追加）、
+  `CONTRIBUTING.md`、`docs/guidelines/ADOPTION.md`、Skill `pr-create` / `docs-consistency-review`、
+  `scripts/validate-records.py`（`区分` の許容値・`id` の重複・EXECUTE.md の必須キーと型の検査、UTF-8 出力）。
+  更新後の検証で既存の記録（BACKLOG 2件・EXECUTE 183件）に違反はありませんでした。
+- **秘密情報スキャンの導入**: `scripts/scan-secrets.py` を配置し、`CLAUDE.md` の品質ゲート表へ配布元どおりの行を
+  追加しました。`README.md` のコマンド例と `.github/PULL_REQUEST_TEMPLATE.md` のチェックリストにも追加しています。
+  既存コードの全履歴へ試しに実行すると、ヘッダ名の定数やテストのダミー値で23件の誤検出がありました。差分の追加行だけが
+  検査対象のため既存コードは影響しませんが、同様の行を足すと不合格になります。除外指定は足さず、値を定数・外部から読む
+  形へ書き換えて通す方針を `CLAUDE.md` に明記しました。
+- **品質ゲートの段階**: 品質ゲート表へ「段階」列を追加しました（`毎回` = Markdown・記録ファイル・秘密情報スキャン、
+  `コード` = Gradle の5ゲート）。自律ループの各イテレーションは該当する段階だけを実行し、ループの最後とPR作成前は
+  全ゲートを実行します。対話実行での変更の種類ごとの適用範囲は従来どおりです。
+- **記録ファイル検証フック**: `.claude/hooks/validate-records-after-edit.py` を配置し、`.claude/settings.json` の
+  `hooks.PostToolUse` へ登録しました。配布元はフックが実行するスクリプトを確認なしで書き換えられないよう
+  `Edit(scripts/**)` の許可を外していますが、本リポジトリはユーザー判断で許可を残しています。`CLAUDE.md`
+  「記録ファイルの権限設定」に、フックの説明と、実際の許可範囲（記録ファイル以外の許可を含む）を書きました。
+- **サブエージェントへの委任**: `.claude/agents/` の4定義（`backlog-planner` / `backlog-implementer` /
+  `diff-reviewer` / `quality-gate-runner`）と Skill `loop-orchestration` を配置し、Skill `autonomous-loop` へ配布元の
+  変更（分担の節、段階、秘密情報スキャン、`進行中` 更新の省略条件）を本リポジトリ固有の記述を残してマージしました。
+  `CLAUDE.md`「自律ループ実行モード」の統制要件の行に 12.7 への言及を足しました。
+- **取り込まないもの**: `templates/project-profile-SKILL-template.md`（プロファイルは `guardrail-sync-local` と
+  各固有スキルが既にある）、`templates/CONTRIBUTING.local-template.md`、Skill `dependabot-alert-triage`。
+  `.github/copilot-instructions.md`・`docs/records/spec/FORMAT.md`・`.markdownlint-cli2.yaml`・`.vscode/`・
+  `.github/CODEOWNERS` は配布元の変更が無く、本リポジトリ版を維持しました。
+- `docs/records/managed/DESIGN.md` の前提環境に残っていた旧区分「段階B」への参照を、品質ゲート定義への参照へ改めました。
+- 規範の追加は配布元由来の guardrails 12.7 と秘密情報スキャンのゲートだけで、本リポジトリ独自の規範の追加・削除は
+  ありません。常時読み込みの合計は 49,330 → 56,327 bytes（ルールファイル 41,166 → 45,130、skill description
+  8,164 → 9,226、サブエージェントの description 0 → 1,971）。増加はすべて採用した資産の分です。
+
 ## 2026-11-08（0.16.0の配信完了、BL-284 / BL-285）
 
 0.16.0 が Google Play の両トラック（電話・タブレット系 / Wear OS 専用）で公開されたため、タグ `v0.16.0`

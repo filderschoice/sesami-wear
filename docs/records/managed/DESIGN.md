@@ -29,7 +29,7 @@
   操作手段はウォッチのTile（表示はComplicationも）と、スマートフォンのホーム画面ウィジェット
   （BL-121〜BL-124）の2つで、ウィジェットはウォッチを持たない利用者も使える。
 - 前提環境: JDK 17、Android SDK（compileSdk/targetSdk 36、build-tools 36.0.0）、Gradle 8.13
-  （Gradle Wrapper経由）。詳細は `CLAUDE.md`「本リポジトリの品質ゲート定義」段階Bを参照。
+  （Gradle Wrapper経由）。品質ゲートのコマンドと段階は `CLAUDE.md`「本リポジトリの品質ゲート定義」を参照。
 
 ## 実装済み機能要件
 

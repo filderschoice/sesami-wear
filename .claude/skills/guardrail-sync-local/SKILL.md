@@ -14,7 +14,7 @@ description: ガードレール・エージェント指示ルールを配布元�
 | --- | --- |
 | 配布元リポジトリ | `C:\Dev\repo\play\copilot-rules`（2026-09-23時点。旧所在 `C:\Dev\repo\copilot-rules` から移動した。見つからなければユーザーへ所在を確認する） |
 | 追従判断の根拠 | 同リポジトリの `CHANGELOG.md`（バージョン節に意図と計測値がある） |
-| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮）、v0.28.0（2026-10-13。出力要件の「提示の仕方」、禁止カテゴリの `guardrails-app` への移設）、v0.29.0（2026-10-24。markdownlint の `gitignore: true`、`copilot-instructions.md` のマージ区分化） |
+| 取り込み実績 | v0.23.0（2026-09-12。「共通規約1ファイル + エージェント固有差分」構成へ再編）、v0.26.0（2026-09-23。ガードレールの2ファイル分割、PR規範の集約、常時読み込みの圧縮）、v0.28.0（2026-10-13。出力要件の「提示の仕方」、禁止カテゴリの `guardrails-app` への移設）、v0.29.0（2026-10-24。markdownlint の `gitignore: true`、`copilot-instructions.md` のマージ区分化）、v0.30.0（2026-11-14。guardrails 12.7、秘密情報スキャン、品質ゲートの段階、記録ファイル検証フック、サブエージェント定義） |
 
 **配布元の変更の多くは本リポジトリからの逆輸入**（v0.26.0 など）。逆輸入の際に配布元は本リポジトリ固有の
 記述を汎用文面へ置き換えているため、「配布元にある＝採る」ではない。差分の `-` 側（本リポジトリにしか無い行）が
@@ -38,7 +38,10 @@ description: ガードレール・エージェント指示ルールを配布元�
   汎用版になった。変更の種類ごとの適用範囲は `CLAUDE.md`「本リポジトリの品質ゲート定義」に置く）
 - `.github/prompts/pr-create.prompt.md`、
   `.claude/skills/pr-create/SKILL.md`（v0.28.0 で配布元へ `model: haiku` が入り、固有改変が無くなった）、
-  `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`
+  `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`、`scripts/scan-secrets.py`
+  （除外指定の仕組みは無い。足すと統制の緩和になるため、本リポジトリ固有の規則・除外は足していない）
+- `.claude/agents/*.md`（4定義）、`.claude/skills/loop-orchestration/SKILL.md`、
+  `.claude/hooks/validate-records-after-edit.py`（v0.30.0 で採用。2026-11-14 ユーザー判断）
 
 ### 固有改変をマージ（配布元の構造を採り、固有の内容は残す）
 
@@ -66,10 +69,11 @@ markdownlint は `gitignore: true` で `.gitignore` の除外に従うため、�
 | --- | --- |
 | `.github/PULL_REQUEST_TEMPLATE.md` | 品質ゲート・資格情報混入確認のチェックリストを持つ独自版 |
 | `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ）。`* @filderschoice` で `rules/` 配下の新ファイルも担当済み |
-| `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み |
+| `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み。`hooks` だけは配布元の要素を取り込む（v0.30.0）。配布元が外した `Edit(scripts/**)` はユーザー判断で残している（2026-11-14） |
 | `.vscode/settings.json` / `extensions.json` | ターミナル自動承認と Gradle 拡張の非推奨指定を追加済み |
 | `.claude/skills/dependabot-alert-triage/` | 取り込まない（2026-10-24 ユーザー判断）。脆弱性チェックが未導入で Dependabot の運用も無い |
 | `templates/CONTRIBUTING.local-template.md` | `CONTRIBUTING.local.md` を作成済みのため不要 |
+| `templates/project-profile-SKILL-template.md` | 本スキルと各固有スキル（`realmachine-verification` 等）がプロファイルの役割を担っているため不要 |
 
 ## 取り込み後に必ず確認すること
 
@@ -108,12 +112,13 @@ CRLF化していないことも確認する。
 grep -n "gradlew\|markdownlint" CLAUDE.md CONTRIBUTING.local.md README.md | grep -v "^CHANGELOG"
 ```
 
-現在の品質ゲート（`CLAUDE.md` の表のうち脆弱性チェックを除く7項目）:
+現在の品質ゲート（`CLAUDE.md` の表のうち脆弱性チェックを除く8項目。v0.30.0 から「段階」列を持つ）:
 
 ```bash
 ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug
 npx markdownlint-cli2 "**/*.md"
 python scripts/validate-records.py
+python scripts/scan-secrets.py --include-unstaged   # コミット前・PR作成前の使い分けは CLAUDE.md
 ```
 
 定義を変えたら、**それを説明している派生記述**も追う。段階A/Bの区分を廃止したとき、
@@ -178,3 +183,6 @@ git ls-files --cached --others --exclude-standard "*.md" | wc -l
 - 2026-10-24: 配布元 v0.29.0 の取り込みを経て更新。`.markdownlint-cli2.yaml` をマージ区分へ移し
   （`gitignore: true` を採用）、`copilot-instructions.md` の固有の追記を現在の位置に残す判断と、
   取り込まないファイル（`dependabot-alert-triage`、`CONTRIBUTING.local-template.md`、`.vscode/`）を記録した。
+- 2026-11-14: 配布元 v0.30.0 の取り込みを経て更新。新規資産（秘密情報スキャン・フック・サブエージェント定義・
+  `loop-orchestration`）の分類、`.claude/settings.json` の `hooks` の扱いと `Edit(scripts/**)` を残す判断、
+  品質ゲートの項目数を反映した。
