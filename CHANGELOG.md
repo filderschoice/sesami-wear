@@ -7,6 +7,18 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-15（Dependabot の実効性の記録）
+
+GitHubのCode securityでDependabotの脆弱性アラートとセキュリティ更新が有効になっていること（BL-085で
+設定済み）を確認しました。一方、依存関係グラフ（SBOM）にはリポジトリ自身の1件しか載っておらず、
+Gradleの依存（`build.gradle.kts` / `libs.versions.toml`）を読めていないため、Dependabotは実質的に
+働いていません（アラート0件・Dependabot由来のPR0件）。
+
+- 設定は有効のまま維持し、記録だけを更新しました（ユーザー判断）。
+- `CLAUDE.md` 品質ゲート表の「脆弱性チェック」行へ、上記の実態と、アラート0件を「脆弱性なし」と
+  読まないこと、dependency submission のワークフロー追加はCI/CD定義の変更として人が判断することを追記しました。
+- 品質ゲートのコマンド・合否基準は変えていません。
+
 ## 2026-11-14（ガードレール配布元 v0.30.0 の追従）
 
 配布元 `copilot-rules` v0.30.0 の配布バンドルを取り込みました（Skill `guardrail-rules-sync` /
