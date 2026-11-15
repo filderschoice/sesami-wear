@@ -71,7 +71,7 @@ markdownlint は `gitignore: true` で `.gitignore` の除外に従うため、�
 | `.github/CODEOWNERS` | メンテナー1名体制（配布元は `@your-org/...` のプレースホルダ）。`* @filderschoice` で `rules/` 配下の新ファイルも担当済み |
 | `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み。`hooks` だけは配布元の要素を取り込む（v0.30.0）。配布元が外した `Edit(scripts/**)` はユーザー判断で残している（2026-11-14） |
 | `.vscode/settings.json` / `extensions.json` | ターミナル自動承認と Gradle 拡張の非推奨指定を追加済み |
-| `.claude/skills/dependabot-alert-triage/` | 取り込まない（2026-10-24 ユーザー判断）。脆弱性チェックが未導入で Dependabot の運用も無い |
+| `.claude/skills/dependabot-alert-triage/` | 取り込まない（2026-10-24 ユーザー判断）。脆弱性チェックが未導入で Dependabot の運用も無い（Dependabot 自体は有効だが Gradle の依存を読めずアラートが出ない。`CLAUDE.md` 品質ゲート表参照） |
 | `templates/CONTRIBUTING.local-template.md` | `CONTRIBUTING.local.md` を作成済みのため不要 |
 | `templates/project-profile-SKILL-template.md` | 本スキルと各固有スキル（`realmachine-verification` 等）がプロファイルの役割を担っているため不要 |
 

@@ -163,7 +163,7 @@ ANDROID_SERIAL=<ウォッチのデバイスID>  ./gradlew :wear:installDebug
 | Markdown静的解析 | 毎回 | `npx markdownlint-cli2 "**/*.md"` | `Summary: 0 issues`、かつ出力の `Linting: N files` が `git ls-files --cached --others --exclude-standard "*.md"` の件数と一致（対象漏れの検出。`.claude/` `.github/` などドット配下も走査される） |
 | 記録ファイルのYAML検証 | 毎回 | `python scripts/validate-records.py`（PyYAMLが必要） | 終了コード0（検査内容はスクリプトのdocstring、体裁の正本は `docs/records/spec/FORMAT.md`） |
 | 秘密情報スキャン | 毎回 | ステージ済みの変更がある場面（コミット前）は `git add` の後に `python scripts/scan-secrets.py --require-changes`、ステージしない場面（対話実行・Copilot など）は `python scripts/scan-secrets.py --include-unstaged`、PR作成前・ループの最後は `python scripts/scan-secrets.py --range main...HEAD --require-changes`（標準ライブラリのみ。未コミットの変更とコミット範囲の両方を確かめるときは2回に分けて実行する。ファイルの削除だけをコミットする場面は検査対象が空になるため `--require-changes` を外す） | 終了コード0（検出時は値を出さずにファイル・行・規則名を表示し1。`--require-changes` 付きで検査対象が空のとき、git の実行に失敗したときは2） |
-| 脆弱性チェック | - | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する |
+| 脆弱性チェック | - | (未導入) | Gradleの依存脆弱性スキャン（`dependencyCheck` 等）は未導入。導入した場合は本節を更新する。GitHubのDependabot（脆弱性アラート・セキュリティ更新）は有効だが、依存関係グラフがGradleの依存を読めておらず（SBOMにリポジトリ自身の1件のみ。2026-11-15確認）、アラートもPRも発生しない。アラート0件を「脆弱性なし」と読まない。dependency submission のワークフローを足す場合はCI/CD定義の追加として人が判断する |
 
 - 上記コマンドを変更・追加した場合は本セクションを更新する（`CONTRIBUTING.local.md`「品質ゲート」と
   `README.md` は本節を参照しており、コマンドを複製しない。複製を見つけたら本節へ寄せる）
