@@ -7,13 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-19（Wear OS用の掲載画像には説明文を入れないと決定）
+
+ユーザーの決定（「Wear OS用は入れないで進めて」）により、Wear OS用の掲載画像（`wear_*`）には説明文を入れず、
+アプリの画面をそのまま掲載する方針としました。BL-289 を削除し、`docs/store/README.md` へ方針と理由を追記しました。
+決定の範囲はWear OS用画像へ説明文を入れないことだけです。
+
 ## 2026-11-19（スマートフォン用の掲載画像へ説明文を追加）
 
 `scripts/caption-screenshots.py` と、説明文を入れたスマートフォン用8枚（`docs/store/images/screenshots_captioned/`）を
 追加しました（BL-286）。Play Consoleのスマートフォン用の枠へ投入するのはこちらで、元画像（`screenshots/`）は
 紹介ページ（`site/`）とウィジェットのプレビュー画像の元として残します。`docs/store/README.md`・`STORE_LISTING.md`・
 Skill `store-screenshot-capture` / `store-screenshot-masking` へ、投入先の区別と作り直しの手順を追記しました（BL-287）。
-Wear OS用は加工していません（BL-289）。
+Wear OS用は加工していません。
 
 ## 2026-11-19（掲載画像への説明文の追加を起票）
 
