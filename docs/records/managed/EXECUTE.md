@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-19 12:00
+  summary: スマートフォン用の掲載画像8枚へ機能の説明文を入れる scripts/caption-screenshots.py と出力画像を追加する（BL-286）
+  details:
+    変更内容: >-
+      docs/store/images/screenshots/phone_1〜phone_8（1350x2400）から、上端400pxを帯色 #1E3A5F の説明文の領域とし、
+      元画像を高さ2000pxへ縮小して下側の中央へ置いた説明文入りの版を、docs/store/images/screenshots_captioned/ へ
+      同じファイル名で出力するスクリプトを追加した（Pillowのみ、24bit PNG、フォントは同梱せず
+      C:/Windows/Fonts/NotoSansJP-VF.ttf を既定で参照し、無ければエラーで止まる）。元画像は変更していない。
+      説明文は案どおりだが、1行に収まらない2文（phone_4・phone_6）へ半角空白の改行位置を足した。
+      Wear OS用（wear_*）は加工していない。縮小版の目視で文字の欠け・はみ出し・豆腐が無いことを確認した。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/images/screenshots_captioned/phone_1_widget_locked.png ほか7枚
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - スクリプトが8枚を再現生成し、各1350x2400のRGBであることと、縮小版での文字の収まりを確認した。
+      各ゲートとも終了コード0。ドキュメントの追随はBL-287で行う。
+    関連ID:
+      - BL-286
+
 - date: 2026-11-09 05:00
   summary: アニメーションがオフの端末でレーダーの掃引線を描かない（ウォッチで動かない件の原因切り分けと対処）
   details:
