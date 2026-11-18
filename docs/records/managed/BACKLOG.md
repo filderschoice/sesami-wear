@@ -41,29 +41,6 @@
   根拠: >-
     Play Consoleはブラウザ専用の操作で、掲載情報の更新は外部への発信にあたるため自律ループでは
     実行できない（rules/guardrails-unified.v1.md 12.2）。見た目の良し悪しも自動判定できない。
-  依存: [BL-287]
-
-- id: BL-287
-  区分: 品質ゲート
-  タスク内容: >-
-    BL-286の説明文入り掲載画像に、ドキュメントを追随させる。
-    (1) docs/store/README.md の「ファイル一覧」と内訳へ screenshots_captioned/ を足し、Play Consoleへ
-    投入するのは説明文入りの方であること、元画像（screenshots/）は紹介ページ（site/）とウィジェットの
-    プレビュー画像（scripts/make-widget-previews.py）の元として残すこと、説明文の一覧と作り直しのコマンドを書く。
-    「Play Consoleの入力項目との対応」のスマートフォン行の参照先も直す。
-    (2) docs/store/STORE_LISTING.md「スクリーンショット」節を同じ内容へ合わせる。
-    (3) Skill store-screenshot-capture（撮影後のドキュメント更新）と store-screenshot-masking へ、
-    元画像を差し替えたら scripts/caption-screenshots.py で作り直す手順を1〜2行で足す。
-    .claude/ 配下の編集を権限で拒否されたら、(3) は行わずに報告する。
-    (4) CHANGELOG.md へ記録する。
-  優先度: P2
-  状態: 未着手
-  担当: AIエージェント
-  完了条件: >-
-    上記(1)〜(4)が反映され、Markdown静的解析・記録ファイルのYAML検証・秘密情報スキャンが合格していること
-  根拠: >-
-    元画像は site/ とウィジェットのプレビュー画像の元でもあり、どちらを投入するかを書かないと
-    取り違える。画像の生成（BL-286）と分けたのは、1コミットの差分を画像とスクリプト、文書とで分けて点検しやすくするため。
   依存: []
 
 - id: BL-195

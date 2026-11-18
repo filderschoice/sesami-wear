@@ -11,9 +11,13 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | 収集する情報・保存方法・送信先・削除方法 | プライバシーポリシーURL、データ安全性の申告根拠 |
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
-| [images/screenshots/](images/screenshots/) | スマートフォン用8枚・Wear OS用8枚 | スクリーンショット |
+| [images/screenshots_captioned/](images/screenshots_captioned/) | スマートフォン用8枚（説明文入り） | スクリーンショット（スマートフォン） |
+| [images/screenshots/](images/screenshots/) | スマートフォン用8枚（元画像）・Wear OS用8枚 | スクリーンショット（Wear OS）。スマートフォン用は説明文入りの元 |
 
-`images/screenshots/` の内訳は次のとおりです。ファイル名の接頭辞がPlay Consoleの投入先の枠に
+`images/screenshots/` の内訳は次のとおりです。スマートフォン用（`phone_*`）は、Play Consoleへ投入するのは
+説明文入りの `images/screenshots_captioned/` の同名ファイルです（下記「説明文入りの画像」）。元画像は
+紹介ページ（`site/`）とウィジェットのプレビュー画像（`scripts/make-widget-previews.py`）の元として残すため、
+上書きしません。ファイル名の接頭辞がPlay Consoleの投入先の枠に
 対応します（スマートフォン用とWear OS用は別の枠です）。
 
 | ファイル | 内容 | サイズ |
@@ -74,6 +78,30 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 - Wear OSエミュレータ（AVD `wearos`）はスマートフォンのエミュレータとペア設定できず、タイルが常に
   「スマホ未接続」表示になるため撮影には使えません（`docs/INSTALL.md`「1.8」）。
 
+### 説明文入りの画像
+
+`images/screenshots_captioned/` は、`phone_1`〜`phone_8` の元画像へ機能の短い説明文を入れた版です
+（1350x2400・24bit PNG。上端400pxを帯色 `#1E3A5F` の説明文の領域とし、元画像は高さ2000pxへ縮小して下側へ置いています）。
+Wear OS用は、アプリの画面そのままを掲載する方針のため加工していません（BL-289）。
+
+| ファイル | 説明文 |
+| --- | --- |
+| `phone_1_widget_locked.png` | ホーム画面から ワンタップで施錠・解錠 |
+| `phone_2_widget_unlock_confirm.png` | 解錠は確認してから実行 |
+| `phone_3_widget_unlocked.png` | 1台ずつ・全台まとめて 状態がひと目で分かる |
+| `phone_4_device_list.png` | セサミごとの状態と 電池を一覧で確認 |
+| `phone_5_menu.png` | 操作の経路や通知を設定 |
+| `phone_6_radar.png` | Bluetoothの届き具合を レーダーで確認 |
+| `phone_7_radar_all.png` | 全台の接続をまとめて確認 |
+| `phone_8_dial.png` | ダイヤルをなぞって Bluetoothで直接操作 |
+
+作り直しは、元画像を差し替えたとき、または説明文（`scripts/caption-screenshots.py` の `CAPTIONS`）を
+直したときに行います（Pillowが必要。フォントは同梱せず、既定でWindows標準のNoto Sans JPを参照します）。
+
+```bash
+python scripts/caption-screenshots.py
+```
+
 リリースごとの「このリリースの新機能」欄の文面は、このディレクトリではなく
 [../RELEASE_NOTES.md](../RELEASE_NOTES.md) の各バージョンの「ストア掲載用の要約」で管理します。
 
@@ -87,7 +115,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | アプリのカテゴリ | STORE_LISTING.md「カテゴリ（案）」 | |
 | アプリアイコン | images/play_store_icon_512.png | 512x512、32bit PNG（アルファなし） |
 | 機能グラフィック | images/play_feature_graphic_1024x500.png | 1024x500、24bit PNG（アルファなし） |
-| スクリーンショット（スマートフォン） | images/screenshots/phone_*.png | 最低2枚 |
+| スクリーンショット（スマートフォン） | images/screenshots_captioned/phone_*.png | 最低2枚。説明文入りの方を投入する |
 | スクリーンショット（Wear OS） | images/screenshots/wear_*.png | スマートフォン用とは別の枠へ投入する |
 | プライバシーポリシーURL | PRIVACY_POLICY.md（下記「公開URL」） | 必須項目 |
 | データ安全性（Data safety） | PRIVACY_POLICY.md の記載内容 | 申告済み（下記「データ安全性の申告内容」） |
