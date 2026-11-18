@@ -37,7 +37,7 @@ SIDE_MARGIN = 60
 
 # 半角空白は改行してよい位置。表示では空白で2行に分ける。
 CAPTIONS = {
-    "phone_1_widget_locked.png": "ホーム画面から ワンタップで施錠・解錠",
+    "phone_1_widget_locked.png": "ホーム画面から すぐに施錠・解錠",
     "phone_2_widget_unlock_confirm.png": "解錠は確認してから実行",
     "phone_3_widget_unlocked.png": "1台ずつ・全台まとめて 状態がひと目で分かる",
     "phone_4_device_list.png": "セサミごとの状態と 電池を一覧で確認",

@@ -6,6 +6,23 @@
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
 - date: 2026-11-19 14:00
+  summary: phone_1 の説明文を「ホーム画面から すぐに施錠・解錠」へ変える（ユーザーの決定）
+  details:
+    変更内容: >-
+      ユーザーの決定（「phone_1は案Bで」）により、phone_1 の説明文を「ホーム画面から ワンタップで施錠・解錠」から「ホーム画面から すぐに施錠・解錠」へ変えた（解錠は確認を挟むため「ワンタップ」が実挙動と合わない）。決定の範囲は phone_1 だけで、他の7枚の文言は変えていない。空白なしでは幅に収まらないため、半角空白で2行にした（既定値）。scripts/caption-screenshots.py と docs/store/README.md の一覧を直し、phone_1 の画像を作り直した。再生成後に差分が出たのは phone_1 だけで、他の7枚は直前とバイト一致。縮小した説明文の領域で欠け・はみ出し・豆腐が無いことを確認した。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/images/screenshots_captioned/phone_1_widget_locked.png
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - phone_1 のみ変化、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
+- date: 2026-11-19 14:00
   summary: 説明文入り画像のスクリプトで、全入力の検査を書き出しの前にまとめて行う（2回目の差分レビューの指摘対応）
   details:
     変更内容: >-
