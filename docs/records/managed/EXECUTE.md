@@ -5,6 +5,28 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-19 13:00
+  summary: 説明文入り掲載画像のスクリプトへ、元画像の上書き防止・入力サイズの検証・太字化失敗時の警告を足す（差分レビューの指摘対応）
+  details:
+    変更内容: >-
+      scripts/caption-screenshots.py に3点を追加した。(1) --out-dir が --source-dir と同じ場所（解決後のパスが同一）なら
+      エラーで止める。(2) 入力画像が1350x2400でなければファイル名と実サイズを示して止める。
+      (3) 可変フォントの太字化で例外が出ても落とさず、標準エラーへ警告して続行する。標準エラーもUTF-8へ揃えた。
+      docs/store/README.md の表の用途欄を読みやすく言い換えた（意味は同じ）。
+      既定の引数で再実行し、出力8枚が直前のコミットとバイト一致（git status で差分なし）することを確認した。
+      エラー経路は一時ディレクトリで実際に起こして確認した（同一パス、100x100の入力、存在しないフォントの3件とも終了コード1、元画像は無変更）。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 出力はバイト一致、エラー経路は期待どおり、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
 - date: 2026-11-19 12:00
   summary: スマートフォン用の掲載画像8枚へ機能の説明文を入れる scripts/caption-screenshots.py と出力画像を追加する（BL-286）
   details:

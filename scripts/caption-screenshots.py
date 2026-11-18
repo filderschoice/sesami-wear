@@ -54,8 +54,8 @@ def load_font(path):
     font = ImageFont.truetype(path, FONT_SIZE)
     try:
         font.set_variation_by_axes([700])  # 可変フォントの太さ(wght)を太字へ
-    except (OSError, AttributeError):
-        pass  # 固定ウェイトのフォントはそのまま使う
+    except Exception as e:  # noqa: BLE001 固定ウェイトのフォント等。太字にできなくても続行する
+        print(f"警告: 太字にできませんでした（{type(e).__name__}）。標準の太さで続行します: {path}", file=sys.stderr)
     return font
 
 
@@ -79,6 +79,8 @@ def split_lines(draw, text, font):
 def caption_one(src_path, text, font):
     canvas = Image.new("RGB", SIZE, BAND_COLOR)
     src = Image.open(src_path).convert("RGB")
+    if src.size != SIZE:
+        sys.exit(f"元画像のサイズが {SIZE[0]}x{SIZE[1]} ではありません: {src_path}（{src.width}x{src.height}）")
     width = round(src.width * IMAGE_HEIGHT / src.height)
     canvas.paste(src.resize((width, IMAGE_HEIGHT), Image.LANCZOS), ((SIZE[0] - width) // 2, CAPTION_HEIGHT))
     draw = ImageDraw.Draw(canvas)
@@ -95,11 +97,14 @@ def caption_one(src_path, text, font):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source-dir", default=SOURCE_DIR)
     parser.add_argument("--out-dir", default=OUT_DIR)
     parser.add_argument("--font", default=DEFAULT_FONT)
     args = parser.parse_args()
+    if os.path.realpath(args.out_dir) == os.path.realpath(args.source_dir):
+        sys.exit(f"--out-dir が --source-dir と同じです（元画像の上書きを防ぐため止めます）: {args.out_dir}")
     font = load_font(args.font)
     os.makedirs(args.out_dir, exist_ok=True)
     for name, text in CAPTIONS.items():

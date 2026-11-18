@@ -12,7 +12,7 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | [images/play_store_icon_512.png](images/play_store_icon_512.png) | 512x512 PNG（アルファチャンネルなし） | アプリアイコン |
 | [images/play_feature_graphic_1024x500.png](images/play_feature_graphic_1024x500.png) | 1024x500 24bit PNG（アルファなし） | 機能グラフィック |
 | [images/screenshots_captioned/](images/screenshots_captioned/) | スマートフォン用8枚（説明文入り） | スクリーンショット（スマートフォン） |
-| [images/screenshots/](images/screenshots/) | スマートフォン用8枚（元画像）・Wear OS用8枚 | スクリーンショット（Wear OS）。スマートフォン用は説明文入りの元 |
+| [images/screenshots/](images/screenshots/) | スマートフォン用8枚（元画像）・Wear OS用8枚 | Wear OS用の投入元。スマートフォン用は説明文入り画像の元画像として残す |
 
 `images/screenshots/` の内訳は次のとおりです。スマートフォン用（`phone_*`）は、Play Consoleへ投入するのは
 説明文入りの `images/screenshots_captioned/` の同名ファイルです（下記「説明文入りの画像」）。元画像は
