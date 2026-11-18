@@ -5,6 +5,21 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-19 14:00
+  summary: 説明文入り画像のスクリプトで、全入力の検査を書き出しの前にまとめて行う（2回目の差分レビューの指摘対応）
+  details:
+    変更内容: >-
+      scripts/caption-screenshots.py に check_sources を追加し、全入力の存在と1350x2400のサイズを、出力先の作成と書き出しの前にまとめて検査する（途中の1枚が不正でも何も書き出さずに止まる）。太字化の except は Exception から (OSError, AttributeError) へ絞った（警告して続行する挙動は維持）。8枚中の最後の1枚だけを100x100にした入力で、終了コード1・出力先が作られないことを確認した。既定の引数での再実行は出力8枚が直前とバイト一致（git status で画像の差分なし）。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 不正入力で何も書き出されないこと、出力のバイト一致、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
 - date: 2026-11-19 13:00
   summary: 説明文入り掲載画像のスクリプトへ、元画像の上書き防止・入力サイズの検証・太字化失敗時の警告を足す（差分レビューの指摘対応）
   details:

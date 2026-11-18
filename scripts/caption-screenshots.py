@@ -54,7 +54,7 @@ def load_font(path):
     font = ImageFont.truetype(path, FONT_SIZE)
     try:
         font.set_variation_by_axes([700])  # 可変フォントの太さ(wght)を太字へ
-    except Exception as e:  # noqa: BLE001 固定ウェイトのフォント等。太字にできなくても続行する
+    except (OSError, AttributeError) as e:  # 固定ウェイトのフォント等。太字にできなくても続行する
         print(f"警告: 太字にできませんでした（{type(e).__name__}）。標準の太さで続行します: {path}", file=sys.stderr)
     return font
 
@@ -79,8 +79,6 @@ def split_lines(draw, text, font):
 def caption_one(src_path, text, font):
     canvas = Image.new("RGB", SIZE, BAND_COLOR)
     src = Image.open(src_path).convert("RGB")
-    if src.size != SIZE:
-        sys.exit(f"元画像のサイズが {SIZE[0]}x{SIZE[1]} ではありません: {src_path}（{src.width}x{src.height}）")
     width = round(src.width * IMAGE_HEIGHT / src.height)
     canvas.paste(src.resize((width, IMAGE_HEIGHT), Image.LANCZOS), ((SIZE[0] - width) // 2, CAPTION_HEIGHT))
     draw = ImageDraw.Draw(canvas)
@@ -95,6 +93,17 @@ def caption_one(src_path, text, font):
     return canvas
 
 
+def check_sources(source_dir):
+    """全入力の存在とサイズを、書き出しの前にまとめて検査する（途中で止まって一部だけ出力されるのを防ぐ）。"""
+    for name in CAPTIONS:
+        src = os.path.join(source_dir, name)
+        if not os.path.isfile(src):
+            sys.exit(f"元画像が見つかりません: {src}")
+        with Image.open(src) as im:
+            if im.size != SIZE:
+                sys.exit(f"元画像のサイズが {SIZE[0]}x{SIZE[1]} ではありません: {src}（{im.width}x{im.height}）")
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -106,11 +115,10 @@ def main():
     if os.path.realpath(args.out_dir) == os.path.realpath(args.source_dir):
         sys.exit(f"--out-dir が --source-dir と同じです（元画像の上書きを防ぐため止めます）: {args.out_dir}")
     font = load_font(args.font)
+    check_sources(args.source_dir)
     os.makedirs(args.out_dir, exist_ok=True)
     for name, text in CAPTIONS.items():
         src = os.path.join(args.source_dir, name)
-        if not os.path.isfile(src):
-            sys.exit(f"元画像が見つかりません: {src}")
         caption_one(src, text, font).save(os.path.join(args.out_dir, name), format="PNG", optimize=True)
         print(f"{name}: {text}")
 
