@@ -85,9 +85,21 @@
     リクエストボディ・HTTPメソッド・パス・ヘッダー・異常系の例外送出を検証済み。
   - 上記フィールド構成・署名仕様は参考実装pysesame3
     (<https://github.com/mochipon/pysesame3>)のソースコード（2026-08-19時点mainブランチ、
-    `cloud.py`/`const.py`）を読んで判明した内容であり、CANDY HOUSE公式ドキュメントそのものは
-    未参照だが、実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
+    `cloud.py`/`const.py`）を読んで実装した（pysesame3は参考実装）。一次情報はCANDY HOUSE公式ドキュメント
+    （CANDY-HOUSE/API_document の `docs/ja/SesameOS3/webapi.md`、公開サイト
+    <https://candy-house.github.io/API_document/ja/SesameOS3/webapi.html>）で、2026-11-21に
+    エンドポイント（GET / POST `https://app.candyhouse.co/api/sesame2/{uuid}`、`/cmd`）、`x-api-key`ヘッダ、
+    コマンド番号（82 / 83 / 88）、本文（`cmd` / `history`（Base64）/ `sign`）、署名（Unix秒をuint32リトルエンディアンにし
+    最上位バイトを除いた3バイトへのAES-CMAC）が本実装と一致することを確認した。
+    実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
     SesameStatusのデコードエラーが発生しないことを確認済み（BL-010、人手検証）。
+  - 公式の応答例は`batteryPercentage`と`timestamp`も含むが、未知の項目は無視してデコードするため影響しない。
+    `sign`は、公式の`biz3InvokeWebAPIs`（bizapi_control.md）が16進8文字で送るのに対し、webapi.mdの例と
+    本アプリはCMAC全体（32文字）を送る。32文字は実機（BL-010）で通っているため変えない（観察）。
+  - 取り違え注意: 公式の同じ`docs/ja/SesameOS3/`に、webapi.md（2026-11-11に表題を「RESTful API」へ改名。
+    本アプリが使う`app.candyhouse.co/api/sesame2`で現行）と、restful.md（公式アプリ内部の`/device/v1/...`の
+    アプリ内部API。「廃止済み」とされたのはこちら）があり、どちらの表題も「RESTful API」になった。
+    本アプリが使うのは前者で、後者の廃止の影響は受けない。
   - 実機調査（BL-139 / BL-141、2026-09-18、Pixel 8 Pro + Play版0.11.0）: ウィジェットの状態取得が
     常に「状態不明」になる事象を調査し、原因が**Sesame API側のapikey無効化（HTTP 403）**であることを
     確認した。応答本文は`{"Message":"User is not authorized to access this resource with an explicit
@@ -358,7 +370,8 @@
     APIキーの取得手順の公式記事（`SESAME_API_KEY_GUIDE_URL`、`jp.candyhouse.co/blogs/how-to/...`）の
     2本。いずれも2026-09-18に認証なしで開けることを実際にアクセスして確認した。
     Web APIのリファレンス（`doc.candyhouse.co/ja/SesameAPI/`）は同日時点でGitHub Pagesの認証へ
-    リダイレクトされ認証なしでは開けないため、リンクとして採用しない。
+    リダイレクトされ認証なしでは開けないため、リンクとして採用しない（2026-11-21時点では同ホストは
+    名前解決できず、公式のGitHub Pages <https://candy-house.github.io/API_document/> が認証なしで開ける）。
     公式記事のURLは日本語のパスを持つため、`Uri.parse`がそのまま扱えるようパーセントエンコード済みの
     形で保持し、非ASCII文字を含まないことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
@@ -2725,9 +2738,9 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
 
 - Sesame API: 施錠/解錠（POST）はsecretKeyによるAES-CMAC署名付きコマンドが必須（素のJSON送信では
   通らない）。状態取得（GET）はx-api-keyヘッダーのみで可能。エンドポイント・署名生成の詳細は
-  「実装済み機能要件 > Sesame APIクライアント」参照。仕様の一次情報源は参考実装pysesame3
-  (<https://github.com/mochipon/pysesame3>)のソースコードであり、CANDY HOUSE公式ドキュメント
-  そのものは未参照だが、実機疎通確認（BL-010）で最終確認済み。
+  「実装済み機能要件 > Sesame APIクライアント」参照。仕様の一次情報はCANDY HOUSE公式ドキュメント
+  （webapi.md）で、参考実装pysesame3（<https://github.com/mochipon/pysesame3>）と一致することを
+  2026-11-21に確認済み。実機疎通確認（BL-010）でも最終確認済み。
 - secretKeyは16進数文字列（32文字=16バイト）であり、Base64ではない（BL-058）。apikey/uuid/
   secretKeyはいずれも`biz.candyhouse.co`（SESAME Biz 開発者ページ）から取得する
   （`partners.candyhouse.co`ではない、BL-057, BL-059）。

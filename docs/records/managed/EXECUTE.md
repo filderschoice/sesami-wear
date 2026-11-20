@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 12:00
+  summary: Sesame Web APIの仕様の出典を、参考実装pysesame3から公式ドキュメントへ更新する（動作は変えない）
+  details:
+    変更内容: >-
+      公式ドキュメント（CANDY-HOUSE/API_document の docs/ja/SesameOS3/webapi.md）が本アプリの実装（エンドポイント・x-api-key・コマンド番号・本文・署名）と一致することを確認し、core.api.SesameStatus のKDoc、DESIGN.md、README.md の「公式ドキュメントは未参照」「doc.candyhouse.co は認証リダイレクト」の記述を更新した。webapi.md と restful.md（公式アプリ内部API、廃止済み）の取り違え注意をDESIGN.mdへ残した。コードはKDocのみで動作変更なし。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（core:compileKotlin と core:test は再実行を出力で確認。テスト件数 core 225 / mobile 430 / wear 41）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-290
+
 - date: 2026-11-19 14:00
   summary: phone_1 の説明文を「ホーム画面から すぐに施錠・解錠」へ変える（ユーザーの決定）
   details:

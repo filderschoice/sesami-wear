@@ -283,9 +283,10 @@ sesami-wear/
 ## 既知の未確認事項・制約
 
 - Sesame APIのレスポンス構造（`SesameStatus`）と施錠/解錠コマンドの署名・ペイロード仕様は、
-  参考実装 [pysesame3](https://github.com/mochipon/pysesame3) のソースコードを読んで判明した内容であり、
-  CANDY HOUSE公式ドキュメントそのものは未参照です。ただし実機（Sesame 5 + Hub 3）での状態取得・
-  施錠/解錠の疎通確認は完了しています。
+  参考実装 [pysesame3](https://github.com/mochipon/pysesame3) のソースコードを読んで実装しました。
+  後日、公式ドキュメント（[RESTful API](https://candy-house.github.io/API_document/ja/SesameOS3/webapi.html)）の
+  エンドポイント・ヘッダ・コマンド番号・署名方式と一致することを確認しています（2026-11-21）。
+  実機（Sesame 5 + Hub 3）での状態取得・施錠/解錠の疎通確認も完了しています。
 - 開発者が実機で確認しているのはSesame 5 + Hub 3です。クローズドテストのテスターから、Sesame 6 Pro mini + Hub 3、
   Sesame 3 + Wi-Fiモジュール2でも動作したとの報告があります（2026-10-03、開発者による再現確認はしていません）。
   これらはHub 3 / Wi-Fiモジュール2を使うインターネット経由の報告で、Bluetoothでの確認の有無は含まれていません。
@@ -294,9 +295,9 @@ sesami-wear/
   施錠/解錠も HTTP 403 で失敗し、アプリ全体が機能停止します（2026-09-18 に実際に発生。応答は
   APIキーが無効な場合と同一で、アプリからは区別できません）。**上限の具体的な回数は利用者の環境での
   実測値（1000回）であり、公式ドキュメント上の記載は未確認です。** 当月の利用状況と上限は
-  SESAME Biz（<https://biz.candyhouse.co>）で確認できます。Web APIのリファレンス
-  （`doc.candyhouse.co/ja/SesameAPI/`）は 2026-09-18 時点で GitHub Pages の認証へリダイレクトされ、
-  認証なしでは参照できません。
+  SESAME Biz（<https://biz.candyhouse.co>）で確認できます。Web APIのリファレンスは、
+  GitHub Pages（<https://candy-house.github.io/API_document/>）で認証なしで参照できます
+  （旧URLの `doc.candyhouse.co/ja/SesameAPI/` は 2026-11-21 時点で名前解決できません）。
 - 状態の自動取得は行いません。Sesame Web API には月間リクエスト上限があり、以前の「表示のたびに
   古ければ取得する」動作では上限を大きく超過して API キーが拒否され、アプリ全体が「状態不明」に
   なる事象が発生したためです（0.12.0 で廃止）。状態が更新されるのは、施錠/解錠が成功したときと、
