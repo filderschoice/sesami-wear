@@ -7,6 +7,11 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-21（説明文入りの掲載画像を公開）
+
+説明文を入れたスマートフォン用の掲載画像8枚（`docs/store/images/screenshots_captioned/`）を、ユーザーが
+Play Consoleのスマートフォン用の枠へ差し替え、公開されたことを確認したため、BL-288（人手検証）を削除しました。
+
 ## 2026-11-19（Wear OS用の掲載画像には説明文を入れないと決定）
 
 ユーザーの決定（「Wear OS用は入れないで進めて」）により、Wear OS用の掲載画像（`wear_*`）には説明文を入れず、
