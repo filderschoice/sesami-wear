@@ -17,7 +17,7 @@ Sesameの公式ChangeLog・API文書・SDKの変更が、本アプリ（Web API�
 | 確認先 | 見る範囲 | 本アプリとの照合点（正本は DESIGN.md の該当節） |
 | --- | --- | --- |
 | ChangeLog <https://jp.candyhouse.co/pages/changelog> | 基準点（`baseline.md`）の日付より新しい項目だけ。HTMLが大きいため、該当月だけを抽出する | 電池残量の表示、Hub3、SesameOS更新、公式アプリのAPI・通信方式の変更 |
-| CANDY-HOUSE/API_document の `docs/ja` | 基準点のHEADからの変更ファイル。本アプリに関係する本体は `docs/ja/SesameOS3/webapi.md` | Web API（`app.candyhouse.co/api/sesame2`、`x-api-key`、cmd 82/83/88、history/sign の AES-CMAC、状態取得の応答項目）。旧 `restful.md` は公式アプリ内部の `/device/v1` で別物（廃止済み）。公開版は <https://candy-house.github.io/API_document/>（`doc.candyhouse.co` は名前解決できない） |
+| CANDY-HOUSE/API_document の `docs/ja` | 基準点のHEADからの変更ファイル。本アプリに関係する本体は `docs/ja/SesameOS3/webapi.md` | Web API（`app.candyhouse.co/api/sesame2`、`x-api-key`、cmd 82/83/88、history/sign の AES-CMAC、状態取得の応答項目）。旧 `restful.md` は公式アプリ内部の `/device/v1` で別物（廃止済み）。公開版は <https://candy-house.github.io/API_document/>（`doc.candyhouse.co` は2026-11-21 時点の観察で名前解決できなかった） |
 | CANDY-HOUSE/SesameSDK_Android_with_DemoApp | 基準点のHEADからのコミット。BLE関連のファイルだけ | BLE（item code、機種一覧、アドバタイズの解釈、暗号、lock/unlock の結果コード。mobile の `SesameBleClient`）。2026-09-30 の `2e7d27d7c` で `sesame-sdk` から `sesameSdk` へ構成変更 |
 
 ## 基準点
@@ -44,7 +44,7 @@ gh api "repos/CANDY-HOUSE/SesameSDK_Android_with_DemoApp/commits?per_page=1" --j
    - 影響なし: 公式アプリ内部の変更（UIの作り替え、WebSocket移行）、ファームの不具合修正（履歴の文字化け・DFU中断など）で、
      本アプリが使うWeb APIとBLEの手順に変更が無いもの。WebSocket API・Webhook・MCP は Cognito のログインや
      受信サーバーを要し、本アプリの構成に合わないため起票しない（初回調査の判断例）。
-4. **記録**: 影響あり・要確認・人手検証は `docs/records/managed/BACKLOG.md` へ起票する
+4. **記録**: 呼び出し元が、影響あり・要確認・人手検証は `docs/records/managed/BACKLOG.md` へ起票する
    （`autonomous-loop` と `guardrail-records-update` の手順）。調査結果は影響なしの項目の一覧も含めて
    `CHANGELOG.md` へ記録する。実装まで行う場合は別イテレーションにする。
 5. **基準点の更新**: 確認を終えた時点のHEADと日付で `baseline.md` を書き換える。基準点は「中身まで確認し終えた最新のコミット」で、
@@ -66,7 +66,10 @@ gh api "repos/CANDY-HOUSE/SesameSDK_Android_with_DemoApp/commits?per_page=1" --j
 
 ## コスト管理
 
-2026-11-21 の初回調査は、調査担当1体で約14.7万トークン・ツール43回を使った。基準点を使った差分調査では、これを大きく下回るのを目安にする。
+実績（いずれもオーケストレータが受け取った担当の使用量の記録）。差分限定の効果を、これを目安に見る。
+
+- 初回（2026-11-21、ChangeLog・API_document・SDKを一括調査）: 約14.7万トークン・ツール43回
+- 2回目（同日、SDK の基準点以降37コミットのみを sesame-upstream-researcher で差分調査）: 約4.4万トークン・ツール約8回
 
 - 取得物は会話へ載せず、ファイルへ置いて、必要な箇所だけ `grep` / `sed -n` で読み、要約だけを返す。
 - 範囲は基準点以降の差分に限る。ChangeLogのHTMLは該当月だけを抽出する。全文を読まない。

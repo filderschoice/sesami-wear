@@ -14,11 +14,26 @@ Sesame公式の変更履歴・API_document・Android SDKの変更確認は今後
 
 - `.claude/skills/sesame-upstream-check/SKILL.md`: 確認先と本アプリとの照合点、差分だけを調べる手順、判定の型、
   外部取得物の扱い、コスト管理（初回調査は約14.7万トークン・ツール43回）。`baseline.md` に前回確認の基準点を持つ
-  （API_document master `5fd2ac4c1`、SDK `add8303f5`、ChangeLog 2026-11-14 の項目まで確認済み）
+  （API_document master `5fd2ac4c1`、SDK `add8303f5`、ChangeLog 2026-11-14 の項目まで確認済み。
+  SDK は初回調査が `2e7d27d7c` までだったため、以降37コミットを追加調査して `add8303f5` まで進めた。下記）
 - `.claude/agents/sesame-upstream-researcher.md`: 調査と判定だけを行う sonnet の担当。外部の信頼できない入力を読むため
   リポジトリへの書き込み権限（Edit・Write）を持たず、起票は呼び出し元が行う
 - `guardrail-sync-local`: 両者を「配布元を採らない」へ追加し、配布元との同期で消えないようにした
 - 本件は BACKLOG へ BL-292 として起票し、同じコミットで完了として削除した
+
+SDK の追加調査（`2e7d27d7c`（2026-09-30）から `add8303f5725e07713a8df8d38f098c87c98b3f8`（2026-11-20）までの
+37コミット・119ファイル）の結果は、影響なし（起票なし、人手検証なし）です。差分を読んだのは `sesameSdk/src` の5ファイルと
+`sesameApp` の ble 配下5ファイルで、他は一覧のみ（WebView の biz アセット削除、QRライブラリ削除、UI・Gradle・README・
+リソース）です。
+
+- `CHBleManager` は `lastAdvertisedAt` / `scannedDevice` の API 追加のみで、アドバタイズの解釈と item code は不変
+- `CHSesame2Device` は Sesame 2 の履歴の連続読み出し（本アプリは履歴を読まない）
+- `CHSesameOS3LockBase` / `CHSesameBiometricDeviceImpl` / `CHHub3Device` は、登録時のサーバー登録失敗で ReadyToRegister へ
+  戻す変更（本アプリは登録フローを持たない）
+- `CHProductModel` は変更なし（機種一覧は不変）。Wear 関連の変更なし
+- デモアプリ側（os2HistoryTag、batteryPercentage の JSON 化、HubSettings、Credential チャネル、NFC、WebView 化）は
+  公式アプリ内部の変更
+- 未確認: デモアプリの CredentialSession / CredentialChannel の中身と BleController 等は、キーワードの grep で該当行のみ読んだ
 
 ## 2026-11-21（Sesame公式の変更履歴とGitHubの調査を起票）
 
