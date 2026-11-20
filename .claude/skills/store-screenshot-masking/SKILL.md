@@ -129,6 +129,8 @@ python $S mask captures/phone_1_widget_locked.raw.png docs/store/images/screensh
 - `captures/` の元画像は、加工の後はユーザーに確認して削除する（Git管理外だが実機の状態が写っている）。
 - ドキュメントの更新（`docs/store/README.md` の内訳と撮影方法、`STORE_LISTING.md`、`CHANGELOG.md`）は
   `store-screenshot-capture` 第6節に従う。モザイク・ぼかしを掛けた画像はその旨を内訳に書く。
+- 保存した元画像（`phone_*`）から、Play Consoleへ投入する説明文入りの版を
+  `python scripts/caption-screenshots.py` で作り直す。
 
 ## やってはいけないこと
 

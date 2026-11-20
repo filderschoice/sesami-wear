@@ -140,6 +140,9 @@ Markdownを解釈しないため、転記時は見出し・箇条書きの記法
 
 スマートフォン用8枚とWear OS用8枚（上限に合わせ `wear_3_tile_unlocked` を外した欠番あり）を [images/screenshots/](images/screenshots/) に用意済みです。
 内訳と加工内容は [README.md](README.md)「ファイル一覧」を参照してください。
+Play Consoleのスマートフォン用の枠へ投入するのは、機能の説明文を入れた
+[images/screenshots_captioned/](images/screenshots_captioned/) の8枚です（元画像の `images/screenshots/phone_*` は
+紹介ページとウィジェットのプレビュー画像の元として残します。説明文の一覧と作り直しは README.md「説明文入りの画像」）。
 
 - スマートフォン用: `phone_4_device_list` / `phone_5_menu` は0.16.0の表示で2026-11-08に撮り直し、
   `phone_6_radar` / `phone_7_radar_all`（Bluetooth接続の確認）を追加しました（8枚上限のため旧 `phone_6` / `phone_7` と入れ替え。

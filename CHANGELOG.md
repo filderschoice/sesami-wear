@@ -7,6 +7,31 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-19（Wear OS用の掲載画像には説明文を入れないと決定）
+
+ユーザーの決定（「Wear OS用は入れないで進めて」）により、Wear OS用の掲載画像（`wear_*`）には説明文を入れず、
+アプリの画面をそのまま掲載する方針としました。BL-289 を削除し、`docs/store/README.md` へ方針と理由を追記しました。
+決定の範囲はWear OS用画像へ説明文を入れないことだけです。
+
+## 2026-11-19（スマートフォン用の掲載画像へ説明文を追加）
+
+`scripts/caption-screenshots.py` と、説明文を入れたスマートフォン用8枚（`docs/store/images/screenshots_captioned/`）を
+追加しました（BL-286）。Play Consoleのスマートフォン用の枠へ投入するのはこちらで、元画像（`screenshots/`）は
+紹介ページ（`site/`）とウィジェットのプレビュー画像の元として残します。`docs/store/README.md`・`STORE_LISTING.md`・
+Skill `store-screenshot-capture` / `store-screenshot-masking` へ、投入先の区別と作り直しの手順を追記しました（BL-287）。
+Wear OS用は加工していません。
+
+## 2026-11-19（掲載画像への説明文の追加を起票）
+
+Google Playのスマートフォン用掲載画像へ、機能を説明する短い文を入れる作業を自律ループで進めるため、
+`docs/records/managed/BACKLOG.md` へ BL-286〜BL-289 を起票しました（実装・画像の変更はまだありません）。
+
+- BL-286: 説明文を入れた版を作るスクリプトの追加と8枚の生成（元画像は上書きせず別ディレクトリへ出力）
+- BL-287: `docs/store/` と撮影・加工のスキルの追随
+- BL-288（人手検証）: 目視確認とPlay Consoleでの差し替え
+- BL-289（要確認）: Wear OS用にも入れるか。Wear OS用の掲載画像はアプリの画面だけを求められている可能性が
+  高いため、既定では対象外としています
+
 ## 2026-11-15（Dependabot の実効性の記録）
 
 GitHubのCode securityでDependabotの脆弱性アラートとセキュリティ更新が有効になっていること（BL-085で

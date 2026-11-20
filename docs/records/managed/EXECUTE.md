@@ -5,6 +5,84 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-19 14:00
+  summary: phone_1 の説明文を「ホーム画面から すぐに施錠・解錠」へ変える（ユーザーの決定）
+  details:
+    変更内容: >-
+      ユーザーの決定（「phone_1は案Bで」）により、phone_1 の説明文を「ホーム画面から ワンタップで施錠・解錠」から「ホーム画面から すぐに施錠・解錠」へ変えた（解錠は確認を挟むため「ワンタップ」が実挙動と合わない）。決定の範囲は phone_1 だけで、他の7枚の文言は変えていない。空白なしでは幅に収まらないため、半角空白で2行にした（既定値）。scripts/caption-screenshots.py と docs/store/README.md の一覧を直し、phone_1 の画像を作り直した。再生成後に差分が出たのは phone_1 だけで、他の7枚は直前とバイト一致。縮小した説明文の領域で欠け・はみ出し・豆腐が無いことを確認した。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/images/screenshots_captioned/phone_1_widget_locked.png
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - phone_1 のみ変化、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
+- date: 2026-11-19 14:00
+  summary: 説明文入り画像のスクリプトで、全入力の検査を書き出しの前にまとめて行う（2回目の差分レビューの指摘対応）
+  details:
+    変更内容: >-
+      scripts/caption-screenshots.py に check_sources を追加し、全入力の存在と1350x2400のサイズを、出力先の作成と書き出しの前にまとめて検査する（途中の1枚が不正でも何も書き出さずに止まる）。太字化の except は Exception から (OSError, AttributeError) へ絞った（警告して続行する挙動は維持）。8枚中の最後の1枚だけを100x100にした入力で、終了コード1・出力先が作られないことを確認した。既定の引数での再実行は出力8枚が直前とバイト一致（git status で画像の差分なし）。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 不正入力で何も書き出されないこと、出力のバイト一致、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
+- date: 2026-11-19 13:00
+  summary: 説明文入り掲載画像のスクリプトへ、元画像の上書き防止・入力サイズの検証・太字化失敗時の警告を足す（差分レビューの指摘対応）
+  details:
+    変更内容: >-
+      scripts/caption-screenshots.py に3点を追加した。(1) --out-dir が --source-dir と同じ場所（解決後のパスが同一）なら
+      エラーで止める。(2) 入力画像が1350x2400でなければファイル名と実サイズを示して止める。
+      (3) 可変フォントの太字化で例外が出ても落とさず、標準エラーへ警告して続行する。標準エラーもUTF-8へ揃えた。
+      docs/store/README.md の表の用途欄を読みやすく言い換えた（意味は同じ）。
+      既定の引数で再実行し、出力8枚が直前のコミットとバイト一致（git status で差分なし）することを確認した。
+      エラー経路は一時ディレクトリで実際に起こして確認した（同一パス、100x100の入力、存在しないフォントの3件とも終了コード1、元画像は無変更）。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 出力はバイト一致、エラー経路は期待どおり、各ゲート終了コード0。
+    関連ID:
+      - BL-286
+
+- date: 2026-11-19 12:00
+  summary: スマートフォン用の掲載画像8枚へ機能の説明文を入れる scripts/caption-screenshots.py と出力画像を追加する（BL-286）
+  details:
+    変更内容: >-
+      docs/store/images/screenshots/phone_1〜phone_8（1350x2400）から、上端400pxを帯色 #1E3A5F の説明文の領域とし、
+      元画像を高さ2000pxへ縮小して下側の中央へ置いた説明文入りの版を、docs/store/images/screenshots_captioned/ へ
+      同じファイル名で出力するスクリプトを追加した（Pillowのみ、24bit PNG、フォントは同梱せず
+      C:/Windows/Fonts/NotoSansJP-VF.ttf を既定で参照し、無ければエラーで止まる）。元画像は変更していない。
+      説明文は案どおりだが、1行に収まらない2文（phone_4・phone_6）へ半角空白の改行位置を足した。
+      Wear OS用（wear_*）は加工していない。縮小版の目視で文字の欠け・はみ出し・豆腐が無いことを確認した。
+    変更ファイル:
+      - scripts/caption-screenshots.py
+      - docs/store/images/screenshots_captioned/phone_1_widget_locked.png ほか7枚
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      python scripts/caption-screenshots.py / npx markdownlint-cli2 "**/*.md" /
+      python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - スクリプトが8枚を再現生成し、各1350x2400のRGBであることと、縮小版での文字の収まりを確認した。
+      各ゲートとも終了コード0。ドキュメントの追随はBL-287で行う。
+    関連ID:
+      - BL-286
+
 - date: 2026-11-09 05:00
   summary: アニメーションがオフの端末でレーダーの掃引線を描かない（ウォッチで動かない件の原因切り分けと対処）
   details:

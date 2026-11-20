@@ -159,6 +159,8 @@ canvas.paste(im, ((tw - w) // 2, 0))
   `mobile/src/main/res/drawable-nodpi/` へ書き出す。BL-226）。構図を変えて2つが縦に並ばなくなると
   スクリプトが止まるため、その場合はスクリプトの検出方法を合わせて直す。アプリの画像が変わるため、
   これはコード修正として `EXECUTE.md` に記録する。
+- スマートフォン用（`phone_*`）の元画像を差し替えたら、説明文入りの版を `python scripts/caption-screenshots.py` で
+  作り直す（Play Consoleへ投入するのは `docs/store/images/screenshots_captioned/` の方。説明文の一覧は `docs/store/README.md`）。
 - `BACKLOG.md` の配信タスクへ「掲載アセットの差し替えも Play Console の作業に含む」ことを追記する。
   画像を更新しただけでは掲載は変わらない。
 - `CHANGELOG.md` へ記録する（コード修正を伴わないため `EXECUTE.md` は更新しない）。
