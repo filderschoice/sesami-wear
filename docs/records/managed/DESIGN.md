@@ -158,6 +158,9 @@
 - 電圧から残量（%）への換算表は`core.SesameBatteryLevel`が持つ（`meronepy/gomalock`と同じ値で、
   公式アプリの表示に合わせた非線形な対応）。BLE経由・Web API経由のどちらも同じ換算を通るため、
   経路によって表示がずれない。もとは`mobile.ble.SesameBleMechStatus`にあったものを`core`へ移した。
+  2026-11-21にユーザーが現状維持と決めた（BL-291）。公式Androidアプリは3.0.266(939)からサーバー算出の電池残量（%）を
+  使うが、本アプリはBLE/Web APIの表示一致を優先し、Web API応答の`batteryPercentage`は使わず未知の項目として無視する。
+  公式アプリの表示とのずれの有無・大きさは未確認。
 - `core.SesameStatusSnapshot`へ`batteryPercentage` / `position` / `lastRoute`を追加した。
   分かった値だけを上書きする`merge(SesameStatusMeasurement)`を持ち、**分からなかった項目は
   前回の値を残す**。Web API経由の施錠/解錠は状態を返さないため、経路だけが更新される。

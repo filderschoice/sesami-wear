@@ -58,6 +58,10 @@ CANDY-HOUSE/API_document（`docs/ja` 配下）・CANDY-HOUSE/SesameSDK_Android_w
   施錠/解錠応答の結果コードを見るようになったSDKの修正（2026-09-30）は、本アプリでは実装済み
 - 一次情報はGitHubのコミット（API_document `fa50a22ac` ほか、SDK `2e7d27d7c`・`40c4780cc`・`249cda038`・`834a7802f`）で確認した
 
+続き（同日）: BL-291 はユーザーが「いまのままでOK」と決め、(a)現状維持で確定しました。電池残量はBLE/Web APIとも
+電圧からの換算を使い、応答の `batteryPercentage` は使いません。BL-291 は BACKLOG から削除し、決定を DESIGN.md
+「セサミ本体の状態」へ残しました（コードの変更はありません）。
+
 ## 2026-11-21（説明文入りの掲載画像を公開）
 
 説明文を入れたスマートフォン用の掲載画像8枚（`docs/store/images/screenshots_captioned/`）を、ユーザーが

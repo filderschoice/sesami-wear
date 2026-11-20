@@ -5,32 +5,6 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- id: BL-291
-  区分: UX改善
-  タスク内容: >-
-    Web APIの状態取得応答に含まれる`batteryPercentage`（サーバーが算出した電池残量%）を、
-    電池残量の表示に使うかを決める。現在は応答の`batteryVoltage`から`core.SesameBatteryLevel`で換算しており、
-    BLE経由・Web API経由で同じ換算を通すため経路によって表示がずれない（DESIGN.md「セサミ本体の状態」）。
-    公式Androidアプリは3.0.266(939)（2026-11-14）から「電池電圧をサーバーへ送信した後は、サーバーから返される
-    電池残量（%）を使用する」ように変わったため、本アプリの表示（特にWeb API経由）が公式アプリと食い違う可能性がある。
-    選択肢は (a) 現状維持（BLE/Webで一致。公式アプリと数%ずれうるが、ずれの有無・大きさは実測しておらず未確認）、(b) Web API経由だけ応答の
-    `batteryPercentage`を優先し、無ければ従来の換算へ戻す（Web経由は公式アプリと一致、BLE経由とはずれうる）、
-    (c) (b)に加えてBLE経由では換算値を使わず前回のWeb API値を残す（表示は公式に寄るが、BLEのみの利用者は残量が更新されない）。
-    (b)(c)を選ぶ場合、実装は`core.api.SesameStatus`へ省略可能な項目を足し、`SesameStatusMeasurement`への詰め替えで優先順位を決める形になる。
-  優先度: P3
-  状態: 要確認
-  担当: ユーザー
-  完了条件: >-
-    (a)〜(c)のいずれにするかが決まり、(b)(c)なら実装タスクへ置き換わっていること。
-    (b)(c)の場合は、Sesame 5 + Hub 3の実応答に`batteryPercentage`が含まれることを実資格情報で確認していること（人手検証）
-  根拠: >-
-    一次情報は jp.candyhouse.co/pages/changelog の「2026年11月14日(土) Android app 3.0.266(939)」項5と、
-    CANDY-HOUSE/API_document の docs/ja/SesameOS3/webapi.md（2026-11-11 コミット fa50a22ac 時点）の
-    状態取得レスポンス例（`batteryPercentage` / `batteryVoltage` / `position` / `CHSesame2Status` / `timestamp`）。
-    表示の出どころを変えると「経路によらず同じ換算」という既存の設計判断を覆すため、仕様判断として要確認にした。
-    既定は(a)現状維持で、決まるまで動作は変えない。応答に項目があるかは実資格情報での確認が要り、自動では確かめない。
-  依存: []
-
 - id: BL-195
   区分: 人手検証
   タスク内容: >-
