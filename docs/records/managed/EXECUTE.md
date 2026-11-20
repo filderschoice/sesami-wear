@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 04:00
+  summary: BL-295前半のレビュー指摘を修正する。wearの起動判定を純Kotlinへ切り出してテストし、旧称の文言・図を選ぶ画面へ合わせる
+  details:
+    変更内容: >-
+      wear.action.SesameActionLaunchPlanner（Android非依存）を追加し、SesameActionActivity の「Intentで解錠を直接指定されても選ぶ画面へ倒す」判定を Activity から移した（挙動は変えない）。選ぶ依頼・解錠の直接指定は選ぶ画面、施錠の直接指定は即実行、無効なコマンド・uuid欠落は閉じる、をテスト7件で固定した。USER_GUIDE.md と DESIGN.md のTalkBack例を現行文言「タップで選ぶ」へ直した。UI_DESIGN.html は解錠確認の旧称・図を選ぶ画面（スマホ［キャンセル｜施錠｜解錠］、ウォッチ［施錠｜解錠］）へ直し、主画面カードの施錠・解錠ボタン（BL-295後半）を図とテキストへ反映した（生成スクリプトはリポジトリに無いためHTMLを直接編集）。store-screenshot-masking の旧称を直し、SesameWidget.kt の KDoc の長い行を折り返した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionLaunchPlanner.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/action/SesameActionLaunchPlannerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+      - .claude/skills/store-screenshot-masking/SKILL.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（detekt・ktlintの行長指摘を直して再実行。wear・mobileのテスト実行を出力で確認、core は変更なしでUP-TO-DATE）。新規テスト7件（SesameActionLaunchPlannerTest）。UI_DESIGN.html の見た目（カードへ足したボタン行の収まり）は未確認。
+    関連ID:
+      - BL-295
 - date: 2026-11-21 03:00
   summary: アプリ主画面のデバイスカードに「施錠」「解錠」ボタンを追加する（BL-295後半）。表示状態によらず押せ、解錠は確認を挟む
   details:

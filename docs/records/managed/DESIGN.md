@@ -1222,10 +1222,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - 文言はAndroid非依存の`mobile.widget.WidgetAccessibilityLabels`（ユニットテスト対象）が組み立て、
   Glanceの`GlanceModifier.semantics { contentDescription = ... }`で付ける。
 - 状態表示（FULL・MEDIUM・COMPACTの状態色の部分）: 「デバイス名、状態、最終取得時刻または失敗の理由、
-  電池残量、操作」を読点でつなぐ（例「玄関、施錠中、3分前、電池残量85%、タップで解錠」）。
+  電池残量、操作」を読点でつなぐ（例「玄関、施錠中、3分前、電池残量85%、タップで選ぶ」）。
   状態・操作の文言は画面と同じ`SesameTileContent`の値を使い、通信中の「...」は落とす。
   操作できない状態（通信中・状態不明）は操作の部分を省く。中の文字ごとに読ませず1文にまとめるのは、
-  「施錠中」と「タップで解錠」が別の項目になって、どこを押せばよいか分かりにくくなるため。
+  「施錠中」と「タップで選ぶ」が別の項目になって、どこを押せばよいか分かりにくくなるため。
 - 電池残量は絵文字を読ませず「電池残量85%」、20%未満は「電池残量が少なくなっています 15%」（画面の⚠に相当、BL-257）。
 - 「更新」チップとMEDIUMのデバイス名チップは「（デバイス名）の状態を更新」、「変更」は「操作するSesameを変更」、
   「◀」「▶」は「前の／次のSesameへ切り替え」、未設定時の全面は「Sesami Wearのウィジェット。タップして
@@ -1645,6 +1645,9 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   送信はFire-and-forget方式。
 - `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`、
   選ぶ画面の依頼（`parse`の`Request.Choose` / `Request.Direct`）。
+- `wear.action.SesameActionLaunchPlanner`（Android非依存）: `SesameActionActivity`の起動時の判定。選ぶ依頼・
+  解錠（UNLOCK）の直接指定は選ぶ画面（`Plan.Chooser`）、施錠（LOCK）の直接指定は即実行（`Plan.Execute`）、
+  コマンド・uuidが無効なら閉じる（`Plan.Finish`）。ユニットテスト対象。
 - `wear.action.SesameActionTargetResolver`（Android依存の薄いアダプタ）: コマンド送信・状態更新の対象
   uuid一覧を解決する。全デバイス時のみDataItemから登録済み一覧を読み、展開は
   `core.display.SesameDeviceTargets.targetUuids`へ委ねる（全デバイス時は登録済み全uuidのリスト、

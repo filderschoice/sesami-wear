@@ -61,19 +61,18 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 class SesameActionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val request =
-            SesameActionCommandParser.parse(
-                intent.getStringExtra(SesameActionCommandParser.EXTRA_COMMAND),
-                intent.getBooleanExtra(SesameActionCommandParser.EXTRA_CHOOSE, false),
+        val plan =
+            SesameActionLaunchPlanner.plan(
+                commandName = intent.getStringExtra(SesameActionCommandParser.EXTRA_COMMAND),
+                choose = intent.getBooleanExtra(SesameActionCommandParser.EXTRA_CHOOSE, false),
+                deviceUuid = intent.getStringExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID),
             )
         val deviceUuid = intent.getStringExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID)
-        if (request == null || deviceUuid.isNullOrEmpty()) {
+        if (plan == SesameActionLaunchPlanner.Plan.Finish || deviceUuid.isNullOrEmpty()) {
             finish()
             return
         }
-        val directCommand =
-            (request as? SesameActionCommandParser.Request.Direct)?.command
-                ?.takeUnless { SesameCommandConfirmation.isRequired(it) }
+        val directCommand = (plan as? SesameActionLaunchPlanner.Plan.Execute)?.command
 
         setContent {
             MaterialTheme {
