@@ -19,12 +19,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.wear.R
-import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
@@ -150,7 +148,7 @@ class SesameTileService : TileService() {
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                 .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
                 .setModifiers(
-                    buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
+                    chipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
                         .setClickable(buildRefreshClickable(packageName, deviceUuid))
                         .setSemantics(
                             ModifiersBuilders.Semantics.Builder()
@@ -222,7 +220,7 @@ class SesameTileService : TileService() {
         val state = status.state
         val isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID
         val modifiersBuilder =
-            buildChipModifiers(SesameTileContent.backgroundColorArgb(state))
+            chipModifiers(SesameTileContent.backgroundColorArgb(state))
                 .setSemantics(
                     ModifiersBuilders.Semantics.Builder()
                         .setContentDescription("$displayName ${SesameTileContent.statusLabel(state, isAllDevices)}")
@@ -231,9 +229,9 @@ class SesameTileService : TileService() {
 
         when (val decision = SesameTileActions.tapDecisionForState(state)) {
             is SesameTileActions.TapDecision.Run ->
-                modifiersBuilder.setClickable(buildCommandClickable(decision.command, deviceUuid))
+                modifiersBuilder.setClickable(buildActionClickable(packageName, decision.command, deviceUuid))
             SesameTileActions.TapDecision.OpenChooser ->
-                modifiersBuilder.setClickable(buildCommandClickable(null, deviceUuid))
+                modifiersBuilder.setClickable(buildActionClickable(packageName, null, deviceUuid))
             SesameTileActions.TapDecision.None -> Unit
         }
 
@@ -277,7 +275,7 @@ class SesameTileService : TileService() {
             .setHeight(DimensionBuilders.weight(1f))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .setModifiers(buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
+            .setModifiers(chipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
             .addContent(
                 // 「デバイス変更」の6文字はチップ幅に収まらず「デバイス変／更」と不自然な位置で
                 // 折り返していた（BL-102）。上のデバイス名チップ（「全デバイス」5文字）が1行に
@@ -291,62 +289,6 @@ class SesameTileService : TileService() {
                     .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
                     .build(),
             )
-            .build()
-    }
-
-    /**
-     * チップ（角丸の四角ボタン風のBox）に共通の背景色・角丸・内側パディングを設定した
-     * Modifiersビルダーを返す（BL-063）。呼び出し側でsetClickable/setSemantics等を追加できるよう
-     * ビルダーのまま返す。
-     */
-    private fun buildChipModifiers(backgroundColorArgb: Int): ModifiersBuilders.Modifiers.Builder =
-        ModifiersBuilders.Modifiers.Builder()
-            .setBackground(
-                ModifiersBuilders.Background.Builder()
-                    .setColor(ColorBuilders.argb(backgroundColorArgb))
-                    .setCorner(
-                        ModifiersBuilders.Corner.Builder()
-                            .setRadius(DimensionBuilders.dp(CHIP_CORNER_RADIUS_DP))
-                            .build(),
-                    )
-                    .build(),
-            )
-            .setPadding(
-                ModifiersBuilders.Padding.Builder()
-                    .setAll(DimensionBuilders.dp(CHIP_INNER_PADDING_DP))
-                    .build(),
-            )
-
-    /**
-     * [SesameActionActivity]を開くClickable。[command]が施錠なら即実行、nullなら施錠・解錠を選ぶ画面を開く
-     * （BL-295）。
-     */
-    private fun buildCommandClickable(
-        command: SesameCommand?,
-        deviceUuid: String,
-    ): ModifiersBuilders.Clickable {
-        val activity =
-            ActionBuilders.AndroidActivity.Builder()
-                .setPackageName(packageName)
-                .setClassName(SesameActionActivity::class.java.name)
-                .addKeyToExtraMapping(
-                    SesameActionCommandParser.EXTRA_DEVICE_UUID,
-                    ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
-                )
-        if (command == null) {
-            activity.addKeyToExtraMapping(
-                SesameActionCommandParser.EXTRA_CHOOSE,
-                ActionBuilders.AndroidBooleanExtra.Builder().setValue(true).build(),
-            )
-        } else {
-            activity.addKeyToExtraMapping(
-                SesameActionCommandParser.EXTRA_COMMAND,
-                ActionBuilders.AndroidStringExtra.Builder().setValue(command.name).build(),
-            )
-        }
-        return ModifiersBuilders.Clickable.Builder()
-            .setId(command?.name ?: "choose")
-            .setOnClick(ActionBuilders.LaunchAction.Builder().setAndroidActivity(activity.build()).build())
             .build()
     }
 
@@ -398,8 +340,6 @@ class SesameTileService : TileService() {
 
         // チップ同士の隙間（左右2チップ間・左列上下2チップ間で共用）。
         const val CHIP_SPACING_DP = 6f
-        const val CHIP_CORNER_RADIUS_DP = 12f
-        const val CHIP_INNER_PADDING_DP = 6f
 
         // 左列の幅。BL-206で中身が「更新」「変更」の2文字だけになったため、BL-209で76dpから狭め、
         // 右列（デバイス名の帯と状態チップ）へ幅を回した。2文字（CAPTION2で約26dp）＋左右の内側余白

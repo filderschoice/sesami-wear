@@ -8,6 +8,7 @@ import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import com.sesamiwear.wear.complication.SesameComplicationDataSourceService
 import com.sesamiwear.wear.haptics.SesameHapticPlayer
+import com.sesamiwear.wear.tile.SesameControlTileService
 import com.sesamiwear.wear.tile.SesameTileService
 
 /**
@@ -29,6 +30,7 @@ class SesameResultListenerService : WearableListenerService() {
 
         Log.d(TAG, "requesting tile/complication update")
         TileService.getUpdater(applicationContext).requestUpdate(SesameTileService::class.java)
+        TileService.getUpdater(applicationContext).requestUpdate(SesameControlTileService::class.java)
         ComplicationDataSourceUpdateRequester.create(
             applicationContext,
             ComponentName(applicationContext, SesameComplicationDataSourceService::class.java),

@@ -147,6 +147,25 @@
                 android:resource="@drawable/tile_preview" />
         </service>
 
+        <!--
+            操作専用タイル（BL-298）。上記の1台ごとのタイルとは別のタイルとして、タイル追加の一覧へ並ぶ。
+            label / description で一覧上の見分けを付ける。
+        -->
+        <service
+            android:name=".tile.SesameControlTileService"
+            android:description="@string/tile_control_description"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_wear"
+            android:label="@string/tile_control_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/tile_control_preview" />
+        </service>
+
         <service
             android:name=".messaging.SesameResultListenerService"
             android:exported="true">

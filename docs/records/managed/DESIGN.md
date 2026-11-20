@@ -1525,7 +1525,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
     帯のぶん高さが減るため、状態アイコンの書体を`DISPLAY1`から`DISPLAY2`へ一段下げた（BL-206）。
     最終取得時刻の行には経路の絵文字を付けない（`SesameTileStatus.detailLabel`は経路を含まず、
     経路は`SesameTileStatus.route`で別に持つ）。
-  - 各チップは共通ヘルパー`buildChipModifiers`で角丸背景（`ModifiersBuilders.Corner`、半径
+  - 各チップは共通ヘルパー`chipModifiers`（`TileLayoutParts.kt`。BL-298で非公開メソッドから切り出し、
+    `buildActionClickable`とともに操作専用タイルと共用。挙動は変えていない）で角丸背景（`ModifiersBuilders.Corner`、半径
     `CHIP_CORNER_RADIUS_DP`=12dp）・内側パディング（`CHIP_INNER_PADDING_DP`=6dp）を持つ。
   - 状態色（`SesameTileContent.backgroundColorArgb`: 施錠中=緑/解錠中=赤/通信中=黄/MIXED=紫/
     未接続・不明=グレー）は右チップの背景にのみ適用し、左側2チップは中立色
@@ -1569,6 +1570,32 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」
   （BL-052）。選択画面は`wear.ui.DeviceSelectionScreen`（Tile/Complication共通）を用いる。
+- **操作専用タイル（BL-298）**: `wear.tile.SesameControlTileService`を別のTileServiceとして`AndroidManifest.xml`へ
+  宣言する（label`@string/tile_control_label`=「Sesami 操作パネル」、description=`tile_control_description`、
+  プレビュー`@drawable/tile_control_preview`＝黒背景の円形192dp）。タイル追加の一覧では、既存の「Sesami Wear」
+  （label=`app_name`のまま変えない）とは別のタイルとして並ぶ。**2つのタイルの使い分け**: 既存の`SesameTileService`は
+  「1つのタイルが1台（または全デバイス）に対応し、状態の確認と操作・状態更新・対象変更を持つ」タイル、
+  操作専用タイルは「登録済み全デバイスを対象に、全体の施錠・解錠と台ごとの状態を1枚に並べる」タイルで、
+  対象の割り当て（`TileDeviceAssignmentStore`）・「更新」・「変更」を持たない（tileIdの保存をしないため、
+  2つのサービスのtileIdが重複しても保存キーの衝突は起きない）。同じタイルの複数配置は見送り（ユーザー判断、2026-11-21）。
+  - 表示規則は`core.display.SesameControlTileContent`（Android非依存、ユニットテスト対象）。`build(devices,
+    isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全施錠」「全解錠」（登録1台のときは「施錠」「解錠」、
+    送信先はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`）、下段に台ごとの行（名前・`statusIcon+statusLabel`、背景は
+    `backgroundColorArgb`）。**行数の上限`MAX_ROWS`=2**（円形192dpで、全体ボタン1段と合わせ縦3段・各48dp・段間4dp・
+    上下余白8dp＝168dp。48dpはタップ領域の最小値）。登録がそれを超えると、最後の1行を「他N台」（`overflowText`）へ置き換え、
+    1台ぶんの行を残す。「他N台」のタップは`MainActivity`（状態一覧）を開く。0台は案内`EMPTY_MESSAGE`のみで、タップで
+    `MainActivity`を開く（デモはSesameTileService側）。スマホ未接続（`firstConnectedNodeId`がnull）なら全体ボタンと行は
+    灰色でタップ不可。行のタップは状態によらず（状態不明でも）選ぶ画面を開く（`SesameTileActions.listTapDecision`と同じ流儀）。
+  - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。「全施錠」は`EXTRA_COMMAND=LOCK`で即実行、
+    「全解錠」は`EXTRA_COMMAND=UNLOCK`だが`SesameActionLaunchPlanner`が選ぶ画面へ倒すため、**タップだけでは解錠されない**
+    （解錠の安全方針BL-295を維持）。台の行は`EXTRA_CHOOSE`。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
+    展開は`SesameActionTargetResolver`）。
+  - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
+    **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で
+    `SesameDisplayUpdateRequester.requestUpdateAll`と`SesameResultListenerService`が`SesameControlTileService`の再描画も
+    依頼し、施錠に成功すれば施錠中の表示になる。画像リソースは使わない（`RESOURCES_VERSION`="1"）。
+  - 実機でしか確かめられない点（別タイルとして並ぶか・両方置けるか、192dpでの押し間違い・円形の端の見切れ、
+    送信後の戻り先）はBL-297の(7)で人手検証する。
 - **未確認事項**: 上記の多重インスタンス対応はコード側では実装済みだが、実機（Wear OS 7の
   Pixel Watch、2026-08-30確認）では同一Tileを2つ以上追加できない。Watch上のタイル編集の「＋」でも
   スマホのPixel Watchアプリのタイル管理画面でも、追加済みのタイルはチェック済み扱いで再選択でき

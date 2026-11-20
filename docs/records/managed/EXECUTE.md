@@ -5,6 +5,43 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 05:00
+  summary: ウォッチに操作専用タイル「Sesami 操作パネル」を別のタイルとして追加する（BL-298）。全施錠・全解錠と台ごとの状態を1枚に並べる
+  details:
+    変更内容: >-
+      wear.tile.SesameControlTileService を別の TileService として manifest へ宣言した（label と description を
+      既存の「Sesami Wear」と区別、プレビュー tile_control_preview。既存タイルの名前は変えていない）。表示規則は
+      core.display.SesameControlTileContent（Android非依存）へ置いた。上段が「全施錠」（1タップで全台へ）と「全解錠」
+      （選ぶ画面を経て実行。1台のときは「施錠」「解錠」）、下段が台ごとの状態の行（タップでその台の選ぶ画面）、行の上限は
+      2（3台以上は1行＋「他N台」でアプリ本体の一覧を開く）、0台は案内のみ、スマホ未接続は押せない。状態は DataItem の
+      スナップショットだけを読み、状態取得は送らない。操作完了時の再描画を、SesameDisplayUpdateRequester と
+      SesameResultListenerService から新サービスにも依頼する。SesameTileService の非公開メソッド（チップの修飾子、
+      SesameActionActivity を開く Clickable）を TileLayoutParts.kt へ挙動を変えずに切り出して共用した。
+      DESIGN（2つのタイルの使い分け）・USER_GUIDE・RELEASE_NOTES・UI_DESIGN.html を追随させ、実機の確認事項を BL-297 の(7)へ、
+      ストア画像を BL-296 へ、ストア掲載文の要否を BL-299 へ起票した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileLayoutParts.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/display/SesameDisplayUpdateRequester.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/res/values/strings.xml
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（ktlint の KDoc 連続と detekt の行長指摘を直して再実行。core・wear・mobile のテスト実行を出力で確認）。新規テスト10件（SesameControlTileContentTest、全て成功）。TileService の描画は実機でしか確かめられない（BL-297の(7)）。
+    関連ID:
+      - BL-298
 - date: 2026-11-21 04:00
   summary: BL-295前半のレビュー指摘を修正する。wearの起動判定を純Kotlinへ切り出してテストし、旧称の文言・図を選ぶ画面へ合わせる
   details:
