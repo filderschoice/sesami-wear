@@ -13,6 +13,7 @@ import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.api.SesameApiOperation
+import com.sesamiwear.core.api.SesameApiResponseLog
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.diagnostics.SesameDiagnosticsOperation
 import com.sesamiwear.core.diagnostics.SesameDiagnosticsOutcome
@@ -123,6 +124,10 @@ class SesameDeviceCommandExecutor(
             SesameCommandHandler(
                 apiClient = routes.api.clientFactory(credentials),
                 secretKey = secretKey,
+                onSuccess = { receipt ->
+                    // 2xxはクラウドの受理だけを示す。実機が動いたかの切り分け用にステータスと本文長だけ残す。
+                    routes.api.logResponse(SesameApiResponseLog.describe(apiOperationOf(command), receipt))
+                },
                 onFailure = { e ->
                     routes.api.logFailure(SesameApiFailureLog.describe(apiOperationOf(command), e))
                     failure = routes.api.classifyFailure(e)
@@ -286,7 +291,8 @@ class SesameRouteAccess(
  *
  * [SesameDeviceCommandExecutor]はAndroid非依存のユニットテスト対象のため`android.util.Log`を
  * 直接呼べない。[logFailure]には[SesameApiFailureLog]が組み立てた、資格情報も応答本文も含まない
- * 文字列だけを渡す（BL-139）。既定では何もしないため、ログが不要な呼び出し元は省略できる。
+ * 文字列だけを渡す（BL-139）。[logResponse]は施錠/解錠が2xxだったときの1行（ステータスと本文長だけ）の出力先。
+ * 既定では何もしないため、ログが不要な呼び出し元は省略できる。
  *
  * [recordApiCall]は実際にSesame APIを1回呼ぶ直前に呼ばれる（BL-147）。月間リクエスト上限
  * （BL-141）に対する消費量を利用者へ示すためのカウンタで、成否によらず数える（上限は成功・失敗を
@@ -301,6 +307,7 @@ class SesameRouteAccess(
 class SesameApiAccess(
     val clientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
     val logFailure: (String) -> Unit = {},
+    val logResponse: (String) -> Unit = {},
     val recordApiCall: () -> Unit = {},
     val backgroundDataRestricted: () -> Boolean = { false },
 ) {

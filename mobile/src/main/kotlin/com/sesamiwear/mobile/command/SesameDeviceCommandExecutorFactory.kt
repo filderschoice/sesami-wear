@@ -99,6 +99,7 @@ object SesameDeviceCommandExecutorFactory {
                         SesameApiAccess(
                             // リリースビルドでも残る`Log.w`へ出す（`Log.d` / `Log.v`は除去される、BL-083 / BL-139）。
                             logFailure = { message -> Log.w(SesameApiFailureLog.TAG, message) },
+                            logResponse = { message -> Log.w(SesameApiFailureLog.TAG, message) },
                             recordApiCall = { apiUsageCounter.record(System.currentTimeMillis()) },
                             // 失敗の文言を端末設定側へ寄せるかの判断に使う（BL-192）。操作のたびに読む。
                             backgroundDataRestricted = { BackgroundDataRestriction.isRestricted(appContext) },

@@ -146,6 +146,26 @@ class SesameApiClientTest {
         }
 
     @Test
+    fun `send command returns the status code and body length of a 2xx response`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("""{"a":1}""").setResponseCode(HTTP_OK))
+
+            val receipt = client.sendCommand(SesameCommand.LOCK, ByteArray(16))
+
+            assertEquals(SesameCommandReceipt(httpStatusCode = HTTP_OK, bodyLength = 7), receipt)
+        }
+
+    @Test
+    fun `send command with an empty 2xx body reports zero length`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            val receipt = client.sendCommand(SesameCommand.UNLOCK, ByteArray(16))
+
+            assertEquals(0, receipt.bodyLength)
+        }
+
+    @Test
     fun `connection failure has no http status code`() =
         runTest {
             server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))

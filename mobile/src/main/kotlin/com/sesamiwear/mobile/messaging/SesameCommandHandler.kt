@@ -5,6 +5,7 @@ import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.core.api.SesameCommandReceipt
 
 /**
  * Wear側から受信したメッセージパスをSesameコマンドへ変換し、Sesame APIを呼び出して結果を返す。
@@ -13,11 +14,13 @@ import com.sesamiwear.core.api.SesameCommand
  * @param onFailure API呼び出しが失敗したときに1度だけ呼ばれる。失敗の理由を呼び出し元
  * （[com.sesamiwear.mobile.command.SesameDeviceCommandExecutor]）がlogcatへ残すための口で、
  * 既定では何もしない（BL-139）。
+ * @param onSuccess HTTP 2xxを受け取ったときに1度だけ呼ばれる診断ログ用の口。既定では何もしない。
  */
 class SesameCommandHandler(
     private val apiClient: SesameApiClient,
     private val secretKey: ByteArray,
     private val onFailure: (SesameApiException) -> Unit = {},
+    private val onSuccess: (SesameCommandReceipt) -> Unit = {},
 ) {
     suspend fun handle(path: String): SesameCommandResult {
         val command = commandForPath(path) ?: return SesameCommandResult.FAILURE
@@ -27,7 +30,7 @@ class SesameCommandHandler(
     /** [command]をSesame APIへ送信する。Data Layerを経由しない実行口（BL-120）からも使う。 */
     suspend fun execute(command: SesameCommand): SesameCommandResult =
         try {
-            apiClient.sendCommand(command, secretKey)
+            onSuccess(apiClient.sendCommand(command, secretKey))
             SesameCommandResult.SUCCESS
         } catch (e: SesameApiException) {
             // Data Layer APIへは成功/失敗の1バイトのみを返す仕様のため、例外の詳細は伝搬しない。

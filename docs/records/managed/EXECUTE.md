@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 14:00
+  summary: Web API経由の施錠/解錠が2xxだったときにも、ステータスコードと応答本文の長さをlogcatへ残す（挙動は変えない）
+  details:
+    変更内容: >-
+      Web API固定で「表示は切り替わるのに実機が動かない」ケースの切り分け用に、2xx受理時の診断ログを追加した。SesameApiClient.sendCommand が SesameCommandReceipt（HTTPステータスコードと応答本文のバイト数）を返し、SesameCommandHandler の onSuccess から SesameApiAccess.logResponse（Log.w、タグ SesameApi）へ `lock accepted: HTTP 200 body=2B` の1行を渡す。本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りの IOException は握って body=unknown にするため成否判定・例外・タイムアウトの挙動は変わらない。修正方針はユーザー決定により BL-293（状態照合を設定で切替、既定OFF）と BL-295（利用者が施錠・解錠を指定）、実機での切り分けは BL-294 へ起票した（実装は後続）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandReceipt.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiResponseLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - CHANGELOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数は全モジュール合計700、失敗0。新規は SesameApiResponseLogTest 2件と SesameApiClientTest 2件）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-293
+      - BL-294
+      - BL-295
+
 - date: 2026-11-21 12:00
   summary: Sesame Web APIの仕様の出典を、参考実装pysesame3から公式ドキュメントへ更新する（動作は変えない）
   details:

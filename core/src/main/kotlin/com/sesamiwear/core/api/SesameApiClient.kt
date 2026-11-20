@@ -9,6 +9,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.io.IOException
 import java.util.Base64
 import java.util.concurrent.TimeUnit
@@ -52,12 +53,14 @@ class SesameApiClient(
      *
      * @param secretKey Sesame QRコードから取得したコマンド署名用の鍵。
      * @param historyTag Sesameの操作履歴に残るタグ文字列。
+     * @return HTTP 2xxを受け取った事実（ステータスコードと応答本文の長さ）。クラウドが受理しただけで
+     * 実機の動作は保証しない。診断ログ用で、呼び出し側の成否判定には影響しない。
      */
     suspend fun sendCommand(
         command: SesameCommand,
         secretKey: ByteArray,
         historyTag: String = DEFAULT_HISTORY_TAG,
-    ): Unit =
+    ): SesameCommandReceipt =
         withContext(Dispatchers.IO) {
             asApiCall {
                 val requestPayload =
@@ -78,8 +81,20 @@ class SesameApiClient(
 
                 httpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) throw httpErrorOf(response.code)
+                    SesameCommandReceipt(response.code, bodyLengthOf(response))
                 }
             }
+        }
+
+    /**
+     * 応答本文のバイト数を返す。本文の中身は保持しない。読み取りに失敗しても成功扱い（従来どおり本文は
+     * 使わない）のまま、長さだけ不明（null）にする。
+     */
+    private fun bodyLengthOf(response: Response): Int? =
+        try {
+            response.body?.bytes()?.size ?: 0
+        } catch (_: IOException) {
+            null
         }
 
     /**

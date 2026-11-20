@@ -76,6 +76,13 @@
     無ければ原因例外の型名を使う（`withContext`をまたぐ例外はkotlinx.coroutinesが複製するため、
     `cause`を最内までたどってから型名を取る）。含めてはならない値を埋め込んだ例外を渡すテストで、
     それらが出力へ現れないことを検証している。
+  - 施錠/解錠が**HTTP 2xxで成功したとき**も1行残す（BL-294の切り分け用。挙動は変えない）。`sendCommand`は
+    `core.api.SesameCommandReceipt`（ステータスコードと応答本文のバイト数）を返し、文言は
+    `SesameApiResponseLog.describe`が`lock accepted: HTTP 200 body=2B`の形で組み立てる（本文の長さが
+    読めなければ`body=unknown`）。Web APIの2xxはクラウドが受理しただけで、Hub 3経由でSesameが実際に
+    動いたかを示さないため、「表示は切り替わったのに実機が動かない」ときの切り分けに使う（`Log.w`、タグ`SesameApi`）。
+    本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りに失敗しても
+    成功の判定は変えない（`IOException`は握って`unknown`にする）。
   - 既定の`OkHttpClient`は接続3秒・読み書き3秒・呼び出し全体6秒のタイムアウトを持ち、プロセス内で
     共有する1インスタンス（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行し、
     Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は
@@ -1266,6 +1273,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。
     同一uuidへの連打は`CommandDebouncer`で抑止し、抑止した場合はAPIを呼ばず保存済みの状態を返す
     （BL-148。失敗ではないため失敗の記録も残さない）。
+  - 施錠/解錠が2xxだったときの1行（`SesameApiResponseLog.describe`）は`SesameApiAccess.logResponse`へ渡す
+    （`SesameCommandHandler`の`onSuccess`から。既定は何もしない）。
   - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
     本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
     注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
