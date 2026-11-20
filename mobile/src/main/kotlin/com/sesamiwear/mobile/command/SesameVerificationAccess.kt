@@ -11,6 +11,7 @@ import com.sesamiwear.core.api.SesameApiOperation
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.api.SesameCommandVerification
 import com.sesamiwear.core.api.SesameStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 /**
@@ -53,30 +54,39 @@ class SesameVerificationAccess(
         sentAtMillis: Long,
     ): Result {
         if (!isEnabled()) return Result.Skipped
-        pause(waitMillis)
-        api.recordApiCall()
-        val status = fetchStatusOrNull(api, credentials)
-        return if (status == null) {
-            unverified(
-                api,
-                command,
-                "fetch failed",
-            )
-        } else {
-            judge(api, command, status, sentAtMillis)
+        return try {
+            pause(waitMillis)
+            api.recordApiCall()
+            val status = fetchStatusOrNull(api, credentials)
+            if (status == null) unverified(api, command, "fetch failed") else judge(api, command, status, sentAtMillis)
+        } catch (e: CancellationException) {
+            // 照合が終わらないまま呼び出しが取り消された。照合できなかったことをlogcatで区別できるようにする。
+            api.logResponse("verify ${command.name}: cancelled")
+            throw e
         }
     }
 
+    /**
+     * 状態を1回取得する。取得に失敗した場合はnull（送信は成功済みのため、例外を呼び出し元へ漏らさない）。
+     * [SesameApiException]以外の想定外の例外も同様にnullへ倒す。ただし取り消し（[CancellationException]）は
+     * 握らず伝える。
+     */
     private suspend fun fetchStatusOrNull(
         api: SesameApiAccess,
         credentials: SesameCredentials,
-    ): SesameStatus? =
-        try {
-            api.clientFactory(credentials).getStatus()
-        } catch (e: SesameApiException) {
-            api.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, e))
-            null
+    ): SesameStatus? {
+        val result = runCatching { api.clientFactory(credentials).getStatus() }
+        result.getOrNull()?.let { return it }
+        val failure = result.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        if (failure is SesameApiException) {
+            api.logFailure(SesameApiFailureLog.describe(SesameApiOperation.STATUS, failure))
+        } else {
+            // 例外の本文には資格情報やURLが含まれうるため、想定外の例外は固定文だけを残す。
+            api.logResponse("verify status fetch: unexpected error")
         }
+        return null
+    }
 
     private fun judge(
         api: SesameApiAccess,

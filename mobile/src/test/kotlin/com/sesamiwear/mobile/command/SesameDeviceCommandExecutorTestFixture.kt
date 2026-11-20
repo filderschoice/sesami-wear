@@ -36,6 +36,8 @@ abstract class SesameDeviceCommandExecutorTestFixture {
     protected var credentialsList = listOf(validCredentials)
     protected val failureLogs = mutableListOf<String>()
     protected val routeLogs = mutableListOf<String>()
+    protected val responseLogs = mutableListOf<String>()
+    protected var credentialsLoads = 0
     protected var apiCalls = 0
     protected var bleAttempts = 0
     protected var probes = 0
@@ -65,7 +67,10 @@ abstract class SesameDeviceCommandExecutorTestFixture {
         verification: SesameVerificationAccess = SesameVerificationAccess(),
         diagnosticsRecord: (SesameDiagnosticsEntry) -> Unit = {},
     ) = SesameDeviceCommandExecutor(
-        loadCredentials = { credentialsList },
+        loadCredentials = {
+            credentialsLoads++
+            credentialsList
+        },
         lockStateStore = lockStateStore,
         notifier =
             LockStateNotifier(
@@ -85,6 +90,7 @@ abstract class SesameDeviceCommandExecutorTestFixture {
                             )
                         },
                         logFailure = { message -> failureLogs += message },
+                        logResponse = { message -> responseLogs += message },
                         recordApiCall = { apiCalls++ },
                         backgroundDataRestricted = { backgroundDataRestricted },
                     ),

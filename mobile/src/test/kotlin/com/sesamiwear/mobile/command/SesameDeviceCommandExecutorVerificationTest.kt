@@ -1,5 +1,6 @@
 package com.sesamiwear.mobile.command
 
+import com.sesamiwear.core.SesameDemoMode
 import com.sesamiwear.core.SesameStatusFailure
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.api.SesameCommand
@@ -7,6 +8,7 @@ import com.sesamiwear.core.diagnostics.SesameDiagnosticsEntry
 import com.sesamiwear.core.diagnostics.SesameDiagnosticsOutcome
 import com.sesamiwear.mobile.ble.SesameBleReachability
 import com.sesamiwear.mobile.state.InMemoryKeyValueStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import org.junit.Assert.assertEquals
@@ -25,13 +27,14 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
     private fun verifyingExecutor(
         enabled: Boolean,
         bleAccess: SesameBleAccess = SesameBleAccess(),
+        pause: suspend (Long) -> Unit = { waits += it },
     ) = createExecutor(
         bleAccess = bleAccess,
         verification =
             SesameVerificationAccess(
                 isEnabled = { enabled },
                 waitMillis = WAIT_MILLIS,
-                pause = { waits += it },
+                pause = pause,
             ),
         diagnosticsRecord = { diagnostics += it },
     )
@@ -147,6 +150,53 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
             assertEquals(SesameDeviceCommandExecutor.Outcome.FAILURE, outcome)
             assertEquals(1, server.requestCount)
             assertTrue(waits.isEmpty())
+        }
+
+    @Test
+    fun `off leaves results saves notifications and diagnostics exactly as before`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            val outcome = verifyingExecutor(enabled = false).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
+            // 資格情報の検索は送信の1回だけ（照合のための再検索をしない）。
+            assertEquals(1, credentialsLoads)
+            assertEquals(1, watchSyncs.size)
+            assertEquals(1, notifications.size)
+            assertEquals(true, watchSyncs.single().second.isLocked)
+            assertNull(watchSyncs.single().second.lastFailure)
+            assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertEquals(SesameStatusRoute.WEB_API, lockStateStore.load(DEVICE_UUID)?.lastRoute)
+            assertEquals(SesameDiagnosticsOutcome.SUCCESS, diagnostics.single().outcome)
+            assertTrue(responseLogs.none { it.startsWith("verify") })
+        }
+
+    @Test
+    fun `on does not verify the demo device`() =
+        runTest {
+            val outcome = verifyingExecutor(enabled = true).execute(SesameDemoMode.DEMO_DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
+            assertEquals(0, server.requestCount)
+            assertTrue(waits.isEmpty())
+        }
+
+    @Test
+    fun `on and a cancelled wait leaves a cancelled log and rethrows`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+            val executor = verifyingExecutor(enabled = true, pause = { throw CancellationException("cancelled") })
+
+            val failure = runCatching { executor.execute(DEVICE_UUID, SesameCommand.LOCK) }.exceptionOrNull()
+
+            assertTrue(failure is CancellationException)
+
+            assertTrue(responseLogs.contains("verify LOCK: cancelled"))
+            // 送信時点の状態は保存済みで、診断ログも欠けない。
+            assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertEquals(SesameDiagnosticsOutcome.SUCCESS, diagnostics.single().outcome)
+            assertEquals(1, server.requestCount)
         }
 
     private companion object {

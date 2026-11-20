@@ -78,12 +78,15 @@ class SesameDeviceCommandExecutor(
         val sentAtMillis = nowMillis()
         val measurement =
             if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
+        if (measurement != null) {
+            // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
+            updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
+        }
         var notReflected = false
         try {
-            if (measurement != null) {
-                // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
-                updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
-                // 送信後の状態確認（BL-293）。設定がOFF（既定）・BLE経由・デモでは何もしない。
+            // 送信後の状態確認（BL-293）。設定がOFF（既定）なら資格情報の再検索も含め何も追加しない。
+            // BLE経由・デモでは、設定がONでも照合しない（[verifyOverApi]）。
+            if (measurement != null && routes.verification.isEnabled()) {
                 val actual = routes.verifyOverApi(findCredentials(uuid), measurement, command, sentAtMillis)
                 if (actual != null) {
                     // 実際の状態を保存し直し、「未反映」の失敗として通知する（ウォッチは失敗の振動を鳴らす）。
@@ -94,7 +97,8 @@ class SesameDeviceCommandExecutor(
             }
         } finally {
             // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
-            // 照合の待ち時間中に取り消されても記録が欠けないよう、finallyで残す。
+            // 照合の待ち時間中に取り消されても記録が欠けないよう、finallyで残す。保存（updateLockState）の
+            // 例外では記録しない従来の条件は変えていない（保存はtryの外）。
             val succeeded = measurement != null && !notReflected
             guard.diagnostics.record(
                 uuid = uuid,

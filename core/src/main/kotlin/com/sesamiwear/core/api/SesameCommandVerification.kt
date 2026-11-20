@@ -29,16 +29,22 @@ object SesameCommandVerification {
      *
      * timestampの単位は公式文書から確定できないため、秒とミリ秒のどちらでも比較できるようにしている
      * （1e11未満は秒、以上はミリ秒とみなす。秒なら1973年〜5138年、ミリ秒なら1970年〜1973年が秒側へ入る）。
-     * 比較は秒単位で行い、送信と同じ秒に付いた値は新しいものとして扱う。
+     * 比較は秒単位で行う。端末の時計がサーバより遅れていると、送信前の古い状態を「新しい」と誤判定し、
+     * 動作したのに「未反映」と誤報しうる。そのため、timestampが送信時刻より[marginSeconds]を超えて
+     * 新しい場合だけ「新しい値」とみなし、それ以外は[Verdict.UNVERIFIABLE]へ倒す（誤報しない側）。
+     * 代償として、端末の時計が正確で反映が余裕以内に済んだ場合も照合できない扱いになりうる。
+     * [marginSeconds]の既定値は実機で調整する（[DEFAULT_CLOCK_SKEW_MARGIN_SECONDS]）。
      */
     fun judge(
         command: SesameCommand,
         status: SesameStatus,
         sentAtMillis: Long,
+        marginSeconds: Long = DEFAULT_CLOCK_SKEW_MARGIN_SECONDS,
     ): Verdict {
         val timestampSeconds = status.timestamp?.let(::toSeconds)
         return when {
-            timestampSeconds == null || timestampSeconds < sentAtMillis / MILLIS_PER_SECOND -> Verdict.UNVERIFIABLE
+            timestampSeconds == null ||
+                timestampSeconds <= sentAtMillis / MILLIS_PER_SECOND + marginSeconds -> Verdict.UNVERIFIABLE
             status.isInLockRange == (command == SesameCommand.LOCK) -> Verdict.CONFIRMED
             else -> Verdict.NOT_REFLECTED
         }
@@ -46,6 +52,13 @@ object SesameCommandVerification {
 
     private fun toSeconds(timestamp: Long): Long =
         if (timestamp >= MILLIS_THRESHOLD) timestamp / MILLIS_PER_SECOND else timestamp
+
+    /**
+     * 端末時計のずれに備えた余裕（秒）の既定値。待ち時間（4秒）以内に反映された正しい状態の
+     * timestampは、送信時刻の1〜4秒後になる想定のため、それを潰さない範囲で小さく取った暫定値。
+     * 最終状態更新時刻か応答生成時刻かが未確認のため、実機で調整する（BL-294）。
+     */
+    const val DEFAULT_CLOCK_SKEW_MARGIN_SECONDS = 2L
 
     private const val MILLIS_PER_SECOND = 1_000L
     private const val MILLIS_THRESHOLD = 100_000_000_000L

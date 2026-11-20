@@ -76,7 +76,7 @@ enum class SesameStatusFailure(
         /**
          * 「全デバイス」対象（BL-071）で複数台ぶんの失敗を1つへ集約する。
          * 利用者が対処できる失敗を、対処できない失敗に埋もれさせないため、宣言の早いものを優先する
-         * （[AUTH_OR_QUOTA] → [BACKGROUND_RESTRICTED] → [COMMUNICATION]）。どれも無ければnull。
+         * （[AUTH_OR_QUOTA] → [BACKGROUND_RESTRICTED] → [NOT_REFLECTED] → [COMMUNICATION]）。どれも無ければnull。
          */
         fun worstOf(failures: List<SesameStatusFailure?>): SesameStatusFailure? =
             failures.filterNotNull().minByOrNull { it.ordinal }

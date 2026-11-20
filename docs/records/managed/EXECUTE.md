@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 01:40
+  summary: 送信後の状態確認（BL-293）のレビュー指摘を修正する。オフ時の挙動を従来と厳密に揃え、取り消しの記録・時計ずれの余裕・想定外例外の吸収を足す
+  details:
+    変更内容: >-
+      SesameDeviceCommandExecutor.execute を、設定（isEnabled）がオフのときは資格情報の再検索を含め追加処理をせず、診断ログの記録条件も従来と同じ（状態保存は try の外、照合だけを try で囲む）にした。SesameVerificationAccess.verify は待機中・取得中の取り消し時に logcat へ `verify ...: cancelled` を残して CancellationException を再スローし、fetchStatusOrNull は取り消し以外の例外（SesameApiException 以外を含む）を unverified へ倒す。SesameCommandVerification.judge は端末時計のずれに備え、timestamp が送信時刻＋余裕秒（既定2秒）以下なら UNVERIFIABLE とした（誤報しない側。余裕は実機で調整）。SesameStatusFailure の enum 宣言順変更は、ordinal を使うのが worstOf のプロセス内比較だけで永続化・送信は name のため影響なしと確認した。テストを追加（余裕ちょうど・1秒超・1e11境界・独自余裕、オフ時の結果と通知と保存の不変、デモ非照合、取り消し、想定外例外）。DESIGN と BACKLOG（BL-294 に timestamp の意味・単位・反映遅延・余裕値の確認を追記）を更新。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorVerificationTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccessTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（--rerun-tasks で全タスクを再実行し、変更ソースのコンパイルとテストの実行を出力で確認。SesameCommandVerificationTest 14件・SesameDeviceCommandExecutorVerificationTest 10件・SesameVerificationAccessTest 2件を含め失敗0）、markdownlint（48件一致・0 issues）・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-293
+      - BL-294
+
 - date: 2026-11-21 01:22
   summary: 診断ログ（BL-294）のレビュー指摘を修正する。応答本文の長さを64KiBまでで打ち切り、ログ用コールバックの例外を握る
   details:
