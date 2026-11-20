@@ -15,6 +15,7 @@ import com.sesamiwear.core.api.SesameCommandReceipt
  * （[com.sesamiwear.mobile.command.SesameDeviceCommandExecutor]）がlogcatへ残すための口で、
  * 既定では何もしない（BL-139）。
  * @param onSuccess HTTP 2xxを受け取ったときに1度だけ呼ばれる診断ログ用の口。既定では何もしない。
+ * 例外を投げても握りつぶし、送信結果（成功）には影響させない。
  */
 class SesameCommandHandler(
     private val apiClient: SesameApiClient,
@@ -30,7 +31,9 @@ class SesameCommandHandler(
     /** [command]をSesame APIへ送信する。Data Layerを経由しない実行口（BL-120）からも使う。 */
     suspend fun execute(command: SesameCommand): SesameCommandResult =
         try {
-            onSuccess(apiClient.sendCommand(command, secretKey))
+            val receipt = apiClient.sendCommand(command, secretKey)
+            // ログ用の口が何を投げても、送信は成功している。送信結果へ影響させない。
+            runCatching { onSuccess(receipt) }
             SesameCommandResult.SUCCESS
         } catch (e: SesameApiException) {
             // Data Layer APIへは成功/失敗の1バイトのみを返す仕様のため、例外の詳細は伝搬しない。

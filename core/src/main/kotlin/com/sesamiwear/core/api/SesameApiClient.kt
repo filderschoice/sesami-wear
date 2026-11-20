@@ -53,7 +53,7 @@ class SesameApiClient(
      *
      * @param secretKey Sesame QRコードから取得したコマンド署名用の鍵。
      * @param historyTag Sesameの操作履歴に残るタグ文字列。
-     * @return HTTP 2xxを受け取った事実（ステータスコードと応答本文の長さ）。クラウドが受理しただけで
+     * @return HTTP 2xxを受け取った事実（ステータスコードと応答本文の長さ。長さは最大64KiBまで数える）。クラウドが受理しただけで
      * 実機の動作は保証しない。診断ログ用で、呼び出し側の成否判定には影響しない。
      */
     suspend fun sendCommand(
@@ -81,21 +81,44 @@ class SesameApiClient(
 
                 httpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) throw httpErrorOf(response.code)
-                    SesameCommandReceipt(response.code, bodyLengthOf(response))
+                    bodyReceiptOf(response)
                 }
             }
         }
 
     /**
-     * 応答本文のバイト数を返す。本文の中身は保持しない。読み取りに失敗しても成功扱い（従来どおり本文は
-     * 使わない）のまま、長さだけ不明（null）にする。
+     * 応答本文のバイト数を数えて控えにする。本文の中身は保持しない。成功の返却を遅らせず、メモリも使わないよう、
+     * 最大[MAX_BODY_COUNT_BYTES]バイトまで読み捨てて数え、超えたら打ち切る（[SesameCommandReceipt.bodyTruncated]）。
+     * 読み取りに失敗しても成功扱い（従来どおり本文は使わない）のまま、長さだけ不明（null）にする。
      */
-    private fun bodyLengthOf(response: Response): Int? =
-        try {
-            response.body?.bytes()?.size ?: 0
-        } catch (_: IOException) {
-            null
+    private fun bodyReceiptOf(response: Response): SesameCommandReceipt {
+        val total =
+            try {
+                countBodyBytes(response)
+            } catch (_: IOException) {
+                return SesameCommandReceipt(response.code, bodyLength = null)
+            }
+        return if (total > MAX_BODY_COUNT_BYTES) {
+            SesameCommandReceipt(response.code, bodyLength = MAX_BODY_COUNT_BYTES, bodyTruncated = true)
+        } else {
+            SesameCommandReceipt(response.code, bodyLength = total)
         }
+    }
+
+    /** 本文を読み捨てて数える。上限を超えた時点で読むのをやめる（返す値は上限を超えうる）。 */
+    private fun countBodyBytes(response: Response): Int {
+        val stream = response.body?.byteStream() ?: return 0
+        val buffer = ByteArray(BODY_READ_CHUNK_BYTES)
+        var total = 0
+        stream.use {
+            while (total <= MAX_BODY_COUNT_BYTES) {
+                val read = it.read(buffer)
+                if (read < 0) break
+                total += read
+            }
+        }
+        return total
+    }
 
     /**
      * HTTPのエラー応答を[SesameApiException]へ変換する。メッセージへは応答本文を含めない（BL-133 / BL-139）。
@@ -140,6 +163,10 @@ class SesameApiClient(
         private const val DEFAULT_BASE_URL = "https://app.candyhouse.co/api/sesame2"
         private const val DEFAULT_HISTORY_TAG = "sesami-wear"
         private const val HEADER_API_KEY = "x-api-key"
+
+        // 応答本文の長さを数える上限（診断ログ用）。超えたら読むのを打ち切る。
+        private const val MAX_BODY_COUNT_BYTES = 64 * 1024
+        private const val BODY_READ_CHUNK_BYTES = 8 * 1024
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         // 1回の呼び出しに与える上限（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの

@@ -76,13 +76,14 @@
     無ければ原因例外の型名を使う（`withContext`をまたぐ例外はkotlinx.coroutinesが複製するため、
     `cause`を最内までたどってから型名を取る）。含めてはならない値を埋め込んだ例外を渡すテストで、
     それらが出力へ現れないことを検証している。
-  - 施錠/解錠が**HTTP 2xxで成功したとき**も1行残す（BL-294の切り分け用。挙動は変えない）。`sendCommand`は
+  - 施錠/解錠が**HTTP 2xxで成功したとき**も1行残す（BL-294の切り分け用。成否判定は変えない）。`sendCommand`は
     `core.api.SesameCommandReceipt`（ステータスコードと応答本文のバイト数）を返し、文言は
     `SesameApiResponseLog.describe`が`lock accepted: HTTP 200 body=2B`の形で組み立てる（本文の長さが
-    読めなければ`body=unknown`）。Web APIの2xxはクラウドが受理しただけで、Hub 3経由でSesameが実際に
+    読めなければ`body=unknown`、64KiBを超えれば`body>64KiB`）。Web APIの2xxはクラウドが受理しただけで、Hub 3経由でSesameが実際に
     動いたかを示さないため、「表示は切り替わったのに実機が動かない」ときの切り分けに使う（`Log.w`、タグ`SesameApi`）。
-    本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りに失敗しても
-    成功の判定は変えない（`IOException`は握って`unknown`にする）。
+    本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数える。最大64KiBまで読み捨てて数え、超えたら打ち切るため、成功の返却が本文の読み取りぶん
+    （上限まで）わずかに遅れうる。読み取りに失敗しても成功の判定は変えない（`IOException`は握って`unknown`にする）。
+    ログ用の`onSuccess`が例外を投げても握り、送信結果（成功）へ影響させない。
   - 既定の`OkHttpClient`は接続3秒・読み書き3秒・呼び出し全体6秒のタイムアウトを持ち、プロセス内で
     共有する1インスタンス（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行し、
     Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は

@@ -5,7 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
-- date: 2026-11-21 16:00
+- date: 2026-11-21 01:22
+  summary: 診断ログ（BL-294）のレビュー指摘を修正する。応答本文の長さを64KiBまでで打ち切り、ログ用コールバックの例外を握る
+  details:
+    変更内容: >-
+      SesameApiClient の応答本文の長さの取得を bytes() の全量読み込みから、最大64KiBまで読み捨てて数える方式へ変えた（超えたら打ち切り、SesameCommandReceipt.bodyTruncated=true、ログは body>64KiB）。成功の返却が上限までの読み取りぶんわずかに遅れうる点を DESIGN / EXECUTE / CHANGELOG の「挙動は変えない」から「成否判定は変えない」へ正した。SesameCommandHandler.execute は onSuccess が例外を投げても握り、送信成功の結果へ影響させない。テストを追加（上限超え、本文読み取りの IOException、onSuccess の呼び出しと例外）。BL-294 の完了条件へ切り分け後に成功時の Log.w を下げるか削除する旨を追記し、EXECUTE の日時2件をコミット時刻に合わせた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandReceipt.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiResponseLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandlerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - CHANGELOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数 core 246 / mobile 442 / wear 41、失敗0。新規は上限超え・本文読み取り失敗・上限超え表記・onSuccess呼び出し・onSuccess例外の計5件）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-294
+
+- date: 2026-11-21 01:20
   summary: Web API経由の施錠/解錠の送信後に状態を1回取得して照合する設定「送信後の状態確認」を追加する（既定オフ、BL-293）
   details:
     変更内容: >-
@@ -43,11 +66,11 @@
       - BL-293
       - BL-294
 
-- date: 2026-11-21 14:00
-  summary: Web API経由の施錠/解錠が2xxだったときにも、ステータスコードと応答本文の長さをlogcatへ残す（挙動は変えない）
+- date: 2026-11-21 01:06
+  summary: Web API経由の施錠/解錠が2xxだったときにも、ステータスコードと応答本文の長さをlogcatへ残す（成否判定は変えない。本文を上限まで読むため返却がわずかに遅れうる）
   details:
     変更内容: >-
-      Web API固定で「表示は切り替わるのに実機が動かない」ケースの切り分け用に、2xx受理時の診断ログを追加した。SesameApiClient.sendCommand が SesameCommandReceipt（HTTPステータスコードと応答本文のバイト数）を返し、SesameCommandHandler の onSuccess から SesameApiAccess.logResponse（Log.w、タグ SesameApi）へ `lock accepted: HTTP 200 body=2B` の1行を渡す。本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りの IOException は握って body=unknown にするため成否判定・例外・タイムアウトの挙動は変わらない。修正方針はユーザー決定により BL-293（状態照合を設定で切替、既定OFF）と BL-295（利用者が施錠・解錠を指定）、実機での切り分けは BL-294 へ起票した（実装は後続）。
+      Web API固定で「表示は切り替わるのに実機が動かない」ケースの切り分け用に、2xx受理時の診断ログを追加した。SesameApiClient.sendCommand が SesameCommandReceipt（HTTPステータスコードと応答本文のバイト数）を返し、SesameCommandHandler の onSuccess から SesameApiAccess.logResponse（Log.w、タグ SesameApi）へ `lock accepted: HTTP 200 body=2B` の1行を渡す。本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りの IOException は握って body=unknown にするため成否判定・例外・タイムアウトの挙動は変わらない（ただし本文を読むぶん成功の返却がわずかに遅れうる。上限は後続の修正で64KiBにした）。修正方針はユーザー決定により BL-293（状態照合を設定で切替、既定OFF）と BL-295（利用者が施錠・解錠を指定）、実機での切り分けは BL-294 へ起票した（実装は後続）。
     変更ファイル:
       - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
       - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandReceipt.kt

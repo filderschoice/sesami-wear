@@ -7,11 +7,13 @@ package com.sesamiwear.core.api
  * 切り分けのため、ステータスコードと応答本文の長さだけを残す。本文の中身は保持しない。
  *
  * @param httpStatusCode 応答のHTTPステータスコード（2xx）。
- * @param bodyLength 応答本文のバイト数。読み取りに失敗した場合はnull。
+ * @param bodyLength 応答本文のバイト数。読み取りに失敗した場合はnull。上限で打ち切った場合は上限値。
+ * @param bodyTruncated 本文が上限（64KiB）を超えたため数えるのを打ち切ったか。
  */
 data class SesameCommandReceipt(
     val httpStatusCode: Int,
     val bodyLength: Int?,
+    val bodyTruncated: Boolean = false,
 )
 
 /**
@@ -19,12 +21,17 @@ data class SesameCommandReceipt(
  * uuid・apikey・sign・history・応答本文は含めない。
  */
 object SesameApiResponseLog {
-    /** 例: `lock accepted: HTTP 200 body=2B`。本文の長さが不明なら`body=unknown`。 */
+    /** 例: `lock accepted: HTTP 200 body=2B`。本文の長さが不明なら`body=unknown`、上限超えなら`body>64KiB`。 */
     fun describe(
         operation: SesameApiOperation,
         receipt: SesameCommandReceipt,
     ): String {
-        val body = receipt.bodyLength?.let { "${it}B" } ?: "unknown"
-        return "${operation.logLabel} accepted: HTTP ${receipt.httpStatusCode} body=$body"
+        val body =
+            when {
+                receipt.bodyTruncated -> "body>64KiB"
+                receipt.bodyLength != null -> "body=${receipt.bodyLength}B"
+                else -> "body=unknown"
+            }
+        return "${operation.logLabel} accepted: HTTP ${receipt.httpStatusCode} $body"
     }
 }

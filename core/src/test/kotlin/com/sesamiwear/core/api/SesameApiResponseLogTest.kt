@@ -21,7 +21,18 @@ class SesameApiResponseLogTest {
         )
     }
 
+    @Test
+    fun `truncated body is described as exceeding the cap`() {
+        val receipt = SesameCommandReceipt(httpStatusCode = HTTP_OK, bodyLength = CAP, bodyTruncated = true)
+
+        assertEquals(
+            "lock accepted: HTTP 200 body>64KiB",
+            SesameApiResponseLog.describe(SesameApiOperation.LOCK, receipt),
+        )
+    }
+
     private companion object {
+        const val CAP = 64 * 1024
         const val HTTP_OK = 200
     }
 }
