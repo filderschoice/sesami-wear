@@ -24,7 +24,8 @@ Sesame公式の変更履歴・API_document・Android SDKの変更確認は今後
 
 Sesame公式の変更履歴（<https://jp.candyhouse.co/pages/changelog>）の2026年10月・11月分と、それを受けて
 CANDY-HOUSE/API_document（`docs/ja` 配下）・CANDY-HOUSE/SesameSDK_Android_with_DemoApp の2026-09以降の変更を確認し、
-本アプリへの影響を判定しました。`docs/records/managed/BACKLOG.md` へ2件を起票しました（実装はまだありません）。
+本アプリへの影響を判定し、2件の対応を挙げました。BL-290 は同じブランチで実施済みです（出典の更新のみで、コードの変更は
+ありません）。BL-291 は判断が必要なため「要確認」として `docs/records/managed/BACKLOG.md` へ起票しました（実装はまだありません）。
 
 - BL-290: Web APIの仕様の出典を参考実装pysesame3から公式ドキュメント（`docs/ja/SesameOS3/webapi.md`）へ更新する。
   エンドポイント・ヘッダ・コマンド番号・本文・署名は本アプリの実装と一致しており、動作の変更は不要

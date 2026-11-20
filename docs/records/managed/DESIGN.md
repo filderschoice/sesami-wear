@@ -97,8 +97,8 @@
     `sign`は、公式の`biz3InvokeWebAPIs`（bizapi_control.md）が16進8文字で送るのに対し、webapi.mdの例と
     本アプリはCMAC全体（32文字）を送る。32文字は実機（BL-010）で通っているため変えない（観察）。
   - 取り違え注意: 公式の同じ`docs/ja/SesameOS3/`に、webapi.md（2026-11-11に表題を「RESTful API」へ改名。
-    本アプリが使う`app.candyhouse.co/api/sesame2`で現行）と、restful.md（公式アプリ内部の`/device/v1/...`の
-    アプリ内部API。「廃止済み」とされたのはこちら）があり、どちらの表題も「RESTful API」になった。
+    本アプリが使う`app.candyhouse.co/api/sesame2`で現行）と、restful.md（公式アプリが内部で使う`/device/v1/...`の
+    API。「廃止済み」とされたのはこちら）があり、どちらの表題も「RESTful API」になった。
     本アプリが使うのは前者で、後者の廃止の影響は受けない。
   - 実機調査（BL-139 / BL-141、2026-09-18、Pixel 8 Pro + Play版0.11.0）: ウィジェットの状態取得が
     常に「状態不明」になる事象を調査し、原因が**Sesame API側のapikey無効化（HTTP 403）**であることを

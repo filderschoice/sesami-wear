@@ -47,7 +47,8 @@ gh api "repos/CANDY-HOUSE/SesameSDK_Android_with_DemoApp/commits?per_page=1" --j
 4. **記録**: 影響あり・要確認・人手検証は `docs/records/managed/BACKLOG.md` へ起票する
    （`autonomous-loop` と `guardrail-records-update` の手順）。調査結果は影響なしの項目の一覧も含めて
    `CHANGELOG.md` へ記録する。実装まで行う場合は別イテレーションにする。
-5. **基準点の更新**: 確認を終えた時点のHEADと日付で `baseline.md` を書き換える。
+5. **基準点の更新**: 確認を終えた時点のHEADと日付で `baseline.md` を書き換える。基準点は「中身まで確認し終えた最新のコミット」で、
+   HEAD取得後に未確認のコミットが残るなら、HEADではなく確認済みの最新を基準点にする（HEADは備考へ）。
    途中までしか読めなかった場合は、読み終えた地点までを基準点にし、残りを備考へ書く。
 
 ### 自律ループで行う場合と対話で行う場合
