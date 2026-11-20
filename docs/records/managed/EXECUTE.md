@@ -5,6 +5,25 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 10:00
+  summary: a23d848 のレビュー指摘の修正（KDoc の行長超過・復元された表示済み id との衝突）
+  details:
+    変更内容: >-
+      (1) DeviceCardCommandSender の KDoc が187文字で max_line_length=120 を超えていたため折り返した（Kotlin 全ファイルで
+      120超が他に無いことを確認）。(2) 結果の id の採番を 0 始まりから起動時刻（System.currentTimeMillis()）始まりに変えた。
+      画面側の表示済み id は rememberSaveable でプロセス死後も復元されるため、0 始まりだと再起動後の新しい結果の id と
+      偶然一致して表示も消去もされない恐れがあった。衝突しないこと（id が 0 始まりの連番の範囲に入らない）を確かめる
+      テストを追加した。半角カナの幅・ZWJ 絵文字の省略は据え置き。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck（モジュール別） detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck（core・mobile・wear 個別。mobile は初回にコメント直前の空行の指摘が出て直し再実行で成功）・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（mobile のテストタスクが実行されキャッシュ素通りなし）。markdownlint・validate-records・scan-secrets とも成功。
+    関連ID:
+      - BL-295
 - date: 2026-11-21 09:00
   summary: 既存タイル SesameTileService.onTileRequest が例外時にも future を完了させるようにする（BL-300）
   details:

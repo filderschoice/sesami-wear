@@ -18,7 +18,8 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * [scope]は画面より長く生きるもの（アプリのプロセス内のスコープ）を渡す。送信は画面を離れても完了まで続き、
  * 送信中の状態（[sending]）と未表示の結果（[results]）を保持する。画面側は両方を観測して表示し、結果を表示したら
- * [consumeResult]で消す（表示した結果の[Result.id]と一致するときだけ消すので、表示前に積まれた新しい結果は消えない）。結果を状態として持つので、回転の途中で完了しても取りこぼさず、画面へ戻ったときに表示される。
+ * [consumeResult]で消す（表示した結果の[Result.id]と一致するときだけ消すので、表示前に積まれた新しい結果は
+ * 消えない）。結果を状態として持つので、回転の途中で完了しても取りこぼさず、画面へ戻ったときに表示される。
  * Android非依存のためユニットテスト対象。
  */
 internal class DeviceCardCommandSender(
@@ -34,7 +35,10 @@ internal class DeviceCardCommandSender(
 
     private val sendingUuids = MutableStateFlow<Set<String>>(emptySet())
     private val pendingResults = MutableStateFlow<Map<String, Result>>(emptyMap())
-    private val nextId = AtomicLong(0)
+
+    // 画面側の表示済みid（rememberSaveable）はプロセス死後も復元される。0始まりだと再起動後の新しい結果のidと
+    // 偶然一致して表示されなくなるため、起動ごとに異なる値（起動時刻）から採番する。
+    private val nextId = AtomicLong(System.currentTimeMillis())
 
     /** 送信中のデバイスのuuid。 */
     val sending: StateFlow<Set<String>> = sendingUuids.asStateFlow()

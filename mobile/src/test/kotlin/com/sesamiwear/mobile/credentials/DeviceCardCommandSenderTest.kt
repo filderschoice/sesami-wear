@@ -121,6 +121,16 @@ class DeviceCardCommandSenderTest {
         }
 
     @Test
+    fun `idは0始まりの連番と衝突しない（プロセス死後に復元された表示済みidと一致させない）`() =
+        runTest {
+            val sender = DeviceCardCommandSender(this) { _, _ -> Outcome.SUCCESS }
+            sender.send("u1", "玄関", SesameCommand.LOCK)
+            advanceUntilIdle()
+            // 復元される表示済みidの既定値（-1）や、0始まりの小さな連番の範囲に入らない。
+            assertTrue(sender.results.value.getValue("u1").id > 1_000_000L)
+        }
+
+    @Test
     fun `完了後は同じデバイスへ再び送れる`() =
         runTest {
             val gate = CompletableDeferred<Outcome>()
