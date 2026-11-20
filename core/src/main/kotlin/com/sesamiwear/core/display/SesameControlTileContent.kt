@@ -52,6 +52,7 @@ object SesameControlTileContent {
     private const val TWO_TIER_COUNT = 2
     private const val THREE_TIER_COUNT = 3
     private const val ASCII_MAX = 0x7F
+    private val HALFWIDTH_KANA_RANGE = 0xFF61..0xFF9F
     private const val ELLIPSIS = "…"
     private const val ELLIPSIS_UNITS = 2
 
@@ -84,21 +85,26 @@ object SesameControlTileContent {
     /** [overflowCount]台ぶんの「他N台」の文言。 */
     fun overflowLabel(overflowCount: Int): String = "他${overflowCount}台"
 
-    /** チップ名を[MAX_NAME_UNITS]の幅に収める。収まらないときは先頭を残して末尾を「…」にする。 */
+    /**
+     * チップ名を[MAX_NAME_UNITS]の幅に収める。収まらないときは先頭を残して末尾を「…」にする。
+     * コードポイント単位で数えるので、絵文字などのサロゲートペアを途中で切らない。
+     */
     fun shortName(name: String): String {
-        if (name.sumOf { unitsOf(it) } <= MAX_NAME_UNITS) return name
+        val codePoints = name.codePoints().toArray()
+        if (codePoints.sumOf { unitsOf(it) } <= MAX_NAME_UNITS) return name
         val sb = StringBuilder()
         var used = 0
-        for (ch in name) {
-            val w = unitsOf(ch)
+        for (cp in codePoints) {
+            val w = unitsOf(cp)
             if (used + w > MAX_NAME_UNITS - ELLIPSIS_UNITS) break
-            sb.append(ch)
+            sb.appendCodePoint(cp)
             used += w
         }
         return sb.toString() + ELLIPSIS
     }
 
-    private fun unitsOf(ch: Char): Int = if (ch.code <= ASCII_MAX) 1 else 2
+    /** 表示幅。ASCIIと半角カナ（U+FF61〜U+FF9F）は1、それ以外（全角・絵文字）は2。 */
+    private fun unitsOf(codePoint: Int): Int = if (codePoint <= ASCII_MAX || codePoint in HALFWIDTH_KANA_RANGE) 1 else 2
 
     /**
      * 台ごとのチップ。[state]は背景色を、[icon]は状態アイコン（「🔒」等）を決める。[name]は省略済みで、

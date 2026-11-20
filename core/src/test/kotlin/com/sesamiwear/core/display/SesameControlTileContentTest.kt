@@ -103,6 +103,15 @@ class SesameControlTileContentTest {
     }
 
     @Test
+    fun `six devices show four chips and an overflow of two`() {
+        val content = SesameControlTileContent.build(devices(6), { true }, phoneConnected = true)!!
+        assertEquals(4, content.chips.size)
+        assertEquals(2, content.overflowCount)
+        assertEquals(listOf(3, 1), content.chipRows.map { it.chips.size })
+        assertEquals("他2台", content.chipRows.last().overflowText)
+    }
+
+    @Test
     fun `chip state follows the last synced lock state`() {
         val locks = mapOf("uuid-1" to true, "uuid-2" to false)
         val chips = SesameControlTileContent.build(devices(2), { locks[it] }, phoneConnected = true)!!.chips
@@ -142,6 +151,30 @@ class SesameControlTileContentTest {
         assertEquals("Garage", SesameControlTileContent.shortName("Garage"))
         assertEquals("倉庫の…", SesameControlTileContent.shortName("倉庫の奥の勝手口"))
         assertEquals("Front …", SesameControlTileContent.shortName("Front door"))
+    }
+
+    @Test
+    fun `short names never split a surrogate pair`() {
+        val door = "🚪"
+        // 絵文字は2幅。幅6（=8-省略記号2）に3個まで入り、4個目で省略する。
+        assertEquals(door.repeat(3) + "…", SesameControlTileContent.shortName(door.repeat(5)))
+        // ちょうど4個（幅8）は省略しない。
+        assertEquals(door.repeat(4), SesameControlTileContent.shortName(door.repeat(4)))
+        // 半角1＋絵文字2の繰り返し。途中で切っても、孤立したサロゲートを残さない。
+        val cut = SesameControlTileContent.shortName(("a" + door).repeat(6))
+        assertTrue(cut.endsWith("…"))
+        assertEquals(("a" + door).repeat(2) + "…", cut)
+    }
+
+    @Test
+    fun `halfwidth katakana counts as one unit and fullwidth as two`() {
+        // 半角カナ8文字は幅8でちょうど収まる。
+        assertEquals("ｱｲｳｴｵｶｷｸ", SesameControlTileContent.shortName("ｱｲｳｴｵｶｷｸ"))
+        // 9文字目で超えるので幅6=6文字＋省略記号。
+        assertEquals("ｱｲｳｴｵｶ…", SesameControlTileContent.shortName("ｱｲｳｴｵｶｷｸｹ"))
+        // 全角は2幅（4文字で8、5文字で省略）。
+        assertEquals("あいうえ", SesameControlTileContent.shortName("あいうえ"))
+        assertEquals("あいう…", SesameControlTileContent.shortName("あいうえお"))
     }
 
     @Test

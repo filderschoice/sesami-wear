@@ -1,5 +1,6 @@
 package com.sesamiwear.wear.tile
 
+import android.content.Context
 import android.util.Log
 import androidx.wear.protolayout.ColorBuilders
 import androidx.wear.protolayout.DimensionBuilders
@@ -19,6 +20,7 @@ import com.sesamiwear.core.display.SesameControlTileContent
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 import com.sesamiwear.wear.messaging.SesameDeviceListReader
 import com.sesamiwear.wear.messaging.SesameStatusSnapshotReader
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,14 +46,48 @@ class SesameControlTileService : TileService() {
         val future = SettableFuture.create<TileBuilders.Tile>()
         CoroutineScope(Dispatchers.IO).launch {
             val context = applicationContext
-            val devices = SesameDeviceListReader.readLatest(context)
-            val snapshots = devices.associate { it.uuid to SesameStatusSnapshotReader.readLatest(context, it.uuid) }
-            val connected = SesameConnectedNodeProvider.firstConnectedNodeId(context) != null
-            val content = SesameControlTileContent.build(devices, { snapshots[it]?.isLocked }, connected)
-            Log.d(TAG, "onTileRequest tileId=${requestParams.tileId} devices=${devices.size} connected=$connected")
+            val content =
+                try {
+                    loadContent(context, requestParams.tileId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (
+                    @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
+                ) {
+                    // 読み取りの失敗でfutureが未完了のまま描画が止まらないよう、未接続表示（ボタン無効）で完了させる。
+                    // 例外の本文は出さず、固定文だけを記録する。
+                    Log.w(TAG, "onTileRequest 状態の読み取りに失敗したため未接続表示にします")
+                    fallbackContent(context)
+                }
             future.set(buildTile(if (content == null) buildEmptyBox() else buildControlTileContent(context, content)))
         }
         return future
+    }
+
+    private suspend fun loadContent(
+        context: Context,
+        tileId: Int,
+    ): SesameControlTileContent.Content? {
+        val devices = SesameDeviceListReader.readLatest(context)
+        val snapshots = devices.associate { it.uuid to SesameStatusSnapshotReader.readLatest(context, it.uuid) }
+        val connected = SesameConnectedNodeProvider.firstConnectedNodeId(context) != null
+        Log.d(TAG, "onTileRequest tileId=$tileId devices=${devices.size} connected=$connected")
+        return SesameControlTileContent.build(devices, { snapshots[it]?.isLocked }, connected)
+    }
+
+    /** 読み取りに失敗したときの表示。台の一覧が読めれば、状態不明・未接続（全ボタン無効）で出す。 */
+    private suspend fun fallbackContent(context: Context): SesameControlTileContent.Content? {
+        val devices =
+            try {
+                SesameDeviceListReader.readLatest(context)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (
+                @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
+            ) {
+                emptyList()
+            }
+        return SesameControlTileContent.build(devices, { null }, phoneConnected = false)
     }
 
     override fun onTileResourcesRequest(

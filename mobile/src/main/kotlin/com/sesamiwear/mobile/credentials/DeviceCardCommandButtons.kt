@@ -1,6 +1,7 @@
 package com.sesamiwear.mobile.credentials
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.command.SesameDeviceCommandExecutorFactory
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,12 +55,15 @@ internal fun DeviceCardCommandButtons(
     var confirming by rememberSaveable(uuid) { mutableStateOf(false) }
 
     // 完了した結果を一度だけ表示する（回転・離脱の間に完了したものも、状態として残っているので取りこぼさない）。
+    // 結果は連番（id）で識別し、同じidは一度しか表示しない。消すときも表示したidと一致するものだけ消す。
     val pending = results[uuid]
-    LaunchedEffect(pending) {
-        if (pending != null) {
-            onResult(pending)
+    var shownId by rememberSaveable(uuid) { mutableStateOf(-1L) }
+    LaunchedEffect(pending?.id) {
+        if (pending != null && pending.id != shownId) {
+            shownId = pending.id
+            sender.consumeResult(uuid, pending.id)
+            onResult(pending.message)
             onFinished()
-            sender.consumeResult(uuid)
         }
     }
 
@@ -115,10 +120,15 @@ private object DeviceCardCommandSenders {
     fun get(context: Context): DeviceCardCommandSender =
         instance ?: run {
             val appContext = context.applicationContext
-            DeviceCardCommandSender(CoroutineScope(SupervisorJob() + Dispatchers.IO)) { uuid, command ->
+            // 送信の外へ漏れた例外でプロセスが落ちないよう、固定文だけを記録して握る（本文・識別子は出さない）。
+            val handler = CoroutineExceptionHandler { _, _ -> Log.w(TAG, UNCAUGHT_LOG) }
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + handler)
+            DeviceCardCommandSender(scope, log = { Log.w(TAG, it) }) { uuid, command ->
                 SesameDeviceCommandExecutorFactory.create(appContext).execute(uuid, command)
             }.also { instance = it }
         }
 }
 
 private const val CANCEL_LABEL = "キャンセル"
+private const val TAG = "DeviceCardCommand"
+private const val UNCAUGHT_LOG = "デバイスカードの送信処理で想定外のエラーが発生しました"

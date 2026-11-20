@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 08:00
+  summary: デバイスカード送信・操作専用タイルの最終レビュー指摘を直す（BL-295後半・BL-298）
+  details:
+    変更内容: >-
+      (1) DeviceCardCommandSender: execute が例外を投げても（CancellationException は除く）失敗結果を積んで送信中を解き、
+      固定文だけをログへ出す（本文・識別子・資格情報は出さない）。ログは引数で注入し、スコープには CoroutineExceptionHandler
+      （固定文のログのみ）も付けた。(2) 結果へ連番 id を付け、consumeResult(uuid, id) は一致するときだけ消す。画面側は
+      同じ id を一度しか表示しない（途中でコンポジションが離れても二重表示せず、表示前に積まれた新しい結果を消さない）。
+      (3) SesameControlTileContent.shortName をコードポイント単位にし、ASCII と半角カナ（U+FF61〜U+FF9F）を1、それ以外を2として
+      絵文字の途中で切らない。(4) 6台ちょうど（4チップ＋他2台）のテストを追加。(5) SesameControlTileService.onTileRequest は
+      読み取りの例外時に未接続表示（ボタン無効）で future を完了させる。既存の SesameTileService にも同じ構造があるが、
+      既存タイルの挙動変更を避けて今回は変えず BL-300 へ起票した。detekt の TooGenericExceptionCaught・SwallowedException は
+      既存コードと同じ形の @Suppress とし、握る意図はコメントに書いた。DESIGN を実装に合わせた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew --rerun-tasks ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（--rerun-tasks でキャッシュ素通りなし、テスト失敗0。テスト結果XMLの合計1266件はdebug・releaseの重複を含む）。ktlintCheck は3モジュールをまとめて --rerun-tasks で流すと Gradle worker の JVM 異常終了（メモリ）で落ちたため、daemon を止めてモジュール単位に分けて実行しいずれも成功。実機での見え方・回転中の挙動は BL-297 の人手検証の範囲。
+    関連ID:
+      - BL-295
+      - BL-297
+      - BL-298
+      - BL-300
 - date: 2026-11-21 07:00
   summary: デバイスカードの施錠・解錠ボタンの送信を、画面の回転・離脱で取り消されないようにする（BL-295後半のレビュー指摘）
   details:

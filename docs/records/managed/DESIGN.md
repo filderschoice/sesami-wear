@@ -294,7 +294,7 @@
     編集・削除はカード右上の⋮メニューへまとめ、カード下部に「ダイヤル操作」（BL-243）の文字付きボタンを置く。
     BL-295後半で、カード下部（ダイヤル操作・接続確認の上）に「施錠」「解錠」の2ボタンを置いた
     （`DeviceCardCommandButtons`）。**表示している状態によらず押せる**（すでに施錠中でも施錠を、解錠中でも解錠を送れる。
-    一部解錠のときに先に全施錠せず解錠できる）。無効になるのは送信中だけ（二重送信を避ける）。**送信は画面の寿命から切り離す**: 送信・送信中の状態（uuidごと）・未表示の結果は`DeviceCardCommandSender`（Android非依存、ユニットテスト対象）が持ち、アプリのプロセス内のスコープ（`SupervisorJob`+`Dispatchers.IO`、`DeviceCardCommandButtons`内の入れ物が1つだけ保持）で動かす。ViewModelは使わない（`lifecycle-viewmodel-compose`が未導入で、依存を足さないため）。このため画面の回転・離脱で送信は取り消されず完了まで続き、送信中の無効化も保たれ、結果は状態（`results`）として残るので、回転の途中や画面を離れている間に完了しても戻ったときにスナックバーで出る（表示したら`consumeResult`で消す）。同じuuidが送信中の押下は`send`がfalseを返して無視する。**解錠は確認ダイアログ
+    一部解錠のときに先に全施錠せず解錠できる）。無効になるのは送信中だけ（二重送信を避ける）。**送信は画面の寿命から切り離す**: 送信・送信中の状態（uuidごと）・未表示の結果は`DeviceCardCommandSender`（Android非依存、ユニットテスト対象）が持ち、アプリのプロセス内のスコープ（`SupervisorJob`+`Dispatchers.IO`、`DeviceCardCommandButtons`内の入れ物が1つだけ保持）で動かす。ViewModelは使わない（`lifecycle-viewmodel-compose`が未導入で、依存を足さないため）。このため画面の回転・離脱で送信は取り消されず完了まで続き、送信中の無効化も保たれ、結果は状態（`results`）として残るので、回転の途中や画面を離れている間に完了しても戻ったときにスナックバーで出る（結果は連番`id`付きで、表示したidと一致するときだけ`consumeResult`（uuidとidを渡す）で消す。表示側も同じidを一度しか出さないので、コンポジションが途中で離れても二重表示せず、表示前に積まれた新しい結果を消さない）。`execute`が例外を投げたら（`CancellationException`は除く）失敗結果として積んで送信中を解き、固定文だけをlogcatへ出す（例外の本文・識別子・資格情報は出さない）。スコープには`CoroutineExceptionHandler`（固定文のログのみ）も付ける。同じuuidが送信中の押下は`send`がfalseを返して無視する。**解錠は確認ダイアログ
     （「解錠しますか？」［キャンセル｜解錠］）を経てから送り、即解錠の経路は作らない**。ダイアログの表示状態は`rememberSaveable(uuid)`で回転後も保つ（解錠はダイアログの「解錠」を押したときだけ送るため、復元しても確認なしで送られない）。施錠は確認なし。送信は
     `SesameDeviceCommandExecutorFactory.create`の実行口（`Dispatchers.IO`）で、経路選択・重複抑止（2秒）・BL-293の状態確認・
     診断ログ・ウォッチ同期・ウィジェット再描画・デモ・撮影モードはウィジェット・ウォッチと同じに効く。結果は画面下の
@@ -1581,7 +1581,7 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   - 表示規則は`core.display.SesameControlTileContent`（Android非依存、ユニットテスト対象）。`build(devices,
     isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全施錠」「全解錠」（登録1台のときは「施錠」「解錠」、
     送信先はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`）、下段に台ごとの状態チップを**横に並べる**（ユーザーが選んだ
-    「全体ボタン＋台ごとの状態」の見本どおり。チップは名前（`shortName`、全角2・半角1で幅8まで、超えると先頭＋「…」）の下に
+    「全体ボタン＋台ごとの状態」の見本どおり。チップは名前（`shortName`、コードポイント単位で数え、ASCIIと半角カナ（U+FF61〜U+FF9F）を1、それ以外（全角・絵文字）を2として幅8まで、超えると先頭＋「…」。絵文字の途中では切らない）の下に
     状態アイコン（`statusIcon`）、背景は`backgroundColorArgb`）。**寸法**: 円形192dp、1段の高さ48dp（タップ領域の最小値）、
     段間・チップ間4dp、円の弦の両端の安全余白4dp。段ごとの可用幅は`tierWidthDp`＝「その段の中心から遠い側の辺での弦の長さ
     −8dp」（2段構成は全段155dp、3段構成は上109・中177・下109dp）、1段のチップ数は`chipsPerRow`＝(幅+4)/(48+4)の切り捨て。
@@ -1599,7 +1599,7 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
     **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で
     `SesameDisplayUpdateRequester.requestUpdateAll`と`SesameResultListenerService`が`SesameControlTileService`の再描画も
-    依頼し、施錠に成功すれば施錠中の表示になる。画像リソースは使わない（`RESOURCES_VERSION`="1"）。
+    依頼し、施錠に成功すれば施錠中の表示になる。画像リソースは使わない（`RESOURCES_VERSION`="1"）。状態の読み取りが例外で失敗しても（`CancellationException`は除く）、固定文だけをlogcatへ出し、台の一覧が読めれば状態不明・未接続（全ボタン・チップ無効）の表示でfutureを完了させる（描画が止まらない）。
   - 実機でしか確かめられない点（別タイルとして並ぶか・両方置けるか、192dpでの押し間違い・円形の端の見切れ、
     送信後の戻り先）はBL-297の(7)で人手検証する。
 - **未確認事項**: 上記の多重インスタンス対応はコード側では実装済みだが、実機（Wear OS 7の

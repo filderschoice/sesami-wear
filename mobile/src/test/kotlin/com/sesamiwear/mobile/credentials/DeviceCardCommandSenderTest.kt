@@ -61,7 +61,7 @@ class DeviceCardCommandSenderTest {
             assertTrue(sender.results.value.isEmpty())
             gate.complete(Outcome.SUCCESS)
             advanceUntilIdle()
-            assertEquals(mapOf("u1" to "玄関を解錠しました"), sender.results.value)
+            assertEquals("玄関を解錠しました", sender.results.value["u1"]?.message)
             assertTrue(sender.sending.value.isEmpty())
         }
 
@@ -75,7 +75,48 @@ class DeviceCardCommandSenderTest {
             advanceUntilIdle()
             // 画面が回転などで作り直されても、結果は状態として残っている。
             assertTrue("u1" in sender.results.value)
-            sender.consumeResult("u1")
+            sender.consumeResult("u1", sender.results.value.getValue("u1").id)
+            assertTrue(sender.results.value.isEmpty())
+        }
+
+    @Test
+    fun `executeが例外を投げても失敗結果を積み送信中を解く`() =
+        runTest {
+            val logs = mutableListOf<String>()
+            val sender =
+                DeviceCardCommandSender(this, log = { logs += it }) { _, _ ->
+                    error("secret-detail")
+                }
+            assertTrue(sender.send("u1", "玄関", SesameCommand.LOCK))
+            advanceUntilIdle()
+            assertTrue(sender.results.value.getValue("u1").message.startsWith("玄関を施錠できませんでした"))
+            assertTrue(sender.sending.value.isEmpty())
+            // ログは固定文だけで、例外の本文は含まない。
+            assertEquals(1, logs.size)
+            assertFalse(logs.single().contains("secret-detail"))
+        }
+
+    @Test
+    fun `表示前に新しい結果が積まれても古いidの消費では消えない`() =
+        runTest {
+            val gates = ArrayDeque<CompletableDeferred<Outcome>>()
+            val first = CompletableDeferred<Outcome>()
+            val second = CompletableDeferred<Outcome>()
+            gates += first
+            gates += second
+            val sender = DeviceCardCommandSender(this) { _, _ -> gates.removeFirst().await() }
+            sender.send("u1", "玄関", SesameCommand.LOCK)
+            first.complete(Outcome.SUCCESS)
+            advanceUntilIdle()
+            val oldId = sender.results.value.getValue("u1").id
+            sender.send("u1", "玄関", SesameCommand.UNLOCK)
+            second.complete(Outcome.SUCCESS)
+            advanceUntilIdle()
+            val newResult = sender.results.value.getValue("u1")
+            assertTrue(newResult.id != oldId)
+            sender.consumeResult("u1", oldId)
+            assertEquals(newResult, sender.results.value["u1"])
+            sender.consumeResult("u1", newResult.id)
             assertTrue(sender.results.value.isEmpty())
         }
 

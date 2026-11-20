@@ -5,6 +5,23 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-300
+  区分: 不具合
+  タスク内容: >-
+    既存タイル`wear.tile.SesameTileService.onTileRequest`の`CoroutineScope(Dispatchers.IO).launch`に例外処理がなく、
+    `SesameTileStateResolver`・`buildConfiguredTile`内の読み取りが例外を投げると`SettableFuture`が完了せずタイルの描画が止まる
+    （操作専用タイル`SesameControlTileService`はBL-298のレビュー指摘で、例外時に未接続表示でfutureを完了させるようにした）。
+    既存タイルにも同じ構造の対策を入れるか判断し、入れるなら`CancellationException`を除いて固定文だけをログへ出し、
+    未設定・未接続の表示でfutureを完了させる。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    既存タイルの`onTileRequest`が例外時にもfutureを完了させること（または対策不要と判断した根拠が記録されていること）
+  根拠: >-
+    既存タイルの挙動変更を避けるため、BL-298のレビュー修正では操作専用タイルだけを直し、既存タイルは別件として起票した。
+  依存: []
+
 - id: BL-299
   区分: 機能追加
   タスク内容: >-
