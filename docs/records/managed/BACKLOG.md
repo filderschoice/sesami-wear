@@ -69,6 +69,9 @@
     BL-298で追加した操作専用タイル（「Sesami 操作パネル」。実機の見え方はBL-297の確認後）の画像も追加する
     （2台前後の状態で、上の「全施錠」「全解錠」と台ごとの行が写るもの。`docs/store/README.md`へ一覧を足す）。
     撮影は Skill `store-screenshot-capture` の手順で行い、`docs/store/README.md`の説明も追随させる。
+    撮り直しと同時に、旧称「解錠確認」「確認画面」が残る記述も選ぶ画面の呼び方へ直す（掲載文の変更は撮り直しと同時に行い、
+    それまでは本文を変えない）: `docs/store/README.md`の画像の説明（`phone_2_widget_unlock_confirm`・`wear_5_unlock_confirm`の
+    行）と`docs/store/STORE_LISTING.md`155行目付近の「解錠確認」。
   優先度: P3
   状態: 未着手
   担当: AIエージェント

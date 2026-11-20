@@ -5,6 +5,35 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 07:00
+  summary: デバイスカードの施錠・解錠ボタンの送信を、画面の回転・離脱で取り消されないようにする（BL-295後半のレビュー指摘）
+  details:
+    変更内容: >-
+      DeviceCardCommandButtons の送信が rememberCoroutineScope、送信中が remember だったため、回転・離脱で送信が取り消され、
+      結果のスナックバーが出ず、送信中の無効化も外れていた。送信・送信中のuuid集合・未表示の結果を DeviceCardCommandSender
+      （Android非依存）へ移し、アプリのプロセス内のスコープ（SupervisorJob と Dispatchers.IO）で動かすようにした。lifecycle-viewmodel-compose が
+      未導入で依存を足さない方針のため ViewModel は使っていない。結果は状態として保持し、画面が観測して表示後に消す（回転中や
+      離脱中に完了しても戻ったときに表示される）。同じuuidの送信中の押下は無視する。確認ダイアログの表示状態は
+      rememberSaveable(uuid) にして回転後も保つ（解錠はダイアログの「解錠」を押したときだけ送るため、確認なしで送られることはない）。
+      併せて USER_GUIDE の旧称「確認画面」を選ぶ画面の呼び方へ直し、BL-296 へ docs/store の旧称（解錠確認）の修正を撮り直しと
+      同時に行う旨を追記した（掲載文は今回変えない）。DESIGN の「送信中は二重送信を避ける」を実装に合わせた。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（mobile のテスト・lint・assemble の実行を出力で確認。DeviceCardCommandSenderTest は5件。detekt の行長指摘を直して再実行）。
+      実機での回転・離脱中の挙動はBL-297の人手検証の範囲。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
 - date: 2026-11-21 06:00
   summary: 操作専用タイルの台ごとの状態を、ユーザーが選んだ見本どおりチップの横並びにする（BL-298）
   details:
