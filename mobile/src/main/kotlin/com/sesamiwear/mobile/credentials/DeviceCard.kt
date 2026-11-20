@@ -25,7 +25,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,7 +67,7 @@ import com.sesamiwear.mobile.ui.SesameRouteIcon
  * (1) 状態アイコンと名前、(2) 施錠状態・電池・角度、(3) 最終取得と経路、(4) Bluetoothの到達状況
  * （BL-190）、へ行を分ける。
  * BL-245で見た目を整理した: 状態は色付きの丸いバッジ、編集・削除はカード右上の⋮、
- * ダイヤル操作（BL-243）は文字付きのボタン。
+ * ダイヤル操作（BL-243）は文字付きのボタン。BL-295後半で、施錠・解錠のボタンを足した（[DeviceCardCommandButtons]）。
  * 行の組み立ては`core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
  *
  * **この表示のために状態取得のリクエストは送らない。** 最後に分かった値をそのまま出すだけで、
@@ -78,8 +80,10 @@ internal fun DeviceCard(
     credentials: SesameCredentials,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onCommandResult: (String) -> Unit,
 ) {
-    val snapshot = rememberSnapshot(credentials.uuid)
+    var refreshKey by remember { mutableIntStateOf(0) }
+    val snapshot = rememberSnapshot(credentials.uuid, refreshKey)
     // 設定画面は情報量を許せる面のため、角度まで出す（BL-169）。
     val lines =
         SesameDeviceStatusLine.lines(
@@ -121,6 +125,12 @@ internal fun DeviceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            DeviceCardCommandButtons(
+                uuid = credentials.uuid,
+                displayName = credentials.displayName.ifBlank { credentials.uuid },
+                onResult = onCommandResult,
+                onFinished = { refreshKey++ },
+            )
             BluetoothActions(uuid = credentials.uuid)
         }
     }
@@ -284,11 +294,16 @@ private fun BluetoothActions(uuid: String) {
 
 /** 保存済みのスナップショット。画面が再開するたびに読み直す（BL-159）。 */
 @Composable
-private fun rememberSnapshot(uuid: String): SesameStatusSnapshot? {
+private fun rememberSnapshot(
+    uuid: String,
+    refreshKey: Int,
+): SesameStatusSnapshot? {
     val context = LocalContext.current
     val store = remember { SesameDeviceStores.lockState(context) }
     var snapshot by remember { mutableStateOf(store.load(uuid)) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { snapshot = store.load(uuid) }
+    // 施錠・解錠ボタンの完了後にも読み直す（保存は実行口が済ませている）。
+    LaunchedEffect(refreshKey) { snapshot = store.load(uuid) }
     return snapshot
 }
 

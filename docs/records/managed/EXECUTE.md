@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 03:00
+  summary: アプリ主画面のデバイスカードに「施錠」「解錠」ボタンを追加する（BL-295後半）。表示状態によらず押せ、解錠は確認を挟む
+  details:
+    変更内容: >-
+      mobile.credentials.DeviceCardCommandPolicy（Android非依存）を追加し、ボタンの有効条件（送信中のみ無効）、押下の動き（施錠は即送信、解錠は確認、送信中は無視）、確認文言、結果メッセージ（成功・失敗・重複）を定めた。DeviceCardCommandButtons（Compose）をカード下部（ダイヤル操作・接続確認の上）へ「施錠」「解錠」の2ボタンとして置き、解錠は確認ダイアログを経て、送信は SesameDeviceCommandExecutorFactory.create の実行口（Dispatchers.IO）で行う。そのため経路選択・重複抑止・BL-293の状態確認・診断ログ・ウォッチ同期・ウィジェット再描画・デモ・撮影モードの扱いは既存の実行口のとおり。結果は CredentialsSettingsScreen のスナックバーで表示し、完了後にカードのスナップショットを読み直す。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を追随させ、BL-295 を削除し、BL-296（phone_4_device_list を対象へ追加）・BL-297（確認項目(6)を追加）を更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicy.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicyTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（detektの指摘2件を修正して再実行。mobileのコンパイルとテストの実行を出力で確認。新規テスト8件）。Compose画面の見え方は人手検証（BL-297 の(6)）。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
+
 - date: 2026-11-21 02:10
   summary: 施錠・解錠を選んで実行できる画面を追加する（BL-295前半）。施錠中・一部解錠のタップで選ぶ画面、ウォッチ一覧の行は常に選ぶ画面
   details:

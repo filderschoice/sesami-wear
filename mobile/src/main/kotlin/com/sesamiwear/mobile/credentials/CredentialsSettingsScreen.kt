@@ -111,6 +111,7 @@ fun CredentialsSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             onEdit = { editorTarget = EditorTarget(editing = it) },
             onDelete = { deleteTarget = it },
+            onCommandResult = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
         )
     }
 }
@@ -165,6 +166,7 @@ private fun DeviceListContent(
     modifier: Modifier,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
+    onCommandResult: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -181,6 +183,7 @@ private fun DeviceListContent(
                     credentials = credentials,
                     onEdit = { onEdit(credentials) },
                     onDelete = { onDelete(credentials) },
+                    onCommandResult = onCommandResult,
                 )
             }
             // まとめて接続確認（BL-280）の入口。先頭に置くとよく使うカードが下へ押されるため、カードの後ろへ置く。
