@@ -1541,6 +1541,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   - `TileService.onTileRequest`はGuavaの`SettableFuture`でコルーチン結果をブリッジしている
     （Tiles APIのレスポンスタイムアウト制約を避けるため、既存のDataItemスナップショットで即座に
     応答しつつmobile側へ状態取得リクエストを送信する設計、BL-061）。
+    コルーチン内で例外（`CancellationException`以外）が起きても未設定表示（タップで設定）でfutureを完了させ、
+    描画が止まらないようにする（BL-300。固定文だけをログへ出し、例外本文・uuidは出さない）。
 - `core.display.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
   マッピングと、中立チップ色`CHIP_NEUTRAL_COLOR_ARGB`。`statusLabel`/`actionLabel`は`isAllDevices`
   パラメータ（デフォルト`false`）を持ち、全デバイス選択時は「全施錠中」等の文言に切り替わる。

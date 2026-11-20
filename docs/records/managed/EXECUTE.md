@@ -5,6 +5,25 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 09:00
+  summary: 既存タイル SesameTileService.onTileRequest が例外時にも future を完了させるようにする（BL-300）
+  details:
+    変更内容: >-
+      onTileRequest のコルーチン内で、割り当て・状態・表示名の読み取りが例外を投げると SettableFuture が完了せず
+      タイルの描画が止まっていた。CancellationException は再送出し、それ以外は固定文だけを Log へ出して
+      未設定表示（タップで設定）で future を完了させる。操作専用タイル SesameControlTileService と同じ構造。
+      例外本文・uuid は出さない。通常経路の挙動は変えていない。Service はテスト対象外のためテストの追加は無し。DESIGN を追記した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck（モジュール別） detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck（core・mobile・wearを個別実行）・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（wear のコンパイル・lint・テストタスクが実行されキャッシュ素通りなし）。markdownlint 0 issues・validate-records・scan-secrets とも成功。実機での確認は無し（読み取り例外は実機で再現しにくいためコード確認まで）。
+    関連ID:
+      - BL-300
 - date: 2026-11-21 08:00
   summary: デバイスカード送信・操作専用タイルの最終レビュー指摘を直す（BL-295後半・BL-298）
   details:

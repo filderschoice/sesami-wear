@@ -26,6 +26,7 @@ import com.sesamiwear.wear.R
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,19 +57,30 @@ class SesameTileService : TileService() {
         val tileId = requestParams.tileId
         Log.d(TAG, "onTileRequest tileId=$tileId")
         CoroutineScope(Dispatchers.IO).launch {
-            val deviceUuid =
-                SesameTileStateResolver.effectiveAssignment(
-                    applicationContext,
-                    TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId),
-                )
-            Log.d(TAG, "onTileRequest tileId=$tileId deviceAssigned=${deviceUuid != null}")
-            future.set(
-                if (deviceUuid == null) {
+            val tile =
+                try {
+                    val deviceUuid =
+                        SesameTileStateResolver.effectiveAssignment(
+                            applicationContext,
+                            TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId),
+                        )
+                    Log.d(TAG, "onTileRequest tileId=$tileId deviceAssigned=${deviceUuid != null}")
+                    if (deviceUuid == null) {
+                        buildTile(buildUnconfiguredBox(tileId))
+                    } else {
+                        buildConfiguredTile(deviceUuid, tileId)
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (
+                    @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
+                ) {
+                    // 読み取りの失敗でfutureが未完了のまま描画が止まらないよう、未設定表示（タップで設定）で完了させる（BL-300）。
+                    // 例外の本文・uuidは出さず、固定文だけを記録する。
+                    Log.w(TAG, "onTileRequest 状態の読み取りに失敗したため未設定表示にします")
                     buildTile(buildUnconfiguredBox(tileId))
-                } else {
-                    buildConfiguredTile(deviceUuid, tileId)
-                },
-            )
+                }
+            future.set(tile)
         }
         return future
     }
