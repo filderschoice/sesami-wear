@@ -1580,15 +1580,21 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   2つのサービスのtileIdが重複しても保存キーの衝突は起きない）。同じタイルの複数配置は見送り（ユーザー判断、2026-11-21）。
   - 表示規則は`core.display.SesameControlTileContent`（Android非依存、ユニットテスト対象）。`build(devices,
     isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全施錠」「全解錠」（登録1台のときは「施錠」「解錠」、
-    送信先はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`）、下段に台ごとの行（名前・`statusIcon+statusLabel`、背景は
-    `backgroundColorArgb`）。**行数の上限`MAX_ROWS`=2**（円形192dpで、全体ボタン1段と合わせ縦3段・各48dp・段間4dp・
-    上下余白8dp＝168dp。48dpはタップ領域の最小値）。登録がそれを超えると、最後の1行を「他N台」（`overflowText`）へ置き換え、
-    1台ぶんの行を残す。「他N台」のタップは`MainActivity`（状態一覧）を開く。0台は案内`EMPTY_MESSAGE`のみで、タップで
-    `MainActivity`を開く（デモはSesameTileService側）。スマホ未接続（`firstConnectedNodeId`がnull）なら全体ボタンと行は
-    灰色でタップ不可。行のタップは状態によらず（状態不明でも）選ぶ画面を開く（`SesameTileActions.listTapDecision`と同じ流儀）。
+    送信先はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`）、下段に台ごとの状態チップを**横に並べる**（ユーザーが選んだ
+    「全体ボタン＋台ごとの状態」の見本どおり。チップは名前（`shortName`、全角2・半角1で幅8まで、超えると先頭＋「…」）の下に
+    状態アイコン（`statusIcon`）、背景は`backgroundColorArgb`）。**寸法**: 円形192dp、1段の高さ48dp（タップ領域の最小値）、
+    段間・チップ間4dp、円の弦の両端の安全余白4dp。段ごとの可用幅は`tierWidthDp`＝「その段の中心から遠い側の辺での弦の長さ
+    −8dp」（2段構成は全段155dp、3段構成は上109・中177・下109dp）、1段のチップ数は`chipsPerRow`＝(幅+4)/(48+4)の切り捨て。
+    チップが3台までは2段構成（全体ボタン＋チップ1段、チップ幅約49dp）、4台以上は3段構成（全体ボタン＋チップ2段、中段3・下段2）で、
+    **チップ数の上限`maxChips`=5**（導出値）。割り振りは上の段が多めの均等（4台は2+2、5台は3+2）。登録が5台を超えると、
+    最後のチップを「他N台」（`overflowCount`/`ChipRow.overflowText`、N＝登録数−4）へ置き換え、タップで`MainActivity`
+    （状態一覧）を開く。0台は案内`EMPTY_MESSAGE`のみで、タップで`MainActivity`を開く（デモはSesameTileService側）。
+    スマホ未接続（`firstConnectedNodeId`がnull）なら全体ボタンとチップは灰色でタップ不可。チップのタップは状態によらず
+    （状態不明でも）選ぶ画面を開く（`SesameTileActions.listTapDecision`と同じ流儀）。レイアウトは`SesameControlTileLayout.kt`
+    （幅の狭いチップのため内側余白を`chipModifiers`の引数で2dpへ詰める）。
   - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。「全施錠」は`EXTRA_COMMAND=LOCK`で即実行、
     「全解錠」は`EXTRA_COMMAND=UNLOCK`だが`SesameActionLaunchPlanner`が選ぶ画面へ倒すため、**タップだけでは解錠されない**
-    （解錠の安全方針BL-295を維持）。台の行は`EXTRA_CHOOSE`。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
+    （解錠の安全方針BL-295を維持）。台のチップは`EXTRA_CHOOSE`。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
     展開は`SesameActionTargetResolver`）。
   - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
     **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で

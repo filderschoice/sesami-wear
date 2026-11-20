@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 06:00
+  summary: 操作専用タイルの台ごとの状態を、ユーザーが選んだ見本どおりチップの横並びにする（BL-298）
+  details:
+    変更内容: >-
+      下段を縦の行から、状態チップの横並びへ変えた（見本「全体ボタン＋台ごとの状態」）。チップは名前（全角2・半角1で幅8まで、
+      超えると先頭＋「…」）と状態アイコン、背景は状態色、高さ48dp。段ごとの可用幅を円形192dpの弦から求める
+      （SesameControlTileContent.tierWidthDp。2段構成は155dp、3段構成は上109・中177・下109dp）。1段のチップ数は幅から決め
+      （3段目より上は3、下は2）、3台までは全体ボタン＋チップ1段、4台以上はチップ2段（4台は2+2、5台は3+2）、チップ数の上限は
+      導出値の5で、超えると最後のチップが「他N台」（アプリ本体を開く）。既存の操作（全施錠1タップ、全解錠・チップは選ぶ画面、未接続時の
+      無効化、1台時の文言）は変えていない。レイアウトは detekt の関数数・引数数の上限のため SesameControlTileLayout.kt へ分け、
+      チップの内側余白を chipModifiers の引数で詰めた。DESIGN・USER_GUIDE・RELEASE_NOTES・UI_DESIGN.html の6.5節・BL-297の(7)を追随。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileLayout.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileLayoutParts.kt
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（core・mobile・wear のテスト実行を出力で確認。SesameControlTileContentTest は14件）。
+      実機での見え方（チップ幅約49dpでの文字の収まり・円の端での見切れ）はBL-297の(7)の人手検証。
+    関連ID:
+      - BL-298
+      - BL-297
 - date: 2026-11-21 05:00
   summary: ウォッチに操作専用タイル「Sesami 操作パネル」を別のタイルとして追加する（BL-298）。全施錠・全解錠と台ごとの状態を1枚に並べる
   details:

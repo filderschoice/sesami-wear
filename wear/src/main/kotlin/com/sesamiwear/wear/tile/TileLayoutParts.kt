@@ -5,6 +5,7 @@ import androidx.wear.protolayout.ColorBuilders
 import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.ModifiersBuilders
 import com.sesamiwear.core.api.SesameCommand
+import com.sesamiwear.wear.MainActivity
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 
@@ -20,9 +21,13 @@ internal const val CHIP_INNER_PADDING_DP = 6f
 /**
  * チップ（角丸の四角ボタン風のBox）に共通の背景色・角丸・内側パディングを設定した
  * Modifiersビルダーを返す（BL-063）。呼び出し側でsetClickable/setSemantics等を追加できるよう
- * ビルダーのまま返す。
+ * ビルダーのまま返す。[innerPaddingDp]は幅の狭いチップ（操作専用タイルの横並びのチップ）で文字の幅を確保するため
+ * 小さくできる（既定は[CHIP_INNER_PADDING_DP]）。
  */
-internal fun chipModifiers(backgroundColorArgb: Int): ModifiersBuilders.Modifiers.Builder =
+internal fun chipModifiers(
+    backgroundColorArgb: Int,
+    innerPaddingDp: Float = CHIP_INNER_PADDING_DP,
+): ModifiersBuilders.Modifiers.Builder =
     ModifiersBuilders.Modifiers.Builder()
         .setBackground(
             ModifiersBuilders.Background.Builder()
@@ -36,7 +41,7 @@ internal fun chipModifiers(backgroundColorArgb: Int): ModifiersBuilders.Modifier
         )
         .setPadding(
             ModifiersBuilders.Padding.Builder()
-                .setAll(DimensionBuilders.dp(CHIP_INNER_PADDING_DP))
+                .setAll(DimensionBuilders.dp(innerPaddingDp))
                 .build(),
         )
 
@@ -75,3 +80,22 @@ internal fun buildActionClickable(
         .setOnClick(ActionBuilders.LaunchAction.Builder().setAndroidActivity(activity.build()).build())
         .build()
 }
+
+/** アプリ本体（[MainActivity]、状態一覧）を開くClickable。 */
+internal fun buildOpenAppClickable(
+    packageName: String,
+    clickableId: String,
+): ModifiersBuilders.Clickable =
+    ModifiersBuilders.Clickable.Builder()
+        .setId(clickableId)
+        .setOnClick(
+            ActionBuilders.LaunchAction.Builder()
+                .setAndroidActivity(
+                    ActionBuilders.AndroidActivity.Builder()
+                        .setPackageName(packageName)
+                        .setClassName(MainActivity::class.java.name)
+                        .build(),
+                )
+                .build(),
+        )
+        .build()
