@@ -40,7 +40,8 @@ description: ガードレール・エージェント指示ルールを配布元�
   `.claude/skills/pr-create/SKILL.md`（v0.28.0 で配布元へ `model: haiku` が入り、固有改変が無くなった）、
   `.claude/skills/docs-consistency-review/SKILL.md`、`scripts/validate-records.py`、`scripts/scan-secrets.py`
   （除外指定の仕組みは無い。足すと統制の緩和になるため、本リポジトリ固有の規則・除外は足していない）
-- `.claude/agents/*.md`（4定義）、`.claude/skills/loop-orchestration/SKILL.md`、
+- `.claude/agents/` の配布元の4定義（`backlog-planner` / `backlog-implementer` / `diff-reviewer` / `quality-gate-runner`。
+  本リポジトリ固有の `sesame-upstream-researcher.md` は含めない。下記「配布元を採らない」）、`.claude/skills/loop-orchestration/SKILL.md`、
   `.claude/hooks/validate-records-after-edit.py`（v0.30.0 で採用。2026-11-14 ユーザー判断）
 
 ### 固有改変をマージ（配布元の構造を採り、固有の内容は残す）
@@ -72,6 +73,7 @@ markdownlint は `gitignore: true` で `.gitignore` の除外に従うため、�
 | `.claude/settings.json` | `Edit(core/**)` / `Edit(mobile/**)` / `Edit(wear/**)` を追加済み。`hooks` だけは配布元の要素を取り込む（v0.30.0）。配布元が外した `Edit(scripts/**)` はユーザー判断で残している（2026-11-14） |
 | `.vscode/settings.json` / `extensions.json` | ターミナル自動承認と Gradle 拡張の非推奨指定を追加済み |
 | `.claude/skills/dependabot-alert-triage/` | 取り込まない（2026-10-24 ユーザー判断）。脆弱性チェックが未導入で Dependabot の運用も無い（Dependabot 自体は有効だが Gradle の依存を読めずアラートが出ない。`CLAUDE.md` 品質ゲート表参照） |
+| `.claude/skills/sesame-upstream-check/` / `.claude/agents/sesame-upstream-researcher.md` | 本リポジトリ固有（Sesame上流の定期調査。配布元に無い）。配布元との同期で消さない。`baseline.md` は前回確認の基準点で、調査のたびに更新する |
 | `templates/CONTRIBUTING.local-template.md` | `CONTRIBUTING.local.md` を作成済みのため不要 |
 | `templates/project-profile-SKILL-template.md` | 本スキルと各固有スキル（`realmachine-verification` 等）がプロファイルの役割を担っているため不要 |
 

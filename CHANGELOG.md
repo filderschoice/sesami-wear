@@ -7,6 +7,19 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-21（Sesame上流の定期調査をスキルとサブエージェントとして追加）
+
+Sesame公式の変更履歴・API_document・Android SDKの変更確認は今後も定期的に行うため、手順を残しました。
+実行はユーザーの指示で行い、GitHub Actions やスケジュール実行は使いません。
+
+- `.claude/skills/sesame-upstream-check/SKILL.md`: 確認先と本アプリとの照合点、差分だけを調べる手順、判定の型、
+  外部取得物の扱い、コスト管理（初回調査は約14.7万トークン・ツール43回）。`baseline.md` に前回確認の基準点を持つ
+  （API_document master `5fd2ac4c1`、SDK `add8303f5`、ChangeLog 2026-11-14 の項目まで確認済み）
+- `.claude/agents/sesame-upstream-researcher.md`: 調査と判定だけを行う sonnet の担当。外部の信頼できない入力を読むため
+  リポジトリへの書き込み権限（Edit・Write）を持たず、起票は呼び出し元が行う
+- `guardrail-sync-local`: 両者を「配布元を採らない」へ追加し、配布元との同期で消えないようにした
+- 本件は BACKLOG へ BL-292 として起票し、同じコミットで完了として削除した
+
 ## 2026-11-21（Sesame公式の変更履歴とGitHubの調査を起票）
 
 Sesame公式の変更履歴（<https://jp.candyhouse.co/pages/changelog>）の2026年10月・11月分と、それを受けて
