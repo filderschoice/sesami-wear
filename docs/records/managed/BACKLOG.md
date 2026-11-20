@@ -5,6 +5,63 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-291
+  区分: UX改善
+  タスク内容: >-
+    Web APIの状態取得応答に含まれる`batteryPercentage`（サーバーが算出した電池残量%）を、
+    電池残量の表示に使うかを決める。現在は応答の`batteryVoltage`から`core.SesameBatteryLevel`で換算しており、
+    BLE経由・Web API経由で同じ換算を通すため経路によって表示がずれない（DESIGN.md「セサミ本体の状態」）。
+    公式Androidアプリは3.0.266(939)（2026-11-14）から「電池電圧をサーバーへ送信した後は、サーバーから返される
+    電池残量（%）を使用する」ように変わったため、本アプリの表示（特にWeb API経由）が公式アプリと食い違う可能性がある。
+    選択肢は (a) 現状維持（BLE/Webで一致、公式アプリと数%ずれうる）、(b) Web API経由だけ応答の
+    `batteryPercentage`を優先し、無ければ従来の換算へ戻す（Web経由は公式アプリと一致、BLE経由とはずれうる）、
+    (c) (b)に加えてBLE経由では換算値を使わず前回のWeb API値を残す（表示は公式に寄るが、BLEのみの利用者は残量が更新されない）。
+    (b)(c)を選ぶ場合、実装は`core.api.SesameStatus`へ省略可能な項目を足し、`SesameStatusMeasurement`への詰め替えで優先順位を決める形になる。
+  優先度: P3
+  状態: 要確認
+  担当: ユーザー
+  完了条件: >-
+    (a)〜(c)のいずれにするかが決まり、(b)(c)なら実装タスクへ置き換わっていること。
+    (b)(c)の場合は、Sesame 5 + Hub 3の実応答に`batteryPercentage`が含まれることを実資格情報で確認していること（人手検証）
+  根拠: >-
+    一次情報は jp.candyhouse.co/pages/changelog の「2026年11月14日(土) Android app 3.0.266(939)」項5と、
+    CANDY-HOUSE/API_document の docs/ja/SesameOS3/webapi.md（2026-11-11 コミット fa50a22ac 時点）の
+    状態取得レスポンス例（`batteryPercentage` / `batteryVoltage` / `position` / `CHSesame2Status` / `timestamp`）。
+    表示の出どころを変えると「経路によらず同じ換算」という既存の設計判断を覆すため、仕様判断として要確認にした。
+    既定は(a)現状維持で、決まるまで動作は変えない。応答に項目があるかは実資格情報での確認が要り、自動では確かめない。
+  依存: []
+
+- id: BL-290
+  区分: 品質ゲート
+  タスク内容: >-
+    Sesame Web APIの仕様の出典を、参考実装pysesame3から公式ドキュメントへ更新する（動作は変えない）。
+    CANDY-HOUSE/API_document の docs/ja/SesameOS3/webapi.md（2026-11-11に表題が「Web API」から「RESTful API」へ改名。
+    公開サイトは https://candy-house.github.io/API_document/ja/SesameOS3/webapi.html）で、
+    エンドポイント（GET / POST `https://app.candyhouse.co/api/sesame2/{uuid}`、`/cmd`）、`x-api-key`ヘッダ、
+    コマンド番号（82 / 83 / 88）、本文（`cmd` / `history`（Base64）/ `sign`）、署名（Unix秒をuint32リトルエンディアンにし
+    最上位バイトを除いた3バイトへのAES-CMAC）が本アプリの実装と一致することを確認済み。直す箇所は次の4つ。
+    (1) DESIGN.md「Sesame APIクライアント」の「CANDY HOUSE公式ドキュメントそのものは未参照」と、実装制約の同趣旨の記述。
+    (2) README.md「既知の未確認事項・制約」の同趣旨の記述と、`doc.candyhouse.co/ja/SesameAPI/`が認証へリダイレクトされるという記述
+    （2026-11-21時点で同ホストは名前解決できず、上記のGitHub Pagesが認証なしで開ける）。
+    (3) `core.api.SesameStatus`のKDocの「Web APIレスポンスには3フィールドのみが含まれ」（公式の応答例は`batteryPercentage`と
+    `timestamp`も含む。未知の項目は無視してデコードするため動作への影響は無い）。
+    (4) 同ドキュメントで「廃止済み」とされたのは別文書 docs/ja/SesameOS3/restful.md（公式アプリが使う`/device/v1/...`の
+    アプリ内部API）であり、本アプリが使う`app.candyhouse.co/api/sesame2`は現行であることを、DESIGN.mdへ1〜2行で残す
+    （両文書の表題がどちらも「RESTful API」になったため、後から取り違えないように）。
+  優先度: P3
+  状態: 未着手
+  担当: AIエージェント
+  完了条件: >-
+    (1)〜(4)が反映され、pysesame3は参考実装として、公式ドキュメントは一次情報として区別して書かれていること。
+    コードの変更はKDocのみで、品質ゲート（コード段階を含む）がすべて合格していること
+  根拠: >-
+    2026-11-21に gh api で CANDY-HOUSE/API_document の docs/ja 配下の2026-08以降のコミット
+    （bb267bd85 2026-10-20、25142f3a9 2026-10-21、8c3a70ef9 / fa50a22ac 2026-11-11、535f04586 2026-11-16）を確認した結果。
+    仕様の変更は無く記述の出典と古い記述の更新だけのため、安全性に関わらない。公式の`biz3InvokeWebAPIs`（bizapi_control.md）は
+    `sign`を16進8文字で送るが、webapi.md の例はCMAC全体（32文字）を送っており、本アプリの32文字は実機（BL-010）で
+    通っているため変えない。この点もDESIGN.mdへ観察として残してよい。
+  依存: []
+
 - id: BL-195
   区分: 人手検証
   タスク内容: >-

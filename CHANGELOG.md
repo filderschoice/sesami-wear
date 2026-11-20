@@ -7,6 +7,28 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-21（Sesame公式の変更履歴とGitHubの調査を起票）
+
+Sesame公式の変更履歴（<https://jp.candyhouse.co/pages/changelog>）の2026年10月・11月分と、それを受けて
+CANDY-HOUSE/API_document（`docs/ja` 配下）・CANDY-HOUSE/SesameSDK_Android_with_DemoApp の2026-09以降の変更を確認し、
+本アプリへの影響を判定しました。`docs/records/managed/BACKLOG.md` へ2件を起票しました（実装はまだありません）。
+
+- BL-290: Web APIの仕様の出典を参考実装pysesame3から公式ドキュメント（`docs/ja/SesameOS3/webapi.md`）へ更新する。
+  エンドポイント・ヘッダ・コマンド番号・本文・署名は本アプリの実装と一致しており、動作の変更は不要
+- BL-291（要確認）: 公式Androidアプリが3.0.266(939)からサーバー算出の電池残量（%）を使うようになったため、
+  Web API応答の `batteryPercentage` を表示に使うか。既定は現状維持（電圧からの換算をBLE/Webで共通に使う）
+
+影響なしと判断した主な項目は次のとおりです。
+
+- 公式アプリのReact/WebView化と、AWS IoTからbiz.candyhouse.coのWebSocketへの移行（Android 2026-10-22・iOS 2026-11-14）は
+  公式アプリ内部の変更で、本アプリが使う `app.candyhouse.co/api/sesame2` の仕様は変わっていない
+- API_documentで「廃止済み」となった `restful.md` は公式アプリ内部のAPI（`/device/v1/...`）の文書で、本アプリは使っていない。
+  新設のWebSocket API・Webhook・MCPは、Cognitoのログインや受信サーバーを要するため本アプリの構成では使わない
+- Sesame 5 / Hub3 のSesameOS更新（2026-10-14・10-19・11-03）は履歴の文字化けやDFU中断時の再登録などの修正で、
+  BLEの手順に変更は無い。SDKのBLE関連（item code・機種の一覧・アドバタイズの解釈・暗号）も2026-09以降で値の変更は無く、
+  施錠/解錠応答の結果コードを見るようになったSDKの修正（2026-09-30）は、本アプリでは実装済み
+- 一次情報はGitHubのコミット（API_document `fa50a22ac` ほか、SDK `2e7d27d7c`・`40c4780cc`・`249cda038`・`834a7802f`）で確認した
+
 ## 2026-11-21（説明文入りの掲載画像を公開）
 
 説明文を入れたスマートフォン用の掲載画像8枚（`docs/store/images/screenshots_captioned/`）を、ユーザーが
