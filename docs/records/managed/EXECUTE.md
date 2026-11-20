@@ -5,6 +5,48 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 02:10
+  summary: 施錠・解錠を選んで実行できる画面を追加する（BL-295前半）。施錠中・一部解錠のタップで選ぶ画面、ウォッチ一覧の行は常に選ぶ画面
+  details:
+    変更内容: >-
+      core.display.SesameTileActions へ TapDecision（Run / OpenChooser / None）、tapDecisionForState（施錠中・MIXED は選ぶ画面、解錠中は即施錠、通信中・未接続・状態不明は操作なし）、listTapDecision（ウォッチ一覧の行は状態によらず選ぶ画面）、commandLabel（全デバイスは全施錠・全解錠）を追加した。従来の commandForState は挙動を変えずに残しテストで固定した。SesameTileContent.actionLabel は施錠中・一部解錠を「タップで選ぶ」にした。wear は SesameActionActivity を施錠・解錠の2ボタン（キャンセルなし、スワイプで戻る、押したらそのまま実行）の選ぶ画面にし、SesameActionCommandParser へ EXTRA_CHOOSE と Request を追加、Tile は施錠中・一部解錠で選ぶ画面を開くようにし、デバイス一覧の行は TapAction.Choose（状態不明の行の状態取得タップは廃止し、取得は末尾の更新チップのみ）にした。mobile は WidgetTapAction の Confirm を Choose に置き換え、WidgetUnlockConfirmActivity を［キャンセル｜施錠｜解錠］の選ぶ画面にし、クイック設定タイルの Tap.ConfirmUnlock を Tap.Choose にした。解錠は選ぶ画面で解錠を押す明示操作を経る（即解錠の経路は作っていない）。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を追随させ、BL-295 を進行中（後半は DeviceCard のボタン）に更新し、BL-296（ストア画像の撮り直し）・BL-297（人手検証）・BL-298（操作専用タイル）を起票した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/action/SesameActionCommandParserTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabelsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（ktlint・detektの指摘2件を修正して再実行。変更ソースのコンパイルとテストの実行を出力で確認）。単体テストは失敗0（core 255件、mobile 448件、wear 43件）。markdownlint（48ファイル、0 issues）・記録ファイル検証・秘密情報スキャンも成功。Compose画面とTileのレイアウトは実機でのみ確認できるためBL-297へ起票（未確認）。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
+      - BL-298
+
 - date: 2026-11-21 01:40
   summary: 送信後の状態確認（BL-293）のレビュー指摘を修正する。オフ時の挙動を従来と厳密に揃え、取り消しの記録・時計ずれの余裕・想定外例外の吸収を足す
   details:

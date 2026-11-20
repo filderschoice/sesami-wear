@@ -23,9 +23,9 @@ class WidgetAccessibilityLabelsTest {
     )
 
     @Test
-    fun `locked status reads name, state, freshness, battery and the unlock action`() {
+    fun `locked status reads name, state, freshness, battery and the chooser action`() {
         assertEquals(
-            "玄関、施錠中、3分前、電池残量85%、タップで解錠",
+            "玄関、施錠中、3分前、電池残量85%、タップで選ぶ",
             WidgetAccessibilityLabels.status(model(TileDisplayState.LOCKED, "3分前", 85)),
         )
     }

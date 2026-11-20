@@ -89,30 +89,30 @@ class SesameStatusListContentTest {
     }
 
     @Test
-    fun `a locked device offers unlock like the tile`() {
+    fun `a locked device opens the chooser`() {
         val row = rowsOf(SesameStatusSnapshot(true, NOW)).single()
 
         assertEquals("uuid-1", row.uuid)
         assertEquals(TileDisplayState.LOCKED, row.state)
-        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK), row.tapAction)
-        assertEquals("タップで解錠", row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test
-    fun `an unlocked device offers lock like the tile`() {
+    fun `an unlocked device also opens the chooser so that unlock can be sent again`() {
         val row = rowsOf(SesameStatusSnapshot(false, NOW)).single()
 
-        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.LOCK), row.tapAction)
-        assertEquals("タップで施錠", row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test
-    fun `a device in an unknown state is refreshed instead of operated`() {
+    fun `a device in an unknown state opens the chooser too`() {
         val row = rowsOf(null).single()
 
         assertEquals(TileDisplayState.UNKNOWN, row.state)
-        assertEquals(SesameStatusListContent.TapAction.Refresh, row.tapAction)
-        assertEquals(SesameStatusListContent.REFRESH_ACTION_LABEL, row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test

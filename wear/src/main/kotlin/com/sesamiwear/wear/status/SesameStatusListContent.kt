@@ -21,13 +21,13 @@ import java.time.ZoneId
  * （`core.display.SesameDeviceStatusLine`）はそのまま使わず、**短い2行へ分ける**。
  * 1行あたりの目安は[MAX_LINE_CHARS]（`DeviceSelectionContent`と同じ根拠）。
  *
- * 各行はタップで操作できる（BL-254）。提示するコマンドはTileと同じ規則
- * （[SesameTileActions]。施錠中→解錠、解錠中→施錠）で、解錠は呼び出し先の確認画面を挟む。
- * Tileでは操作なしとなる状態不明の行は、施錠・解錠のどちらとも決められないため、
- * タップでそのデバイスの状態取得を送る（[TapAction.Refresh]）。通信はタップしたときの1回だけ。
+ * 各行はタップで操作できる（BL-254）。BL-295以降、行のタップは状態によらず（状態不明でも）常に
+ * 施錠・解錠を選ぶ画面を開く（[TapAction.Choose]、[SesameTileActions.listTapDecision]）。表示と逆の
+ * 操作に限らず、施錠中に施錠する・一部解錠のときに解錠することもできる。選ぶ画面で解錠を押したら
+ * そこで実行する（確認は重ねない）。長押しの入口は作らない。
  *
  * 一覧の末尾には、タップしたときだけ状態取得を送る「更新」と、2台以上のときの「全施錠」を置く
- * （BL-255、[footerChips]）。全解錠は置かない（迷ったら安全側の方針。Tileの一部解錠→全施錠と同じ）。
+ * （BL-255、[footerChips]）。全解錠は置かない（BL-255。全デバイスの解錠は行ではなく選ぶ画面から）。
  *
  * Android非依存のためユニットテスト対象。
  */
@@ -51,9 +51,6 @@ object SesameStatusListContent {
     /** [EMPTY_LINES]を改行で連結した表示用の文字列。 */
     val emptyMessage: String get() = EMPTY_LINES.joinToString(separator = "\n")
 
-    /** 状態不明の行に添える操作の文言（[TapAction.Refresh]）。 */
-    const val REFRESH_ACTION_LABEL = "タップで更新"
-
     /** 1台のときの末尾の状態取得チップの文言（BL-255）。 */
     const val REFRESH_CHIP_LABEL = "更新"
 
@@ -75,10 +72,13 @@ object SesameStatusListContent {
 
     /** 行をタップしたときの動作（BL-254）。 */
     sealed interface TapAction {
-        /** [command]の操作画面を開く（解錠は確認画面を挟む）。 */
+        /** [command]の操作画面を開く（末尾の「全施錠」チップ。施錠なので確認を挟まない）。 */
         data class Command(
             val command: SesameCommand,
         ) : TapAction
+
+        /** 施錠・解錠を選ぶ画面を開く（行のタップ、BL-295）。 */
+        data object Choose : TapAction
 
         /** そのデバイスの状態取得を送る。 */
         data object Refresh : TapAction
@@ -126,8 +126,8 @@ object SesameStatusListContent {
                         route = snapshot?.lastRoute,
                     ),
                 state = state,
-                tapAction = tapActionOf(state),
-                actionLabel = SesameTileContent.actionLabel(state) ?: REFRESH_ACTION_LABEL,
+                tapAction = tapActionOf(),
+                actionLabel = SesameTileContent.CHOOSE_ACTION_LABEL,
             )
         }
 
@@ -151,9 +151,13 @@ object SesameStatusListContent {
                 )
         }
 
-    /** Tileと同じ規則でコマンドを決め、決まらない（状態不明）ときは状態取得にする。 */
-    fun tapActionOf(state: TileDisplayState): TapAction =
-        SesameTileActions.commandForState(state)?.let { TapAction.Command(it) } ?: TapAction.Refresh
+    /** 行のタップは状態によらず選ぶ画面を開く（BL-295）。 */
+    fun tapActionOf(): TapAction =
+        when (val decision = SesameTileActions.listTapDecision()) {
+            SesameTileActions.TapDecision.OpenChooser -> TapAction.Choose
+            is SesameTileActions.TapDecision.Run -> TapAction.Command(decision.command)
+            SesameTileActions.TapDecision.None -> TapAction.Refresh
+        }
 
     /**
      * 施錠状態と電池残量の行（「🔒施錠中 🔋85%」）。

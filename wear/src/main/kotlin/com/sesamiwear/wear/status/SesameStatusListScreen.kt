@@ -112,6 +112,8 @@ private fun openTapAction(
         when (action) {
             is SesameStatusListContent.TapAction.Command ->
                 SesameActionActivity.createIntent(context, action.command, targetUuid)
+            SesameStatusListContent.TapAction.Choose ->
+                SesameActionActivity.createChooserIntent(context, targetUuid)
             SesameStatusListContent.TapAction.Refresh ->
                 SesameStatusRefreshActivity.createIntent(context, targetUuid)
         }

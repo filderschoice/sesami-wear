@@ -35,6 +35,7 @@ import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.api.SesameCommandConfirmation
+import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.core.haptics.HapticPattern
 import com.sesamiwear.wear.demo.DemoLockStateStore
@@ -45,7 +46,11 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 
 /**
  * Tileタップから起動される施錠/解錠実行画面。
- * 施錠（LOCK）はワンタップ即実行、解錠（UNLOCK）は確認ボタンを挟む（PLAN.mdのUX要件）。
+ * 施錠（LOCK）の直接指定はワンタップ即実行する。施錠・解錠を選ぶ依頼（[SesameActionCommandParser.EXTRA_CHOOSE]、
+ * 施錠中・一部解錠のTileタップとデバイス一覧の行タップ、BL-295）と解錠（UNLOCK）の直接指定は、
+ * 施錠・解錠の2ボタンの選ぶ画面を開き、押した方をそのまま実行する（確認は重ねない。キャンセルボタンは無く、
+ * スワイプで戻る＝キャンセル）。解錠はこの画面で「解錠」を押す明示操作を経て初めて実行される
+ * （PLAN.mdのUX要件、[SesameCommandConfirmation]）。
  * コマンド送信はFire-and-forgetで行い、実行結果（成功/失敗）のリアルタイム反映とハプティクスはBL-008で扱う。
  * 操作対象デバイスのuuid（BL-053、tileIdに割り当てられたデバイス）をIntent extra経由で受け取る。
  * uuidが[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択）の場合は登録済み
@@ -56,19 +61,23 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 class SesameActionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val command =
-            SesameActionCommandParser.fromExtra(
+        val request =
+            SesameActionCommandParser.parse(
                 intent.getStringExtra(SesameActionCommandParser.EXTRA_COMMAND),
+                intent.getBooleanExtra(SesameActionCommandParser.EXTRA_CHOOSE, false),
             )
         val deviceUuid = intent.getStringExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID)
-        if (command == null || deviceUuid.isNullOrEmpty()) {
+        if (request == null || deviceUuid.isNullOrEmpty()) {
             finish()
             return
         }
+        val directCommand =
+            (request as? SesameActionCommandParser.Request.Direct)?.command
+                ?.takeUnless { SesameCommandConfirmation.isRequired(it) }
 
         setContent {
             MaterialTheme {
-                SesameActionScreen(command = command, deviceUuid = deviceUuid, onFinished = ::finish)
+                SesameActionScreen(directCommand = directCommand, deviceUuid = deviceUuid, onFinished = ::finish)
             }
         }
     }
@@ -83,39 +92,44 @@ class SesameActionActivity : ComponentActivity() {
                 putExtra(SesameActionCommandParser.EXTRA_COMMAND, command.name)
                 putExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID, deviceUuid)
             }
+
+        /** 施錠・解錠を選ぶ画面を開く（BL-295）。 */
+        fun createChooserIntent(
+            context: Context,
+            deviceUuid: String,
+        ): Intent =
+            Intent(context, SesameActionActivity::class.java).apply {
+                putExtra(SesameActionCommandParser.EXTRA_CHOOSE, true)
+                putExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID, deviceUuid)
+            }
     }
 }
 
 @Composable
 private fun SesameActionScreen(
-    command: SesameCommand,
+    directCommand: SesameCommand?,
     deviceUuid: String,
     onFinished: () -> Unit,
 ) {
     val context = LocalContext.current
-    var awaitingConfirmation by remember { mutableStateOf(SesameCommandConfirmation.isRequired(command)) }
-    var sending by remember { mutableStateOf(!awaitingConfirmation) }
+    // directCommandが無いとき（選ぶ画面）は、ボタンで選ばれたコマンドをここへ入れる。
+    var command by remember { mutableStateOf(directCommand) }
 
-    if (sending) {
-        LaunchedEffect(command) {
+    command?.let { toSend ->
+        LaunchedEffect(toSend) {
             if (SesameDemoMode.isDemoDevice(deviceUuid)) {
-                applyDemoCommand(context, command)
+                applyDemoCommand(context, toSend)
             } else {
-                sendCommand(context, command, deviceUuid)
+                sendCommand(context, toSend, deviceUuid)
             }
             onFinished()
         }
     }
 
-    if (awaitingConfirmation) {
-        SesameConfirmationButtons(
-            command = command,
+    if (command == null) {
+        SesameChooserButtons(
             isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
-            onCancel = onFinished,
-            onConfirm = {
-                awaitingConfirmation = false
-                sending = true
-            },
+            onChoose = { command = it },
         )
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -159,40 +173,31 @@ private fun applyDemoCommand(
 }
 
 /**
- * 解錠確認画面のボタン群（BL-070）。以前は円形の[androidx.wear.compose.material.Button]に
- * 「タップして解錠」という長いテキストを詰め込んでいたため文字が見切れていた。左＝キャンセル、
- * 右＝施錠/解錠、の角丸チップ2つへ再設計し、Tile側（[com.sesamiwear.wear.tile.SesameTileService]）
- * と共通の角丸デザイン・状態色（[SesameTileContent]）を用いて一貫したUXにする。
+ * 施錠・解錠を選ぶ画面のボタン群（BL-070、BL-295で選ぶ画面へ変更）。左＝施錠、右＝解錠の角丸チップ2つで、
+ * キャンセルボタンは置かない（スワイプで戻る＝何も送らずに閉じる）。Tile側
+ * （[com.sesamiwear.wear.tile.SesameTileService]）と共通の角丸デザイン・状態色（[SesameTileContent]）を用い、
+ * 各ボタンは押した結果の状態色にする。対象が全デバイスなら「全施錠」「全解錠」。
  */
 @Composable
-private fun SesameConfirmationButtons(
-    command: SesameCommand,
+private fun SesameChooserButtons(
     isAllDevices: Boolean,
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit,
+    onChoose: (SesameCommand) -> Unit,
 ) {
-    val resultingState = if (command == SesameCommand.LOCK) TileDisplayState.LOCKED else TileDisplayState.UNLOCKED
-    val actionLabel =
-        (if (command == SesameCommand.LOCK) "施錠" else "解錠").let { if (isAllDevices) "全$it" else it }
-
     Row(
         modifier = Modifier.fillMaxSize().padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        SesameActionChip(
-            label = "キャンセル",
-            backgroundColor = Color(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB),
-            textColor = Color.White,
-            onClick = onCancel,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        )
-        SesameActionChip(
-            label = actionLabel,
-            backgroundColor = Color(SesameTileContent.backgroundColorArgb(resultingState)),
-            textColor = Color(SesameTileContent.statusTextColorArgb(resultingState)),
-            onClick = onConfirm,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        )
+        listOf(SesameCommand.LOCK, SesameCommand.UNLOCK).forEach { choice ->
+            val resultingState =
+                if (choice == SesameCommand.LOCK) TileDisplayState.LOCKED else TileDisplayState.UNLOCKED
+            SesameActionChip(
+                label = SesameTileActions.commandLabel(choice, isAllDevices),
+                backgroundColor = Color(SesameTileContent.backgroundColorArgb(resultingState)),
+                textColor = Color(SesameTileContent.statusTextColorArgb(resultingState)),
+                onClick = { onChoose(choice) },
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
     }
 }
 

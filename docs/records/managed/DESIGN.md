@@ -428,14 +428,14 @@
 
 - パネルのタイルは端末に1つで対象を選ぶ画面を持たせにくいため、対象は**登録1台ならその1台、2台以上なら
   全デバイス**に固定する（`QuickSettingsTileContent.targetUuid`）。
-- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中→解錠の
-  確認画面、解錠中・一部解錠→確認なしで施錠、通信中→何もしない）。ウィジェットとの差分は2つで、
+- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中・一部解錠→
+  施錠・解錠を選ぶ画面、解錠中→確認なしで施錠、通信中→何もしない。BL-295）。ウィジェットとの差分は2つで、
   (1) 状態不明のタップは状態の取得しなおし（パネルに「更新」を置けないため）、(2) 表示名が未設定のときは
   uuidではなく「Sesame」と出す（パネルはロック画面からも見えるため）。判定は`QuickSettingsTileContent`
   （Android非依存、ユニットテスト対象）。
 - タイルの状態は施錠中＝`STATE_ACTIVE`、通信中＝`STATE_UNAVAILABLE`、それ以外＝`STATE_INACTIVE`。
-- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、解錠は同じ`WidgetUnlockConfirmActivity`へ
-  渡す。確認画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
+- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、選ぶ画面は同じ`WidgetUnlockConfirmActivity`へ
+  渡す。選ぶ画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
 - 描き直しは`onStartListening`（パネルを開いたとき）と、`SesameWidgetUpdater.updateAll`からの
   `requestListeningState`（操作の開始・終了、ロック状態の変化）。**表示のために通信はしない**（BL-142）。
 - `ACTIVE_TILE`は宣言しない。サービスは`BIND_QUICK_SETTINGS_TILE`で守る。
@@ -554,8 +554,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - **wearのTileと揃えている点**:
   - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右下だけに使う構成
     （左に「更新」と「変更」、右上にデバイス名と経路アイコンの帯、右下に状態。BL-205 / BL-206）。
-  - 操作ルール（`core.display.SesameTileActions`）: 施錠中→解錠、解錠中→施錠、一部解錠→全施錠、通信中・状態不明→操作なし。
-  - 確認画面: 解錠のみ（`SesameCommandConfirmation`）、左＝キャンセル・右＝解錠／全解錠の並びと配色。
+  - 操作ルール（`core.display.SesameTileActions.tapDecisionForState`、BL-295）: 施錠中・一部解錠→施錠・解錠を選ぶ画面、
+    解錠中→即施錠、通信中・未接続・状態不明→操作なし。
+  - 選ぶ画面: 左＝施錠・右＝解錠（全デバイスは「全施錠」「全解錠」）の2ボタン、キャンセルボタンなし（スワイプで戻る）。
   - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
     全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
   - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
@@ -692,12 +693,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
   dataへ操作名とappWidgetIdを入れる。
 - タップ操作（BL-122）: 右側は`mobile.widget.WidgetTapAction.forModel`（Android非依存）で決める。
-  提示コマンドは`core.display.SesameTileActions`、確認の要否は`SesameCommandConfirmation`（Tileと同じ）で、
-  施錠中→解錠確認画面、解錠中→即施錠、一部解錠→即全施錠、通信中・状態不明→操作なし、未設定→選択画面。
+  動作は`core.display.SesameTileActions.tapDecisionForState`（Tileと同じ、BL-295）で、
+  施錠中・一部解錠→施錠・解錠を選ぶ画面（`WidgetUnlockConfirmActivity`）、解錠中→即施錠、
+  通信中・状態不明→操作なし、未設定→選択画面。BL-295より前は施錠中→解錠確認画面、一部解錠→即全施錠だった。
   左側の「更新」（`MEDIUM`ではデバイス名）は状態取得（GET）のみ、「変更」は選択画面を開く。
 - `mobile.widget.WidgetCommandReceiver`（`exported="false"`のBroadcastReceiver）: 施錠の即時実行・状態取得・
-  解錠確認画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
-  `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
+  選ぶ画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
+  `ActionCallback`だったが、選ぶ画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
   自前のReceiverで使う形にした。WorkManagerへは委譲していない（通常のワークは端末の状態により実行が
   遅延しうり、即時性を優先したため。期限付き実行はAndroid 11以下でフォアグラウンドサービス通知が要る）。
   `actionSendBroadcast`は`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は約10秒
@@ -723,10 +725,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （8秒、BL-137）とSesame APIの呼び出し全体のタイムアウト（6秒、BL-133）より十分長くとり、
   正常に終わる操作を誤って打ち切らない値にしている。
 - `mobile.widget.WidgetUnlockConfirmActivity`: ダイアログテーマ（`Theme.Material.Light.Dialog.NoActionBar`）の
-  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`）。見出し
-  「（表示名）を解錠しますか？」と、左＝「キャンセル」（中立色）・右＝「解錠」/全デバイスは「全解錠」
-  （解錠中の状態色）の2ボタン（wearの確認画面と同じ並び）。解錠でReceiverへ実行を依頼してすぐ閉じ、
-  キャンセル・画面外タップ・戻る操作では何も送らない。
+  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`。
+  クラス名はBL-122の解錠確認画面のまま維持）。BL-295で施錠・解錠を選ぶ画面へ変更した。見出し
+  「（表示名）の操作を選んでください」と、左から［キャンセル（中立色）｜施錠（施錠中の状態色）｜解錠（解錠中の状態色）］
+  の3ボタン（全デバイスは「全施錠」「全解錠」）。施錠・解錠を押すとReceiverへ実行を依頼してすぐ閉じ
+  （確認は重ねない）、キャンセル・画面外タップ・戻る操作では何も送らない。スマホはキャンセルボタンを残す。
 - 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
   `SesameWidgetUpdater.updateAll`を呼ぶ（デモはDataItem同期を行わず再描画のみ）。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
   ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の
@@ -1461,18 +1464,20 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   通信は次の行タップのときだけ行う。
 - **各行はタップで操作できる（BL-254）。** Tileを置いていない利用者や、Tileで選んでいない別のデバイスを
   直接操作したい利用者のため（実機ではTileを1つしか置けない、後述「Tile」の未確認事項）。
-  提示コマンドはTileと同じ`core.display.SesameTileActions`（施錠中→解錠、解錠中→施錠）で、
-  `SesameActionActivity.createIntent`を開くため解錠の確認画面・デモ分岐・送信方式もTileと同じ。
-  Tileでは操作なしになる状態不明（UNKNOWN）の行は、施錠・解錠のどちらとも決められないため
-  `SesameStatusRefreshActivity`でそのデバイスの状態取得を送る（`SesameStatusListContent.TapAction.Refresh`）。
-  行の4行目に操作の文言（`SesameTileContent.actionLabel`、状態不明は「タップで更新」）を添え、
+  **BL-295以降、行のタップは状態によらず（状態不明でも）常に施錠・解錠を選ぶ画面を開く**
+  （`core.display.SesameTileActions.listTapDecision`、`SesameStatusListContent.TapAction.Choose`、
+  `SesameActionActivity.createChooserIntent`）。選ぶ画面・デモ分岐・送信方式はTileと同じ。長押しの入口は作らない
+  （ユーザー決定。タップで選ぶ画面に揃えた）。状態取得は末尾の「更新」「すべて更新」だけで行う
+  （`TapAction.Refresh`。BL-295より前は状態不明の行のタップが状態取得だった）。
+  行の4行目に操作の文言（`SesameTileContent.CHOOSE_ACTION_LABEL`「タップで選ぶ」）を添え、
   行の背景・文字色はTileの状態チップと同じ（`backgroundColorArgb` / `statusTextColorArgb`、
   角丸12dp・内側6dp）にして、押せる面であることと状態を同時に示す。
   スマートフォン未接続の判定はしない（送信時に接続ノードが無ければ`SesameActionActivity`が何も送らずに閉じる）。
 - **一覧の末尾に「更新」と「全施錠」を置く（BL-255、`SesameStatusListContent.footerChips`）。**
   0台なら置かない（案内文だけ）。1台なら「更新」（そのuuidへ状態取得）だけ、2台以上なら「全施錠」
   「すべて更新」の順に置き、送信先は`ALL_DEVICES_TARGET_UUID`（各Activityが登録済み全uuidへ個別に送る、
-  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。Tileの一部解錠→全施錠と同じ方針）。
+  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。全デバイスの解錠は、Tileの全デバイスから
+  開く選ぶ画面の「全解錠」から行う）。
   一括操作を2台以上に限るのは、1台なら行のタップで足りるため。どちらもタップしたときだけ通信する。
   見た目は「更新」系がTileの左列と同じ中立色（0xFF424242・白文字）、「全施錠」が施錠中の状態色。
   末尾は円形画面の下端に寄り横幅が狭くなるため、チップの左右の外側余白を行（12dp）より広い24dpにしている。
@@ -1530,9 +1535,13 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
 - `core.display.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
   マッピングと、中立チップ色`CHIP_NEUTRAL_COLOR_ARGB`。`statusLabel`/`actionLabel`は`isAllDevices`
   パラメータ（デフォルト`false`）を持ち、全デバイス選択時は「全施錠中」等の文言に切り替わる。
-- `core.display.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
-  「全施錠」を提示する（迷ったら安全側の方針、UNLOCKのみ確認画面を挟む既存UXと組み合わせて安全側は
-  確認不要のまま維持、BL-071）。
+- `core.display.SesameTileActions`（Android非依存）: タップの動作の決定（BL-295）。`tapDecisionForState`は
+  施錠中・MIXED→`OpenChooser`（施錠・解錠を選ぶ画面）、解錠中→`Run(LOCK)`（即施錠）、通信中・未接続・状態不明→`None`。
+  `listTapDecision`はウォッチ一覧の行用で状態によらず`OpenChooser`。`commandLabel`は選ぶ画面のボタン文言
+  （全デバイスは「全施錠」「全解錠」）。従来の`commandForState`（表示の逆の命令）は挙動を変えずに残している。
+  **解錠の安全方針（BL-295）**: タップだけで解錠する経路は作らない。解錠は、選ぶ画面で「解錠」を押す明示操作を経て
+  初めて実行される（旧来の`SesameCommandConfirmation`＝解錠は確認、の方針を、選ぶ画面の解錠ボタンで満たす。
+  選ぶ画面で押したあとに確認は重ねない）。施錠は安全側のため、解錠中のタップによる即施錠は従来どおり。
 - `core.display.SesameDeviceTargets`（Android非依存）: 操作対象の選択肢と解決規則。`choices`は
   デバイス選択画面の項目を表示順に返す（0台ならデモ用デバイスのみ、2台以上なら先頭に「全デバイス」、
   表示名が空欄ならuuidをラベルにする）。`displayName`は割り当て済みuuidの表示名（デモ・全デバイスは
@@ -1618,13 +1627,16 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
 
 ### 施錠/解錠操作画面
 
-- `wear.action.SesameActionActivity`: Tileタップで起動。LOCKはワンタップ即送信、UNLOCKは確認画面
-  （`SesameCommandConfirmation`が要求要否を判定）を経由してから送信する。確認画面は左＝
-  「キャンセル」・右＝「施錠」または「解錠」の角丸チップ2つ（`SesameActionChip`、
+- `wear.action.SesameActionActivity`: Tileタップ・デバイス一覧の行タップで起動。LOCKの直接指定はワンタップ即送信。
+  施錠・解錠を選ぶ依頼（`EXTRA_CHOOSE`、施錠中・一部解錠のTileタップと一覧の行タップ）とUNLOCKの直接指定
+  （`SesameCommandConfirmation`が要求と判定）は選ぶ画面を開き、押した方をそのまま送信する（BL-295）。
+  選ぶ画面は左＝「施錠」・右＝「解錠」の角丸チップ2つ（`SesameActionChip`、
   `Modifier.clip(RoundedCornerShape(12.dp))`の自作コンポーネント、Wear Compose Materialの円形
-  `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。全デバイス選択時は
-  ボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。送信はFire-and-forget方式。
-- `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`。
+  `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。キャンセルボタンは無く、
+  スワイプで戻る（何も送らない）。全デバイス選択時はボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。
+  送信はFire-and-forget方式。
+- `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`、
+  選ぶ画面の依頼（`parse`の`Request.Choose` / `Request.Direct`）。
 - `wear.action.SesameActionTargetResolver`（Android依存の薄いアダプタ）: コマンド送信・状態更新の対象
   uuid一覧を解決する。全デバイス時のみDataItemから登録済み一覧を読み、展開は
   `core.display.SesameDeviceTargets.targetUuids`へ委ねる（全デバイス時は登録済み全uuidのリスト、
@@ -2742,8 +2754,8 @@ Android非依存のクラスへ切り出し、ユニットテストで検証で�
 ### UI/UX方針（現状の実装内容）
 
 - Tileはロック状態（施錠中/解錠中/通信中/未接続/不明/混在）をアイコン・色でひと目表示する。
-- 施錠はワンタップ即実行、解錠は誤操作防止のため確認画面（左＝キャンセル、右＝施錠/解錠の角丸
-  チップ2つ）を挟む。
+- 解錠中のタップは即施錠。施錠中・一部解錠のタップは、誤操作防止のため施錠・解錠を選ぶ画面（左＝施錠、右＝解錠の
+  角丸チップ2つ。スマホはキャンセルも並べる）を開き、解錠はそこで押した明示操作で実行する（BL-295）。
 - 通信中は明確な処理中表示（IN_PROGRESS状態）＋`CommandDebouncer`による2秒以内の重複コマンド無視で
   二重送信を防止する。
 - 成功/失敗をハプティクスパターンで区別する。

@@ -30,8 +30,8 @@ class SesameTileContentTest {
     }
 
     @Test
-    fun `action label offers the opposite action for actionable states`() {
-        assertEquals("タップで解錠", SesameTileContent.actionLabel(TileDisplayState.LOCKED))
+    fun `action label offers lock directly and a chooser for locked`() {
+        assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.LOCKED))
         assertEquals("タップで施錠", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED))
     }
 
@@ -43,15 +43,15 @@ class SesameTileContentTest {
     }
 
     @Test
-    fun `mixed state offers lock-all as the action`() {
-        assertEquals("タップで全施錠", SesameTileContent.actionLabel(TileDisplayState.MIXED))
+    fun `mixed state offers the chooser as the action`() {
+        assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.MIXED))
     }
 
     @Test
     fun `isAllDevices prefixes locked and unlocked labels with zen`() {
         assertEquals("全施錠中", SesameTileContent.statusLabel(TileDisplayState.LOCKED, isAllDevices = true))
         assertEquals("全解錠中", SesameTileContent.statusLabel(TileDisplayState.UNLOCKED, isAllDevices = true))
-        assertEquals("タップで全解錠", SesameTileContent.actionLabel(TileDisplayState.LOCKED, isAllDevices = true))
+        assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.LOCKED, isAllDevices = true))
         assertEquals("タップで全施錠", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED, isAllDevices = true))
     }
 

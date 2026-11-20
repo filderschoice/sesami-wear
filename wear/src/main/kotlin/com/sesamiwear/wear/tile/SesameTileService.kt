@@ -229,9 +229,12 @@ class SesameTileService : TileService() {
                         .build(),
                 )
 
-        val command = SesameTileActions.commandForState(state)
-        if (command != null) {
-            modifiersBuilder.setClickable(buildCommandClickable(command, deviceUuid))
+        when (val decision = SesameTileActions.tapDecisionForState(state)) {
+            is SesameTileActions.TapDecision.Run ->
+                modifiersBuilder.setClickable(buildCommandClickable(decision.command, deviceUuid))
+            SesameTileActions.TapDecision.OpenChooser ->
+                modifiersBuilder.setClickable(buildCommandClickable(null, deviceUuid))
+            SesameTileActions.TapDecision.None -> Unit
         }
 
         return LayoutElementBuilders.Box.Builder()
@@ -314,30 +317,36 @@ class SesameTileService : TileService() {
                     .build(),
             )
 
+    /**
+     * [SesameActionActivity]を開くClickable。[command]が施錠なら即実行、nullなら施錠・解錠を選ぶ画面を開く
+     * （BL-295）。
+     */
     private fun buildCommandClickable(
-        command: SesameCommand,
+        command: SesameCommand?,
         deviceUuid: String,
     ): ModifiersBuilders.Clickable {
-        val launchAction =
-            ActionBuilders.LaunchAction.Builder()
-                .setAndroidActivity(
-                    ActionBuilders.AndroidActivity.Builder()
-                        .setPackageName(packageName)
-                        .setClassName(SesameActionActivity::class.java.name)
-                        .addKeyToExtraMapping(
-                            SesameActionCommandParser.EXTRA_COMMAND,
-                            ActionBuilders.AndroidStringExtra.Builder().setValue(command.name).build(),
-                        )
-                        .addKeyToExtraMapping(
-                            SesameActionCommandParser.EXTRA_DEVICE_UUID,
-                            ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
-                        )
-                        .build(),
+        val activity =
+            ActionBuilders.AndroidActivity.Builder()
+                .setPackageName(packageName)
+                .setClassName(SesameActionActivity::class.java.name)
+                .addKeyToExtraMapping(
+                    SesameActionCommandParser.EXTRA_DEVICE_UUID,
+                    ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
                 )
-                .build()
+        if (command == null) {
+            activity.addKeyToExtraMapping(
+                SesameActionCommandParser.EXTRA_CHOOSE,
+                ActionBuilders.AndroidBooleanExtra.Builder().setValue(true).build(),
+            )
+        } else {
+            activity.addKeyToExtraMapping(
+                SesameActionCommandParser.EXTRA_COMMAND,
+                ActionBuilders.AndroidStringExtra.Builder().setValue(command.name).build(),
+            )
+        }
         return ModifiersBuilders.Clickable.Builder()
-            .setId(command.name)
-            .setOnClick(launchAction)
+            .setId(command?.name ?: "choose")
+            .setOnClick(ActionBuilders.LaunchAction.Builder().setAndroidActivity(activity.build()).build())
             .build()
     }
 

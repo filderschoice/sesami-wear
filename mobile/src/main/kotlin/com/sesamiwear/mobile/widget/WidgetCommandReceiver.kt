@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * ウィジェットのタップ（施錠の即時実行・デバイス名の状態取得）と、解錠確認画面での確定を受けて
+ * ウィジェットのタップ（施錠の即時実行・デバイス名の状態取得）と、施錠・解錠を選ぶ画面での確定を受けて
  * [WidgetCommandRunner]を実行する（BL-122）。`exported="false"`で、自アプリのPendingIntentと
  * [WidgetUnlockConfirmActivity]からのみ呼ばれる。
  *

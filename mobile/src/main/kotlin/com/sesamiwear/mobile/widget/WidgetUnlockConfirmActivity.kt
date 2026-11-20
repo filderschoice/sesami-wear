@@ -28,16 +28,20 @@ import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameDeviceTargets
+import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.mobile.ui.SesameTheme
 
 /**
- * ウィジェットから解錠するときの確認画面（BL-122）。wearの`SesameActionActivity`の確認画面と同じく、
- * 左＝「キャンセル」（中立色）・右＝「解錠」（全デバイスは「全解錠」、解錠中の状態色）の2ボタンを並べる。
- * 解錠を押すと[WidgetCommandReceiver]へ実行を依頼してすぐ閉じ（実行と通信中表示はウィジェット側）、
- * キャンセル・画面外タップ・戻る操作では何も送らずに閉じる。
+ * ウィジェット・クイック設定タイルから施錠・解錠を選ぶ画面（BL-122の解錠確認画面をBL-295で選ぶ画面へ変更。
+ * クラス名はManifestがあるため維持）。左から［キャンセル｜施錠｜解錠］（中立色・施錠中の状態色・解錠中の状態色。
+ * 全デバイスは「全施錠」「全解錠」）の3ボタンを並べる。表示と同じ操作（施錠中に施錠など）も選べる。
+ * 施錠・解錠を押すとそのまま[WidgetCommandReceiver]へ実行を依頼してすぐ閉じ（確認は重ねない。実行と通信中表示は
+ * ウィジェット側）、解錠は「解錠」を押す明示操作を経て実行される。
+ * キャンセル・画面外タップ・戻る操作では何も送らずに閉じる（スマホはキャンセルボタンを残す。ウォッチの
+ * 選ぶ画面はキャンセルボタンを持たずスワイプで戻る）。
  * ダイアログテーマの軽量Activityで、`noHistory`・`excludeFromRecents`を持つ（wearの確認画面と同方針）。
- * 画面の組み立てだけのAndroid依存クラスのためユニットテスト対象外（確定時のコマンドは[WidgetTapAction]でテスト済み）。
+ * 画面の組み立てだけのAndroid依存クラスのためユニットテスト対象外（このActivityを開くかどうかは[WidgetTapAction]でテスト済み）。
  */
 class WidgetUnlockConfirmActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,13 +56,13 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
         setContent {
             SesameTheme {
                 Surface(shape = RoundedCornerShape(16.dp)) {
-                    UnlockConfirmation(
+                    CommandChooser(
                         displayName = displayName,
                         isAllDevices = SesameDeviceTargets.isAllDevices(deviceUuid),
-                        onResult = { confirmed ->
-                            WidgetTapAction.commandAfterConfirmation(SesameCommand.UNLOCK, confirmed)?.let { command ->
+                        onResult = { command ->
+                            command?.let {
                                 sendBroadcast(
-                                    WidgetCommandReceiver.runCommandIntent(this, appWidgetId, deviceUuid, command),
+                                    WidgetCommandReceiver.runCommandIntent(this, appWidgetId, deviceUuid, it),
                                 )
                             }
                             finish()
@@ -84,31 +88,38 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
                 .putExtra(EXTRA_DEVICE_UUID, deviceUuid)
                 .putExtra(EXTRA_DISPLAY_NAME, displayName)
                 .putExtra(EXTRA_APP_WIDGET_ID, appWidgetId)
-                .setData(Uri.parse("sesamiwear://widget/confirm-unlock/$appWidgetId"))
+                .setData(Uri.parse("sesamiwear://widget/choose-command/$appWidgetId"))
     }
 }
 
 @Composable
-private fun UnlockConfirmation(
+private fun CommandChooser(
     displayName: String,
     isAllDevices: Boolean,
-    onResult: (confirmed: Boolean) -> Unit,
+    onResult: (command: SesameCommand?) -> Unit,
 ) {
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(text = "${displayName}を解錠しますか？", style = MaterialTheme.typography.titleMedium)
+        Text(text = "${displayName}の操作を選んでください", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ConfirmChip(
                 label = "キャンセル",
                 backgroundArgb = SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB,
                 textArgb = NEUTRAL_TEXT_ARGB,
-                onClick = { onResult(false) },
+                onClick = { onResult(null) },
                 modifier = Modifier.weight(1f),
             )
             ConfirmChip(
-                label = if (isAllDevices) "全解錠" else "解錠",
+                label = SesameTileActions.commandLabel(SesameCommand.LOCK, isAllDevices),
+                backgroundArgb = SesameTileContent.backgroundColorArgb(TileDisplayState.LOCKED),
+                textArgb = SesameTileContent.statusTextColorArgb(TileDisplayState.LOCKED),
+                onClick = { onResult(SesameCommand.LOCK) },
+                modifier = Modifier.weight(1f),
+            )
+            ConfirmChip(
+                label = SesameTileActions.commandLabel(SesameCommand.UNLOCK, isAllDevices),
                 backgroundArgb = SesameTileContent.backgroundColorArgb(TileDisplayState.UNLOCKED),
                 textArgb = SesameTileContent.statusTextColorArgb(TileDisplayState.UNLOCKED),
-                onClick = { onResult(true) },
+                onClick = { onResult(SesameCommand.UNLOCK) },
                 modifier = Modifier.weight(1f),
             )
         }

@@ -13,7 +13,7 @@ import com.sesamiwear.mobile.widget.WidgetTapAction
  * パネルのタイルは端末に1つしか置けず、ウィジェットのように対象を選ぶ画面を持たせにくい。そこで対象は
  * 登録が1台ならその1台、2台以上なら「全デバイス」に固定する（[targetUuid]）。表示と操作のルールは
  * ホーム画面ウィジェットと同じで、判定は`SesameWidgetModelResolver`と[WidgetTapAction]を流用する
- * （施錠中→解錠の確認画面、解錠中・一部解錠→確認なしで施錠、通信中→何もしない）。
+ * （施錠中・一部解錠→施錠・解錠を選ぶ画面、解錠中→確認なしで施錠、通信中→何もしない。BL-295）。
  * ウィジェットと違い、状態が分からないときはタップで状態を取得しなおす（パネルには「更新」ボタンを
  * 置けないため）。Sesameが未登録ならアプリを開く。
  *
@@ -37,7 +37,7 @@ data class QuickSettingsTileContent(
 
         data class Run(val deviceUuid: String, val command: SesameCommand) : Tap
 
-        data class ConfirmUnlock(val deviceUuid: String, val displayName: String) : Tap
+        data class Choose(val deviceUuid: String, val displayName: String) : Tap
 
         data class Refresh(val deviceUuid: String) : Tap
 
@@ -93,7 +93,7 @@ data class QuickSettingsTileContent(
         private fun tapOf(model: SesameWidgetModel.Configured): Tap =
             when (val action = WidgetTapAction.forModel(model)) {
                 is WidgetTapAction.Run -> Tap.Run(model.deviceUuid, action.command)
-                is WidgetTapAction.Confirm -> Tap.ConfirmUnlock(model.deviceUuid, model.displayName)
+                WidgetTapAction.Choose -> Tap.Choose(model.deviceUuid, model.displayName)
                 WidgetTapAction.None ->
                     if (model.state == TileDisplayState.UNKNOWN) Tap.Refresh(model.deviceUuid) else Tap.None
                 WidgetTapAction.OpenConfiguration -> Tap.OpenApp

@@ -4,7 +4,7 @@ import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class WidgetTapActionTest {
@@ -19,9 +19,9 @@ class WidgetTapActionTest {
     )
 
     @Test
-    fun `locked widget asks for confirmation before unlocking`() {
+    fun `locked widget opens the chooser instead of unlocking directly`() {
         assertEquals(
-            WidgetTapAction.Confirm(SesameCommand.UNLOCK),
+            WidgetTapAction.Choose,
             WidgetTapAction.forModel(model(TileDisplayState.LOCKED)),
         )
     }
@@ -35,9 +35,9 @@ class WidgetTapActionTest {
     }
 
     @Test
-    fun `mixed all-devices widget locks all immediately`() {
+    fun `mixed all-devices widget opens the chooser`() {
         assertEquals(
-            WidgetTapAction.Run(SesameCommand.LOCK),
+            WidgetTapAction.Choose,
             WidgetTapAction.forModel(model(TileDisplayState.MIXED, SesameWearProtocol.ALL_DEVICES_TARGET_UUID)),
         )
     }
@@ -54,11 +54,25 @@ class WidgetTapActionTest {
     }
 
     @Test
-    fun `cancelling the confirmation sends nothing`() {
-        assertNull(WidgetTapAction.commandAfterConfirmation(SesameCommand.UNLOCK, confirmed = false))
-        assertEquals(
-            SesameCommand.UNLOCK,
-            WidgetTapAction.commandAfterConfirmation(SesameCommand.UNLOCK, confirmed = true),
-        )
+    fun `no widget state unlocks on a plain tap`() {
+        TileDisplayState.entries.forEach { state ->
+            assertNotEquals(
+                state.name,
+                WidgetTapAction.Run(SesameCommand.UNLOCK),
+                WidgetTapAction.forModel(model(state)),
+            )
+        }
+    }
+
+    @Test
+    fun `an all-devices widget follows the same rule as a single device`() {
+        val all = SesameWearProtocol.ALL_DEVICES_TARGET_UUID
+        TileDisplayState.entries.forEach { state ->
+            assertEquals(
+                state.name,
+                WidgetTapAction.forModel(model(state)),
+                WidgetTapAction.forModel(model(state, all)),
+            )
+        }
     }
 }
