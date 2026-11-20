@@ -5,6 +5,44 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 16:00
+  summary: Web API経由の施錠/解錠の送信後に状態を1回取得して照合する設定「送信後の状態確認」を追加する（既定オフ、BL-293）
+  details:
+    変更内容: >-
+      ユーザー決定（「Bでユーザがオプションとして設定できるようにする。デフォルトはOFF。」）に沿い、設定画面の「接続」区分へ「送信後の状態確認」（スイッチと説明のダイアログ、文言は core.display.SesameVerifyLabel）を追加した。設定は mobile.command.SesameVerifyAfterSendStore（既定false）。オフのときは実行口の挙動を変えない。オンのときだけ、Web API経由で2xxを受けて送信時点の状態を保存した後、SesameVerificationAccess.verify が4秒待って getStatus を1回呼び（recordApiCall で数える）、core.api.SesameCommandVerification.judge で照合する。応答の timestamp（新設の SesameStatus.timestamp、省略可）が送信時刻より古い・無い値は採用せず UNVERIFIABLE とし、命令の成否は変えない（安全側）。新しい値が食い違えば実際の状態を保存し直し、新設の SesameStatusFailure.NOT_REFLECTED（未反映）を保存・通知して FAILURE を返す。BLE経由・デモでは照合しない。SesameCommandResult のペイロードは変えず、旧版のウォッチとは互換（失敗の振動は鳴り、未知の失敗名は無視される）。既存テスト2件（失敗ラベルの長さを5文字固定から5文字以下へ、撮影モードの失敗選択肢に未反映を追加）を新しい値に合わせて直した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameVerifyLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameVerifyLabelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerifyAfterSendStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/VerifyAfterSendState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/settings/SettingsMainScreen.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperations.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptions.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorVerificationTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameVerifyAfterSendStoreTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数 core 243 / mobile 440 / wear 41、失敗0。新規は照合の判定10件・設定文言3件・失敗分類1件・設定保存3件・実行口の照合7件）。ウィジェットの約9秒の打ち切りとの関係、待ち時間、timestampの単位は実機未確認。
+    関連ID:
+      - BL-293
+      - BL-294
+
 - date: 2026-11-21 14:00
   summary: Web API経由の施錠/解錠が2xxだったときにも、ステータスコードと応答本文の長さをlogcatへ残す（挙動は変えない）
   details:

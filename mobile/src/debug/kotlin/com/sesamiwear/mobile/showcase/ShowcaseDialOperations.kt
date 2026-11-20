@@ -66,7 +66,9 @@ class ShowcaseDialOperations(
             when (failure) {
                 SesameStatusFailure.AUTH_OR_QUOTA -> SesameBleClient.Result.LOGIN_FAILED
                 SesameStatusFailure.BACKGROUND_RESTRICTED -> SesameBleClient.Result.PERMISSION_DENIED
-                SesameStatusFailure.COMMUNICATION -> SesameBleClient.Result.CONNECTION_FAILED
+                SesameStatusFailure.COMMUNICATION,
+                SesameStatusFailure.NOT_REFLECTED,
+                -> SesameBleClient.Result.CONNECTION_FAILED
             }
     }
 }

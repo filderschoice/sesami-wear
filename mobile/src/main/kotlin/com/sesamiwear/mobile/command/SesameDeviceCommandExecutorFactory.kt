@@ -105,6 +105,14 @@ object SesameDeviceCommandExecutorFactory {
                             backgroundDataRestricted = { BackgroundDataRestriction.isRestricted(appContext) },
                         ),
                     ble = createBleAccess(appContext),
+                    // 送信後の状態確認（BL-293）。既定はOFFで、設定を変えた直後から効くよう操作のたびに読む。
+                    verification =
+                        SesameVerificationAccess(
+                            isEnabled =
+                                SesameVerifyAfterSendStore(
+                                    SharedPreferencesKeyValueStore.forBleReachability(appContext),
+                                )::isEnabled,
+                        ),
                 ),
             // 利用者が連携できる診断ログ（BL-188）。uuidは渡さず、表示名だけを記録する。
             guard =

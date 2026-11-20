@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
+import com.sesamiwear.core.diagnostics.SesameDiagnosticsEntry
 import com.sesamiwear.mobile.ble.SesameBleAttempt
 import com.sesamiwear.mobile.ble.SesameBleFailure
 import com.sesamiwear.mobile.ble.SesameBleReachability
@@ -61,6 +62,8 @@ abstract class SesameDeviceCommandExecutorTestFixture {
     protected fun createExecutor(
         debouncer: CommandDebouncer = CommandDebouncer { now },
         bleAccess: SesameBleAccess = SesameBleAccess(),
+        verification: SesameVerificationAccess = SesameVerificationAccess(),
+        diagnosticsRecord: (SesameDiagnosticsEntry) -> Unit = {},
     ) = SesameDeviceCommandExecutor(
         loadCredentials = { credentialsList },
         lockStateStore = lockStateStore,
@@ -86,8 +89,19 @@ abstract class SesameDeviceCommandExecutorTestFixture {
                         backgroundDataRestricted = { backgroundDataRestricted },
                     ),
                 ble = bleAccess,
+                verification = verification,
             ),
-        guard = SesameCommandGuard(debouncer = debouncer),
+        guard =
+            SesameCommandGuard(
+                debouncer = debouncer,
+                diagnostics =
+                    SesameCommandDiagnostics(
+                        loadCredentials = { credentialsList },
+                        lockStateStore = lockStateStore,
+                        record = diagnosticsRecord,
+                        nowMillis = { now },
+                    ),
+            ),
         nowMillis = { now },
     )
 

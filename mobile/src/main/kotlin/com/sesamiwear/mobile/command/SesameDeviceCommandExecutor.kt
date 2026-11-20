@@ -75,20 +75,35 @@ class SesameDeviceCommandExecutor(
             guard.diagnostics.record(uuid, operation, SesameDiagnosticsOutcome.SKIPPED)
             return Outcome.DEBOUNCED
         }
+        val sentAtMillis = nowMillis()
         val measurement =
             if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
-        if (measurement != null) {
-            // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
-            updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
+        var notReflected = false
+        try {
+            if (measurement != null) {
+                // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
+                updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
+                // 送信後の状態確認（BL-293）。設定がOFF（既定）・BLE経由・デモでは何もしない。
+                val actual = routes.verifyOverApi(findCredentials(uuid), measurement, command, sentAtMillis)
+                if (actual != null) {
+                    // 実際の状態を保存し直し、「未反映」の失敗として通知する（ウォッチは失敗の振動を鳴らす）。
+                    lockStateStore.save(uuid, actual.isLocked, nowMillis(), actual.measurement)
+                    recordFailure(uuid, SesameStatusFailure.NOT_REFLECTED)
+                    notReflected = true
+                }
+            }
+        } finally {
+            // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
+            // 照合の待ち時間中に取り消されても記録が欠けないよう、finallyで残す。
+            val succeeded = measurement != null && !notReflected
+            guard.diagnostics.record(
+                uuid = uuid,
+                operation = operation,
+                outcome = if (succeeded) SesameDiagnosticsOutcome.SUCCESS else SesameDiagnosticsOutcome.FAILURE,
+                route = measurement?.route,
+            )
         }
-        // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
-        guard.diagnostics.record(
-            uuid = uuid,
-            operation = operation,
-            outcome = if (measurement != null) SesameDiagnosticsOutcome.SUCCESS else SesameDiagnosticsOutcome.FAILURE,
-            route = measurement?.route,
-        )
-        return if (measurement != null) Outcome.SUCCESS else Outcome.FAILURE
+        return if (measurement != null && !notReflected) Outcome.SUCCESS else Outcome.FAILURE
     }
 
     /**
@@ -279,11 +294,13 @@ class SesameCommandGuard(
  *
  * [api]はSesame Web API、[ble]はBLE直接操作。既定値では[ble]が常に「使えない」を返すため、
  * 配線していない呼び出し元（ユニットテストや、BLEを使わない構成）では従来どおりWeb APIだけが動く。
- * 2つをまとめて1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数を抑えるためでもある。
+ * [verification]はWeb API経由の施錠/解錠の送信後に状態を照合する設定（BL-293）で、既定では何もしない。
+ * まとめて1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数を抑えるためでもある。
  */
 class SesameRouteAccess(
     val api: SesameApiAccess = SesameApiAccess(),
     val ble: SesameBleAccess = SesameBleAccess(),
+    val verification: SesameVerificationAccess = SesameVerificationAccess(),
 )
 
 /**
@@ -372,4 +389,22 @@ private fun apiOperationOf(command: SesameCommand): SesameApiOperation =
     when (command) {
         SesameCommand.LOCK -> SesameApiOperation.LOCK
         SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK
+    }
+
+/**
+ * Web API経由で送った直後の状態照合（BL-293）。実際の状態が命令と食い違ったときだけ、その状態を返す。
+ * BLE経由・デモ・資格情報なし、設定がOFF、照合できなかった場合はnull。
+ * 実行口の関数数をdetektの上限内へ収めるためトップレベルへ置いている。
+ */
+private suspend fun SesameRouteAccess.verifyOverApi(
+    credentials: SesameCredentials?,
+    sent: SesameStatusMeasurement,
+    command: SesameCommand,
+    sentAtMillis: Long,
+): SesameStatusReading? =
+    if (credentials != null && sent.route == SesameStatusRoute.WEB_API) {
+        (verification.verify(api, credentials, command, sentAtMillis) as? SesameVerificationAccess.Result.NotReflected)
+            ?.reading
+    } else {
+        null
     }

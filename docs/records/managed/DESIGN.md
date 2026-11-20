@@ -1252,6 +1252,40 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （BL-071）。実際のSesame uuidと衝突しない固定文字列で、wear側のデバイス割当ストアへ実uuidの
   代わりに保存し、Tile/Complication表示・コマンド送信時に判定する。
 
+### 送信後の状態確認（BL-293、既定はオフ）
+
+Web APIの2xxはクラウドが受理しただけで実機の動作を保証しないため、実機が動かないのに表示だけ切り替わることがある
+（BL-294）。利用者が設定で有効にしたときだけ、送信後に状態を1回取得して照合する。**既定はオフで、BL-142の方針
+（自動の状態取得を廃止し、月間上限の消費を利用者のタップ回数と等しくする）を維持する。** オフのときの挙動
+（API呼び出し回数・結果・ハプティクス・ログ）は従来から変わらない。
+
+- 設定: `mobile.command.SesameVerifyAfterSendStore`（`SesameKeyValueStore`、キー`verify_after_send`、既定false。
+  BLEの到達実績と同じ非暗号化ファイル）。設定画面の「接続」区分の「送信後の状態確認」（`credentials.VerifyAfterSendState`、
+  オン・オフのスイッチと説明のダイアログ）で切り替え、操作のたびに読み直す。文言は`core.display.SesameVerifyLabel`
+  （命令ごとにWeb APIを1回多く使い月間上限（BL-141）に効くこと、結果が数秒遅れること、Bluetoothでは確認しないこと）。
+- 照合の流れ（`SesameDeviceCommandExecutor.execute`）: Web API経由で2xxを受け、送信時点の状態（送った命令どおり）を
+  保存・通知した後、`SesameVerificationAccess.verify`が`waitMillis`（初期値4秒、仕様の3〜5秒の中央）待って
+  `getStatus`を1回呼ぶ（`recordApiCall`で数える）。BLE経由・デモ・資格情報なし・命令の失敗では何もしない。
+- 判定（`core.api.SesameCommandVerification.judge`、純Kotlin）: 応答の`timestamp`が送信時刻より古い、または
+  無い値は採用せず`UNVERIFIABLE`。単位は文書から確定できないため1e11以上をミリ秒、未満を秒とみなし、秒単位で比べる
+  （送信と同じ秒は新しい扱い）。新しい値が命令と一致なら`CONFIRMED`、食い違えば`NOT_REFLECTED`。
+- 扱い（既定値で決めた）: `NOT_REFLECTED`のときだけ、実際の状態を保存し直し（電池・角度も反映）、
+  `SesameStatusFailure.NOT_REFLECTED`（短い表示「未反映」、ウィジェット「未反映（実機の状態を確認）」）を保存して
+  ウォッチ・ウィジェットへ通知し、`execute`は`Outcome.FAILURE`を返す（ウォッチは既存の失敗ハプティクス、
+  診断ログは失敗・理由「未反映」）。`UNVERIFIABLE`・状態取得の失敗は**安全側として命令の成否を変えず**
+  （成功のまま、失敗の分類も保存しない）、logcatへ`verify ...: unverified`の1行だけ残す。
+  古い値・取得失敗で「未反映」と誤報しないため。取得失敗の分類（認証・上限など）も保存しない。
+- 時間の予算: ウィジェットの受信は約10秒の制限で、`WidgetCommandReceiver`が9秒で打ち切る（BL-137）。命令（最大6秒）と
+  待ち（4秒）と取得（最大6秒）は収まらないことがあるが、打ち切りは取り消しとして伝わり、保存済みの送信時点の状態が
+  残るだけで（照合しない場合と同じ）、診断ログは`finally`で残す。ウォッチ経由は`WearableListenerService`の
+  `CoroutineScope`で実行する既存の方式のままで、結果の返送が数秒遅れる。
+- 互換性: `SesameCommandResult`のペイロード（成功/失敗の1バイト）は変えていない。未反映は`FAILURE`で返るため旧版のウォッチも
+  失敗の振動が鳴る。DataItemの`lastFailure`に載る名前`NOT_REFLECTED`は旧版のウォッチの`ofNameOrNull`でnullになり、
+  失敗表示なしで実際の状態だけを表示する（落ちない）。`SesameStatus`へ`timestamp`（省略可）を足したが、
+  応答の未知の項目を無視する既存のデコードのまま。
+- 実機で調整する点: 待ち時間（3〜5秒）、`timestamp`の単位と更新の遅れ、失敗時の応答。実機・実資格情報を要するためBL-294と
+  あわせて人手検証になる。
+
 ### mobile側コマンド処理
 
 - `mobile.messaging.SesameMessageListenerService`（`WearableListenerService`実装、BL-013）:
