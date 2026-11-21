@@ -5,6 +5,33 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 19:30
+  summary: ウォッチのタイル・アプリの一覧・コンプリケーションの取得時刻を、ウィジェットと同じ日時表記にした（BL-313）
+  details:
+    変更内容: >-
+      ユーザーの指示（ウォッチの「N分前」がスマホと合わないので、スマホと同じ日時表記にする、2026-11-21）による。
+      core.display.SesameStatusDetail.compactLabel の鮮度を SesameStatusFreshness.label（相対表記）から dateTimeLabel（「11/21 12:05」）へ
+      変え、使わなくなった nowEpochMillis 引数を compactLabel と wear.status.SesameStatusListContent.rows から削除した。
+      タイルは次の描画まで文言が変わらず、相対表記は時間がたつと実際より新しく見えていた。スマホの主画面のカードは画面の再開のたびに
+      読み直すため相対表記のまま。USER_GUIDE・RELEASE_NOTES（0.17.0 改善）・DESIGN を直した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2）の一覧
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（SesameStatusDetailTest と SesameStatusListContentTest の期待値を日時表記へ書き換えた）。markdownlint・validate-records・scan-secrets とも成功。実機のウォッチの一覧で「🔗11/21 17:19」が1行に収まることを確認した（タイルの右下・全デバイスの収まりはBL-297に残した）。
+    関連ID:
+      - BL-313
 - date: 2026-11-21 18:30
   summary: 主画面の登録の一覧を画面の再開のたびに読み直すようにした（BL-311、撮影モードで見本を置き換えた後に0台の表示が残る件）
   details:

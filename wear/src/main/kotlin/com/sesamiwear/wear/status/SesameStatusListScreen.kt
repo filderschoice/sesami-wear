@@ -93,7 +93,6 @@ private suspend fun loadContent(context: Context): ListContent {
         SesameStatusListContent.rows(
             devices = devices,
             snapshotOf = { snapshots[it] },
-            nowEpochMillis = System.currentTimeMillis(),
         )
     return ListContent(rows, SesameStatusListContent.footerChips(devices))
 }

@@ -102,7 +102,6 @@ object SesameStatusListContent {
     fun rows(
         devices: List<SesameDeviceSummary>,
         snapshotOf: (String) -> SesameStatusSnapshot?,
-        nowEpochMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): List<DeviceRow> =
         devices.map { device ->
@@ -116,7 +115,6 @@ object SesameStatusListContent {
                     SesameStatusDetail.compactLabel(
                         failure = snapshot?.lastFailure,
                         updatedAtEpochMillis = snapshot?.updatedAtEpochMillis,
-                        nowEpochMillis = nowEpochMillis,
                         zoneId = zoneId,
                         route = snapshot?.lastRoute,
                     ),

@@ -32,7 +32,7 @@ class SesameStatusListContentTest {
 
         assertEquals("玄関", rows.single().displayName)
         assertEquals("🔒施錠中 🔋85%", rows.single().statusLine)
-        assertEquals("🔗3分前", rows.single().detailLine)
+        assertEquals("🔗11/15 07:10", rows.single().detailLine)
     }
 
     @Test
@@ -48,7 +48,7 @@ class SesameStatusListContentTest {
         val rows = rowsOf(SesameStatusSnapshot(false, NOW, lastRoute = SesameStatusRoute.WEB_API))
 
         assertEquals("🔓解錠中", rows.single().statusLine)
-        assertEquals("🌐たった今", rows.single().detailLine)
+        assertEquals("🌐11/15 07:13", rows.single().detailLine)
     }
 
     @Test
@@ -80,7 +80,6 @@ class SesameStatusListContentTest {
             SesameStatusListContent.rows(
                 devices = listOf(SesameDeviceSummary(uuid = "uuid-1", displayName = "")),
                 snapshotOf = { null },
-                nowEpochMillis = NOW,
                 zoneId = ZONE,
             )
 
@@ -183,7 +182,6 @@ class SesameStatusListContentTest {
                         SesameDeviceSummary(uuid = "b", displayName = "勝手口"),
                     ),
                 snapshotOf = { null },
-                nowEpochMillis = NOW,
                 zoneId = ZONE,
             )
 
@@ -219,7 +217,6 @@ class SesameStatusListContentTest {
         SesameStatusListContent.rows(
             devices = listOf(SesameDeviceSummary(uuid = "uuid-1", displayName = "玄関")),
             snapshotOf = { snapshot },
-            nowEpochMillis = NOW,
             zoneId = ZONE,
         )
 

@@ -21,17 +21,20 @@ import java.time.ZoneId
  * 経路が分からない場合は何も前置しない。
  */
 object SesameStatusDetail {
-    /** Tile・Complication向け（表示領域が狭い面）。 */
+    /**
+     * Tile・Complication・ウォッチの状態一覧向け（表示領域が狭い面）。失敗の理由は短い表記、鮮度はウィジェットと同じ
+     * 取得日時（「9/18 12:05」）で出す（BL-313。以前は相対表記（「3分前」）で、タイルは次の描画まで文言が変わらないため
+     * 時間がたつと実際より新しく見え、スマホのウィジェットの日時表記とも食い違っていた）。
+     */
     fun compactLabel(
         failure: SesameStatusFailure?,
         updatedAtEpochMillis: Long?,
-        nowEpochMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
         route: SesameStatusRoute? = null,
     ): String =
         SesameRouteLabel.withIcon(
             route,
-            failure?.shortLabel ?: SesameStatusFreshness.label(updatedAtEpochMillis, nowEpochMillis, zoneId),
+            failure?.shortLabel ?: SesameStatusFreshness.dateTimeLabel(updatedAtEpochMillis, zoneId),
         )
 
     /**

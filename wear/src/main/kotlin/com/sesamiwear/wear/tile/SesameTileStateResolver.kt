@@ -139,6 +139,5 @@ object SesameTileStateResolver {
         SesameStatusDetail.compactLabel(
             failure = failure,
             updatedAtEpochMillis = updatedAtEpochMillis,
-            nowEpochMillis = System.currentTimeMillis(),
         )
 }
