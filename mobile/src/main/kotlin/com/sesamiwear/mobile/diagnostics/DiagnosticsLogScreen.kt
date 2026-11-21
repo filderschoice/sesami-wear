@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,7 +29,7 @@ import com.sesamiwear.mobile.settings.SettingsPageScaffold
  *
  * 通信エラーなどが起きたときに、利用者から内容を連携してもらって解析するためのもの。
  * 施錠・解錠・状態取得の成功と失敗を新しい順に並べ、「コピー」と「共有」で持ち出せるようにする
- * （2026-09-20のユーザー判断）。
+ * （2026-09-20のユーザー判断）。その下に、HTTPの応答・経路・BLEの段階などの「通信の詳細」を並べる（BL-302）。
  *
  * **表示にも連携用の全文にもuuid・apikey・secretKeyは含まれない**
  * （`core.diagnostics.SesameDiagnosticsEntry`のKDoc）。そのまま貼って送っても資格情報は漏れない。
@@ -41,6 +43,8 @@ internal fun DiagnosticsLogScreen(onBack: () -> Unit) {
     val log = remember { DiagnosticsLogFactory.create(context) }
     // 開いている間は更新しない（読んでいる最中に行が増えて位置がずれるのを避ける）。
     val lines = remember { log.load().map { log.format(it) } }
+    // 通信の詳細（BL-302）。Log.wへ出している行と同じ内容で、uuidの断片は除いて保存されている。
+    val detailLines = remember { log.loadDetails().map { log.formatDetail(it) } }
     val shareText = remember { log.formatAll(DiagnosticsEnvironment.headerLines()) }
 
     SettingsPageScaffold(
@@ -77,7 +81,27 @@ internal fun DiagnosticsLogScreen(onBack: () -> Unit) {
             } else {
                 items(lines) { line -> Text(text = line, style = MaterialTheme.typography.bodyMedium) }
             }
+            detailItems(detailLines)
         }
+    }
+}
+
+/** 「通信の詳細」の見出しと行（BL-302）。行が無ければ見出しも出さない。 */
+private fun LazyListScope.detailItems(detailLines: List<String>) {
+    if (detailLines.isEmpty()) return
+    item {
+        Text(
+            text = SesameDiagnosticsLog.DETAILS_HEADING,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+    items(detailLines) { line ->
+        Text(
+            text = line,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -107,6 +131,6 @@ private const val TITLE = "操作履歴（診断ログ）"
 private const val COPY_LABEL = "コピー"
 private const val SHARE_LABEL = "共有"
 private const val DESCRIPTION =
-    "施錠・解錠・状態取得の直近50件です。うまく動かないときは、" +
+    "施錠・解錠・状態取得の直近50件と、通信の詳細の直近100行です。うまく動かないときは、" +
         "この内容をコピーまたは共有して開発者へお知らせください。"
 private const val PRIVACY_NOTE = "uuid・apikey・secretKeyは含まれません（セサミの表示名だけが入ります）。"

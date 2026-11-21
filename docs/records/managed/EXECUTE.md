@@ -5,6 +5,39 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 11:30
+  summary: Log.wにだけ出していた通信の詳細を、操作履歴（診断ログ）でも確認できるようにした（BL-302）
+  details:
+    変更内容: >-
+      テストユーザーの端末で再現してもlogcatを取り出せず、BL-294で追加した`accepted: HTTP 2xx body=NB`などの行を
+      確かめられなかったため。core.diagnostics に SesameDiagnosticsDetail（時刻つきの1行、sanitizeで`device=`の除去・
+      uuid／BLEアドレス／16進数16文字以上の伏せ字・改行の除去・200文字の上限）を追加し、SesameDiagnosticsLog に
+      recordDetail / loadDetails / formatDetail と、連携用の全文への「---- 通信の詳細（新しい順）」の追加（直近100行）を加えた。
+      読み書きはインスタンスごとの@Synchronizedから、プロセス全体で1つのロックへ変えた（画面・実行口ごとに別インスタンスが
+      同じ保存先を指すため）。mobile.diagnostics.DiagnosticsDetailLogger が Log.w と診断ログへの保存を同時に行い、
+      SesameDeviceCommandExecutorFactory（Web APIの応答・失敗、BLEの段階、経路の成否）と SesameBleConnector（到達確認の手段）の
+      Log.w をこれへ置き換えた。操作履歴の画面に通信の詳細の見出しと行を加えた。Log.w の行の内容は変えていない。
+      実機での表示確認は行っていない（撮影モードは通信しないため行が出ず、実資格情報での操作は自動実行の対象外）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsEntry.kt
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsDetailLogger.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（detektは初回に操作履歴画面のLongMethodの指摘が出て、通信の詳細の部分を関数へ切り出して解消）。SesameDiagnosticsLogTest は8件追加して16件成功。markdownlint・validate-records・scan-secrets とも成功。
+    関連ID:
+      - BL-302
+      - BL-294
 - date: 2026-11-21 10:30
   summary: ウィジェットの施錠・解錠を選ぶ画面で「キャンセル」が2行に折り返す問題の修正（BL-301）
   details:

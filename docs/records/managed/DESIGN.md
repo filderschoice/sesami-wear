@@ -428,6 +428,18 @@
   （アプリからどこかへ自動送信はしない）。連携用の全文の先頭には、解析に要るアプリのバージョン・
   Androidのバージョン・機種名だけを添える（端末を特定できるシリアル・広告IDは載せない）。
 - 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
+- **通信の詳細（BL-302）**: これまで`Log.w`（タグ`SesameApi`）にだけ出していた行（Web APIの応答
+  `<op> accepted: HTTP <code> body=<長さ>`・失敗`<op> failed: <理由>`・経路の成否`route=BLE op=... result=OK/NG`・
+  BLEの段階`route=BLE op=... detail=...`・到達確認の手段`op=PROBE detail=SCAN/LAST_KNOWN/MISS`）を、
+  `mobile.diagnostics.DiagnosticsDetailLogger`が`Log.w`と同時に診断ログへも残す。テストユーザーの端末では
+  logcatを取り出せず、再現しても確かめられなかったため。施錠・解錠の1件（`SesameDiagnosticsEntry`）とは対応づけず、
+  時刻つきの行（`SesameDiagnosticsDetail`、直近100行、保存キー`diagnostics_details`）として持つ（全デバイス操作では
+  複数台の処理が並行し、行と1件を確実に結びつけられないため。時刻で突き合わせる）。
+  保存前に`SesameDiagnosticsDetail.sanitize`が`device=`（uuidの先頭8文字）を除き、uuid・BLEアドレス・16進数16文字以上の
+  並びの形をした部分を`***`へ伏せ、改行を詰めて200文字で切る（`Log.w`の行は従来のまま）。保存の失敗は操作を止めない。
+  画面は1件の一覧の下に見出し「---- 通信の詳細（新しい順）」と行を並べ、連携用の全文にも同じ順で入る（行が無ければ
+  見出しも出さない）。`clear()`は両方を消す。同じ保存先を指すインスタンスが画面・実行口ごとに作られるため、
+  読み書きはプロセス全体で1つのロックで直列化する。撮影モードの施錠・解錠は通信しないため行は増えない。
   `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
 
 ### クイック設定パネルのタイル（スマートフォン）
@@ -2204,7 +2216,7 @@ BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化
 
 `mobile.command.SesameDeviceCommandExecutor`が、施錠/解錠（`execute`）と状態取得（`refreshStatus`）の
 両方で経路を選ぶ（状態取得は下記「利用者の『更新』によるBLE確認」でBL-204により変更）。**利用者からは経路が見えない**（表示・操作・結果の見え方は同じで、どちらで実行したかは
-`Log.w`の診断ログにのみ残る）。
+`Log.w`の診断ログと、操作履歴の「通信の詳細」（BL-302）にのみ残る）。
 
 | クラス | 役割 | テスト |
 | --- | --- | --- |
