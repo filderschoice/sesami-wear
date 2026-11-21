@@ -48,7 +48,7 @@
     検証コマンド: >-
       ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
     検証結果: >-
-      成功 - Gradleのゲートはすべて終了コード0。実機（スマホの機内モード）での確認は未実施でBL-312へ残した。
+      成功 - Gradleのゲートはすべて終了コード0。実機（スマホの機内モード）でユーザーが「スマホに届きませんでした」の表示を確認した（2026-11-21。通信を戻した後の施錠は未確認）。
     関連ID:
       - BL-312
 - date: 2026-11-21 19:30
