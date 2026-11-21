@@ -867,7 +867,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     出す列挙ログの双方で確認できる。`remove-tile`で外すと一覧へ再び現れることで機序を確定した。
   - `SesameTileService`は`androidx.wear.tiles.PREVIEW`のmeta-dataを持たないため、列挙時に
     `has no metadata`が記録され、一覧のプレビューはアプリアイコンで代替される。Play版も同じ状態で
-    一覧に表示されるため、これは一覧非表示の原因ではない。
+    一覧に表示されるため、これは一覧非表示の原因ではない（この調査の後、Issue #90で`tile_preview`の宣言を足し、
+    BL-310で実機（撮影モードの見本）で撮ったタイルの画面のPNG（`drawable-nodpi/tile_preview.png`、ストア画像`wear_2_tile_locked.png`と同じ）へ
+    差し替えた。それまでは紺地に錠の図案のベクターだった）。
   - 文字盤のComplicationやTileが、Play版とデバッグ版のどちらから提供されているかは見た目で区別できない。
     logcatの`for bound-service {<パッケージ>/...SesameComplicationDataSourceService}`でパッケージ名を
     確認する。再インストール直後は、デバッグ版を入れてもPlay版のデータソースが割り当てられたままに
@@ -1612,7 +1614,9 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   （BL-052）。選択画面は`wear.ui.DeviceSelectionScreen`（Tile/Complication共通）を用いる。
 - **操作専用タイル（BL-298）**: `wear.tile.SesameControlTileService`を別のTileServiceとして`AndroidManifest.xml`へ
   宣言する（label`@string/tile_control_label`=「Sesami 操作パネル」、description=`tile_control_description`、
-  プレビュー`@drawable/tile_control_preview`＝黒背景の円形192dp）。タイル追加の一覧では、既存の「Sesami Wear」
+  プレビュー`@drawable/tile_control_preview`。BL-310で、実機（撮影モードの見本）で撮った操作パネルの画面の PNG
+  （`drawable-nodpi/tile_control_preview.png`、ストア画像`wear_10_control_panel.png`と同じ）へ差し替えた。
+  以前は黒背景の円形192dpの図案のベクター）。タイル追加の一覧では、既存の「Sesami Wear」
   （label=`app_name`のまま変えない）とは別のタイルとして並ぶ。**2つのタイルの使い分け**: 既存の`SesameTileService`は
   「1つのタイルが1台（または全デバイス）に対応し、状態の確認と操作・状態更新・対象変更を持つ」タイル、
   操作専用タイルは「登録済み全デバイスを対象に、全体の施錠・解錠と台ごとの状態を1枚に並べる」タイルで、
@@ -1637,8 +1641,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
     （幅の狭いチップのため内側余白を`chipModifiers`の引数で2dpへ詰める）。
   - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。上段のボタンも台のチップも`EXTRA_CHOOSE`
     （選ぶ画面）で、**タップだけでは施錠も解錠もされない**（BL-307。以前の「全施錠」は`EXTRA_COMMAND=LOCK`で即実行していた）。
-    ピッカーのプレビュー`tile_control_preview`と説明`tile_control_description`（「全台の鍵の操作と、台ごとの状態を1つのタイルに並べます」）
-    も1ボタンの図案へ直した。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
+    ピッカーの説明`tile_control_description`（「全台の鍵の操作と、台ごとの状態を1つのタイルに並べます」）も直した。
+    プレビューはBL-310で実機の画面へ差し替えた（上記）。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
     展開は`SesameActionTargetResolver`）。
   - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
     **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で

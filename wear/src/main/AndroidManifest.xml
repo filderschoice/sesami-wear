@@ -141,6 +141,8 @@
             </intent-filter>
             <!--
                 Tile追加ピッカーのプレビュー（Issue #90）。未宣言だとピッカーに表示できる画像が無い。
+                画像は実機（撮影モードの見本）で撮ったタイルの画面（drawable-nodpi/tile_preview.png。ストア画像
+                wear_2_tile_locked.png と同じ）。タイルの見た目を変えたら撮り直して差し替える（BL-310）。
             -->
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
@@ -161,6 +163,7 @@
             <intent-filter>
                 <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
             </intent-filter>
+            <!-- プレビューは実機で撮った操作パネルの画面（ストア画像 wear_10_control_panel.png と同じ。BL-310）。 -->
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
                 android:resource="@drawable/tile_control_preview" />

@@ -31,14 +31,14 @@ Google Play Console へ提出する掲載情報を、このディレクトリで
 | `phone_7_radar_all.png` | 全デバイスの接続確認（1枚のレーダーに全台。台ごとの段階・距離・ダイヤル操作への入口。「全台の接続を試す」） | 1350x2400 |
 | `phone_8_dial.png` | ダイヤル操作（Bluetoothで直接操作。サムターンの角度を針で表示し、半周なぞって施錠・解錠） | 1350x2400 |
 | `wear_1_complication.png` | ウォッチフェイスのコンプリケーション（施錠状態の表示） | 384x384 |
-| `wear_2_tile_locked.png` | タイル（全デバイス、全施錠中、タップで選ぶ） | 384x384 |
+| `wear_2_tile_locked.png` | タイル（全デバイス、全施錠中、タップで選ぶ）。ウォッチのタイル追加の一覧のプレビュー画像の元でもある（差し替えたら `wear/src/main/res/drawable-nodpi/tile_preview.png` へも写す、BL-310） | 384x384 |
 | `wear_4_tile_mixed.png` | タイル（全デバイス、一部解錠、タップで選ぶ）。複数デバイスの状態が混在した場合 | 384x384 |
 | `wear_5_unlock_confirm.png` | タイルのタップで開く、施錠・解錠を選ぶ画面（全デバイス。「全施錠」「全解錠」の2ボタン。やめるときは右へスワイプ） | 384x384 |
 | `wear_6_device_select.png` | 操作対象デバイスの選択画面 | 384x384 |
 | `wear_7_radar.png` | 接続確認（レーダー）。Sesameの電波を輪の上に示し、段階（発見）と距離の目安（約2m）を表示 | 384x384 |
 | `wear_8_radar_connected.png` | 「接続を試す」に成功した接続確認（接続OK・電池残量・角度） | 384x384 |
 | `wear_9_radar_all.png` | 全デバイスの接続確認（台ごとの名前・段階・距離の一覧）。Play Consoleへは投入しない（下記） | 384x384 |
-| `wear_10_control_panel.png` | 操作専用タイル「Sesami 操作パネル」（上に「全台の鍵を操作」、下に台ごとの状態。玄関だけ解錠中の3台。BL-307の1ボタン化の後に撮り直し） | 384x384 |
+| `wear_10_control_panel.png` | 操作専用タイル「Sesami 操作パネル」（上に「全台の鍵を操作」、下に台ごとの状態。玄関だけ解錠中の3台。BL-307の1ボタン化の後に撮り直し）。操作パネルのタイル追加の一覧のプレビュー画像の元でもある（差し替えたら `wear/src/main/res/drawable-nodpi/tile_control_preview.png` へも写す、BL-310） | 384x384 |
 
 - 2026-11-21に、施錠・解錠を選ぶ画面（BL-295）と主画面のカードの「施錠」「解錠」ボタンに合わせて、スマートフォン用の
   `phone_1`〜`phone_4` とWear OS用の `wear_2` / `wear_4` / `wear_5` をPixel 8 Pro / Pixel Watch 2実機で撮り直し、

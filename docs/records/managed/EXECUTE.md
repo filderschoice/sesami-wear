@@ -5,6 +5,34 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 17:30
+  summary: ウォッチのタイル追加の一覧に出すプレビュー画像を、実機で撮ったタイルの画面へ差し替えた（BL-310）
+  details:
+    変更内容: >-
+      ユーザーの依頼（タイルの選択で表示する画像を用意できないか）と判断（実機の画面を使う、2026-11-21）による。
+      `androidx.wear.tiles.PREVIEW`で指していた図案のベクター（drawable/tile_preview.xml＝紺地に錠、drawable/tile_control_preview.xml＝
+      色の帯）を削除し、同名のPNGを drawable-nodpi へ置いた。中身はストア画像と同じ実機の画面（tile_preview.png＝wear_2_tile_locked.png、
+      全デバイス・全施錠中の「Sesami Wear」タイル。tile_control_preview.png＝wear_10_control_panel.png、操作パネル）で、
+      撮影モードの見本（玄関・勝手口・ガレージ）が写る。AndroidManifest.xml のコメントと、ストア画像を差し替えたらプレビューへも写すことを
+      docs/store/README.md・DESIGN.md へ書いた。
+    変更ファイル:
+      - wear/src/main/res/drawable-nodpi/tile_preview.png
+      - wear/src/main/res/drawable-nodpi/tile_control_preview.png
+      - wear/src/main/res/drawable/tile_preview.xml
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/store/README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2）のタイル追加の一覧
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。
+      実機のタイル追加の一覧で「Sesami Wear (debug)」「Sesami 操作パネル」が別々に並ぶことを確認し、差し替え後の一覧の下端に新しいプレビュー（緑と灰の画面）が
+      写るところまで見た。全体の見え方の確認はユーザーに依頼した（一覧の操作中に誤って別のタイルを追加した可能性があり、操作を止めたため）。
+    関連ID:
+      - BL-310
+      - BL-297
 - date: 2026-11-21 16:30
   summary: ウォッチのアプリの一覧から開いた施錠・解錠を選ぶ画面を閉じると、一覧へ戻るようにした（BL-309）
   details:
