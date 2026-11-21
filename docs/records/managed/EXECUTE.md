@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 18:30
+  summary: 主画面の登録の一覧を画面の再開のたびに読み直すようにした（BL-311、撮影モードで見本を置き換えた後に0台の表示が残る件）
+  details:
+    変更内容: >-
+      BL-297の実機確認中に、デバッグ版の撮影モードの画面で「見本の3台に置き換える」を押して主画面へ戻ると、アプリを開き直すまで
+      0台（「Sesameを登録しましょう」）の表示のままだった。主画面（CredentialsSettingsScreen）は一覧を画面を作ったときに1回読むだけで、
+      ほかの画面で一覧が変わっても読み直していなかったため。ユーザーの指示（直す、2026-11-21）で、CredentialsScreenController に
+      reload()（ストアから読み直し、変わっていれば差し替える。同期はしない）を足し、画面の ON_RESUME で呼ぶようにした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsScreenController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。実機で、撮影モードの見本を全部消して0台にし、撮影モードの画面で「見本の3台に置き換える」を押して主画面へ戻ると、アプリを開き直さずに3台（玄関・勝手口・ガレージ）が表示されることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-311
+      - BL-297
 - date: 2026-11-21 17:30
   summary: ウォッチのタイル追加の一覧に出すプレビュー画像を、実機で撮ったタイルの画面へ差し替えた（BL-310）
   details:

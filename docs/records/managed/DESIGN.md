@@ -321,7 +321,9 @@
     BL-160）がすべて消え、再登録にはSESAME BizからsecretKeyを取り直す必要があるため。
   - 保存・削除と、それに伴う同期（ウォッチへのデバイス一覧、ウィジェットの再描画）は
     `mobile.credentials.CredentialsScreenController`が持つ。画面のComposableへ直接書くと
-    detektの`LongMethod`（上限60行）を超えるため分離した。
+    detektの`LongMethod`（上限60行）を超えるため分離した。一覧は画面の再開（`ON_RESUME`）のたびに
+    `reload()`でストアから読み直す（BL-311。デバッグ版の撮影モードの画面で「見本の3台に置き換える」と主画面へ戻っても、
+    アプリを開き直すまで古い一覧（0台）のままだったため。読み直すだけで同期はしない）。
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード

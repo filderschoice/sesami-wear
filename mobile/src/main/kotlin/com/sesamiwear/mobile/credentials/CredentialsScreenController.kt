@@ -25,9 +25,19 @@ internal class CredentialsScreenController(
     private val credentialsStore: SesameCredentialsStore,
     private val coroutineScope: CoroutineScope,
 ) {
-    /** 画面に出す登録済みデバイス。保存・削除のたびにストアから読み直す。 */
+    /** 画面に出す登録済みデバイス。保存・削除のたびと、画面の再開のたびにストアから読み直す。 */
     var devices by mutableStateOf(credentialsStore.loadAll())
         private set
+
+    /**
+     * ストアから読み直す（BL-311）。ほかの画面で一覧が変わった場合（デバッグ版の撮影モードの「見本の3台に置き換える」など）に、
+     * 主画面へ戻ったとき古い一覧のまま残らないよう、画面の再開（`ON_RESUME`）で呼ぶ。読み直すだけで同期はしない
+     * （変えた側が同期を受け持つ）。
+     */
+    fun reload() {
+        val latest = credentialsStore.loadAll()
+        if (latest != devices) devices = latest
+    }
 
     /**
      * 追加・編集の確定。既存uuidなら上書き、新規uuidなら追加になる（[CredentialsListEditor.upsert]）。

@@ -73,6 +73,8 @@ fun CredentialsSettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val controller = remember { CredentialsScreenController(context, credentialsStore, coroutineScope) }
+    // ほかの画面で一覧が変わっていたら、戻ったときに反映する（BL-311）。
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { controller.reload() }
     val snackbarHostState = remember { SnackbarHostState() }
     var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
     var deleteTarget by remember { mutableStateOf<SesameCredentials?>(null) }
