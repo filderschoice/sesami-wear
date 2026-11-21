@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +67,8 @@ import com.sesamiwear.mobile.ui.SesameRouteIcon
  * (1) 状態アイコンと名前、(2) 施錠状態・電池・角度、(3) 最終取得と経路、(4) Bluetoothの到達状況
  * （BL-190）、へ行を分ける。
  * BL-245で見た目を整理した: 状態は色付きの丸いバッジ、編集・削除はカード右上の⋮、
- * ダイヤル操作（BL-243）は文字付きのボタン。BL-295後半で、施錠・解錠のボタンを足した（[DeviceCardCommandButtons]）。
+ * ダイヤル操作（BL-243）は文字付きのボタン。BL-295後半で、施錠・解錠のボタンを足した。BL-303で、施錠・解錠を
+ * 「鍵を操作」（[DeviceCardCommandButton]、選ぶ画面を開く）、ダイヤル操作・接続確認を「Bluetooth」メニューへまとめた。
  * 行の組み立ては`core.display.SesameDeviceStatusLine.lines`（Android非依存、ユニットテスト対象）。
  *
  * **この表示のために状態取得のリクエストは送らない。** 最後に分かった値をそのまま出すだけで、
@@ -125,13 +126,21 @@ internal fun DeviceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            DeviceCardCommandButtons(
-                uuid = credentials.uuid,
-                displayName = credentials.displayName.ifBlank { credentials.uuid },
-                onResult = onCommandResult,
-                onFinished = { refreshKey++ },
-            )
-            BluetoothActions(uuid = credentials.uuid)
+            // 操作は「鍵を操作」と「Bluetooth」の2つのメニューにまとめる（BL-303。以前は施錠・解錠・ダイヤル操作・
+            // 接続確認の4ボタンが2段に並んでいた）。
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(end = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                DeviceCardCommandButton(
+                    uuid = credentials.uuid,
+                    displayName = credentials.displayName.ifBlank { credentials.uuid },
+                    onResult = onCommandResult,
+                    onFinished = { refreshKey++ },
+                    modifier = Modifier.weight(1f),
+                )
+                BluetoothMenu(uuid = credentials.uuid, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
@@ -270,24 +279,44 @@ private fun rememberBleConnectionLine(uuid: String): String {
 }
 
 /**
- * Bluetoothで行う2つの操作。ダイヤル操作（BL-243）は直接回す手段で、施錠・解錠が効かないときなどに使う。
- * 接続確認（BL-272）は、背景で行われる接続の様子をレーダーで見せる。
+ * Bluetoothで行う2つの操作をまとめたメニュー（BL-303。メニュー名は2026-11-21のユーザー判断）。
+ * ダイヤル操作（BL-243）は直接回す手段で、施錠・解錠が効かないときなどに使う。
+ * 接続確認（BL-272）は、背景で行われる接続の様子をレーダーで見せる。どちらも別の画面を開くだけで、
+ * メニューを開いただけでは通信しない。
  */
 @Composable
-private fun BluetoothActions(uuid: String) {
+private fun BluetoothMenu(
+    uuid: String,
+    modifier: Modifier,
+) {
     val context = LocalContext.current
-    Row(modifier = Modifier.padding(end = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilledTonalButton(onClick = { context.startActivity(DialActivity.createIntent(context, uuid)) }) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_route_bluetooth),
                 contentDescription = null,
                 modifier = Modifier.size(BUTTON_ICON_SIZE_DP.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = DIAL_LABEL)
+            Text(text = BLUETOOTH_MENU_LABEL, maxLines = 1)
+            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
         }
-        OutlinedButton(onClick = { context.startActivity(BleRadarActivity.createIntent(context, uuid)) }) {
-            Text(text = RADAR_LABEL)
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(DIAL_LABEL) },
+                onClick = {
+                    expanded = false
+                    context.startActivity(DialActivity.createIntent(context, uuid))
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(RADAR_LABEL) },
+                onClick = {
+                    expanded = false
+                    context.startActivity(BleRadarActivity.createIntent(context, uuid))
+                },
+            )
         }
     }
 }
@@ -307,6 +336,7 @@ private fun rememberSnapshot(
     return snapshot
 }
 
+private const val BLUETOOTH_MENU_LABEL = "Bluetooth"
 private const val DIAL_LABEL = "ダイヤル操作"
 private const val RADAR_LABEL = "接続確認"
 private const val MENU_DESCRIPTION = "このSesameのメニュー"

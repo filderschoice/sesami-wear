@@ -19,41 +19,49 @@ class DeviceCardCommandPolicyTest {
     }
 
     @Test
-    fun `施錠の押下は確認なしでそのまま送る`() {
+    fun `鍵を操作の押下は何も送らずに選ぶ画面を開く`() {
         assertEquals(
-            DeviceCardCommandPolicy.PressAction.Send(SesameCommand.LOCK),
-            DeviceCardCommandPolicy.onPressed(SesameCommand.LOCK, isSending = false),
+            DeviceCardCommandPolicy.PressAction.OpenChooser,
+            DeviceCardCommandPolicy.onPressed(isSending = false),
         )
     }
 
     @Test
-    fun `解錠の押下は送らずに確認を求める`() {
-        assertEquals(
-            DeviceCardCommandPolicy.PressAction.AskConfirm(SesameCommand.UNLOCK),
-            DeviceCardCommandPolicy.onPressed(SesameCommand.UNLOCK, isSending = false),
-        )
+    fun `送信中の押下は選ぶ画面を開かない`() {
+        assertEquals(DeviceCardCommandPolicy.PressAction.Ignore, DeviceCardCommandPolicy.onPressed(isSending = true))
     }
 
     @Test
-    fun `送信中の押下は施錠も解錠も無視する`() {
+    fun `選ぶ画面で選んだ施錠・解錠はそのまま送る`() {
         SesameCommand.entries.forEach {
             assertEquals(
-                DeviceCardCommandPolicy.PressAction.Ignore,
-                DeviceCardCommandPolicy.onPressed(it, isSending = true),
+                DeviceCardCommandPolicy.ChooseAction.Send(it),
+                DeviceCardCommandPolicy.onChosen(it, isSending = false),
             )
         }
     }
 
     @Test
-    fun `確認が要るのは解錠だけ`() {
-        assertTrue(DeviceCardCommandPolicy.requiresConfirmation(SesameCommand.UNLOCK))
-        assertFalse(DeviceCardCommandPolicy.requiresConfirmation(SesameCommand.LOCK))
+    fun `キャンセルは送らない`() {
+        assertEquals(
+            DeviceCardCommandPolicy.ChooseAction.Ignore,
+            DeviceCardCommandPolicy.onChosen(null, isSending = false),
+        )
+    }
+
+    @Test
+    fun `選ぶ画面を開いている間に送信が始まっていたら送らない`() {
+        SesameCommand.entries.forEach {
+            assertEquals(
+                DeviceCardCommandPolicy.ChooseAction.Ignore,
+                DeviceCardCommandPolicy.onChosen(it, isSending = true),
+            )
+        }
     }
 
     @Test
     fun `ボタンの文言`() {
-        assertEquals("施錠", DeviceCardCommandPolicy.buttonLabel(SesameCommand.LOCK))
-        assertEquals("解錠", DeviceCardCommandPolicy.buttonLabel(SesameCommand.UNLOCK))
+        assertEquals("鍵を操作", DeviceCardCommandPolicy.MENU_LABEL)
     }
 
     @Test

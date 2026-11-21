@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * デバイスカードの「施錠」「解錠」ボタンの送信を、画面の寿命（構成変更・画面離脱）から切り離して持つ（BL-295後半の
+ * デバイスカードの施錠・解錠（BL-303以降は「鍵を操作」の選ぶ画面）の送信を、画面の寿命（構成変更・画面離脱）から切り離して持つ（BL-295後半の
  * レビュー指摘）。以前はボタンのComposable内の`rememberCoroutineScope`で送っていたため、画面の回転や離脱で
  * 送信のコルーチンが取り消され、結果のスナックバーが出ず、送信中の無効化も外れていた。
  *

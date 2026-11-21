@@ -5,6 +5,41 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 12:30
+  summary: デバイスカードの操作を「鍵を操作」「Bluetooth」の2つのメニューへまとめた（BL-303）
+  details:
+    変更内容: >-
+      カード下部に施錠・解錠・ダイヤル操作・接続確認の4ボタンが2段に並んでいたのを、ユーザーの指示（2026-11-21）で2つにまとめた。
+      メニュー名はユーザーが選んだ「鍵を操作」「Bluetooth」。「鍵を操作」はウィジェットの選ぶ画面の部品（CommandChooser を
+      internal にして共有）を Compose の Dialog（画面幅の90%）で開き、［キャンセル｜施錠｜解錠］から選んだ操作を送る。
+      これに伴い、解錠だけに挟んでいた確認ダイアログ（「解錠しますか？」）と施錠の即送信をやめ、施錠・解錠とも選ぶ画面で押したときだけ
+      送る形にした（ウィジェットと同じ方針。即解錠の経路は作らない）。DeviceCardCommandPolicy を OpenChooser / ChooseAction へ
+      作り直し、選ぶ画面を開いている間に送信が始まっていたら送らない規則を加えた。「Bluetooth」は DropdownMenu で
+      ダイヤル操作・接続確認を開く。アプリ内ヘルプ・USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため項目を書き換え）・
+      DESIGN・BL-297の確認項目を追随させ、ストア画像 phone_4 を新しいカードで撮り直した（撮影モード、ステータスバーのみモザイク）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicy.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicyTest.kt
+      - docs/store/images/screenshots/phone_4_device_list.png
+      - docs/store/images/screenshots_captioned/phone_4_device_list.png
+      - docs/store/README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）でのカード表示と2つのメニューの開閉
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。DeviceCardCommandPolicyTest は規則の作り直しに合わせて9件へ書き換えて成功。markdownlint・validate-records・scan-secrets とも成功。実機でカードが2ボタンになり、「鍵を操作」で選ぶ画面（キャンセル・施錠・解錠が1行）、「Bluetooth」でダイヤル操作・接続確認が出ることを確認（何も送らずに閉じた）。
+    関連ID:
+      - BL-303
 - date: 2026-11-21 11:30
   summary: Log.wにだけ出していた通信の詳細を、操作履歴（診断ログ）でも確認できるようにした（BL-302）
   details:

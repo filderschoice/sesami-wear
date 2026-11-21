@@ -99,8 +99,12 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
     }
 }
 
+/**
+ * 施錠・解錠を選ぶ画面の中身（見出しと［キャンセル｜施錠｜解錠］）。ウィジェットの選ぶ画面と、アプリ主画面の
+ * デバイスカードの「鍵を操作」（BL-303）が同じ見た目を使う。[onResult]はキャンセルならnull。
+ */
 @Composable
-private fun CommandChooser(
+internal fun CommandChooser(
     displayName: String,
     isAllDevices: Boolean,
     onResult: (command: SesameCommand?) -> Unit,
