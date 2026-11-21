@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- id: BL-314
+  区分: 人手検証
+  タスク内容: >-
+    0.17.0（mobile versionCode 16 / wear versionCode 1014）を Google Play のクローズドテストへ配信する。
+    署名付きAABは作成済み（mobile/build/outputs/bundle/release/mobile-release.aab を電話・タブレット系トラックへ、
+    wear/build/outputs/bundle/release/wear-release.aab を Wear OS 専用トラックへ。両AABの署名SHA256は一致確認済み）。
+    「このリリースの新機能」欄には docs/RELEASE_NOTES.md の0.17.0「ストア掲載用の要約」を転記する。
+    実機検証（docs/verification/VERIFICATION-0.17.0.local.md。BL-297 / BL-306）の結果を確認してから提出する。
+    Play Console の掲載画像の差し替え（docs/store/STORE_LISTING.md 参照）も同時に行う。
+    両トラックで公開中になったら、リリース準備のマージコミットへ注釈付きタグ v0.17.0 を作成し GitHub Release を
+    公開する（Skill github-release-publish）。紹介ページの gh-pages 反映もこのとき行う。
+  優先度: P2
+  状態: 未着手
+  担当: ユーザー
+  完了条件: >-
+    0.17.0 が両トラックで公開中で、タグ v0.17.0 と GitHub Release が作成されていること
+  根拠: >-
+    Play Console の操作・git push・タグ公開はユーザー作業（rules/guardrails-unified.v1.md セクション12.2）。
+    実機検証の合否はユーザーの確認が要る。
+  依存: []
+
 - id: BL-306
   区分: 人手検証
   タスク内容: >-

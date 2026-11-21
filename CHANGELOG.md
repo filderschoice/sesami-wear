@@ -7,6 +7,15 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-21（0.17.0のリリース準備）
+
+0.17.0のリリース準備を行った（BL-314）。
+
+- `docs/RELEASE_NOTES.md`: 0.17.0の「未リリース」を日付（2026-11-21）へ確定した
+- `scripts/version.properties`: versionCode 16 / wear 1014 / versionName 0.17.0 へ更新（署名付きAAB x2をビルド）
+- `site/`: 紹介ページの版表記を0.17.0へ更新した
+- BACKLOG へ配信・タグ作成（BL-314）を起票した。実機検証（BL-297 / BL-306）の結果待ち
+
 ## 2026-11-21（BL-297の実機確認の追記）
 
 BL-297の残り項目を実機（Pixel 8 Pro・Pixel Watch 2、撮影モード）でClaude Codeがadbで確かめ、結果をBACKLOGへ追記した。
