@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -71,6 +72,12 @@ class WidgetUnlockConfirmActivity : ComponentActivity() {
                 }
             }
         }
+        // ダイアログテーマの既定幅（Pixel 8 Proで約287dp）では3ボタンを等分すると「キャンセル」が
+        // 2行に折り返すため、画面幅の一定割合まで広げる（BL-301）。高さは内容に合わせる。
+        window.setLayout(
+            (resources.displayMetrics.widthPixels * DIALOG_WIDTH_FRACTION).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
     }
 
     companion object {
@@ -151,3 +158,6 @@ private fun ConfirmChip(
 // NEUTRAL_TEXT_ARGB / CHIP_CORNER_RADIUS_DP はウィジェット本体と同じ値を使う
 // （SesameWidgetChips.kt。同じ面の部品のため、片方だけ変わると見た目がずれる）。
 private const val CHIP_HEIGHT_DP = 56
+
+// 選ぶ画面のダイアログ幅（画面幅に対する割合。BL-301）
+private const val DIALOG_WIDTH_FRACTION = 0.9f

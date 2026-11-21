@@ -738,6 +738,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   「（表示名）の操作を選んでください」と、左から［キャンセル（中立色）｜施錠（施錠中の状態色）｜解錠（解錠中の状態色）］
   の3ボタン（全デバイスは「全施錠」「全解錠」）。施錠・解錠を押すとReceiverへ実行を依頼してすぐ閉じ
   （確認は重ねない）、キャンセル・画面外タップ・戻る操作では何も送らない。スマホはキャンセルボタンを残す。
+  ダイアログの幅は`onCreate`で画面幅の90%（`DIALOG_WIDTH_FRACTION`）へ広げる（BL-301。テーマの既定幅は
+  Pixel 8 Proで約287dpで、3ボタンを等分すると「キャンセル」が2行に折り返したため）。高さは内容に合わせる。
 - 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
   `SesameWidgetUpdater.updateAll`を呼ぶ（デモはDataItem同期を行わず再描画のみ）。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
   ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の

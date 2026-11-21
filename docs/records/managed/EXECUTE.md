@@ -5,6 +5,24 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 10:30
+  summary: ウィジェットの施錠・解錠を選ぶ画面で「キャンセル」が2行に折り返す問題の修正（BL-301）
+  details:
+    変更内容: >-
+      BL-296のストア画像の撮影中に、Pixel 8 Pro実機で選ぶ画面（WidgetUnlockConfirmActivity）の「キャンセル」が
+      「キャンセ／ル」と2行に折り返し、見出しも2行になっていた（フォント倍率1.0）。ダイアログテーマの既定幅（約287dp）を
+      3ボタンで等分すると1つ約84dpで、5文字が入らないため。onCreateでウィンドウ幅を画面幅の90%へ広げた（高さは内容に合わせる）。
+      修正後に同じ実機で、キャンセル・全施錠・全解錠と見出しが1行に収まることを確かめた（撮影モード、実Sesameは操作していない）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro）でのダイアログ表示の確認
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。validate-records・scan-secrets とも成功。実機で1行に収まることを確認。
+    関連ID:
+      - BL-301
 - date: 2026-11-21 10:00
   summary: a23d848 のレビュー指摘の修正（KDoc の行長超過・復元された表示済み id との衝突）
   details:
