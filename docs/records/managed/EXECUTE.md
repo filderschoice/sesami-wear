@@ -5,6 +5,30 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 16:30
+  summary: ウォッチのアプリの一覧から開いた施錠・解錠を選ぶ画面を閉じると、一覧へ戻るようにした（BL-309）
+  details:
+    変更内容: >-
+      BL-297の実機検証で、一覧の行から開いた選ぶ画面を閉じると一覧ではなくタイル側へ戻ることが分かり、ユーザーが一覧へ戻すと判断した
+      （2026-11-21）。原因は一覧（wear.MainActivity）の noHistory（BL-067の対策）で、選ぶ画面を開いた時点で一覧が破棄されること。
+      noHistoryは外さず、SesameActionCommandParser に EXTRA_RETURN_TO_LIST を足し、一覧から開くときだけ
+      SesameActionActivity.createChooserIntent(..., returnToList = true) で付ける。SesameActionActivity は finish()
+      （送信後・右スワイプ・戻る）で印があれば一覧を開き直す。使われなくなっていた SesameActionActivity.createIntent（施錠の直接指定）を削除した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2、撮影モード）での戻り先の確認
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。実機で、一覧の行から開いた選ぶ画面を右スワイプで閉じたとき・解錠を送ったとき・末尾の「全台の鍵を操作」から全施錠したときに一覧へ戻り、操作パネルから開いて閉じたときはタイルへ戻ることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-309
+      - BL-297
 - date: 2026-11-21 15:30
   summary: ウォッチのアプリの一覧の末尾の「全施錠」を「全台の鍵を操作」（全デバイスの選ぶ画面）へ変えた（BL-308）
   details:

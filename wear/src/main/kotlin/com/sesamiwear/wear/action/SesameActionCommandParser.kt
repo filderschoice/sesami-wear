@@ -14,6 +14,12 @@ object SesameActionCommandParser {
     const val EXTRA_DEVICE_UUID = "com.sesamiwear.wear.action.EXTRA_DEVICE_UUID"
     const val EXTRA_CHOOSE = "com.sesamiwear.wear.action.EXTRA_CHOOSE"
 
+    /**
+     * アプリの一覧（`wear.MainActivity`）から開いたことを示す（BL-309）。一覧は`noHistory`（BL-067）のため選ぶ画面を開いた
+     * 時点で破棄され、閉じても戻る先が無い。この印があれば、選ぶ画面を閉じるときに一覧を開き直す。
+     */
+    const val EXTRA_RETURN_TO_LIST = "com.sesamiwear.wear.action.EXTRA_RETURN_TO_LIST"
+
     /** 操作画面の起動依頼。 */
     sealed interface Request {
         /** 施錠・解錠を選ぶ画面を開く。 */

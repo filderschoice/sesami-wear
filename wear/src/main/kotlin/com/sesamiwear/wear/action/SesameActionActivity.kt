@@ -38,6 +38,7 @@ import com.sesamiwear.core.api.SesameCommandConfirmation
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.core.haptics.HapticPattern
+import com.sesamiwear.wear.MainActivity
 import com.sesamiwear.wear.demo.DemoLockStateStore
 import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
 import com.sesamiwear.wear.haptics.SesameHapticPlayer
@@ -59,8 +60,12 @@ import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
  * 送らず、wear単体のダミー状態を書き換えるだけで完結する。
  */
 class SesameActionActivity : ComponentActivity() {
+    /** アプリの一覧から開いたか（BL-309）。閉じるときに一覧を開き直す。 */
+    private var returnToList = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        returnToList = intent.getBooleanExtra(SesameActionCommandParser.EXTRA_RETURN_TO_LIST, false)
         val plan =
             SesameActionLaunchPlanner.plan(
                 commandName = intent.getStringExtra(SesameActionCommandParser.EXTRA_COMMAND),
@@ -81,25 +86,31 @@ class SesameActionActivity : ComponentActivity() {
         }
     }
 
-    companion object {
-        fun createIntent(
-            context: Context,
-            command: SesameCommand,
-            deviceUuid: String,
-        ): Intent =
-            Intent(context, SesameActionActivity::class.java).apply {
-                putExtra(SesameActionCommandParser.EXTRA_COMMAND, command.name)
-                putExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID, deviceUuid)
-            }
+    /**
+     * 閉じる（送信後・右スワイプ・戻る）ときの後始末。アプリの一覧から開いた場合は一覧を開き直す（BL-309）。
+     * 右スワイプでの破棄も`onWindowDismissed`から`finish()`を通るため、ここで拾える。
+     */
+    override fun finish() {
+        if (returnToList && !isChangingConfigurations) {
+            returnToList = false
+            startActivity(Intent(this, MainActivity::class.java))
+        }
+        super.finish()
+    }
 
-        /** 施錠・解錠を選ぶ画面を開く（BL-295）。 */
+    companion object {
+        /**
+         * 施錠・解錠を選ぶ画面を開く（BL-295）。[returnToList]はアプリの一覧から開くときtrue（閉じたら一覧へ戻る、BL-309）。
+         */
         fun createChooserIntent(
             context: Context,
             deviceUuid: String,
+            returnToList: Boolean = false,
         ): Intent =
             Intent(context, SesameActionActivity::class.java).apply {
                 putExtra(SesameActionCommandParser.EXTRA_CHOOSE, true)
                 putExtra(SesameActionCommandParser.EXTRA_DEVICE_UUID, deviceUuid)
+                putExtra(SesameActionCommandParser.EXTRA_RETURN_TO_LIST, returnToList)
             }
     }
 }

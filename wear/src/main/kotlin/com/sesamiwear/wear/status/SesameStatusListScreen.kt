@@ -110,7 +110,8 @@ private fun openTapAction(
     val intent =
         when (action) {
             SesameStatusListContent.TapAction.Choose ->
-                SesameActionActivity.createChooserIntent(context, targetUuid)
+                // 一覧は noHistory のため、閉じたら一覧へ戻れるよう印を付ける（BL-309）。
+                SesameActionActivity.createChooserIntent(context, targetUuid, returnToList = true)
             SesameStatusListContent.TapAction.Refresh ->
                 SesameStatusRefreshActivity.createIntent(context, targetUuid)
         }

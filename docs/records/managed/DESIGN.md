@@ -1526,9 +1526,12 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   （スマホのログに`handleStatusRequest`）になった。2台以上の末尾の「全施錠」「すべて更新」は円形画面の下端で見切れず、
   全台へ送られた（「全施錠」は3台分の成功がスマホから返った）。1台のときの「更新」も見切れず状態取得になった。
   電池20%未満（5%）の行に⚠が付いた。
-  **確認画面のキャンセル後と「全施錠」の実行後は、一覧へ戻らず文字盤へ戻る**（`SesameActionActivity`が閉じた後の
-  戻り先がTile起点と同じ挙動）。ユーザーは一覧へ戻る方がよいが仕様かもしれないとしており、挙動の変更は未決定
-  （必要ならBACKLOGへ起票する）。
+  確認画面のキャンセル後と「全施錠」の実行後は、一覧へ戻らず文字盤へ戻っていた（`SesameActionActivity`が閉じた後の
+  戻り先がTile起点と同じ挙動）。**BL-309（2026-11-21のユーザー判断）で一覧へ戻すようにした**: 一覧（`wear.MainActivity`）は
+  BL-067の対策で`noHistory`のため、選ぶ画面を開いた時点で破棄されて戻る先が無い。`noHistory`は外さず（BL-067の再発を避ける）、
+  一覧から開くときだけ`createChooserIntent(..., returnToList = true)`で`EXTRA_RETURN_TO_LIST`を付け、`SesameActionActivity.finish()`
+  （送信後・右スワイプ（`onWindowDismissed`経由）・戻る）で一覧を開き直す。タイルから開いたときは従来どおりタイルへ戻る
+  （実機のPixel Watch 2で、一覧の行・末尾の「全台の鍵を操作」から開いて閉じると一覧へ、操作パネルから開いて閉じるとタイルへ戻ることを確認）。
 
 ### Tile
 
@@ -1709,7 +1712,9 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
 
 ### 施錠/解錠操作画面
 
-- `wear.action.SesameActionActivity`: Tileタップ・デバイス一覧の行タップで起動。LOCKの直接指定はワンタップ即送信。
+- `wear.action.SesameActionActivity`: Tileタップ・デバイス一覧の行タップで起動。LOCKの直接指定はワンタップ即送信
+  （BL-307・BL-308以降、アプリ内でLOCKを直接指定する入口は無い。外部からの起動（exported）だけが残る）。
+  一覧から開いた場合は`EXTRA_RETURN_TO_LIST`により、閉じるときに一覧を開き直す（BL-309）。
   施錠・解錠を選ぶ依頼（`EXTRA_CHOOSE`、施錠中・一部解錠のTileタップと一覧の行タップ）とUNLOCKの直接指定
   （`SesameCommandConfirmation`が要求と判定）は選ぶ画面を開き、押した方をそのまま送信する（BL-295）。
   選ぶ画面は左＝「施錠」・右＝「解錠」の角丸チップ2つ（`SesameActionChip`、
