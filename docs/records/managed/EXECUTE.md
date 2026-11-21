@@ -5,6 +5,734 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 21:00
+  summary: ウォッチのタイルの取得時刻の表記変更（BL-313）に合わせて、掲載画像 wear_2 / wear_4 とタイル追加の一覧のプレビューを実機で撮り直した
+  details:
+    変更内容: >-
+      ユーザーの指示（スクショの取り直しを確認して進める、2026-11-21）による。wear_2_tile_locked / wear_4_tile_mixed が旧表記（「たった今」「2分前」）
+      のままだったため、Pixel Watch 2実機（デバッグ版、撮影モードの見本の3台、全デバイスのタイル）で撮り直した（「11/21 17:19」「11/21 17:50」）。
+      wear_2 は tile_preview.png の元画像でもあるため同じ画像を drawable-nodpi へ写した（BL-310）。ほかの画像は時刻の文言が無く据え置き。
+      撮影用に追加したタイルは撮影後に外した。実Sesame・実資格情報は使っていない。
+    変更ファイル:
+      - docs/store/images/screenshots/wear_2_tile_locked.png
+      - docs/store/images/screenshots/wear_4_tile_mixed.png
+      - wear/src/main/res/drawable-nodpi/tile_preview.png
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全ゲート終了コード0。画像は実機の画面を目視で確認した。
+    関連ID:
+      - BL-313
+      - BL-310
+- date: 2026-11-21 20:30
+  summary: スマホが通信できないときのウォッチの施錠・解錠を、届かなければ失敗として知らせ、クラウド中継ノードへ宛てて送らないようにした（BL-312）
+  details:
+    変更内容: >-
+      ユーザーの指示（BL-312は(a)+(b)で直す、2026-11-21）による。(b) core.SesameNodeSelector を追加し、wear.messaging.SesameConnectedNodeProvider.firstConnectedNodeId が
+      クラウド中継ノード（id が cloud）を除いた先頭を返すようにした。(a) wear.messaging.SesameResultAwaiter を追加し、wear.action.SesameActionActivity が
+      送信前に PATH_COMMAND_RESULT のリスナーを登録して10秒待ち、結果が返らない・スマホのノードが無いときは失敗の振動と
+      「スマホに届きませんでした」を2.5秒出して閉じる。クラウド経由の遠隔操作は残る（結果が返れば成功扱い）。
+      タイルの描き直し間隔（d）は今回は入れていない。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameNodeSelector.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameNodeSelectorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameConnectedNodeProvider.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultAwaiter.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleのゲートはすべて終了コード0。実機（スマホの機内モード）でユーザーが「スマホに届きませんでした」の表示を確認した（2026-11-21。通信を戻した後の施錠は未確認）。
+    関連ID:
+      - BL-312
+- date: 2026-11-21 19:30
+  summary: ウォッチのタイル・アプリの一覧・コンプリケーションの取得時刻を、ウィジェットと同じ日時表記にした（BL-313）
+  details:
+    変更内容: >-
+      ユーザーの指示（ウォッチの「N分前」がスマホと合わないので、スマホと同じ日時表記にする、2026-11-21）による。
+      core.display.SesameStatusDetail.compactLabel の鮮度を SesameStatusFreshness.label（相対表記）から dateTimeLabel（「11/21 12:05」）へ
+      変え、使わなくなった nowEpochMillis 引数を compactLabel と wear.status.SesameStatusListContent.rows から削除した。
+      タイルは次の描画まで文言が変わらず、相対表記は時間がたつと実際より新しく見えていた。スマホの主画面のカードは画面の再開のたびに
+      読み直すため相対表記のまま。USER_GUIDE・RELEASE_NOTES（0.17.0 改善）・DESIGN を直した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameStatusDetail.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameStatusDetailTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileStateResolver.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2）の一覧
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（SesameStatusDetailTest と SesameStatusListContentTest の期待値を日時表記へ書き換えた）。markdownlint・validate-records・scan-secrets とも成功。実機のウォッチの一覧で「🔗11/21 17:19」が1行に収まることを確認した（タイルの右下・全デバイスの収まりはBL-297に残した）。
+    関連ID:
+      - BL-313
+- date: 2026-11-21 18:30
+  summary: 主画面の登録の一覧を画面の再開のたびに読み直すようにした（BL-311、撮影モードで見本を置き換えた後に0台の表示が残る件）
+  details:
+    変更内容: >-
+      BL-297の実機確認中に、デバッグ版の撮影モードの画面で「見本の3台に置き換える」を押して主画面へ戻ると、アプリを開き直すまで
+      0台（「Sesameを登録しましょう」）の表示のままだった。主画面（CredentialsSettingsScreen）は一覧を画面を作ったときに1回読むだけで、
+      ほかの画面で一覧が変わっても読み直していなかったため。ユーザーの指示（直す、2026-11-21）で、CredentialsScreenController に
+      reload()（ストアから読み直し、変わっていれば差し替える。同期はしない）を足し、画面の ON_RESUME で呼ぶようにした。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsScreenController.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。実機で、撮影モードの見本を全部消して0台にし、撮影モードの画面で「見本の3台に置き換える」を押して主画面へ戻ると、アプリを開き直さずに3台（玄関・勝手口・ガレージ）が表示されることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-311
+      - BL-297
+- date: 2026-11-21 17:30
+  summary: ウォッチのタイル追加の一覧に出すプレビュー画像を、実機で撮ったタイルの画面へ差し替えた（BL-310）
+  details:
+    変更内容: >-
+      ユーザーの依頼（タイルの選択で表示する画像を用意できないか）と判断（実機の画面を使う、2026-11-21）による。
+      `androidx.wear.tiles.PREVIEW`で指していた図案のベクター（drawable/tile_preview.xml＝紺地に錠、drawable/tile_control_preview.xml＝
+      色の帯）を削除し、同名のPNGを drawable-nodpi へ置いた。中身はストア画像と同じ実機の画面（tile_preview.png＝wear_2_tile_locked.png、
+      全デバイス・全施錠中の「Sesami Wear」タイル。tile_control_preview.png＝wear_10_control_panel.png、操作パネル）で、
+      撮影モードの見本（玄関・勝手口・ガレージ）が写る。AndroidManifest.xml のコメントと、ストア画像を差し替えたらプレビューへも写すことを
+      docs/store/README.md・DESIGN.md へ書いた。
+    変更ファイル:
+      - wear/src/main/res/drawable-nodpi/tile_preview.png
+      - wear/src/main/res/drawable-nodpi/tile_control_preview.png
+      - wear/src/main/res/drawable/tile_preview.xml
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - wear/src/main/AndroidManifest.xml
+      - docs/store/README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2）のタイル追加の一覧
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。
+      実機のタイル追加の一覧で「Sesami Wear (debug)」「Sesami 操作パネル」が別々に並ぶことを確認し、差し替え後の一覧の下端に新しいプレビュー（緑と灰の画面）が
+      写るところまで見た。全体の見え方の確認はユーザーに依頼した（一覧の操作中に誤って別のタイルを追加した可能性があり、操作を止めたため）。
+    関連ID:
+      - BL-310
+      - BL-297
+- date: 2026-11-21 16:30
+  summary: ウォッチのアプリの一覧から開いた施錠・解錠を選ぶ画面を閉じると、一覧へ戻るようにした（BL-309）
+  details:
+    変更内容: >-
+      BL-297の実機検証で、一覧の行から開いた選ぶ画面を閉じると一覧ではなくタイル側へ戻ることが分かり、ユーザーが一覧へ戻すと判断した
+      （2026-11-21）。原因は一覧（wear.MainActivity）の noHistory（BL-067の対策）で、選ぶ画面を開いた時点で一覧が破棄されること。
+      noHistoryは外さず、SesameActionCommandParser に EXTRA_RETURN_TO_LIST を足し、一覧から開くときだけ
+      SesameActionActivity.createChooserIntent(..., returnToList = true) で付ける。SesameActionActivity は finish()
+      （送信後・右スワイプ・戻る）で印があれば一覧を開き直す。使われなくなっていた SesameActionActivity.createIntent（施錠の直接指定）を削除した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2、撮影モード）での戻り先の確認
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。markdownlint・validate-records・scan-secrets とも成功。実機で、一覧の行から開いた選ぶ画面を右スワイプで閉じたとき・解錠を送ったとき・末尾の「全台の鍵を操作」から全施錠したときに一覧へ戻り、操作パネルから開いて閉じたときはタイルへ戻ることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-309
+      - BL-297
+- date: 2026-11-21 15:30
+  summary: ウォッチのアプリの一覧の末尾の「全施錠」を「全台の鍵を操作」（全デバイスの選ぶ画面）へ変えた（BL-308）
+  details:
+    変更内容: >-
+      BL-297の実機検証中のユーザー指示（一覧の全施錠も、操作パネルの「全台の鍵を操作」と同じ形にする、2026-11-21）による。
+      wear.status.SesameStatusListContent の末尾チップを LOCK_ALL_CHIP_LABEL「全施錠」（TapAction.Command(LOCK)、1タップで送信）から
+      MENU_ALL_CHIP_LABEL「全台の鍵を操作」（TapAction.Choose）へ変え、生成されなくなった TapAction.Command を型ごと削除した。
+      SesameStatusListScreen は Command の分岐と、全施錠だけ施錠中の色にしていた分岐を削除し、末尾チップをすべて中立色にした。
+      これでウォッチからタップ1回で施錠する経路は無くなる（スマホのアプリアイコンの長押しメニューの「全施錠」だけが残る）。
+      USER_GUIDE（一覧の末尾・混在時のタップ・タップ1回で施錠したいときの案内）・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・
+      STORE_LISTING・site・UI設計書・DESIGN・BL-297の確認項目と、関係するKDocを追随させた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - site/index.html
+      - docs/design/UI_DESIGN.html
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。SesameStatusListContentTest は末尾チップの期待値を「全台の鍵を操作」・TapAction.Choose へ書き換え、「末尾のチップはタップで施錠・解錠を送らない」検査へ直して成功。markdownlint・validate-records・scan-secrets とも成功。実機は外したため、一覧の末尾の表示の確認はBL-297に残した。
+    関連ID:
+      - BL-308
+      - BL-297
+- date: 2026-11-21 14:30
+  summary: 操作専用タイルの上段を「全台の鍵を操作」の1ボタンへまとめ、施錠・解錠を選ぶ画面で実行する形にした（BL-307）
+  details:
+    変更内容: >-
+      BL-297の実機検証中のユーザー指摘（上段の「全解錠」をタップすると選ぶ画面が出るなら、スマホに合わせて鍵の操作としてまとめたい）と、
+      判断（1ボタンにまとめる、2026-11-21）による。core.display.SesameControlTileContent の Content を lockLabel / unlockLabel /
+      lockDescription / unlockDescription から menuLabel（2台以上「全台の鍵を操作」、1台「鍵を操作」）/ menuDescription へ変え、
+      wear.tile.SesameControlTileLayout の上段を中立色の1ボタン（タップで EXTRA_CHOOSE の選ぶ画面、スマホ未接続は文字を灰色にして
+      タップ不可）にした。不要になった BigButton を削除した。ピッカーのプレビュー tile_control_preview と説明 tile_control_description を
+      1ボタンの図案・文言へ直した。タイルからタップ1回で施錠する経路は無くなる（ウォッチのアプリの一覧の末尾の「全施錠」と
+      スマホのショートカットの「全施錠」は従来どおり）。ストア画像 wear_10_control_panel と紹介ページの画像を撮り直し、
+      USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・README・STORE_LISTING・CLOSED_TEST・site・UI設計書・
+      DESIGN・BL-297の確認項目を追随させた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileLayout.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - wear/src/main/res/values/strings.xml
+      - docs/store/images/screenshots/wear_10_control_panel.png
+      - site/assets/wear-control-panel.png
+      - site/index.html
+      - docs/design/UI_DESIGN.html
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - docs/CLOSED_TEST.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2・Pixel 8 Pro、撮影モード）で操作パネルの表示と選ぶ画面の操作
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。SesameControlTileContentTest は文言の検査を menuLabel / menuDescription へ書き換えて成功。markdownlint・validate-records・scan-secrets とも成功。実機（撮影モード）で、上段が「全台の鍵を操作」の1ボタンで描かれ、タップで全施錠・全解錠の選ぶ画面が開き、「全解錠」で3台とも解錠中になり、パネルへ反映されることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-307
+      - BL-297
+- date: 2026-11-21 13:30
+  summary: 解錠中のタップもすぐに施錠せず、施錠・解錠を選ぶ画面を開くよう統一した（BL-304）
+  details:
+    変更内容: >-
+      ユーザーの指摘（1台のウィジェットで解錠中をタップすると、そのまま施錠に走る）と、範囲の判断（Tile・ウィジェット・
+      クイック設定タイルのすべてで統一、2026-11-21）による。core.display.SesameTileActions.tapDecisionForState の解錠中を
+      OpenChooser にし、生成されなくなった TapDecision.Run を削除した。あわせて mobile の WidgetTapAction.Run・
+      QuickSettingsTileContent.Tap.Run と、ウィジェット・クイック設定タイル・ウォッチのTile・ウォッチの一覧の Run の分岐を削除した。
+      操作ラベル SesameTileContent.actionLabel は解錠中も「タップで選ぶ」とし、1台・全デバイスで同じになったため引数 isAllDevices を外した。
+      タップ1回で施錠する経路は、ウォッチの操作パネルの「全施錠」だけになる。アプリ内ヘルプ（ウィジェットの使い方の手順3）・
+      USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・DESIGN の現行仕様の節・BL-297の確認項目を追随させた
+      （DESIGN の過去の実機検証の記録は当時の内容のまま）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabelsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）で1台のウィジェットの解錠中タップ
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（途中で detekt の未使用変数1件と、読み上げ文言のテスト1件の期待値を直した）。実行中にアプリ内ヘルプの文言を直したため、mobile の ktlintCheck・detekt・lintDebug・testDebugUnitTest を再実行して成功。markdownlint・validate-records・scan-secrets とも成功。実機の1台のウィジェット（玄関、解錠中）のタップで、施錠されずに選ぶ画面が開くことを確認（撮影モード。キャンセルで閉じた）。ウォッチのTileは実機で未確認（同じ core の規則のため、BL-297の確認項目に含めた）。
+    関連ID:
+      - BL-304
+- date: 2026-11-21 12:30
+  summary: デバイスカードの操作を「鍵を操作」「Bluetooth」の2つのメニューへまとめた（BL-303）
+  details:
+    変更内容: >-
+      カード下部に施錠・解錠・ダイヤル操作・接続確認の4ボタンが2段に並んでいたのを、ユーザーの指示（2026-11-21）で2つにまとめた。
+      メニュー名はユーザーが選んだ「鍵を操作」「Bluetooth」。「鍵を操作」はウィジェットの選ぶ画面の部品（CommandChooser を
+      internal にして共有）を Compose の Dialog（画面幅の90%）で開き、［キャンセル｜施錠｜解錠］から選んだ操作を送る。
+      これに伴い、解錠だけに挟んでいた確認ダイアログ（「解錠しますか？」）と施錠の即送信をやめ、施錠・解錠とも選ぶ画面で押したときだけ
+      送る形にした（ウィジェットと同じ方針。即解錠の経路は作らない）。DeviceCardCommandPolicy を OpenChooser / ChooseAction へ
+      作り直し、選ぶ画面を開いている間に送信が始まっていたら送らない規則を加えた。「Bluetooth」は DropdownMenu で
+      ダイヤル操作・接続確認を開く。アプリ内ヘルプ・USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため項目を書き換え）・
+      DESIGN・BL-297の確認項目を追随させ、ストア画像 phone_4 を新しいカードで撮り直した（撮影モード、ステータスバーのみモザイク）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicy.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/dial/DialActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicyTest.kt
+      - docs/store/images/screenshots/phone_4_device_list.png
+      - docs/store/images/screenshots_captioned/phone_4_device_list.png
+      - docs/store/README.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）でのカード表示と2つのメニューの開閉
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。DeviceCardCommandPolicyTest は規則の作り直しに合わせて9件へ書き換えて成功。markdownlint・validate-records・scan-secrets とも成功。実機でカードが2ボタンになり、「鍵を操作」で選ぶ画面（キャンセル・施錠・解錠が1行）、「Bluetooth」でダイヤル操作・接続確認が出ることを確認（何も送らずに閉じた）。
+    関連ID:
+      - BL-303
+- date: 2026-11-21 11:30
+  summary: Log.wにだけ出していた通信の詳細を、操作履歴（診断ログ）でも確認できるようにした（BL-302）
+  details:
+    変更内容: >-
+      テストユーザーの端末で再現してもlogcatを取り出せず、BL-294で追加した`accepted: HTTP 2xx body=NB`などの行を
+      確かめられなかったため。core.diagnostics に SesameDiagnosticsDetail（時刻つきの1行、sanitizeで`device=`の除去・
+      uuid／BLEアドレス／16進数16文字以上の伏せ字・改行の除去・200文字の上限）を追加し、SesameDiagnosticsLog に
+      recordDetail / loadDetails / formatDetail と、連携用の全文への「---- 通信の詳細（新しい順）」の追加（直近100行）を加えた。
+      読み書きはインスタンスごとの@Synchronizedから、プロセス全体で1つのロックへ変えた（画面・実行口ごとに別インスタンスが
+      同じ保存先を指すため）。mobile.diagnostics.DiagnosticsDetailLogger が Log.w と診断ログへの保存を同時に行い、
+      SesameDeviceCommandExecutorFactory（Web APIの応答・失敗、BLEの段階、経路の成否）と SesameBleConnector（到達確認の手段）の
+      Log.w をこれへ置き換えた。操作履歴の画面に通信の詳細の見出しと行を加えた。Log.w の行の内容は変えていない。
+      実機での表示確認は行っていない（撮影モードは通信しないため行が出ず、実資格情報での操作は自動実行の対象外）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsEntry.kt
+      - core/src/main/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLog.kt
+      - core/src/test/kotlin/com/sesamiwear/core/diagnostics/SesameDiagnosticsLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsDetailLogger.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/diagnostics/DiagnosticsLogScreen.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/ble/SesameBleConnector.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（detektは初回に操作履歴画面のLongMethodの指摘が出て、通信の詳細の部分を関数へ切り出して解消）。SesameDiagnosticsLogTest は8件追加して16件成功。markdownlint・validate-records・scan-secrets とも成功。
+    関連ID:
+      - BL-302
+      - BL-294
+- date: 2026-11-21 10:30
+  summary: ウィジェットの施錠・解錠を選ぶ画面で「キャンセル」が2行に折り返す問題の修正（BL-301）
+  details:
+    変更内容: >-
+      BL-296のストア画像の撮影中に、Pixel 8 Pro実機で選ぶ画面（WidgetUnlockConfirmActivity）の「キャンセル」が
+      「キャンセ／ル」と2行に折り返し、見出しも2行になっていた（フォント倍率1.0）。ダイアログテーマの既定幅（約287dp）を
+      3ボタンで等分すると1つ約84dpで、5文字が入らないため。onCreateでウィンドウ幅を画面幅の90%へ広げた（高さは内容に合わせる）。
+      修正後に同じ実機で、キャンセル・全施錠・全解錠と見出しが1行に収まることを確かめた（撮影モード、実Sesameは操作していない）。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro）でのダイアログ表示の確認
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。validate-records・scan-secrets とも成功。実機で1行に収まることを確認。
+    関連ID:
+      - BL-301
+- date: 2026-11-21 10:00
+  summary: a23d848 のレビュー指摘の修正（KDoc の行長超過・復元された表示済み id との衝突）
+  details:
+    変更内容: >-
+      (1) DeviceCardCommandSender の KDoc が187文字で max_line_length=120 を超えていたため折り返した（Kotlin 全ファイルで
+      120超が他に無いことを確認）。(2) 結果の id の採番を 0 始まりから起動時刻（System.currentTimeMillis()）始まりに変えた。
+      画面側の表示済み id は rememberSaveable でプロセス死後も復元されるため、0 始まりだと再起動後の新しい結果の id と
+      偶然一致して表示も消去もされない恐れがあった。衝突しないこと（id が 0 始まりの連番の範囲に入らない）を確かめる
+      テストを追加した。半角カナの幅・ZWJ 絵文字の省略は据え置き。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck（モジュール別） detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck（core・mobile・wear 個別。mobile は初回にコメント直前の空行の指摘が出て直し再実行で成功）・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（mobile のテストタスクが実行されキャッシュ素通りなし）。markdownlint・validate-records・scan-secrets とも成功。
+    関連ID:
+      - BL-295
+- date: 2026-11-21 09:00
+  summary: 既存タイル SesameTileService.onTileRequest が例外時にも future を完了させるようにする（BL-300）
+  details:
+    変更内容: >-
+      onTileRequest のコルーチン内で、割り当て・状態・表示名の読み取りが例外を投げると SettableFuture が完了せず
+      タイルの描画が止まっていた。CancellationException は再送出し、それ以外は固定文だけを Log へ出して
+      未設定表示（タップで設定）で future を完了させる。操作専用タイル SesameControlTileService と同じ構造。
+      例外本文・uuid は出さない。通常経路の挙動は変えていない。Service はテスト対象外のためテストの追加は無し。DESIGN を追記した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck（モジュール別） detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck（core・mobile・wearを個別実行）・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（wear のコンパイル・lint・テストタスクが実行されキャッシュ素通りなし）。markdownlint 0 issues・validate-records・scan-secrets とも成功。実機での確認は無し（読み取り例外は実機で再現しにくいためコード確認まで）。
+    関連ID:
+      - BL-300
+- date: 2026-11-21 08:00
+  summary: デバイスカード送信・操作専用タイルの最終レビュー指摘を直す（BL-295後半・BL-298）
+  details:
+    変更内容: >-
+      (1) DeviceCardCommandSender: execute が例外を投げても（CancellationException は除く）失敗結果を積んで送信中を解き、
+      固定文だけをログへ出す（本文・識別子・資格情報は出さない）。ログは引数で注入し、スコープには CoroutineExceptionHandler
+      （固定文のログのみ）も付けた。(2) 結果へ連番 id を付け、consumeResult(uuid, id) は一致するときだけ消す。画面側は
+      同じ id を一度しか表示しない（途中でコンポジションが離れても二重表示せず、表示前に積まれた新しい結果を消さない）。
+      (3) SesameControlTileContent.shortName をコードポイント単位にし、ASCII と半角カナ（U+FF61〜U+FF9F）を1、それ以外を2として
+      絵文字の途中で切らない。(4) 6台ちょうど（4チップ＋他2台）のテストを追加。(5) SesameControlTileService.onTileRequest は
+      読み取りの例外時に未接続表示（ボタン無効）で future を完了させる。既存の SesameTileService にも同じ構造があるが、
+      既存タイルの挙動変更を避けて今回は変えず BL-300 へ起票した。detekt の TooGenericExceptionCaught・SwallowedException は
+      既存コードと同じ形の @Suppress とし、握る意図はコメントに書いた。DESIGN を実装に合わせた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew --rerun-tasks ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug とも終了コード0（--rerun-tasks でキャッシュ素通りなし、テスト失敗0。テスト結果XMLの合計1266件はdebug・releaseの重複を含む）。ktlintCheck は3モジュールをまとめて --rerun-tasks で流すと Gradle worker の JVM 異常終了（メモリ）で落ちたため、daemon を止めてモジュール単位に分けて実行しいずれも成功。実機での見え方・回転中の挙動は BL-297 の人手検証の範囲。
+    関連ID:
+      - BL-295
+      - BL-297
+      - BL-298
+      - BL-300
+- date: 2026-11-21 07:00
+  summary: デバイスカードの施錠・解錠ボタンの送信を、画面の回転・離脱で取り消されないようにする（BL-295後半のレビュー指摘）
+  details:
+    変更内容: >-
+      DeviceCardCommandButtons の送信が rememberCoroutineScope、送信中が remember だったため、回転・離脱で送信が取り消され、
+      結果のスナックバーが出ず、送信中の無効化も外れていた。送信・送信中のuuid集合・未表示の結果を DeviceCardCommandSender
+      （Android非依存）へ移し、アプリのプロセス内のスコープ（SupervisorJob と Dispatchers.IO）で動かすようにした。lifecycle-viewmodel-compose が
+      未導入で依存を足さない方針のため ViewModel は使っていない。結果は状態として保持し、画面が観測して表示後に消す（回転中や
+      離脱中に完了しても戻ったときに表示される）。同じuuidの送信中の押下は無視する。確認ダイアログの表示状態は
+      rememberSaveable(uuid) にして回転後も保つ（解錠はダイアログの「解錠」を押したときだけ送るため、確認なしで送られることはない）。
+      併せて USER_GUIDE の旧称「確認画面」を選ぶ画面の呼び方へ直し、BL-296 へ docs/store の旧称（解錠確認）の修正を撮り直しと
+      同時に行う旨を追記した（掲載文は今回変えない）。DESIGN の「送信中は二重送信を避ける」を実装に合わせた。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSender.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandSenderTest.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（mobile のテスト・lint・assemble の実行を出力で確認。DeviceCardCommandSenderTest は5件。detekt の行長指摘を直して再実行）。
+      実機での回転・離脱中の挙動はBL-297の人手検証の範囲。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
+- date: 2026-11-21 06:00
+  summary: 操作専用タイルの台ごとの状態を、ユーザーが選んだ見本どおりチップの横並びにする（BL-298）
+  details:
+    変更内容: >-
+      下段を縦の行から、状態チップの横並びへ変えた（見本「全体ボタン＋台ごとの状態」）。チップは名前（全角2・半角1で幅8まで、
+      超えると先頭＋「…」）と状態アイコン、背景は状態色、高さ48dp。段ごとの可用幅を円形192dpの弦から求める
+      （SesameControlTileContent.tierWidthDp。2段構成は155dp、3段構成は上109・中177・下109dp）。1段のチップ数は幅から決め
+      （3段目より上は3、下は2）、3台までは全体ボタン＋チップ1段、4台以上はチップ2段（4台は2+2、5台は3+2）、チップ数の上限は
+      導出値の5で、超えると最後のチップが「他N台」（アプリ本体を開く）。既存の操作（全施錠1タップ、全解錠・チップは選ぶ画面、未接続時の
+      無効化、1台時の文言）は変えていない。レイアウトは detekt の関数数・引数数の上限のため SesameControlTileLayout.kt へ分け、
+      チップの内側余白を chipModifiers の引数で詰めた。DESIGN・USER_GUIDE・RELEASE_NOTES・UI_DESIGN.html の6.5節・BL-297の(7)を追随。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileLayout.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileLayoutParts.kt
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（core・mobile・wear のテスト実行を出力で確認。SesameControlTileContentTest は14件）。
+      実機での見え方（チップ幅約49dpでの文字の収まり・円の端での見切れ）はBL-297の(7)の人手検証。
+    関連ID:
+      - BL-298
+      - BL-297
+- date: 2026-11-21 05:00
+  summary: ウォッチに操作専用タイル「Sesami 操作パネル」を別のタイルとして追加する（BL-298）。全施錠・全解錠と台ごとの状態を1枚に並べる
+  details:
+    変更内容: >-
+      wear.tile.SesameControlTileService を別の TileService として manifest へ宣言した（label と description を
+      既存の「Sesami Wear」と区別、プレビュー tile_control_preview。既存タイルの名前は変えていない）。表示規則は
+      core.display.SesameControlTileContent（Android非依存）へ置いた。上段が「全施錠」（1タップで全台へ）と「全解錠」
+      （選ぶ画面を経て実行。1台のときは「施錠」「解錠」）、下段が台ごとの状態の行（タップでその台の選ぶ画面）、行の上限は
+      2（3台以上は1行＋「他N台」でアプリ本体の一覧を開く）、0台は案内のみ、スマホ未接続は押せない。状態は DataItem の
+      スナップショットだけを読み、状態取得は送らない。操作完了時の再描画を、SesameDisplayUpdateRequester と
+      SesameResultListenerService から新サービスにも依頼する。SesameTileService の非公開メソッド（チップの修飾子、
+      SesameActionActivity を開く Clickable）を TileLayoutParts.kt へ挙動を変えずに切り出して共用した。
+      DESIGN（2つのタイルの使い分け）・USER_GUIDE・RELEASE_NOTES・UI_DESIGN.html を追随させ、実機の確認事項を BL-297 の(7)へ、
+      ストア画像を BL-296 へ、ストア掲載文の要否を BL-299 へ起票した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/TileLayoutParts.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/display/SesameDisplayUpdateRequester.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultListenerService.kt
+      - wear/src/main/AndroidManifest.xml
+      - wear/src/main/res/values/strings.xml
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（ktlint の KDoc 連続と detekt の行長指摘を直して再実行。core・wear・mobile のテスト実行を出力で確認）。新規テスト10件（SesameControlTileContentTest、全て成功）。TileService の描画は実機でしか確かめられない（BL-297の(7)）。
+    関連ID:
+      - BL-298
+- date: 2026-11-21 04:00
+  summary: BL-295前半のレビュー指摘を修正する。wearの起動判定を純Kotlinへ切り出してテストし、旧称の文言・図を選ぶ画面へ合わせる
+  details:
+    変更内容: >-
+      wear.action.SesameActionLaunchPlanner（Android非依存）を追加し、SesameActionActivity の「Intentで解錠を直接指定されても選ぶ画面へ倒す」判定を Activity から移した（挙動は変えない）。選ぶ依頼・解錠の直接指定は選ぶ画面、施錠の直接指定は即実行、無効なコマンド・uuid欠落は閉じる、をテスト7件で固定した。USER_GUIDE.md と DESIGN.md のTalkBack例を現行文言「タップで選ぶ」へ直した。UI_DESIGN.html は解錠確認の旧称・図を選ぶ画面（スマホ［キャンセル｜施錠｜解錠］、ウォッチ［施錠｜解錠］）へ直し、主画面カードの施錠・解錠ボタン（BL-295後半）を図とテキストへ反映した（生成スクリプトはリポジトリに無いためHTMLを直接編集）。store-screenshot-masking の旧称を直し、SesameWidget.kt の KDoc の長い行を折り返した。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionLaunchPlanner.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/action/SesameActionLaunchPlannerTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - docs/design/UI_DESIGN.html
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+      - .claude/skills/store-screenshot-masking/SKILL.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（detekt・ktlintの行長指摘を直して再実行。wear・mobileのテスト実行を出力で確認、core は変更なしでUP-TO-DATE）。新規テスト7件（SesameActionLaunchPlannerTest）。UI_DESIGN.html の見た目（カードへ足したボタン行の収まり）は未確認。
+    関連ID:
+      - BL-295
+- date: 2026-11-21 03:00
+  summary: アプリ主画面のデバイスカードに「施錠」「解錠」ボタンを追加する（BL-295後半）。表示状態によらず押せ、解錠は確認を挟む
+  details:
+    変更内容: >-
+      mobile.credentials.DeviceCardCommandPolicy（Android非依存）を追加し、ボタンの有効条件（送信中のみ無効）、押下の動き（施錠は即送信、解錠は確認、送信中は無視）、確認文言、結果メッセージ（成功・失敗・重複）を定めた。DeviceCardCommandButtons（Compose）をカード下部（ダイヤル操作・接続確認の上）へ「施錠」「解錠」の2ボタンとして置き、解錠は確認ダイアログを経て、送信は SesameDeviceCommandExecutorFactory.create の実行口（Dispatchers.IO）で行う。そのため経路選択・重複抑止・BL-293の状態確認・診断ログ・ウォッチ同期・ウィジェット再描画・デモ・撮影モードの扱いは既存の実行口のとおり。結果は CredentialsSettingsScreen のスナックバーで表示し、完了後にカードのスナップショットを読み直す。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を追随させ、BL-295 を削除し、BL-296（phone_4_device_list を対象へ追加）・BL-297（確認項目(6)を追加）を更新した。
+    変更ファイル:
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicy.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandButtons.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/DeviceCard.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/CredentialsSettingsScreen.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/credentials/DeviceCardCommandPolicyTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（detektの指摘2件を修正して再実行。mobileのコンパイルとテストの実行を出力で確認。新規テスト8件）。Compose画面の見え方は人手検証（BL-297 の(6)）。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
+
+- date: 2026-11-21 02:10
+  summary: 施錠・解錠を選んで実行できる画面を追加する（BL-295前半）。施錠中・一部解錠のタップで選ぶ画面、ウォッチ一覧の行は常に選ぶ画面
+  details:
+    変更内容: >-
+      core.display.SesameTileActions へ TapDecision（Run / OpenChooser / None）、tapDecisionForState（施錠中・MIXED は選ぶ画面、解錠中は即施錠、通信中・未接続・状態不明は操作なし）、listTapDecision（ウォッチ一覧の行は状態によらず選ぶ画面）、commandLabel（全デバイスは全施錠・全解錠）を追加した。従来の commandForState は挙動を変えずに残しテストで固定した。SesameTileContent.actionLabel は施錠中・一部解錠を「タップで選ぶ」にした。wear は SesameActionActivity を施錠・解錠の2ボタン（キャンセルなし、スワイプで戻る、押したらそのまま実行）の選ぶ画面にし、SesameActionCommandParser へ EXTRA_CHOOSE と Request を追加、Tile は施錠中・一部解錠で選ぶ画面を開くようにし、デバイス一覧の行は TapAction.Choose（状態不明の行の状態取得タップは廃止し、取得は末尾の更新チップのみ）にした。mobile は WidgetTapAction の Confirm を Choose に置き換え、WidgetUnlockConfirmActivity を［キャンセル｜施錠｜解錠］の選ぶ画面にし、クイック設定タイルの Tap.ConfirmUnlock を Tap.Choose にした。解錠は選ぶ画面で解錠を押す明示操作を経る（即解錠の経路は作っていない）。DESIGN.md・USER_GUIDE.md・RELEASE_NOTES.md を追随させ、BL-295 を進行中（後半は DeviceCard のボタン）に更新し、BL-296（ストア画像の撮り直し）・BL-297（人手検証）・BL-298（操作専用タイル）を起票した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionCommandParser.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/action/SesameActionCommandParserTest.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetUnlockConfirmActivity.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetCommandReceiver.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModelResolverTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabelsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（ktlint・detektの指摘2件を修正して再実行。変更ソースのコンパイルとテストの実行を出力で確認）。単体テストは失敗0（core 255件、mobile 448件、wear 43件）。markdownlint（48ファイル、0 issues）・記録ファイル検証・秘密情報スキャンも成功。Compose画面とTileのレイアウトは実機でのみ確認できるためBL-297へ起票（未確認）。
+    関連ID:
+      - BL-295
+      - BL-296
+      - BL-297
+      - BL-298
+
+- date: 2026-11-21 01:40
+  summary: 送信後の状態確認（BL-293）のレビュー指摘を修正する。オフ時の挙動を従来と厳密に揃え、取り消しの記録・時計ずれの余裕・想定外例外の吸収を足す
+  details:
+    変更内容: >-
+      SesameDeviceCommandExecutor.execute を、設定（isEnabled）がオフのときは資格情報の再検索を含め追加処理をせず、診断ログの記録条件も従来と同じ（状態保存は try の外、照合だけを try で囲む）にした。SesameVerificationAccess.verify は待機中・取得中の取り消し時に logcat へ `verify ...: cancelled` を残して CancellationException を再スローし、fetchStatusOrNull は取り消し以外の例外（SesameApiException 以外を含む）を unverified へ倒す。SesameCommandVerification.judge は端末時計のずれに備え、timestamp が送信時刻＋余裕秒（既定2秒）以下なら UNVERIFIABLE とした（誤報しない側。余裕は実機で調整）。SesameStatusFailure の enum 宣言順変更は、ordinal を使うのが worstOf のプロセス内比較だけで永続化・送信は name のため影響なしと確認した。テストを追加（余裕ちょうど・1秒超・1e11境界・独自余裕、オフ時の結果と通知と保存の不変、デモ非照合、取り消し、想定外例外）。DESIGN と BACKLOG（BL-294 に timestamp の意味・単位・反映遅延・余裕値の確認を追記）を更新。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorVerificationTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccessTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（--rerun-tasks で全タスクを再実行し、変更ソースのコンパイルとテストの実行を出力で確認。SesameCommandVerificationTest 14件・SesameDeviceCommandExecutorVerificationTest 10件・SesameVerificationAccessTest 2件を含め失敗0）、markdownlint（48件一致・0 issues）・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-293
+      - BL-294
+
+- date: 2026-11-21 01:22
+  summary: 診断ログ（BL-294）のレビュー指摘を修正する。応答本文の長さを64KiBまでで打ち切り、ログ用コールバックの例外を握る
+  details:
+    変更内容: >-
+      SesameApiClient の応答本文の長さの取得を bytes() の全量読み込みから、最大64KiBまで読み捨てて数える方式へ変えた（超えたら打ち切り、SesameCommandReceipt.bodyTruncated=true、ログは body>64KiB）。成功の返却が上限までの読み取りぶんわずかに遅れうる点を DESIGN / EXECUTE / CHANGELOG の「挙動は変えない」から「成否判定は変えない」へ正した。SesameCommandHandler.execute は onSuccess が例外を投げても握り、送信成功の結果へ影響させない。テストを追加（上限超え、本文読み取りの IOException、onSuccess の呼び出しと例外）。BL-294 の完了条件へ切り分け後に成功時の Log.w を下げるか削除する旨を追記し、EXECUTE の日時2件をコミット時刻に合わせた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandReceipt.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiResponseLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandlerTest.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - CHANGELOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数 core 246 / mobile 442 / wear 41、失敗0。新規は上限超え・本文読み取り失敗・上限超え表記・onSuccess呼び出し・onSuccess例外の計5件）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-294
+
+- date: 2026-11-21 01:20
+  summary: Web API経由の施錠/解錠の送信後に状態を1回取得して照合する設定「送信後の状態確認」を追加する（既定オフ、BL-293）
+  details:
+    変更内容: >-
+      ユーザー決定（「Bでユーザがオプションとして設定できるようにする。デフォルトはOFF。」）に沿い、設定画面の「接続」区分へ「送信後の状態確認」（スイッチと説明のダイアログ、文言は core.display.SesameVerifyLabel）を追加した。設定は mobile.command.SesameVerifyAfterSendStore（既定false）。オフのときは実行口の挙動を変えない。オンのときだけ、Web API経由で2xxを受けて送信時点の状態を保存した後、SesameVerificationAccess.verify が4秒待って getStatus を1回呼び（recordApiCall で数える）、core.api.SesameCommandVerification.judge で照合する。応答の timestamp（新設の SesameStatus.timestamp、省略可）が送信時刻より古い・無い値は採用せず UNVERIFIABLE とし、命令の成否は変えない（安全側）。新しい値が食い違えば実際の状態を保存し直し、新設の SesameStatusFailure.NOT_REFLECTED（未反映）を保存・通知して FAILURE を返す。BLE経由・デモでは照合しない。SesameCommandResult のペイロードは変えず、旧版のウォッチとは互換（失敗の振動は鳴り、未知の失敗名は無視される）。既存テスト2件（失敗ラベルの長さを5文字固定から5文字以下へ、撮影モードの失敗選択肢に未反映を追加）を新しい値に合わせて直した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - core/src/main/kotlin/com/sesamiwear/core/SesameStatusFailure.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameVerifyLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameVerifyLabelTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameStatusFailureTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerifyAfterSendStore.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/credentials/VerifyAfterSendState.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/settings/SettingsMainScreen.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseBleProbe.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseDialOperations.kt
+      - mobile/src/debug/kotlin/com/sesamiwear/mobile/showcase/ShowcaseStateOptions.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorTestFixture.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorVerificationTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameVerifyAfterSendStoreTest.kt
+      - docs/RELEASE_NOTES.md
+      - docs/USER_GUIDE.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数 core 243 / mobile 440 / wear 41、失敗0。新規は照合の判定10件・設定文言3件・失敗分類1件・設定保存3件・実行口の照合7件）。ウィジェットの約9秒の打ち切りとの関係、待ち時間、timestampの単位は実機未確認。
+    関連ID:
+      - BL-293
+      - BL-294
+
+- date: 2026-11-21 01:06
+  summary: Web API経由の施錠/解錠が2xxだったときにも、ステータスコードと応答本文の長さをlogcatへ残す（成否判定は変えない。本文を上限まで読むため返却がわずかに遅れうる）
+  details:
+    変更内容: >-
+      Web API固定で「表示は切り替わるのに実機が動かない」ケースの切り分け用に、2xx受理時の診断ログを追加した。SesameApiClient.sendCommand が SesameCommandReceipt（HTTPステータスコードと応答本文のバイト数）を返し、SesameCommandHandler の onSuccess から SesameApiAccess.logResponse（Log.w、タグ SesameApi）へ `lock accepted: HTTP 200 body=2B` の1行を渡す。本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数え、読み取りの IOException は握って body=unknown にするため成否判定・例外・タイムアウトの挙動は変わらない（ただし本文を読むぶん成功の返却がわずかに遅れうる。上限は後続の修正で64KiBにした）。修正方針はユーザー決定により BL-293（状態照合を設定で切替、既定OFF）と BL-295（利用者が施錠・解錠を指定）、実機での切り分けは BL-294 へ起票した（実装は後続）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameApiClient.kt
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandReceipt.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiClientTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameApiResponseLogTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/messaging/SesameCommandHandler.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorFactory.kt
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+      - CHANGELOG.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（変更したソースのコンパイルとテストの再実行を出力で確認。テスト件数は全モジュール合計700、失敗0。新規は SesameApiResponseLogTest 2件と SesameApiClientTest 2件）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-293
+      - BL-294
+      - BL-295
+
+- date: 2026-11-21 12:00
+  summary: Sesame Web APIの仕様の出典を、参考実装pysesame3から公式ドキュメントへ更新する（動作は変えない）
+  details:
+    変更内容: >-
+      公式ドキュメント（CANDY-HOUSE/API_document の docs/ja/SesameOS3/webapi.md）が本アプリの実装（エンドポイント・x-api-key・コマンド番号・本文・署名）と一致することを確認し、core.api.SesameStatus のKDoc、DESIGN.md、README.md の「公式ドキュメントは未参照」「doc.candyhouse.co は認証リダイレクト」の記述を更新した。webapi.md と restful.md（公式アプリ内部API、廃止済み）の取り違え注意をDESIGN.mdへ残した。コードはKDocのみで動作変更なし。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameStatus.kt
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - 5ゲートとも終了コード0（core:compileKotlin と core:test は再実行を出力で確認。テスト件数 core 225 / mobile 430 / wear 41）、markdownlint・validate-records・scan-secrets も終了コード0。
+    関連ID:
+      - BL-290
+
 - date: 2026-11-19 14:00
   summary: phone_1 の説明文を「ホーム画面から すぐに施錠・解錠」へ変える（ユーザーの決定）
   details:

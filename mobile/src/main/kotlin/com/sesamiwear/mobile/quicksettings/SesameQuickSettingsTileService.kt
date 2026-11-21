@@ -26,7 +26,7 @@ import com.sesamiwear.mobile.widget.WidgetUnlockConfirmActivity
  * 表示と操作の判定は[QuickSettingsTileContent]が持ち、ここは保存値の読み出しと`Tile`への反映、
  * タップ時の起動だけを行う。施錠・状態取得はホーム画面ウィジェットと同じ[WidgetCommandReceiver]へ
  * ブロードキャストで渡し（`goAsync`で実行でき、重複抑止・振動・ウィジェットとウォッチへの反映が揃う）、
- * 解錠はウィジェットと同じ確認画面を開く。
+ * 施錠中・一部解錠はウィジェットと同じ施錠・解錠の選ぶ画面を開く。
  *
  * パネルが開いている間（`onStartListening`）に保存値から描き直す。操作の途中・完了時の描き直しは、
  * ウィジェットの再描画と同じ契機で[requestUpdate]から要求する。
@@ -42,12 +42,10 @@ class SesameQuickSettingsTileService : TileService() {
         super.onClick()
         when (val tap = loadContent().tap) {
             QuickSettingsTileContent.Tap.OpenApp -> startAndCollapse(Intent(this, MainActivity::class.java))
-            is QuickSettingsTileContent.Tap.ConfirmUnlock ->
+            is QuickSettingsTileContent.Tap.Choose ->
                 startAndCollapse(
                     WidgetUnlockConfirmActivity.createIntent(this, NO_WIDGET, tap.deviceUuid, tap.displayName),
                 )
-            is QuickSettingsTileContent.Tap.Run ->
-                sendBroadcast(WidgetCommandReceiver.runCommandIntent(this, NO_WIDGET, tap.deviceUuid, tap.command))
             is QuickSettingsTileContent.Tap.Refresh ->
                 sendBroadcast(WidgetCommandReceiver.refreshStatusIntent(this, NO_WIDGET, tap.deviceUuid))
             QuickSettingsTileContent.Tap.None -> Unit

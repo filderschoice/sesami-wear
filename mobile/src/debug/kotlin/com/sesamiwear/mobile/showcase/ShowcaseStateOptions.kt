@@ -33,6 +33,7 @@ object ShowcaseStateOptions {
             Option("認証", SesameStatusFailure.AUTH_OR_QUOTA),
             Option("通信", SesameStatusFailure.COMMUNICATION),
             Option("端末設定", SesameStatusFailure.BACKGROUND_RESTRICTED),
+            Option("未反映", SesameStatusFailure.NOT_REFLECTED),
         )
 
     val age: List<Option<Long>> =

@@ -3,7 +3,6 @@ package com.sesamiwear.mobile.quicksettings
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.IconKind
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.Tap
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.TileState
@@ -37,10 +36,10 @@ class QuickSettingsTileContentTest {
     }
 
     @Test
-    fun `locked asks for confirmation before unlocking`() {
+    fun `locked opens the chooser instead of unlocking directly`() {
         val content = QuickSettingsTileContent.from(configured(TileDisplayState.LOCKED))
 
-        assertEquals(Tap.ConfirmUnlock("uuid-front", "玄関"), content.tap)
+        assertEquals(Tap.Choose("uuid-front", "玄関"), content.tap)
         assertEquals(TileState.ACTIVE, content.tileState)
         assertEquals(IconKind.LOCKED, content.iconKind)
         assertEquals("玄関", content.label)
@@ -48,14 +47,15 @@ class QuickSettingsTileContentTest {
     }
 
     @Test
-    fun `unlocked and mixed lock without confirmation`() {
+    fun `unlocked and mixed both open the chooser`() {
+        // BL-304: 解錠中も即施錠せず選ぶ画面を開く。
         assertEquals(
-            Tap.Run("uuid-front", SesameCommand.LOCK),
+            Tap.Choose("uuid-front", "玄関"),
             QuickSettingsTileContent.from(configured(TileDisplayState.UNLOCKED)).tap,
         )
         val all = SesameWearProtocol.ALL_DEVICES_TARGET_UUID
         val mixed = QuickSettingsTileContent.from(configured(TileDisplayState.MIXED, uuid = all, isAll = true))
-        assertEquals(Tap.Run(all, SesameCommand.LOCK), mixed.tap)
+        assertEquals(Tap.Choose(all, "玄関"), mixed.tap)
         assertEquals(IconKind.UNLOCKED, mixed.iconKind)
         assertEquals(TileState.INACTIVE, mixed.tileState)
     }

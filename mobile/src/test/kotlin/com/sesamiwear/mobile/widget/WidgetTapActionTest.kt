@@ -2,9 +2,8 @@ package com.sesamiwear.mobile.widget
 
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WidgetTapActionTest {
@@ -19,25 +18,23 @@ class WidgetTapActionTest {
     )
 
     @Test
-    fun `locked widget asks for confirmation before unlocking`() {
+    fun `locked widget opens the chooser instead of unlocking directly`() {
         assertEquals(
-            WidgetTapAction.Confirm(SesameCommand.UNLOCK),
+            WidgetTapAction.Choose,
             WidgetTapAction.forModel(model(TileDisplayState.LOCKED)),
         )
     }
 
     @Test
-    fun `unlocked widget locks immediately`() {
-        assertEquals(
-            WidgetTapAction.Run(SesameCommand.LOCK),
-            WidgetTapAction.forModel(model(TileDisplayState.UNLOCKED)),
-        )
+    fun `unlocked widget opens the chooser instead of locking at once`() {
+        // BL-304: 1台のウィジェットでも、解錠中のタップは即施錠せず選ぶ画面を開く。
+        assertEquals(WidgetTapAction.Choose, WidgetTapAction.forModel(model(TileDisplayState.UNLOCKED)))
     }
 
     @Test
-    fun `mixed all-devices widget locks all immediately`() {
+    fun `mixed all-devices widget opens the chooser`() {
         assertEquals(
-            WidgetTapAction.Run(SesameCommand.LOCK),
+            WidgetTapAction.Choose,
             WidgetTapAction.forModel(model(TileDisplayState.MIXED, SesameWearProtocol.ALL_DEVICES_TARGET_UUID)),
         )
     }
@@ -54,11 +51,22 @@ class WidgetTapActionTest {
     }
 
     @Test
-    fun `cancelling the confirmation sends nothing`() {
-        assertNull(WidgetTapAction.commandAfterConfirmation(SesameCommand.UNLOCK, confirmed = false))
-        assertEquals(
-            SesameCommand.UNLOCK,
-            WidgetTapAction.commandAfterConfirmation(SesameCommand.UNLOCK, confirmed = true),
-        )
+    fun `no widget state runs a command on a plain tap`() {
+        TileDisplayState.entries.forEach { state ->
+            val action = WidgetTapAction.forModel(model(state))
+            assertTrue(state.name, action == WidgetTapAction.Choose || action == WidgetTapAction.None)
+        }
+    }
+
+    @Test
+    fun `an all-devices widget follows the same rule as a single device`() {
+        val all = SesameWearProtocol.ALL_DEVICES_TARGET_UUID
+        TileDisplayState.entries.forEach { state ->
+            assertEquals(
+                state.name,
+                WidgetTapAction.forModel(model(state)),
+                WidgetTapAction.forModel(model(state, all)),
+            )
+        }
     }
 }

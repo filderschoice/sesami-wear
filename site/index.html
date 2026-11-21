@@ -51,7 +51,7 @@
           <h1>Sesami Wear<br>手首から<br>鍵をかける</h1>
           <p class="lead">
             Pixel Watch のタイルやスマートフォンのホーム画面ウィジェットから、CANDY HOUSE の
-            Sesame スマートロックをワンタップで施錠・解錠。結果は振動で伝わるので、画面を見返す必要はありません。
+            Sesame スマートロックを施錠・解錠。結果は振動で伝わるので、画面を見返す必要はありません。
           </p>
           <div class="actions">
             <a class="button primary" href="https://github.com/filderschoice/sesami-wear/blob/main/docs/CLOSED_TEST.md">クローズドテストに参加</a>
@@ -69,29 +69,29 @@
     <section id="flow">
       <div class="container">
         <h2>操作の流れ</h2>
-        <p class="section-lead">解錠までの操作は 3 ステップです。施錠は確認なしの 1 タップで、結果は振動で伝わります。</p>
+        <p class="section-lead">タップして、施錠か解錠かを選ぶだけです。結果は振動で伝わります。全台をまとめて操作するときは、操作パネルのタイルが便利です。</p>
         <div class="flow-grid">
-          <div class="demo" role="img" aria-label="ウォッチの操作イメージ。タイルをタップし、確認画面で全解錠を押すと、タイルが解錠中の表示に変わる（約9秒で繰り返すアニメーション）">
+          <div class="demo" role="img" aria-label="ウォッチの操作イメージ。タイルをタップすると施錠・解錠を選ぶ画面が開き、全施錠か全解錠を押して実行する。全台と台ごとの操作は操作パネルのタイルにもまとまっている（約9秒で繰り返すアニメーション）">
             <img class="demo-frame f1" src="assets/wear-tile-locked.png" alt="" width="384" height="384">
             <img class="demo-frame f2" src="assets/wear-unlock-confirm.png" alt="" width="384" height="384">
-            <img class="demo-frame f3" src="assets/wear-3-tile-unlocked.png" alt="" width="384" height="384">
+            <img class="demo-frame f3" src="assets/wear-control-panel.png" alt="" width="384" height="384">
             <p class="demo-caption c1">① タイルの大きなボタンをタップ</p>
-            <p class="demo-caption c2">② 確認画面で「全解錠」を押す</p>
-            <p class="demo-caption c3">③ 解錠。成功は振動でも伝わる</p>
+            <p class="demo-caption c2">② 「全施錠」か「全解錠」を押す</p>
+            <p class="demo-caption c3">③ 操作パネルなら全台も台ごとも1枚で</p>
           </div>
           <ol class="flow-steps">
-            <li><strong>タップ</strong>タイルのボタンが、現在の状態と次の操作を示します。</li>
-            <li><strong>確認</strong>解錠だけは確認を挟み、手首が当たった程度では開きません。施錠は確認なしです。</li>
+            <li><strong>タップ</strong>タイルのボタンが現在の状態を示し、タップすると施錠・解錠を選ぶ画面が開きます。</li>
+            <li><strong>選ぶ</strong>施錠・解錠を選ぶ画面で押したときだけ実行します。手首が当たった程度では開きません。</li>
             <li><strong>結果</strong>成功と失敗は異なる振動パターンで伝わります。画面を見返す必要はありません。</li>
           </ol>
         </div>
         <h3 class="spaced">スマートフォンのウィジェットでも同じ操作</h3>
         <ul class="flow-row">
-          <li><img class="phone" src="assets/phone-widget.png" alt="ホーム画面のウィジェット。全デバイスが施錠中で、全解錠のボタンが緑色に表示されている" width="450" height="800" loading="lazy"><span>① 施錠中のウィジェットをタップ</span></li>
+          <li><img class="phone" src="assets/phone-widget.png" alt="ホーム画面のウィジェット。全デバイスが施錠中で、緑色のボタンに「タップで選ぶ」と表示されている" width="450" height="800" loading="lazy"><span>① ウィジェットをタップ</span></li>
           <li class="arrow" aria-hidden="true">→</li>
-          <li><img class="phone" src="assets/phone-2-widget-unlock-confirm.png" alt="ウィジェットの下に「全デバイスを解錠しますか？」の確認ダイアログが出ている" width="450" height="800" loading="lazy"><span>② 確認ダイアログで「全解錠」</span></li>
+          <li><img class="phone" src="assets/phone-2-widget-unlock-confirm.png" alt="ウィジェットの上に「全デバイスの操作を選んでください」の画面が出ていて、キャンセル・全施錠・全解錠のボタンが並ぶ" width="450" height="800" loading="lazy"><span>② 「全施錠」か「全解錠」を押す</span></li>
           <li class="arrow" aria-hidden="true">→</li>
-          <li><img class="phone" src="assets/phone-3-widget-unlocked.png" alt="ウィジェットが赤色の「解錠中」の表示に変わっている" width="450" height="800" loading="lazy"><span>③ 赤い「解錠中」に変わる</span></li>
+          <li><img class="phone" src="assets/phone-3-widget-unlocked.png" alt="小さいウィジェットは玄関が赤色の「解錠中」、大きいウィジェットは全デバイスが紫色の「一部解錠」の表示になっている" width="450" height="800" loading="lazy"><span>③ 結果の状態に変わる</span></li>
         </ul>
       </div>
     </section>
@@ -105,8 +105,8 @@
         <ul class="features">
           <li class="card">
             <span class="tag">タイル</span>
-            <h3>ワンタップで施錠・解錠</h3>
-            <p>Wear OS のタイルから操作します。施錠は即時、解錠は誤操作を防ぐため確認を挟みます。通信中はボタンを無効にして二重送信を防ぎます。ウォッチのアプリの一覧からも、セサミの欄をタップして同じように操作でき、末尾の「更新」「全施錠」「すべて更新」でまとめて扱えます。</p>
+            <h3>タイルから施錠・解錠</h3>
+            <p>Wear OS のタイルから操作します。タップすると施錠・解錠を選ぶ画面が開き、押したときだけ実行するので誤操作を防げます。全台と台ごとの施錠・解錠を1枚にまとめた操作専用のタイル「Sesami 操作パネル」もあります。通信中はボタンを無効にして二重送信を防ぎます。ウォッチのアプリの一覧からも、セサミの欄をタップして同じように操作でき、末尾の「更新」「全台の鍵を操作」「すべて更新」でまとめて扱えます。</p>
           </li>
           <li class="card">
             <span class="tag">振動</span>
@@ -172,13 +172,13 @@
       <div class="container">
         <h2>画面</h2>
         <h3>ウォッチ</h3>
-        <p class="section-lead">Pixel Watch 2 での表示です（0.14.0。コンプリケーションは以前の版で撮影）。</p>
+        <p class="section-lead">Pixel Watch 2 での表示です（タイル・選ぶ画面・操作パネルは 0.17.0、そのほかは以前の版で撮影）。</p>
         <!-- TEMPLATE: 画面のスクリーンショット（1 枚 = 1 つの li。不要ならセクションごと削除） -->
         <ul class="features">
           <li class="card">
-            <img src="assets/wear-tile-locked.png" alt="ウォッチのタイル。全デバイスが施錠中で、タップで全解錠できることを示す緑のボタンと、更新・変更のボタンが並ぶ" width="384" height="384">
+            <img src="assets/wear-tile-locked.png" alt="ウォッチのタイル。全デバイスが施錠中で、「タップで選ぶ」と表示された緑のボタンと、更新・変更のボタンが並ぶ" width="384" height="384">
             <h3>タイル（施錠中）</h3>
-            <p>大きなボタンが状態と次の操作を示します。</p>
+            <p>大きなボタンが状態を示し、タップで施錠・解錠を選べます。</p>
           </li>
           <li class="card">
             <img src="assets/wear-tile-mixed.png" alt="ウォッチのタイル。全デバイスのうち一部だけが解錠されている状態を紫のボタンで示している" width="384" height="384">
@@ -186,9 +186,9 @@
             <p>複数台の状態が揃っていないことも一目で分かります。</p>
           </li>
           <li class="card">
-            <img src="assets/wear-unlock-confirm.png" alt="解錠の確認画面。左にキャンセル、右に赤い全解錠のボタンがある" width="384" height="384">
-            <h3>解錠の確認</h3>
-            <p>解錠だけは確認を挟み、誤操作を防ぎます。</p>
+            <img src="assets/wear-unlock-confirm.png" alt="施錠・解錠を選ぶ画面。左に緑の全施錠、右に赤い全解錠のボタンがある" width="384" height="384">
+            <h3>施錠・解錠を選ぶ</h3>
+            <p>押したほうだけを実行します。やめるときは右へスワイプします。</p>
           </li>
           <li class="card">
             <img src="assets/wear-complication.png" alt="ウォッチフェイス。時刻の下に並ぶコンプリケーションのひとつに「施錠」と表示されている" width="384" height="384">
@@ -196,9 +196,9 @@
             <p>文字盤から現在の状態を確認できます。</p>
           </li>
           <li class="card">
-            <img src="assets/wear-3-tile-unlocked.png" alt="ウォッチのタイル。全デバイスが解錠中で、タップで全施錠できることを示す赤いボタンが表示されている" width="384" height="384" loading="lazy">
-            <h3>タイル（解錠中）</h3>
-            <p>もう一度タップすれば、確認なしで全施錠します。</p>
+            <img src="assets/wear-control-panel.png" alt="操作専用タイル「Sesami 操作パネル」。上に「全台の鍵を操作」のボタン、下に玄関・勝手口・ガレージの状態のボタンが並び、玄関だけ解錠中の赤になっている" width="384" height="384" loading="lazy">
+            <h3>操作パネル</h3>
+            <p>全台の操作も台ごとの操作も、選ぶ画面で押して実行します。</p>
           </li>
           <li class="card">
             <img src="assets/wear-6-device-select.png" alt="ウォッチのデバイス選択画面。タイルで操作する対象のデバイスを選ぶ一覧" width="384" height="384" loading="lazy">
@@ -212,12 +212,12 @@
           </li>
         </ul>
         <h3 class="spaced">スマートフォン</h3>
-        <p class="section-lead">Pixel 8 Pro での表示です（0.14.3。個人情報の写る部分は加工しています）。</p>
+        <p class="section-lead">Pixel 8 Pro での表示です（デバイス一覧は 0.17.0、そのほかは以前の版で撮影。個人情報の写る部分は加工しています）。</p>
         <ul class="features">
           <li class="card">
-            <img class="phone" src="assets/phone-4-device-list.png" alt="アプリのデバイス一覧。玄関・勝手口・ガレージの3台が、施錠状態・電池残量・経路とともに並び、右上のBluetoothアイコンと各カードの接続確認から接続を確かめられる" width="450" height="800" loading="lazy">
+            <img class="phone" src="assets/phone-4-device-list.png" alt="アプリのデバイス一覧。玄関・勝手口・ガレージの3台が、施錠状態・電池残量・経路とともに並び、各カードに「鍵を操作」と「Bluetooth」のボタンがある" width="450" height="800" loading="lazy">
             <h3>デバイス一覧</h3>
-            <p>状態・電池残量・操作した経路を、デバイスごとに確認できます。</p>
+            <p>状態・電池残量・操作した経路を、デバイスごとに確認できます。「鍵を操作」から施錠・解錠もできます。</p>
           </li>
           <li class="card">
             <img class="phone" src="assets/phone-8-dial.png" alt="ダイヤル操作の画面。円の中の針でサムターンの角度を示し、円を半周なぞると施錠・解錠できる" width="450" height="800" loading="lazy">
@@ -274,7 +274,7 @@
           <li>SESAME Biz 開発者ページ（biz.candyhouse.co）で、uuid・apikey・secretKey の 3 点を確認・発行します。</li>
           <li>スマートフォンの Sesami Wear を開き、3 点とデバイス名を登録します（端末内に暗号化して保存します）。</li>
           <li>ウォッチにも Sesami Wear をインストールします（ウォッチの Google Play で検索。スマートフォンに入れただけでは入りません）。ウォッチのタイル一覧で「＋」から Sesami Wear を追加し、操作したいデバイスを選びます。ウォッチが無い場合はホーム画面にウィジェットを置きます。</li>
-          <li>ボタンをタップすると施錠します。解錠は確認画面で「解錠」を押します。成功・失敗は振動で分かります。</li>
+          <li>ボタンをタップすると施錠・解錠を選ぶ画面が開きます。「施錠」か「解錠」を押すと実行し、成功・失敗は振動で分かります。全台をまとめて操作するときは、操作パネルのタイルも使えます。</li>
         </ol>
         <p class="spaced">詳しい手順は<a href="https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md">利用ガイド</a>を参照してください。</p>
       </div>

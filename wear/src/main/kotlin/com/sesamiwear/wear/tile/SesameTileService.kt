@@ -19,15 +19,14 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameWearProtocol
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.wear.R
-import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameActionCommandParser
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,19 +57,30 @@ class SesameTileService : TileService() {
         val tileId = requestParams.tileId
         Log.d(TAG, "onTileRequest tileId=$tileId")
         CoroutineScope(Dispatchers.IO).launch {
-            val deviceUuid =
-                SesameTileStateResolver.effectiveAssignment(
-                    applicationContext,
-                    TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId),
-                )
-            Log.d(TAG, "onTileRequest tileId=$tileId deviceAssigned=${deviceUuid != null}")
-            future.set(
-                if (deviceUuid == null) {
+            val tile =
+                try {
+                    val deviceUuid =
+                        SesameTileStateResolver.effectiveAssignment(
+                            applicationContext,
+                            TileDeviceAssignmentStore(applicationContext).assignedDeviceUuid(tileId),
+                        )
+                    Log.d(TAG, "onTileRequest tileId=$tileId deviceAssigned=${deviceUuid != null}")
+                    if (deviceUuid == null) {
+                        buildTile(buildUnconfiguredBox(tileId))
+                    } else {
+                        buildConfiguredTile(deviceUuid, tileId)
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (
+                    @Suppress("TooGenericExceptionCaught", "SwallowedException") e: Exception,
+                ) {
+                    // 読み取りの失敗でfutureが未完了のまま描画が止まらないよう、未設定表示（タップで設定）で完了させる（BL-300）。
+                    // 例外の本文・uuidは出さず、固定文だけを記録する。
+                    Log.w(TAG, "onTileRequest 状態の読み取りに失敗したため未設定表示にします")
                     buildTile(buildUnconfiguredBox(tileId))
-                } else {
-                    buildConfiguredTile(deviceUuid, tileId)
-                },
-            )
+                }
+            future.set(tile)
         }
         return future
     }
@@ -150,7 +160,7 @@ class SesameTileService : TileService() {
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                 .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
                 .setModifiers(
-                    buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
+                    chipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB)
                         .setClickable(buildRefreshClickable(packageName, deviceUuid))
                         .setSemantics(
                             ModifiersBuilders.Semantics.Builder()
@@ -222,16 +232,18 @@ class SesameTileService : TileService() {
         val state = status.state
         val isAllDevices = deviceUuid == SesameWearProtocol.ALL_DEVICES_TARGET_UUID
         val modifiersBuilder =
-            buildChipModifiers(SesameTileContent.backgroundColorArgb(state))
+            chipModifiers(SesameTileContent.backgroundColorArgb(state))
                 .setSemantics(
                     ModifiersBuilders.Semantics.Builder()
                         .setContentDescription("$displayName ${SesameTileContent.statusLabel(state, isAllDevices)}")
                         .build(),
                 )
 
-        val command = SesameTileActions.commandForState(state)
-        if (command != null) {
-            modifiersBuilder.setClickable(buildCommandClickable(command, deviceUuid))
+        // タップは施錠・解錠を選ぶ画面を開くだけ（BL-295 / BL-304。タップで即実行する経路は無い）。
+        when (SesameTileActions.tapDecisionForState(state)) {
+            SesameTileActions.TapDecision.OpenChooser ->
+                modifiersBuilder.setClickable(buildActionClickable(packageName, null, deviceUuid))
+            SesameTileActions.TapDecision.None -> Unit
         }
 
         return LayoutElementBuilders.Box.Builder()
@@ -274,7 +286,7 @@ class SesameTileService : TileService() {
             .setHeight(DimensionBuilders.weight(1f))
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-            .setModifiers(buildChipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
+            .setModifiers(chipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB).setClickable(clickable).build())
             .addContent(
                 // 「デバイス変更」の6文字はチップ幅に収まらず「デバイス変／更」と不自然な位置で
                 // 折り返していた（BL-102）。上のデバイス名チップ（「全デバイス」5文字）が1行に
@@ -288,56 +300,6 @@ class SesameTileService : TileService() {
                     .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
                     .build(),
             )
-            .build()
-    }
-
-    /**
-     * チップ（角丸の四角ボタン風のBox）に共通の背景色・角丸・内側パディングを設定した
-     * Modifiersビルダーを返す（BL-063）。呼び出し側でsetClickable/setSemantics等を追加できるよう
-     * ビルダーのまま返す。
-     */
-    private fun buildChipModifiers(backgroundColorArgb: Int): ModifiersBuilders.Modifiers.Builder =
-        ModifiersBuilders.Modifiers.Builder()
-            .setBackground(
-                ModifiersBuilders.Background.Builder()
-                    .setColor(ColorBuilders.argb(backgroundColorArgb))
-                    .setCorner(
-                        ModifiersBuilders.Corner.Builder()
-                            .setRadius(DimensionBuilders.dp(CHIP_CORNER_RADIUS_DP))
-                            .build(),
-                    )
-                    .build(),
-            )
-            .setPadding(
-                ModifiersBuilders.Padding.Builder()
-                    .setAll(DimensionBuilders.dp(CHIP_INNER_PADDING_DP))
-                    .build(),
-            )
-
-    private fun buildCommandClickable(
-        command: SesameCommand,
-        deviceUuid: String,
-    ): ModifiersBuilders.Clickable {
-        val launchAction =
-            ActionBuilders.LaunchAction.Builder()
-                .setAndroidActivity(
-                    ActionBuilders.AndroidActivity.Builder()
-                        .setPackageName(packageName)
-                        .setClassName(SesameActionActivity::class.java.name)
-                        .addKeyToExtraMapping(
-                            SesameActionCommandParser.EXTRA_COMMAND,
-                            ActionBuilders.AndroidStringExtra.Builder().setValue(command.name).build(),
-                        )
-                        .addKeyToExtraMapping(
-                            SesameActionCommandParser.EXTRA_DEVICE_UUID,
-                            ActionBuilders.AndroidStringExtra.Builder().setValue(deviceUuid).build(),
-                        )
-                        .build(),
-                )
-                .build()
-        return ModifiersBuilders.Clickable.Builder()
-            .setId(command.name)
-            .setOnClick(launchAction)
             .build()
     }
 
@@ -389,8 +351,6 @@ class SesameTileService : TileService() {
 
         // チップ同士の隙間（左右2チップ間・左列上下2チップ間で共用）。
         const val CHIP_SPACING_DP = 6f
-        const val CHIP_CORNER_RADIUS_DP = 12f
-        const val CHIP_INNER_PADDING_DP = 6f
 
         // 左列の幅。BL-206で中身が「更新」「変更」の2文字だけになったため、BL-209で76dpから狭め、
         // 右列（デバイス名の帯と状態チップ）へ幅を回した。2文字（CAPTION2で約26dp）＋左右の内側余白
@@ -457,7 +417,7 @@ private fun buildStatusColumn(
         )
     }
 
-    val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
+    val actionLabel = SesameTileContent.actionLabel(state)
     if (actionLabel != null) {
         statusColumnBuilder.addContent(
             // ProtoLayoutのTextは既定で1行のため、指定がないと「タップで全解錠」のような

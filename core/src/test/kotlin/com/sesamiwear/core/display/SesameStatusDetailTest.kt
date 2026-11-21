@@ -10,13 +10,14 @@ import java.time.ZonedDateTime
 class SesameStatusDetailTest {
     @Test
     fun `without a failure it shows how old the state is`() {
-        assertEquals("5分前", SesameStatusDetail.compactLabel(null, NOW - 5 * 60_000L, NOW, ZONE))
+        // BL-313: 狭い面もウィジェットと同じ取得日時で出す（相対表記は次の描画まで変わらないため）。
+        assertEquals("9/18 11:55", SesameStatusDetail.compactLabel(null, NOW - 5 * 60_000L, ZONE))
         assertEquals("9/18 11:55", SesameStatusDetail.detailedLabel(null, NOW - 5 * 60_000L, ZONE))
     }
 
     @Test
     fun `without a failure and without a fetch it shows never fetched`() {
-        assertEquals("未取得", SesameStatusDetail.compactLabel(null, null, NOW, ZONE))
+        assertEquals("未取得", SesameStatusDetail.compactLabel(null, null, ZONE))
         assertEquals("未取得", SesameStatusDetail.detailedLabel(null, null, ZONE))
     }
 
@@ -26,11 +27,11 @@ class SesameStatusDetailTest {
 
         assertEquals(
             "認証エラー",
-            SesameStatusDetail.compactLabel(SesameStatusFailure.AUTH_OR_QUOTA, justFetched, NOW, ZONE),
+            SesameStatusDetail.compactLabel(SesameStatusFailure.AUTH_OR_QUOTA, justFetched, ZONE),
         )
         assertEquals(
             "通信エラー",
-            SesameStatusDetail.compactLabel(SesameStatusFailure.COMMUNICATION, justFetched, NOW, ZONE),
+            SesameStatusDetail.compactLabel(SesameStatusFailure.COMMUNICATION, justFetched, ZONE),
         )
     }
 
@@ -54,11 +55,11 @@ class SesameStatusDetailTest {
     @Test
     fun `the route icon is prefixed to the compact label`() {
         assertEquals(
-            "🔗3分前",
+            "🔗9/18 11:57",
             SesameStatusDetail.compactLabel(
                 failure = null,
                 updatedAtEpochMillis = NOW - 3 * 60 * 1000,
-                nowEpochMillis = NOW,
+                zoneId = ZONE,
                 route = SesameStatusRoute.BLE,
             ),
         )
@@ -71,7 +72,6 @@ class SesameStatusDetailTest {
             SesameStatusDetail.compactLabel(
                 failure = SesameStatusFailure.AUTH_OR_QUOTA,
                 updatedAtEpochMillis = NOW,
-                nowEpochMillis = NOW,
                 route = SesameStatusRoute.WEB_API,
             ),
         )
@@ -80,11 +80,11 @@ class SesameStatusDetailTest {
     @Test
     fun `nothing is prefixed when the route is unknown`() {
         assertEquals(
-            "3分前",
+            "9/18 11:57",
             SesameStatusDetail.compactLabel(
                 failure = null,
                 updatedAtEpochMillis = NOW - 3 * 60 * 1000,
-                nowEpochMillis = NOW,
+                zoneId = ZONE,
                 route = null,
             ),
         )

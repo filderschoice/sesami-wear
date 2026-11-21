@@ -7,6 +7,7 @@ import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.api.SesameApiClient
+import com.sesamiwear.core.diagnostics.SesameDiagnosticsEntry
 import com.sesamiwear.mobile.ble.SesameBleAttempt
 import com.sesamiwear.mobile.ble.SesameBleFailure
 import com.sesamiwear.mobile.ble.SesameBleReachability
@@ -35,6 +36,8 @@ abstract class SesameDeviceCommandExecutorTestFixture {
     protected var credentialsList = listOf(validCredentials)
     protected val failureLogs = mutableListOf<String>()
     protected val routeLogs = mutableListOf<String>()
+    protected val responseLogs = mutableListOf<String>()
+    protected var credentialsLoads = 0
     protected var apiCalls = 0
     protected var bleAttempts = 0
     protected var probes = 0
@@ -61,8 +64,13 @@ abstract class SesameDeviceCommandExecutorTestFixture {
     protected fun createExecutor(
         debouncer: CommandDebouncer = CommandDebouncer { now },
         bleAccess: SesameBleAccess = SesameBleAccess(),
+        verification: SesameVerificationAccess = SesameVerificationAccess(),
+        diagnosticsRecord: (SesameDiagnosticsEntry) -> Unit = {},
     ) = SesameDeviceCommandExecutor(
-        loadCredentials = { credentialsList },
+        loadCredentials = {
+            credentialsLoads++
+            credentialsList
+        },
         lockStateStore = lockStateStore,
         notifier =
             LockStateNotifier(
@@ -82,12 +90,24 @@ abstract class SesameDeviceCommandExecutorTestFixture {
                             )
                         },
                         logFailure = { message -> failureLogs += message },
+                        logResponse = { message -> responseLogs += message },
                         recordApiCall = { apiCalls++ },
                         backgroundDataRestricted = { backgroundDataRestricted },
                     ),
                 ble = bleAccess,
+                verification = verification,
             ),
-        guard = SesameCommandGuard(debouncer = debouncer),
+        guard =
+            SesameCommandGuard(
+                debouncer = debouncer,
+                diagnostics =
+                    SesameCommandDiagnostics(
+                        loadCredentials = { credentialsList },
+                        lockStateStore = lockStateStore,
+                        record = diagnosticsRecord,
+                        nowMillis = { now },
+                    ),
+            ),
         nowMillis = { now },
     )
 

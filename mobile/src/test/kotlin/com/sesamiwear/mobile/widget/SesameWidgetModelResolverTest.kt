@@ -66,7 +66,7 @@ class SesameWidgetModelResolverTest {
         assertEquals("玄関", model.displayName)
         assertEquals(TileDisplayState.LOCKED, model.state)
         assertEquals("施錠中", model.statusLabel)
-        assertEquals("タップで解錠", model.actionLabel)
+        assertEquals("タップで選ぶ", model.actionLabel)
         assertEquals(SesameTileContent.statusIcon(TileDisplayState.LOCKED), model.statusIcon)
         assertEquals(SesameTileContent.backgroundColorArgb(TileDisplayState.LOCKED), model.backgroundColorArgb)
         assertEquals(SesameTileContent.statusTextColorArgb(TileDisplayState.LOCKED), model.textColorArgb)
@@ -111,11 +111,11 @@ class SesameWidgetModelResolverTest {
         assertEquals("全デバイス", model.displayName)
         assertEquals(TileDisplayState.LOCKED, model.state)
         assertEquals("全施錠中", model.statusLabel)
-        assertEquals("タップで全解錠", model.actionLabel)
+        assertEquals("タップで選ぶ", model.actionLabel)
     }
 
     @Test
-    fun `all devices with mixed states offers lock-all`() {
+    fun `all devices with mixed states offers the chooser`() {
         lockStates["uuid-front"] = true
         lockStates["uuid-back"] = false
 
@@ -123,7 +123,7 @@ class SesameWidgetModelResolverTest {
 
         assertEquals(TileDisplayState.MIXED, model.state)
         assertEquals("一部解錠", model.statusLabel)
-        assertEquals("タップで全施錠", model.actionLabel)
+        assertEquals("タップで選ぶ", model.actionLabel)
     }
 
     @Test

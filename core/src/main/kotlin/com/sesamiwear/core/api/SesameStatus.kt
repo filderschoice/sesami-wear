@@ -7,8 +7,12 @@ import kotlinx.serialization.Serializable
  * Sesame 5状態取得APIのレスポンス。
  * フィールド構成は参考実装pysesame3（https://github.com/mochipon/pysesame3）の
  * pysesame3/helper.py（CHSesameProtocolMechStatus / CHSesame2MechStatusのdictコンストラクタ分岐）
- * を参照した。Web APIレスポンスにはbatteryVoltage/position/CHSesame2Statusの3フィールドのみが
- * 含まれ、isBatteryCriticalは含まれない（BLE mechstのrawバイト列からのみ算出可能）。
+ * を参照した。一次情報は公式ドキュメント
+ * （https://candy-house.github.io/API_document/ja/SesameOS3/webapi.html）で、
+ * 応答例にはbatteryPercentageも含まれるが、本アプリは使わず未知の項目として無視してデコードする。
+ * timestampは、送信後の状態照合（BL-293、[SesameCommandVerification]）が「送信より古い値か」の判定にだけ使う。
+ * 本アプリが使うのはbatteryVoltage/position/CHSesame2Statusで、isBatteryCriticalは
+ * 含まれない（BLE mechstのrawバイト列からのみ算出可能）。
  * isInLockRange/isInUnlockRangeはCHSesame2Statusから導出する。
  * ただしpysesame3自体もこのレスポンス構造を将来変更されうる未確定事項として注意書きしており、
  * 実機疎通確認（BL-010、人手検証）で最終確認すること。
@@ -19,6 +23,7 @@ data class SesameStatus(
     val position: Int,
     @SerialName("CHSesame2Status")
     val lockStatus: String,
+    val timestamp: Long? = null,
 ) {
     val isInLockRange: Boolean get() = lockStatus == LOCKED_STATUS
 

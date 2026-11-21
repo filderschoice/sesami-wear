@@ -22,15 +22,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sesamiwear.core.display.SesameRouteLabel
+import com.sesamiwear.core.display.SesameVerifyLabel
 import com.sesamiwear.mobile.credentials.BLE_PERMISSION_MENU_TITLE
 import com.sesamiwear.mobile.credentials.BlePermissionRationaleDialog
 import com.sesamiwear.mobile.credentials.ROUTE_POLICY_TITLE
 import com.sesamiwear.mobile.credentials.RoutePolicyPickerDialog
+import com.sesamiwear.mobile.credentials.VerifyAfterSendDialog
 import com.sesamiwear.mobile.credentials.notificationSummary
 import com.sesamiwear.mobile.credentials.rememberAlertSettingsState
 import com.sesamiwear.mobile.credentials.rememberBlePermissionState
 import com.sesamiwear.mobile.credentials.rememberRouteNotificationState
 import com.sesamiwear.mobile.credentials.rememberRoutePolicyState
+import com.sesamiwear.mobile.credentials.rememberVerifyAfterSendState
 import com.sesamiwear.mobile.showcase.ShowcaseModeUi
 import com.sesamiwear.mobile.widget.WidgetPinRequester
 
@@ -66,8 +69,11 @@ internal fun SettingsMainScreen(
 private fun ConnectionSection() {
     val routePolicy = rememberRoutePolicyState()
     val blePermission = rememberBlePermissionState()
+    val verifyAfterSend = rememberVerifyAfterSendState()
     var routePicker by remember { mutableStateOf(false) }
+    var verifyDialog by remember { mutableStateOf(false) }
     var bleRationale by remember { mutableStateOf(false) }
+    if (verifyDialog) VerifyAfterSendDialog(state = verifyAfterSend, onDismiss = { verifyDialog = false })
     if (routePicker) {
         RoutePolicyPickerDialog(
             selected = routePolicy.policy,
@@ -90,6 +96,9 @@ private fun ConnectionSection() {
     }
     SectionHeader(SECTION_CONNECTION, isFirst = true)
     SettingsRow(ROUTE_POLICY_TITLE, SesameRouteLabel.policyLabel(routePolicy.policy)) { routePicker = true }
+    SettingsRow(SesameVerifyLabel.TITLE, SesameVerifyLabel.statusOf(verifyAfterSend.isEnabled)) {
+        verifyDialog = true
+    }
     // 許可済みで求めるものが無いとき（buttonLabelがnull）は、押せない状態表示にする。
     SettingsRow(
         title = BLE_PERMISSION_MENU_TITLE,

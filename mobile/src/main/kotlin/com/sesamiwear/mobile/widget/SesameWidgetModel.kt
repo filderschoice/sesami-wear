@@ -64,7 +64,7 @@ sealed interface SesameWidgetModel {
 
         val statusIcon: String get() = SesameTileContent.statusIcon(state)
         val statusLabel: String get() = SesameTileContent.statusLabel(state, isAllDevices)
-        val actionLabel: String? get() = SesameTileContent.actionLabel(state, isAllDevices)
+        val actionLabel: String? get() = SesameTileContent.actionLabel(state)
         val backgroundColorArgb: Int get() = SesameTileContent.backgroundColorArgb(state)
         val textColorArgb: Int get() = SesameTileContent.statusTextColorArgb(state)
     }

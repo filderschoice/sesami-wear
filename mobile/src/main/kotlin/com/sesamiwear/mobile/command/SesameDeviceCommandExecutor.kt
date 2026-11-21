@@ -13,6 +13,7 @@ import com.sesamiwear.core.api.SesameApiClient
 import com.sesamiwear.core.api.SesameApiException
 import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.api.SesameApiOperation
+import com.sesamiwear.core.api.SesameApiResponseLog
 import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.diagnostics.SesameDiagnosticsOperation
 import com.sesamiwear.core.diagnostics.SesameDiagnosticsOutcome
@@ -74,20 +75,39 @@ class SesameDeviceCommandExecutor(
             guard.diagnostics.record(uuid, operation, SesameDiagnosticsOutcome.SKIPPED)
             return Outcome.DEBOUNCED
         }
+        val sentAtMillis = nowMillis()
         val measurement =
             if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
         if (measurement != null) {
             // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
             updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
         }
-        // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
-        guard.diagnostics.record(
-            uuid = uuid,
-            operation = operation,
-            outcome = if (measurement != null) SesameDiagnosticsOutcome.SUCCESS else SesameDiagnosticsOutcome.FAILURE,
-            route = measurement?.route,
-        )
-        return if (measurement != null) Outcome.SUCCESS else Outcome.FAILURE
+        var notReflected = false
+        try {
+            // 送信後の状態確認（BL-293）。設定がOFF（既定）なら資格情報の再検索も含め何も追加しない。
+            // BLE経由・デモでは、設定がONでも照合しない（[verifyOverApi]）。
+            if (measurement != null && routes.verification.isEnabled()) {
+                val actual = routes.verifyOverApi(findCredentials(uuid), measurement, command, sentAtMillis)
+                if (actual != null) {
+                    // 実際の状態を保存し直し、「未反映」の失敗として通知する（ウォッチは失敗の振動を鳴らす）。
+                    lockStateStore.save(uuid, actual.isLocked, nowMillis(), actual.measurement)
+                    recordFailure(uuid, SesameStatusFailure.NOT_REFLECTED)
+                    notReflected = true
+                }
+            }
+        } finally {
+            // 診断ログ（BL-188）。失敗の理由は直前に保存された分類から引く（uuidは記録しない）。
+            // 照合の待ち時間中に取り消されても記録が欠けないよう、finallyで残す。保存（updateLockState）の
+            // 例外では記録しない従来の条件は変えていない（保存はtryの外）。
+            val succeeded = measurement != null && !notReflected
+            guard.diagnostics.record(
+                uuid = uuid,
+                operation = operation,
+                outcome = if (succeeded) SesameDiagnosticsOutcome.SUCCESS else SesameDiagnosticsOutcome.FAILURE,
+                route = measurement?.route,
+            )
+        }
+        return if (measurement != null && !notReflected) Outcome.SUCCESS else Outcome.FAILURE
     }
 
     /**
@@ -123,6 +143,10 @@ class SesameDeviceCommandExecutor(
             SesameCommandHandler(
                 apiClient = routes.api.clientFactory(credentials),
                 secretKey = secretKey,
+                onSuccess = { receipt ->
+                    // 2xxはクラウドの受理だけを示す。実機が動いたかの切り分け用にステータスと本文長だけ残す。
+                    routes.api.logResponse(SesameApiResponseLog.describe(apiOperationOf(command), receipt))
+                },
                 onFailure = { e ->
                     routes.api.logFailure(SesameApiFailureLog.describe(apiOperationOf(command), e))
                     failure = routes.api.classifyFailure(e)
@@ -274,11 +298,13 @@ class SesameCommandGuard(
  *
  * [api]はSesame Web API、[ble]はBLE直接操作。既定値では[ble]が常に「使えない」を返すため、
  * 配線していない呼び出し元（ユニットテストや、BLEを使わない構成）では従来どおりWeb APIだけが動く。
- * 2つをまとめて1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数を抑えるためでもある。
+ * [verification]はWeb API経由の施錠/解錠の送信後に状態を照合する設定（BL-293）で、既定では何もしない。
+ * まとめて1つの引数にしているのは、[SesameDeviceCommandExecutor]の引数の数を抑えるためでもある。
  */
 class SesameRouteAccess(
     val api: SesameApiAccess = SesameApiAccess(),
     val ble: SesameBleAccess = SesameBleAccess(),
+    val verification: SesameVerificationAccess = SesameVerificationAccess(),
 )
 
 /**
@@ -286,7 +312,8 @@ class SesameRouteAccess(
  *
  * [SesameDeviceCommandExecutor]はAndroid非依存のユニットテスト対象のため`android.util.Log`を
  * 直接呼べない。[logFailure]には[SesameApiFailureLog]が組み立てた、資格情報も応答本文も含まない
- * 文字列だけを渡す（BL-139）。既定では何もしないため、ログが不要な呼び出し元は省略できる。
+ * 文字列だけを渡す（BL-139）。[logResponse]は施錠/解錠が2xxだったときの1行（ステータスと本文長だけ）の出力先。
+ * 既定では何もしないため、ログが不要な呼び出し元は省略できる。
  *
  * [recordApiCall]は実際にSesame APIを1回呼ぶ直前に呼ばれる（BL-147）。月間リクエスト上限
  * （BL-141）に対する消費量を利用者へ示すためのカウンタで、成否によらず数える（上限は成功・失敗を
@@ -301,6 +328,7 @@ class SesameRouteAccess(
 class SesameApiAccess(
     val clientFactory: (SesameCredentials) -> SesameApiClient = ::defaultApiClient,
     val logFailure: (String) -> Unit = {},
+    val logResponse: (String) -> Unit = {},
     val recordApiCall: () -> Unit = {},
     val backgroundDataRestricted: () -> Boolean = { false },
 ) {
@@ -365,4 +393,22 @@ private fun apiOperationOf(command: SesameCommand): SesameApiOperation =
     when (command) {
         SesameCommand.LOCK -> SesameApiOperation.LOCK
         SesameCommand.UNLOCK -> SesameApiOperation.UNLOCK
+    }
+
+/**
+ * Web API経由で送った直後の状態照合（BL-293）。実際の状態が命令と食い違ったときだけ、その状態を返す。
+ * BLE経由・デモ・資格情報なし、設定がOFF、照合できなかった場合はnull。
+ * 実行口の関数数をdetektの上限内へ収めるためトップレベルへ置いている。
+ */
+private suspend fun SesameRouteAccess.verifyOverApi(
+    credentials: SesameCredentials?,
+    sent: SesameStatusMeasurement,
+    command: SesameCommand,
+    sentAtMillis: Long,
+): SesameStatusReading? =
+    if (credentials != null && sent.route == SesameStatusRoute.WEB_API) {
+        (verification.verify(api, credentials, command, sentAtMillis) as? SesameVerificationAccess.Result.NotReflected)
+            ?.reading
+    } else {
+        null
     }

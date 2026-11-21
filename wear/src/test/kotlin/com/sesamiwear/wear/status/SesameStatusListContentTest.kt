@@ -6,7 +6,6 @@ import com.sesamiwear.core.SesameStatusRoute
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -33,7 +32,7 @@ class SesameStatusListContentTest {
 
         assertEquals("玄関", rows.single().displayName)
         assertEquals("🔒施錠中 🔋85%", rows.single().statusLine)
-        assertEquals("🔗3分前", rows.single().detailLine)
+        assertEquals("🔗11/15 07:10", rows.single().detailLine)
     }
 
     @Test
@@ -49,7 +48,7 @@ class SesameStatusListContentTest {
         val rows = rowsOf(SesameStatusSnapshot(false, NOW, lastRoute = SesameStatusRoute.WEB_API))
 
         assertEquals("🔓解錠中", rows.single().statusLine)
-        assertEquals("🌐たった今", rows.single().detailLine)
+        assertEquals("🌐11/15 07:13", rows.single().detailLine)
     }
 
     @Test
@@ -81,7 +80,6 @@ class SesameStatusListContentTest {
             SesameStatusListContent.rows(
                 devices = listOf(SesameDeviceSummary(uuid = "uuid-1", displayName = "")),
                 snapshotOf = { null },
-                nowEpochMillis = NOW,
                 zoneId = ZONE,
             )
 
@@ -89,30 +87,30 @@ class SesameStatusListContentTest {
     }
 
     @Test
-    fun `a locked device offers unlock like the tile`() {
+    fun `a locked device opens the chooser`() {
         val row = rowsOf(SesameStatusSnapshot(true, NOW)).single()
 
         assertEquals("uuid-1", row.uuid)
         assertEquals(TileDisplayState.LOCKED, row.state)
-        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK), row.tapAction)
-        assertEquals("タップで解錠", row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test
-    fun `an unlocked device offers lock like the tile`() {
+    fun `an unlocked device also opens the chooser so that unlock can be sent again`() {
         val row = rowsOf(SesameStatusSnapshot(false, NOW)).single()
 
-        assertEquals(SesameStatusListContent.TapAction.Command(SesameCommand.LOCK), row.tapAction)
-        assertEquals("タップで施錠", row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test
-    fun `a device in an unknown state is refreshed instead of operated`() {
+    fun `a device in an unknown state opens the chooser too`() {
         val row = rowsOf(null).single()
 
         assertEquals(TileDisplayState.UNKNOWN, row.state)
-        assertEquals(SesameStatusListContent.TapAction.Refresh, row.tapAction)
-        assertEquals(SesameStatusListContent.REFRESH_ACTION_LABEL, row.actionLabel)
+        assertEquals(SesameStatusListContent.TapAction.Choose, row.tapAction)
+        assertEquals("タップで選ぶ", row.actionLabel)
     }
 
     @Test
@@ -137,7 +135,7 @@ class SesameStatusListContentTest {
     }
 
     @Test
-    fun `two or more devices get lock all and refresh all for every device`() {
+    fun `two or more devices get the all devices chooser and refresh all`() {
         val chips =
             SesameStatusListContent.footerChips(
                 listOf(SesameDeviceSummary("a", "玄関"), SesameDeviceSummary("b", "勝手口")),
@@ -146,9 +144,9 @@ class SesameStatusListContentTest {
         assertEquals(
             listOf(
                 SesameStatusListContent.FooterChip(
-                    SesameStatusListContent.LOCK_ALL_CHIP_LABEL,
+                    "全台の鍵を操作",
                     SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
-                    SesameStatusListContent.TapAction.Command(SesameCommand.LOCK),
+                    SesameStatusListContent.TapAction.Choose,
                 ),
                 SesameStatusListContent.FooterChip(
                     SesameStatusListContent.REFRESH_ALL_CHIP_LABEL,
@@ -161,11 +159,17 @@ class SesameStatusListContentTest {
     }
 
     @Test
-    fun `footer chips never unlock`() {
+    fun `footer chips never send a lock or unlock by themselves`() {
+        // BL-308: 末尾のチップは選ぶ画面か状態取得だけで、タップで施錠・解錠を送るものは無い。
         val devices = listOf("a", "b", "c").map { SesameDeviceSummary(it, "") }
         val chips = SesameStatusListContent.footerChips(devices)
 
-        assertTrue(chips.none { it.action == SesameStatusListContent.TapAction.Command(SesameCommand.UNLOCK) })
+        assertTrue(
+            chips.all {
+                it.action == SesameStatusListContent.TapAction.Choose ||
+                    it.action == SesameStatusListContent.TapAction.Refresh
+            },
+        )
     }
 
     @Test
@@ -178,7 +182,6 @@ class SesameStatusListContentTest {
                         SesameDeviceSummary(uuid = "b", displayName = "勝手口"),
                     ),
                 snapshotOf = { null },
-                nowEpochMillis = NOW,
                 zoneId = ZONE,
             )
 
@@ -214,7 +217,6 @@ class SesameStatusListContentTest {
         SesameStatusListContent.rows(
             devices = listOf(SesameDeviceSummary(uuid = "uuid-1", displayName = "玄関")),
             snapshotOf = { snapshot },
-            nowEpochMillis = NOW,
             zoneId = ZONE,
         )
 

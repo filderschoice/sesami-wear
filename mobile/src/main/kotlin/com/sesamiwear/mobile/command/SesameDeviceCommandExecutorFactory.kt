@@ -4,13 +4,11 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.widget.Toast
 import com.sesamiwear.core.SesameCredentialsStore
 import com.sesamiwear.core.SesameStatusMeasurement
 import com.sesamiwear.core.SesameStatusReading
 import com.sesamiwear.core.SesameStatusRoute
-import com.sesamiwear.core.api.SesameApiFailureLog
 import com.sesamiwear.core.display.SesameRouteLabel
 import com.sesamiwear.mobile.alert.SesameAlertSettingsStore
 import com.sesamiwear.mobile.alert.SesameAlerts
@@ -24,6 +22,7 @@ import com.sesamiwear.mobile.ble.SesameRouteChangeTracker
 import com.sesamiwear.mobile.ble.SesameRoutePolicyStore
 import com.sesamiwear.mobile.ble.toAttempt
 import com.sesamiwear.mobile.credentials.EncryptedSharedPreferencesKeyValueStore
+import com.sesamiwear.mobile.diagnostics.DiagnosticsDetailLogger
 import com.sesamiwear.mobile.diagnostics.DiagnosticsLogFactory
 import com.sesamiwear.mobile.messaging.SesameStatusSyncer
 import com.sesamiwear.mobile.network.BackgroundDataRestriction
@@ -39,7 +38,8 @@ import com.sesamiwear.mobile.widget.SesameWidgetUpdater
  * 資格情報は暗号化ストア、ロック状態は非暗号化SharedPreferencesから読み、状態変化はウォッチへ
  * DataItemとしてベストエフォートで同期し（BL-118）、ホーム画面ウィジェットの再描画を要求する（BL-122）。
  * ウォッチ経由・ウィジェット経由のどちらで成功しても、ウォッチのTileとウィジェットの双方が追随する。
- * 重複抑止は共有インスタンスを使う。Sesame APIの失敗はlogcatの`Log.w`へ1行だけ残し（BL-139）、
+ * 重複抑止は共有インスタンスを使う。Sesame APIの失敗はlogcatの`Log.w`へ1行だけ残し（BL-139）、同じ行を
+ * 操作履歴の「通信の詳細」へも残す（[DiagnosticsDetailLogger]、BL-302）。
  * 呼び出し回数は[ApiUsageCounter]へ月単位で記録する（BL-147）。
  * 施錠/解錠・状態取得の成否は診断ログ（BL-188）へも残す（`SesameCommandDiagnostics`）。
  *
@@ -81,6 +81,8 @@ object SesameDeviceCommandExecutorFactory {
         val credentialsStore = SesameCredentialsStore(EncryptedSharedPreferencesKeyValueStore.create(appContext))
         val apiUsageCounter = ApiUsageCounter(SharedPreferencesKeyValueStore.forApiUsage(appContext))
         val alerts = SesameAlerts(appContext, credentialsStore::loadAll)
+        // Log.wと操作履歴の「通信の詳細」の両方へ残す（BL-302。利用者の端末ではlogcatを取り出せないため）。
+        val detailLog = DiagnosticsDetailLogger.create(appContext)
         return SesameDeviceCommandExecutor(
             loadCredentials = credentialsStore::loadAll,
             lockStateStore = LockStateStore(SharedPreferencesKeyValueStore.forLockState(appContext)),
@@ -97,13 +99,22 @@ object SesameDeviceCommandExecutorFactory {
                 SesameRouteAccess(
                     api =
                         SesameApiAccess(
-                            // リリースビルドでも残る`Log.w`へ出す（`Log.d` / `Log.v`は除去される、BL-083 / BL-139）。
-                            logFailure = { message -> Log.w(SesameApiFailureLog.TAG, message) },
+                            // リリースビルドでも残る`Log.w`へ出す（`Log.d` / `Log.v`は除去される、BL-083 / BL-139）。操作履歴へも残す（BL-302）。
+                            logFailure = detailLog::warn,
+                            logResponse = detailLog::warn,
                             recordApiCall = { apiUsageCounter.record(System.currentTimeMillis()) },
                             // 失敗の文言を端末設定側へ寄せるかの判断に使う（BL-192）。操作のたびに読む。
                             backgroundDataRestricted = { BackgroundDataRestriction.isRestricted(appContext) },
                         ),
-                    ble = createBleAccess(appContext),
+                    ble = createBleAccess(appContext, detailLog),
+                    // 送信後の状態確認（BL-293）。既定はOFFで、設定を変えた直後から効くよう操作のたびに読む。
+                    verification =
+                        SesameVerificationAccess(
+                            isEnabled =
+                                SesameVerifyAfterSendStore(
+                                    SharedPreferencesKeyValueStore.forBleReachability(appContext),
+                                )::isEnabled,
+                        ),
                 ),
             // 利用者が連携できる診断ログ（BL-188）。uuidは渡さず、表示名だけを記録する。
             guard =
@@ -118,7 +129,10 @@ object SesameDeviceCommandExecutorFactory {
         )
     }
 
-    private fun createBleAccess(appContext: Context): SesameBleAccess {
+    private fun createBleAccess(
+        appContext: Context,
+        detailLog: DiagnosticsDetailLogger,
+    ): SesameBleAccess {
         val bleStore = SharedPreferencesKeyValueStore.forBleReachability(appContext)
         val client =
             SesameBleClient(appContext, timeouts = BLE_TIMEOUTS, addressCache = SesameBleAddressCache(bleStore))
@@ -135,7 +149,7 @@ object SesameDeviceCommandExecutorFactory {
                         val outcome = client.execute(credentials, command)
                         // どの段階で駄目だったかはBLEの結果にしか出ない。経路の成否（route=...）だけでは
                         // 探索で見つからないのか繋げないのかを切り分けられないため、理由も1行残す（BL-189）。
-                        Log.w(SesameApiFailureLog.TAG, "route=BLE op=${command.name} detail=${outcome.result}")
+                        detailLog.warn("route=BLE op=${command.name} detail=${outcome.result}")
                         // 角度はコマンド送信前の値になるため使わない（BL-166、CommandOutcomeのKDoc）。
                         // 失敗したときは理由を圏内／圏外へ落として渡す（BL-191）。
                         outcome.result.toAttempt(
@@ -149,7 +163,7 @@ object SesameDeviceCommandExecutorFactory {
                     },
                     fetchStatus = { credentials ->
                         val statusResult = client.fetchStatus(credentials)
-                        Log.w(SesameApiFailureLog.TAG, "route=BLE op=STATUS detail=${statusResult.result}")
+                        detailLog.warn("route=BLE op=STATUS detail=${statusResult.result}")
                         statusResult.result.toAttempt(
                             statusResult.status?.let {
                                 SesameStatusReading(
@@ -167,7 +181,7 @@ object SesameDeviceCommandExecutorFactory {
                     probeReachable = { credentials -> client.probeReachable(credentials.uuid) },
                     isAvailable = { SesameBlePermissions.hasAll(appContext) && isBluetoothEnabled(appContext) },
                 ),
-            logRoute = { message -> Log.w(SesameApiFailureLog.TAG, message) },
+            logRoute = detailLog::warn,
             // トーストは前景でしか出ない（背景からのトーストは通知が無効な端末で抑止される、BL-190）。
             // 前景で操作しているときの即時性のために残し、本命の通知は[onRouteUsed]で出す。
             onFallbackToWebApi = { showToast(appContext, SesameRouteLabel.FALLBACK_MESSAGE) },

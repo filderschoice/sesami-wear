@@ -76,6 +76,16 @@
     無ければ原因例外の型名を使う（`withContext`をまたぐ例外はkotlinx.coroutinesが複製するため、
     `cause`を最内までたどってから型名を取る）。含めてはならない値を埋め込んだ例外を渡すテストで、
     それらが出力へ現れないことを検証している。
+  - 施錠/解錠が**HTTP 2xxで成功したとき**も1行残す（BL-294の切り分け用。成否判定は変えない）。BL-294の完了時に
+    「切り分け後はレベルを下げるか削除する」予定だったが、操作履歴の「通信の詳細」（BL-302）にも同じ行が残り、
+    利用者の端末での切り分けに使えたため残す（2026-11-21、既定として選んだ。`Log.w`のままでも資格情報は含まない）。`sendCommand`は
+    `core.api.SesameCommandReceipt`（ステータスコードと応答本文のバイト数）を返し、文言は
+    `SesameApiResponseLog.describe`が`lock accepted: HTTP 200 body=2B`の形で組み立てる（本文の長さが
+    読めなければ`body=unknown`、64KiBを超えれば`body>64KiB`）。Web APIの2xxはクラウドが受理しただけで、Hub 3経由でSesameが実際に
+    動いたかを示さないため、「表示は切り替わったのに実機が動かない」ときの切り分けに使う（`Log.w`、タグ`SesameApi`）。
+    本文の中身・uuid・apikey・sign・historyは出さない。本文は従来どおり使わず長さだけ数える。最大64KiBまで読み捨てて数え、超えたら打ち切るため、成功の返却が本文の読み取りぶん
+    （上限まで）わずかに遅れうる。読み取りに失敗しても成功の判定は変えない（`IOException`は握って`unknown`にする）。
+    ログ用の`onSuccess`が例外を投げても握り、送信結果（成功）へ影響させない。
   - 既定の`OkHttpClient`は接続3秒・読み書き3秒・呼び出し全体6秒のタイムアウトを持ち、プロセス内で
     共有する1インスタンス（BL-133 / BL-137）。ウィジェットのタップはBroadcastReceiverの`goAsync`で実行し、
     Glanceの`actionSendBroadcast`が`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は
@@ -85,9 +95,21 @@
     リクエストボディ・HTTPメソッド・パス・ヘッダー・異常系の例外送出を検証済み。
   - 上記フィールド構成・署名仕様は参考実装pysesame3
     (<https://github.com/mochipon/pysesame3>)のソースコード（2026-08-19時点mainブランチ、
-    `cloud.py`/`const.py`）を読んで判明した内容であり、CANDY HOUSE公式ドキュメントそのものは
-    未参照だが、実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
+    `cloud.py`/`const.py`）を読んで実装した（pysesame3は参考実装）。一次情報はCANDY HOUSE公式ドキュメント
+    （CANDY-HOUSE/API_document の `docs/ja/SesameOS3/webapi.md`、公開サイト
+    <https://candy-house.github.io/API_document/ja/SesameOS3/webapi.html>）で、2026-11-21に
+    エンドポイント（GET / POST `https://app.candyhouse.co/api/sesame2/{uuid}`、`/cmd`）、`x-api-key`ヘッダ、
+    コマンド番号（82 / 83 / 88）、本文（`cmd` / `history`（Base64）/ `sign`）、署名（Unix秒をuint32リトルエンディアンにし
+    最上位バイトを除いた3バイトへのAES-CMAC）が本実装と一致することを確認した。
+    実機（Sesame 5 + Hub 3）でのGET状態取得・POST施錠/解錠の疎通確認が完了し、
     SesameStatusのデコードエラーが発生しないことを確認済み（BL-010、人手検証）。
+  - 公式の応答例は`batteryPercentage`と`timestamp`も含むが、未知の項目は無視してデコードするため影響しない。
+    `sign`は、公式の`biz3InvokeWebAPIs`（bizapi_control.md）が16進8文字で送るのに対し、webapi.mdの例と
+    本アプリはCMAC全体（32文字）を送る。32文字は実機（BL-010）で通っているため変えない（観察）。
+  - 取り違え注意: 公式の同じ`docs/ja/SesameOS3/`に、webapi.md（2026-11-11に表題を「RESTful API」へ改名。
+    本アプリが使う`app.candyhouse.co/api/sesame2`で現行）と、restful.md（公式アプリが内部で使う`/device/v1/...`の
+    API。「廃止済み」とされたのはこちら）があり、どちらの表題も「RESTful API」になった。
+    本アプリが使うのは前者で、後者の廃止の影響は受けない。
   - 実機調査（BL-139 / BL-141、2026-09-18、Pixel 8 Pro + Play版0.11.0）: ウィジェットの状態取得が
     常に「状態不明」になる事象を調査し、原因が**Sesame API側のapikey無効化（HTTP 403）**であることを
     確認した。応答本文は`{"Message":"User is not authorized to access this resource with an explicit
@@ -146,6 +168,9 @@
 - 電圧から残量（%）への換算表は`core.SesameBatteryLevel`が持つ（`meronepy/gomalock`と同じ値で、
   公式アプリの表示に合わせた非線形な対応）。BLE経由・Web API経由のどちらも同じ換算を通るため、
   経路によって表示がずれない。もとは`mobile.ble.SesameBleMechStatus`にあったものを`core`へ移した。
+  2026-11-21にユーザーが現状維持と決めた（BL-291）。公式Androidアプリは3.0.266(939)からサーバー算出の電池残量（%）を
+  使うが、本アプリはBLE/Web APIの表示一致を優先し、Web API応答の`batteryPercentage`は使わず未知の項目として無視する。
+  公式アプリの表示とのずれの有無・大きさは未確認。
 - `core.SesameStatusSnapshot`へ`batteryPercentage` / `position` / `lastRoute`を追加した。
   分かった値だけを上書きする`merge(SesameStatusMeasurement)`を持ち、**分からなかった項目は
   前回の値を残す**。Web API経由の施錠/解錠は状態を返さないため、経路だけが更新される。
@@ -177,8 +202,11 @@
   `SesameStatusFreshness.dateTimeLabel`、未取得は「未取得」）を出す（BL-236）。ウィジェットは状態変化の
   通知があるまで再描画されず、「たった今」「3分前」の文言が次の描画まで固まるため、利用者がいつ取得した
   状態かを判断できなくなっていた。`SesameStatusDetail.detailedLabel`（ウィジェット専用）が使い、
-  `nowEpochMillis`引数は不要になったため削除した。Tile・Complication・ウォッチの状態一覧・スマートフォンの
-  デバイス一覧は従来の相対表記のまま（文字数の余裕がない面があるため、本変更の対象外）。
+  `nowEpochMillis`引数は不要になったため削除した。スマートフォンのデバイス一覧（カード）は従来の相対表記のまま
+  （画面の再開のたびに読み直すため固まらない）。**BL-313（2026-11-21のユーザー判断）で、Tile・Complication・ウォッチの状態一覧
+  （`compactLabel`）も同じ取得日時へ揃えた**（タイルは次の描画まで文言が変わらず、時間がたつと実際より新しく見え、スマホの
+  ウィジェットとも食い違っていたため）。`compactLabel`と`SesameStatusListContent.rows`の`nowEpochMillis`引数も削除した。
+  実機のウォッチの一覧で「🔗11/21 17:19」が1行に収まることを確認した（タイルの右下・全デバイスの収まりは未確認）。
 - 「全デバイス」対象では`oldestOf`が最も古い取得時刻を代表値として返し、1台でも未取得なら全体を
   未取得（null）として扱う。集約状態の判定（`TileDisplayStateResolver.resolveAggregate`が1台でも
   未取得なら「状態不明」にする）と同じ、最悪値を採る考え方で揃えている。
@@ -269,6 +297,22 @@
     BL-245で見た目を整理した: 施錠状態は絵文字ではなく**状態色（`SesameTileContent`の緑・赤・紫・灰）の
     丸いバッジに錠のアイコン**（絵文字は端末のフォントで見た目が変わり、色で読めなかったため）。
     編集・削除はカード右上の⋮メニューへまとめ、カード下部に「ダイヤル操作」（BL-243）の文字付きボタンを置く。
+    BL-295後半で、カード下部（ダイヤル操作・接続確認の上）に「施錠」「解錠」の2ボタンを置いた。
+    **BL-303（2026-11-21のユーザー判断）で、カード下部を2つのボタンへまとめた**: 左の「鍵を操作」（`DeviceCardCommandButton`、
+    錠のアイコン付きのFilledTonalButton）は、ウィジェットと同じ選ぶ画面の部品（`mobile.widget.CommandChooser`、見出し
+    「（表示名）の操作を選んでください」と［キャンセル｜施錠｜解錠］）をComposeの`Dialog`（`usePlatformDefaultWidth=false`、
+    画面幅の90%。BL-301と同じ理由）で開き、選んだ操作を送る。右の「Bluetooth」（Bluetoothアイコン＋▾のOutlinedButton）は
+    `DropdownMenu`で「ダイヤル操作」「接続確認」を出し、それぞれの画面を開く（メニューを開くだけでは通信しない）。
+    以前は施錠・解錠・ダイヤル操作・接続確認の4ボタンが2段に並んでいた。**表示している状態によらず押せる**（すでに施錠中でも施錠を、解錠中でも解錠を送れる。
+    一部解錠のときに先に全施錠せず解錠できる）。無効になるのは送信中だけ（二重送信を避ける）。**送信は画面の寿命から切り離す**: 送信・送信中の状態（uuidごと）・未表示の結果は`DeviceCardCommandSender`（Android非依存、ユニットテスト対象）が持ち、アプリのプロセス内のスコープ（`SupervisorJob`+`Dispatchers.IO`、`DeviceCardCommandButtons.kt`内の入れ物が1つだけ保持）で動かす。ViewModelは使わない（`lifecycle-viewmodel-compose`が未導入で、依存を足さないため）。このため画面の回転・離脱で送信は取り消されず完了まで続き、送信中の無効化も保たれ、結果は状態（`results`）として残るので、回転の途中や画面を離れている間に完了しても戻ったときにスナックバーで出る（結果は連番`id`付きで、表示したidと一致するときだけ`consumeResult`（uuidとidを渡す）で消す。表示側も同じidを一度しか出さないので、コンポジションが途中で離れても二重表示せず、表示前に積まれた新しい結果を消さない）。`execute`が例外を投げたら（`CancellationException`は除く）失敗結果として積んで送信中を解き、固定文だけをlogcatへ出す（例外の本文・識別子・資格情報は出さない）。スコープには`CoroutineExceptionHandler`（固定文のログのみ）も付ける。同じuuidが送信中の押下は`send`がfalseを返して無視する。**施錠・解錠とも、選ぶ画面で
+    押したときだけ送り、即解錠の経路は作らない**（BL-303。以前は解錠だけ「解錠しますか？」の確認ダイアログを挟み、施錠は即送信だった。
+    選ぶ画面で「解錠」を押すこと自体が明示操作のため、確認は重ねない。ウィジェットと同じ方針）。選ぶ画面の表示状態は
+    `rememberSaveable(uuid)`で回転後も保つ（押すまで何も送らないため、復元しても送られない）。選ぶ画面を開いている間に
+    送信が始まっていたら、選んでも送らない（`DeviceCardCommandPolicy.onChosen`）。送信は
+    `SesameDeviceCommandExecutorFactory.create`の実行口（`Dispatchers.IO`）で、経路選択・重複抑止（2秒）・BL-293の状態確認・
+    診断ログ・ウォッチ同期・ウィジェット再描画・デモ・撮影モードはウィジェット・ウォッチと同じに効く。結果は画面下の
+    スナックバー（成功／失敗／重複で送らなかった）で出し、完了後にカードの表示を読み直す（失敗の理由は最終取得の行）。
+    規則は`DeviceCardCommandPolicy`（Android非依存、ユニットテスト対象）。
   - 一覧の先頭は今月のAPI呼び出し回数の要約カード（`ApiUsageCard`、回数を大きく出し目安である旨を注記）。
     未登録のときは要約カードを出さず、錠のアイコン・説明・ヘルプへの導線を並べた
     空状態（`EmptyDeviceState`）を出す（BL-245）。追加の入口は右下の「Sesameを追加」ボタンだけにし、空状態には置かず本文で場所を案内する（導線の重複を避ける、2026-11-09）。
@@ -280,7 +324,9 @@
     BL-160）がすべて消え、再登録にはSESAME BizからsecretKeyを取り直す必要があるため。
   - 保存・削除と、それに伴う同期（ウォッチへのデバイス一覧、ウィジェットの再描画）は
     `mobile.credentials.CredentialsScreenController`が持つ。画面のComposableへ直接書くと
-    detektの`LongMethod`（上限60行）を超えるため分離した。
+    detektの`LongMethod`（上限60行）を超えるため分離した。一覧は画面の再開（`ON_RESUME`）のたびに
+    `reload()`でストアから読み直す（BL-311。デバッグ版の撮影モードの画面で「見本の3台に置き換える」と主画面へ戻っても、
+    アプリを開き直すまで古い一覧（0台）のままだったため。読み直すだけで同期はしない）。
   - 入力欄（表示名/uuid/apikey/secretKey）はラベルのみのシンプルな見た目とし、secretKey欄は
     `PasswordVisualTransformation`でマスキング表示する（BL-023, BL-059）。
   - uuid/apikey/secretKeyの3欄は`singleLine = true`とし、`KeyboardOptions`でASCIIキーボード
@@ -358,7 +404,8 @@
     APIキーの取得手順の公式記事（`SESAME_API_KEY_GUIDE_URL`、`jp.candyhouse.co/blogs/how-to/...`）の
     2本。いずれも2026-09-18に認証なしで開けることを実際にアクセスして確認した。
     Web APIのリファレンス（`doc.candyhouse.co/ja/SesameAPI/`）は同日時点でGitHub Pagesの認証へ
-    リダイレクトされ認証なしでは開けないため、リンクとして採用しない。
+    リダイレクトされ認証なしでは開けないため、リンクとして採用しない（2026-11-21時点では同ホストは
+    名前解決できず、公式のGitHub Pages <https://candy-house.github.io/API_document/> が認証なしで開ける）。
     公式記事のURLは日本語のパスを持つため、`Uri.parse`がそのまま扱えるようパーセントエンコード済みの
     形で保持し、非ASCII文字を含まないことをユニットテストで固定する。
     デモモード（BL-109）はwear側にしか導線が無く、資格情報を用意できない利用者が
@@ -396,6 +443,18 @@
   （アプリからどこかへ自動送信はしない）。連携用の全文の先頭には、解析に要るアプリのバージョン・
   Androidのバージョン・機種名だけを添える（端末を特定できるシリアル・広告IDは載せない）。
 - 実行口の引数は`SesameCommandGuard`（重複抑止＋診断ログ）へまとめている。
+- **通信の詳細（BL-302）**: これまで`Log.w`（タグ`SesameApi`）にだけ出していた行（Web APIの応答
+  `<op> accepted: HTTP <code> body=<長さ>`・失敗`<op> failed: <理由>`・経路の成否`route=BLE op=... result=OK/NG`・
+  BLEの段階`route=BLE op=... detail=...`・到達確認の手段`op=PROBE detail=SCAN/LAST_KNOWN/MISS`）を、
+  `mobile.diagnostics.DiagnosticsDetailLogger`が`Log.w`と同時に診断ログへも残す。テストユーザーの端末では
+  logcatを取り出せず、再現しても確かめられなかったため。施錠・解錠の1件（`SesameDiagnosticsEntry`）とは対応づけず、
+  時刻つきの行（`SesameDiagnosticsDetail`、直近100行、保存キー`diagnostics_details`）として持つ（全デバイス操作では
+  複数台の処理が並行し、行と1件を確実に結びつけられないため。時刻で突き合わせる）。
+  保存前に`SesameDiagnosticsDetail.sanitize`が`device=`（uuidの先頭8文字）を除き、uuid・BLEアドレス・16進数16文字以上の
+  並びの形をした部分を`***`へ伏せ、改行を詰めて200文字で切る（`Log.w`の行は従来のまま）。保存の失敗は操作を止めない。
+  画面は1件の一覧の下に見出し「---- 通信の詳細（新しい順）」と行を並べ、連携用の全文にも同じ順で入る（行が無ければ
+  見出しも出さない）。`clear()`は両方を消す。同じ保存先を指すインスタンスが画面・実行口ごとに作られるため、
+  読み書きはプロセス全体で1つのロックで直列化する。撮影モードの施錠・解錠は通信しないため行は増えない。
   `SesameDeviceCommandExecutor`の引数がdetektの`LongParameterList`の上限を超えるため。
 
 ### クイック設定パネルのタイル（スマートフォン）
@@ -404,14 +463,14 @@
 
 - パネルのタイルは端末に1つで対象を選ぶ画面を持たせにくいため、対象は**登録1台ならその1台、2台以上なら
   全デバイス**に固定する（`QuickSettingsTileContent.targetUuid`）。
-- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中→解錠の
-  確認画面、解錠中・一部解錠→確認なしで施錠、通信中→何もしない）。ウィジェットとの差分は2つで、
+- 表示・操作の判定はウィジェットの`SesameWidgetModelResolver`と`WidgetTapAction`を流用する（施錠中・解錠中・一部解錠→
+  施錠・解錠を選ぶ画面、通信中→何もしない。BL-295 / BL-304）。ウィジェットとの差分は2つで、
   (1) 状態不明のタップは状態の取得しなおし（パネルに「更新」を置けないため）、(2) 表示名が未設定のときは
   uuidではなく「Sesame」と出す（パネルはロック画面からも見えるため）。判定は`QuickSettingsTileContent`
   （Android非依存、ユニットテスト対象）。
 - タイルの状態は施錠中＝`STATE_ACTIVE`、通信中＝`STATE_UNAVAILABLE`、それ以外＝`STATE_INACTIVE`。
-- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、解錠は同じ`WidgetUnlockConfirmActivity`へ
-  渡す。確認画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
+- 施錠・状態取得はウィジェットと同じ`WidgetCommandReceiver`へ、選ぶ画面は同じ`WidgetUnlockConfirmActivity`へ
+  渡す。選ぶ画面の起動はAndroid 14以上で`startActivityAndCollapse(PendingIntent)`、それ未満でIntent版。
 - 描き直しは`onStartListening`（パネルを開いたとき）と、`SesameWidgetUpdater.updateAll`からの
   `requestListeningState`（操作の開始・終了、ロック状態の変化）。**表示のために通信はしない**（BL-142）。
 - `ACTIVE_TILE`は宣言しない。サービスは`BIND_QUICK_SETTINGS_TILE`で守る。
@@ -530,8 +589,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - **wearのTileと揃えている点**:
   - 表示文言・状態アイコン・状態色・テキスト色（`core.display.SesameTileContent`）と、状態色を右下だけに使う構成
     （左に「更新」と「変更」、右上にデバイス名と経路アイコンの帯、右下に状態。BL-205 / BL-206）。
-  - 操作ルール（`core.display.SesameTileActions`）: 施錠中→解錠、解錠中→施錠、一部解錠→全施錠、通信中・状態不明→操作なし。
-  - 確認画面: 解錠のみ（`SesameCommandConfirmation`）、左＝キャンセル・右＝解錠／全解錠の並びと配色。
+  - 操作ルール（`core.display.SesameTileActions.tapDecisionForState`、BL-295 / BL-304）: 施錠中・解錠中・一部解錠→
+    施錠・解錠を選ぶ画面、通信中・未接続・状態不明→操作なし（解錠中の即施錠はBL-304でやめた）。
+  - 選ぶ画面: 左＝施錠・右＝解錠（全デバイスは「全施錠」「全解錠」）の2ボタン、キャンセルボタンなし（スワイプで戻る）。
   - 選択肢と対象の展開（`core.display.SesameDeviceTargets`）: 2台以上で先頭に「全デバイス」、0台ならデモのみ、
     全デバイスは各uuidへ個別に実行。全デバイスの状態集約規則（1台でも未取得なら状態不明）。
   - デモ: 登録0台のときだけ提示し、Sesame APIへ送らない。確認画面の有無・状態文言は実デバイスと同じ。
@@ -668,12 +728,14 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `onDeleted`で割り当てを消す。PendingIntentをインスタンス・操作の種類ごとに区別するため、各Intentの
   dataへ操作名とappWidgetIdを入れる。
 - タップ操作（BL-122）: 右側は`mobile.widget.WidgetTapAction.forModel`（Android非依存）で決める。
-  提示コマンドは`core.display.SesameTileActions`、確認の要否は`SesameCommandConfirmation`（Tileと同じ）で、
-  施錠中→解錠確認画面、解錠中→即施錠、一部解錠→即全施錠、通信中・状態不明→操作なし、未設定→選択画面。
+  動作は`core.display.SesameTileActions.tapDecisionForState`（Tileと同じ、BL-295）で、
+  施錠中・解錠中・一部解錠→施錠・解錠を選ぶ画面（`WidgetUnlockConfirmActivity`）、
+  通信中・状態不明→操作なし、未設定→選択画面。BL-295より前は施錠中→解錠確認画面、一部解錠→即全施錠、
+  BL-304より前は解錠中→即施錠だった。
   左側の「更新」（`MEDIUM`ではデバイス名）は状態取得（GET）のみ、「変更」は選択画面を開く。
 - `mobile.widget.WidgetCommandReceiver`（`exported="false"`のBroadcastReceiver）: 施錠の即時実行・状態取得・
-  解錠確認画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
-  `ActionCallback`だったが、解錠確認画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
+  選ぶ画面での確定を受け、`goAsync`で`WidgetCommandRunner`を実行する。BACKLOGの既定はGlanceの
+  `ActionCallback`だったが、選ぶ画面（Activity）からも同じ経路で実行するため、同じ`goAsync`の仕組みを
   自前のReceiverで使う形にした。WorkManagerへは委譲していない（通常のワークは端末の状態により実行が
   遅延しうり、即時性を優先したため。期限付き実行はAndroid 11以下でフォアグラウンドサービス通知が要る）。
   `actionSendBroadcast`は`FLAG_RECEIVER_FOREGROUND`を付けるため、実行時間の制限は約10秒
@@ -699,10 +761,13 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （8秒、BL-137）とSesame APIの呼び出し全体のタイムアウト（6秒、BL-133）より十分長くとり、
   正常に終わる操作を誤って打ち切らない値にしている。
 - `mobile.widget.WidgetUnlockConfirmActivity`: ダイアログテーマ（`Theme.Material.Light.Dialog.NoActionBar`）の
-  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`）。見出し
-  「（表示名）を解錠しますか？」と、左＝「キャンセル」（中立色）・右＝「解錠」/全デバイスは「全解錠」
-  （解錠中の状態色）の2ボタン（wearの確認画面と同じ並び）。解錠でReceiverへ実行を依頼してすぐ閉じ、
-  キャンセル・画面外タップ・戻る操作では何も送らない。
+  軽量Activity（`exported="false"`・`noHistory`・`excludeFromRecents`・空の`taskAffinity`。
+  クラス名はBL-122の解錠確認画面のまま維持）。BL-295で施錠・解錠を選ぶ画面へ変更した。見出し
+  「（表示名）の操作を選んでください」と、左から［キャンセル（中立色）｜施錠（施錠中の状態色）｜解錠（解錠中の状態色）］
+  の3ボタン（全デバイスは「全施錠」「全解錠」）。施錠・解錠を押すとReceiverへ実行を依頼してすぐ閉じ
+  （確認は重ねない）、キャンセル・画面外タップ・戻る操作では何も送らない。スマホはキャンセルボタンを残す。
+  ダイアログの幅は`onCreate`で画面幅の90%（`DIALOG_WIDTH_FRACTION`）へ広げる（BL-301。テーマの既定幅は
+  Pixel 8 Proで約287dpで、3ボタンを等分すると「キャンセル」が2行に折り返したため）。高さは内容に合わせる。
 - 状態の追随: `SesameDeviceCommandExecutorFactory`の通知先が、DataItem同期（ウォッチのTile）に続けて
   `SesameWidgetUpdater.updateAll`を呼ぶ（デモはDataItem同期を行わず再描画のみ）。ウォッチ経由で成功してもウィジェットが、ウィジェット経由で成功しても
   ウォッチのTileが追随する。重複抑止はプロセス内共有の`CommandDebouncer`で、両経路の同一uuidへの2秒以内の
@@ -807,7 +872,9 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     出す列挙ログの双方で確認できる。`remove-tile`で外すと一覧へ再び現れることで機序を確定した。
   - `SesameTileService`は`androidx.wear.tiles.PREVIEW`のmeta-dataを持たないため、列挙時に
     `has no metadata`が記録され、一覧のプレビューはアプリアイコンで代替される。Play版も同じ状態で
-    一覧に表示されるため、これは一覧非表示の原因ではない。
+    一覧に表示されるため、これは一覧非表示の原因ではない（この調査の後、Issue #90で`tile_preview`の宣言を足し、
+    BL-310で実機（撮影モードの見本）で撮ったタイルの画面のPNG（`drawable-nodpi/tile_preview.png`、ストア画像`wear_2_tile_locked.png`と同じ）へ
+    差し替えた。それまでは紺地に錠の図案のベクターだった）。
   - 文字盤のComplicationやTileが、Play版とデバッグ版のどちらから提供されているかは見た目で区別できない。
     logcatの`for bound-service {<パッケージ>/...SesameComplicationDataSourceService}`でパッケージ名を
     確認する。再インストール直後は、デバッグ版を入れてもPlay版のデータソースが割り当てられたままに
@@ -1187,10 +1254,10 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 - 文言はAndroid非依存の`mobile.widget.WidgetAccessibilityLabels`（ユニットテスト対象）が組み立て、
   Glanceの`GlanceModifier.semantics { contentDescription = ... }`で付ける。
 - 状態表示（FULL・MEDIUM・COMPACTの状態色の部分）: 「デバイス名、状態、最終取得時刻または失敗の理由、
-  電池残量、操作」を読点でつなぐ（例「玄関、施錠中、3分前、電池残量85%、タップで解錠」）。
+  電池残量、操作」を読点でつなぐ（例「玄関、施錠中、3分前、電池残量85%、タップで選ぶ」）。
   状態・操作の文言は画面と同じ`SesameTileContent`の値を使い、通信中の「...」は落とす。
   操作できない状態（通信中・状態不明）は操作の部分を省く。中の文字ごとに読ませず1文にまとめるのは、
-  「施錠中」と「タップで解錠」が別の項目になって、どこを押せばよいか分かりにくくなるため。
+  「施錠中」と「タップで選ぶ」が別の項目になって、どこを押せばよいか分かりにくくなるため。
 - 電池残量は絵文字を読ませず「電池残量85%」、20%未満は「電池残量が少なくなっています 15%」（画面の⚠に相当、BL-257）。
 - 「更新」チップとMEDIUMのデバイス名チップは「（デバイス名）の状態を更新」、「変更」は「操作するSesameを変更」、
   「◀」「▶」は「前の／次のSesameへ切り替え」、未設定時の全面は「Sesami Wearのウィジェット。タップして
@@ -1229,6 +1296,53 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （BL-071）。実際のSesame uuidと衝突しない固定文字列で、wear側のデバイス割当ストアへ実uuidの
   代わりに保存し、Tile/Complication表示・コマンド送信時に判定する。
 
+### 送信後の状態確認（BL-293、既定はオフ）
+
+Web APIの2xxはクラウドが受理しただけで実機の動作を保証しないため、実機が動かないのに表示だけ切り替わることがある
+（BL-294）。**2026-11-21の実機調査で確定した**: Hub 3がインターネットに接続できていない間も、施錠・解錠のWeb APIは
+`HTTP 200`（本文18バイト）を返し、本アプリは成功として表示を切り替えたが実機は動かなかった。Hub 3を再接続すると
+同じ操作で実機が動いた（Pixel 8 Pro、0.17.0のデバッグ版。操作はユーザー）。切り分けには操作履歴の「通信の詳細」（BL-302）の
+`<op> accepted: HTTP 200 body=18B`の行を使った。利用者が設定で有効にしたときだけ、送信後に状態を1回取得して照合する。**既定はオフで、BL-142の方針
+（自動の状態取得を廃止し、月間上限の消費を利用者のタップ回数と等しくする）を維持する。** オフのときの挙動
+（API呼び出し回数・結果・ハプティクス・ログ）は従来から変わらない。
+
+- 設定: `mobile.command.SesameVerifyAfterSendStore`（`SesameKeyValueStore`、キー`verify_after_send`、既定false。
+  BLEの到達実績と同じ非暗号化ファイル）。設定画面の「接続」区分の「送信後の状態確認」（`credentials.VerifyAfterSendState`、
+  オン・オフのスイッチと説明のダイアログ）で切り替え、操作のたびに読み直す。文言は`core.display.SesameVerifyLabel`
+  （命令ごとにWeb APIを1回多く使い月間上限（BL-141）に効くこと、結果が数秒遅れること、Bluetoothでは確認しないこと）。
+- 照合の流れ（`SesameDeviceCommandExecutor.execute`）: Web API経由で2xxを受け、送信時点の状態（送った命令どおり）を
+  保存・通知した後、`SesameVerificationAccess.verify`が`waitMillis`（初期値4秒、仕様の3〜5秒の中央）待って
+  `getStatus`を1回呼ぶ（`recordApiCall`で数える）。BLE経由・デモ・資格情報なし・命令の失敗では何もしない。
+- 判定（`core.api.SesameCommandVerification.judge`、純Kotlin）: 応答の`timestamp`が無い、または送信時刻（端末時計）
+  ＋余裕秒**以下**の値は採用せず`UNVERIFIABLE`。単位は文書から確定できないため1e11以上をミリ秒、未満を秒とみなし、
+  秒単位で比べる。新しい値が命令と一致なら`CONFIRMED`、食い違えば`NOT_REFLECTED`。
+  - 余裕（`DEFAULT_CLOCK_SKEW_MARGIN_SECONDS`＝**2秒**、既定値で決めた）の根拠: 端末の時計がサーバより遅れていると、
+    送信前の古い状態の`timestamp`が（遅れた）送信時刻より新しく見え、動いたのに「未反映」と誤報しうる。
+    誤報より「判断できない」を選ぶ（安全側）ため、送信時刻＋余裕を超えて新しい値だけを新しいとみなす。
+    待ち時間（4秒）以内に反映された正しい状態の`timestamp`は送信の1〜4秒後になる想定なので、それを潰さない範囲で
+    小さく取った暫定値。時計のずれが余裕を超える端末では誤報しうる点、反映が余裕以内に済むと照合できない扱いに
+    なる点は残る。**実機で調整する**（BL-306）。
+  - `timestamp`が最終状態更新時刻か応答生成時刻かは**未確認**。応答生成時刻なら古い状態でも常に新しく見え、
+    「未反映」の誤報が起こりうる。確認できるまで本機能は既定オフ・設定で選ぶ形のまま（BL-306の確認項目）。
+- 扱い（既定値で決めた）: `NOT_REFLECTED`のときだけ、実際の状態を保存し直し（電池・角度も反映）、
+  `SesameStatusFailure.NOT_REFLECTED`（短い表示「未反映」、ウィジェット「未反映（実機の状態を確認）」）を保存して
+  ウォッチ・ウィジェットへ通知し、`execute`は`Outcome.FAILURE`を返す（ウォッチは既存の失敗ハプティクス、
+  診断ログは失敗・理由「未反映」）。`UNVERIFIABLE`・状態取得の失敗（想定外の例外を含む。`SesameVerificationAccess.fetchStatusOrNull`は
+  取り消し以外の例外を握る）は**安全側として命令の成否を変えず**
+  （成功のまま、失敗の分類も保存しない）、logcatへ`verify ...: unverified`の1行だけ残す。待ち中に取り消された場合は`verify ...: cancelled`を残して
+  再スローする（識別子・資格情報は出さない）。
+  古い値・取得失敗で「未反映」と誤報しないため。取得失敗の分類（認証・上限など）も保存しない。
+- 時間の予算: ウィジェットの受信は約10秒の制限で、`WidgetCommandReceiver`が9秒で打ち切る（BL-137）。命令（最大6秒）と
+  待ち（4秒）と取得（最大6秒）は収まらないことがあるが、打ち切りは取り消しとして伝わり、保存済みの送信時点の状態が
+  残るだけで（照合しない場合と同じ）、診断ログは`finally`で残す。**オフのときは照合のための追加処理（資格情報の再検索を含む）を
+  一切せず、診断ログの記録条件も従来と同じ**（状態の保存は`try`の外、照合だけを`try`で囲む）。ウォッチ経由は`WearableListenerService`の
+  `CoroutineScope`で実行する既存の方式のままで、結果の返送が数秒遅れる。
+- 互換性: `SesameCommandResult`のペイロード（成功/失敗の1バイト）は変えていない。未反映は`FAILURE`で返るため旧版のウォッチも
+  失敗の振動が鳴る。DataItemの`lastFailure`に載る名前`NOT_REFLECTED`は旧版のウォッチの`ofNameOrNull`でnullになり、
+  失敗表示なしで実際の状態だけを表示する（落ちない）。`SesameStatus`へ`timestamp`（省略可）を足したが、
+  応答の未知の項目を無視する既存のデコードのまま。
+- 実機で調整する点: 待ち時間（3〜5秒）、`timestamp`の意味（最終状態更新時刻か応答生成時刻か）・単位・反映の遅れ、時計ずれの余裕値（2秒）の妥当性、失敗時の応答。実機・実資格情報を要するため人手検証（BL-306。BL-294から引き継いだ）。
+
 ### mobile側コマンド処理
 
 - `mobile.messaging.SesameMessageListenerService`（`WearableListenerService`実装、BL-013）:
@@ -1250,6 +1364,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     失敗の分類（`SesameStatusFailure`）を保存して通知する（BL-140）。
     同一uuidへの連打は`CommandDebouncer`で抑止し、抑止した場合はAPIを呼ばず保存済みの状態を返す
     （BL-148。失敗ではないため失敗の記録も残さない）。
+  - 施錠/解錠が2xxだったときの1行（`SesameApiResponseLog.describe`）は`SesameApiAccess.logResponse`へ渡す
+    （`SesameCommandHandler`の`onSuccess`から。既定は何もしない）。
   - Sesame APIの失敗は`SesameApiFailureLog.describe`が組み立てた1行を`logFailure`へ渡す（BL-139）。
     本クラスはAndroid非依存のユニットテスト対象で`android.util.Log`を直接呼べないため、出力先は
     注入する。施錠/解錠側は`SesameCommandHandler`の`onFailure`から同じ経路へ流す。
@@ -1346,7 +1462,11 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   `SesameCommandSenderProvider`（`Wearable.getMessageClient(context)`からのファクトリ）:
   lock/unlock/requestStatusの意図を`mobile`へ送信する（BL-006, BL-008, BL-061）。
 - `wear.messaging.SesameConnectedNodeProvider`: `NodeClient.connectedNodes`から接続先ノードID
-  取得（スマホ未接続時の判定に使用、BL-014）。
+  取得（スマホ未接続時の判定に使用、BL-014）。クラウド中継ノード（id `cloud`）は`core.SesameNodeSelector`で除き、
+  スマホのノードだけを選ぶ（BL-312）。
+- `wear.messaging.SesameResultAwaiter`: 送信前に`PATH_COMMAND_RESULT`のリスナーを登録し、送信後10秒以内に結果が返らなければ
+  失敗とする。`SesameActionActivity`が、失敗（スマホのノードが無い場合を含む）のとき失敗の振動と「スマホに届きませんでした」
+  を2.5秒出して閉じる。スマホが通信できず送信が捨てられても分かるようにするため（BL-312）。
 - `wear.messaging.SesameResultHandler`（Android非依存）/ `SesameResultListenerService`
   （`WearableListenerService`実装）: `PATH_COMMAND_RESULT`受信時にpathとpayloadから
   `HapticPattern`を判定し`SesameHapticPlayer`へ渡す。あわせてTile/Complicationの即時再描画も
@@ -1390,18 +1510,22 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   通信は次の行タップのときだけ行う。
 - **各行はタップで操作できる（BL-254）。** Tileを置いていない利用者や、Tileで選んでいない別のデバイスを
   直接操作したい利用者のため（実機ではTileを1つしか置けない、後述「Tile」の未確認事項）。
-  提示コマンドはTileと同じ`core.display.SesameTileActions`（施錠中→解錠、解錠中→施錠）で、
-  `SesameActionActivity.createIntent`を開くため解錠の確認画面・デモ分岐・送信方式もTileと同じ。
-  Tileでは操作なしになる状態不明（UNKNOWN）の行は、施錠・解錠のどちらとも決められないため
-  `SesameStatusRefreshActivity`でそのデバイスの状態取得を送る（`SesameStatusListContent.TapAction.Refresh`）。
-  行の4行目に操作の文言（`SesameTileContent.actionLabel`、状態不明は「タップで更新」）を添え、
+  **BL-295以降、行のタップは状態によらず（状態不明でも）常に施錠・解錠を選ぶ画面を開く**
+  （`core.display.SesameTileActions.listTapDecision`、`SesameStatusListContent.TapAction.Choose`、
+  `SesameActionActivity.createChooserIntent`）。選ぶ画面・デモ分岐・送信方式はTileと同じ。長押しの入口は作らない
+  （ユーザー決定。タップで選ぶ画面に揃えた）。状態取得は末尾の「更新」「すべて更新」だけで行う
+  （`TapAction.Refresh`。BL-295より前は状態不明の行のタップが状態取得だった）。
+  行の4行目に操作の文言（`SesameTileContent.CHOOSE_ACTION_LABEL`「タップで選ぶ」）を添え、
   行の背景・文字色はTileの状態チップと同じ（`backgroundColorArgb` / `statusTextColorArgb`、
   角丸12dp・内側6dp）にして、押せる面であることと状態を同時に示す。
   スマートフォン未接続の判定はしない（送信時に接続ノードが無ければ`SesameActionActivity`が何も送らずに閉じる）。
-- **一覧の末尾に「更新」と「全施錠」を置く（BL-255、`SesameStatusListContent.footerChips`）。**
-  0台なら置かない（案内文だけ）。1台なら「更新」（そのuuidへ状態取得）だけ、2台以上なら「全施錠」
-  「すべて更新」の順に置き、送信先は`ALL_DEVICES_TARGET_UUID`（各Activityが登録済み全uuidへ個別に送る、
-  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。Tileの一部解錠→全施錠と同じ方針）。
+- **一覧の末尾に「更新」と「全台の鍵を操作」を置く（BL-255、`SesameStatusListContent.footerChips`）。**
+  0台なら置かない（案内文だけ）。1台なら「更新」（そのuuidへ状態取得）だけ、2台以上なら「全台の鍵を操作」
+  （`MENU_ALL_CHIP_LABEL`、`TapAction.Choose`で全デバイスの選ぶ画面を開く。中立色。**BL-308（2026-11-21のユーザー判断）で、
+  1タップで送る緑の「全施錠」（`TapAction.Command(LOCK)`。型ごと削除した）から変えた**。操作パネルの上段（BL-307）・スマホの
+  カードの「鍵を操作」と揃えるため）と「すべて更新」の順に置き、送信先は`ALL_DEVICES_TARGET_UUID`（各Activityが登録済み全uuidへ個別に送る、
+  Tileの「全デバイス」と同じ）。**全解錠は置かない**（迷ったら安全側。全デバイスの解錠は、Tileの全デバイスから
+  開く選ぶ画面の「全解錠」から行う）。
   一括操作を2台以上に限るのは、1台なら行のタップで足りるため。どちらもタップしたときだけ通信する。
   見た目は「更新」系がTileの左列と同じ中立色（0xFF424242・白文字）、「全施錠」が施錠中の状態色。
   末尾は円形画面の下端に寄り横幅が狭くなるため、チップの左右の外側余白を行（12dp）より広い24dpにしている。
@@ -1413,9 +1537,12 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （スマホのログに`handleStatusRequest`）になった。2台以上の末尾の「全施錠」「すべて更新」は円形画面の下端で見切れず、
   全台へ送られた（「全施錠」は3台分の成功がスマホから返った）。1台のときの「更新」も見切れず状態取得になった。
   電池20%未満（5%）の行に⚠が付いた。
-  **確認画面のキャンセル後と「全施錠」の実行後は、一覧へ戻らず文字盤へ戻る**（`SesameActionActivity`が閉じた後の
-  戻り先がTile起点と同じ挙動）。ユーザーは一覧へ戻る方がよいが仕様かもしれないとしており、挙動の変更は未決定
-  （必要ならBACKLOGへ起票する）。
+  確認画面のキャンセル後と「全施錠」の実行後は、一覧へ戻らず文字盤へ戻っていた（`SesameActionActivity`が閉じた後の
+  戻り先がTile起点と同じ挙動）。**BL-309（2026-11-21のユーザー判断）で一覧へ戻すようにした**: 一覧（`wear.MainActivity`）は
+  BL-067の対策で`noHistory`のため、選ぶ画面を開いた時点で破棄されて戻る先が無い。`noHistory`は外さず（BL-067の再発を避ける）、
+  一覧から開くときだけ`createChooserIntent(..., returnToList = true)`で`EXTRA_RETURN_TO_LIST`を付け、`SesameActionActivity.finish()`
+  （送信後・右スワイプ（`onWindowDismissed`経由）・戻る）で一覧を開き直す。タイルから開いたときは従来どおりタイルへ戻る
+  （実機のPixel Watch 2で、一覧の行・末尾の「全台の鍵を操作」から開いて閉じると一覧へ、操作パネルから開いて閉じるとタイルへ戻ることを確認）。
 
 ### Tile
 
@@ -1441,7 +1568,8 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
     帯のぶん高さが減るため、状態アイコンの書体を`DISPLAY1`から`DISPLAY2`へ一段下げた（BL-206）。
     最終取得時刻の行には経路の絵文字を付けない（`SesameTileStatus.detailLabel`は経路を含まず、
     経路は`SesameTileStatus.route`で別に持つ）。
-  - 各チップは共通ヘルパー`buildChipModifiers`で角丸背景（`ModifiersBuilders.Corner`、半径
+  - 各チップは共通ヘルパー`chipModifiers`（`TileLayoutParts.kt`。BL-298で非公開メソッドから切り出し、
+    `buildActionClickable`とともに操作専用タイルと共用。挙動は変えていない）で角丸背景（`ModifiersBuilders.Corner`、半径
     `CHIP_CORNER_RADIUS_DP`=12dp）・内側パディング（`CHIP_INNER_PADDING_DP`=6dp）を持つ。
   - 状態色（`SesameTileContent.backgroundColorArgb`: 施錠中=緑/解錠中=赤/通信中=黄/MIXED=紫/
     未接続・不明=グレー）は右チップの背景にのみ適用し、左側2チップは中立色
@@ -1456,12 +1584,24 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   - `TileService.onTileRequest`はGuavaの`SettableFuture`でコルーチン結果をブリッジしている
     （Tiles APIのレスポンスタイムアウト制約を避けるため、既存のDataItemスナップショットで即座に
     応答しつつmobile側へ状態取得リクエストを送信する設計、BL-061）。
+    コルーチン内で例外（`CancellationException`以外）が起きても未設定表示（タップで設定）でfutureを完了させ、
+    描画が止まらないようにする（BL-300。固定文だけをログへ出し、例外本文・uuidは出さない）。
 - `core.display.SesameTileContent`（Android非依存）: 状態→表示文言・アイコン・背景色・テキスト色の
   マッピングと、中立チップ色`CHIP_NEUTRAL_COLOR_ARGB`。`statusLabel`/`actionLabel`は`isAllDevices`
   パラメータ（デフォルト`false`）を持ち、全デバイス選択時は「全施錠中」等の文言に切り替わる。
-- `core.display.SesameTileActions`（Android非依存）: Tile状態→提示コマンドの決定。MIXED状態はタップで
-  「全施錠」を提示する（迷ったら安全側の方針、UNLOCKのみ確認画面を挟む既存UXと組み合わせて安全側は
-  確認不要のまま維持、BL-071）。
+- `core.display.SesameTileActions`（Android非依存）: タップの動作の決定（BL-295）。`tapDecisionForState`は
+  施錠中・解錠中・MIXED→`OpenChooser`（施錠・解錠を選ぶ画面）、通信中・未接続・状態不明→`None`。
+  **BL-304（2026-11-21のユーザー判断）で、解錠中の`Run(LOCK)`（即施錠）をやめ、`TapDecision.Run`ごと削除した**
+  （1台・全デバイス、Tile・ホーム画面ウィジェット・クイック設定タイルのすべて。`WidgetTapAction.Run` /
+  `QuickSettingsTileContent.Tap.Run`も削除）。操作ラベル`SesameTileContent.actionLabel`も解錠中を含めて「タップで選ぶ」になり、
+  1台・全デバイスで文言が変わらないため引数`isAllDevices`を外した。タップ1回で施錠する経路は、スマホのショートカットの「全施錠」だけ
+  （操作専用タイルの「全施錠」はBL-307、ウォッチのアプリの一覧の末尾の「全施錠」はBL-308で選ぶ画面へまとめた）。
+  `listTapDecision`はウォッチ一覧の行用で状態によらず`OpenChooser`。`commandLabel`は選ぶ画面のボタン文言
+  （全デバイスは「全施錠」「全解錠」）。従来の`commandForState`（表示の逆の命令）は挙動を変えずに残している。
+  **解錠の安全方針（BL-295）**: タップだけで解錠する経路は作らない。解錠は、選ぶ画面で「解錠」を押す明示操作を経て
+  初めて実行される（旧来の`SesameCommandConfirmation`＝解錠は確認、の方針を、選ぶ画面の解錠ボタンで満たす。
+  選ぶ画面で押したあとに確認は重ねない）。解錠中のタップによる即施錠はBL-295では残したが、BL-304で選ぶ画面へ統一した
+  （ユーザーの指示。1台のウィジェットで解錠中をタップすると、意図せず施錠に走るため）。
 - `core.display.SesameDeviceTargets`（Android非依存）: 操作対象の選択肢と解決規則。`choices`は
   デバイス選択画面の項目を表示順に返す（0台ならデモ用デバイスのみ、2台以上なら先頭に「全デバイス」、
   表示名が空欄ならuuidをラベルにする）。`displayName`は割り当て済みuuidの表示名（デモ・全デバイスは
@@ -1481,6 +1621,44 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
   （`tileId`、Wear Tilesがタイル追加ごとに割り振る固有ID）ごとに操作対象デバイスのuuidを
   `SharedPreferences`（機密情報を含まないため非暗号化）へ永続化する「複数Tileインスタンス方式」
   （BL-052）。選択画面は`wear.ui.DeviceSelectionScreen`（Tile/Complication共通）を用いる。
+- **操作専用タイル（BL-298）**: `wear.tile.SesameControlTileService`を別のTileServiceとして`AndroidManifest.xml`へ
+  宣言する（label`@string/tile_control_label`=「Sesami 操作パネル」、description=`tile_control_description`、
+  プレビュー`@drawable/tile_control_preview`。BL-310で、実機（撮影モードの見本）で撮った操作パネルの画面の PNG
+  （`drawable-nodpi/tile_control_preview.png`、ストア画像`wear_10_control_panel.png`と同じ）へ差し替えた。
+  以前は黒背景の円形192dpの図案のベクター）。タイル追加の一覧では、既存の「Sesami Wear」
+  （label=`app_name`のまま変えない）とは別のタイルとして並ぶ。**2つのタイルの使い分け**: 既存の`SesameTileService`は
+  「1つのタイルが1台（または全デバイス）に対応し、状態の確認と操作・状態更新・対象変更を持つ」タイル、
+  操作専用タイルは「登録済み全デバイスを対象に、全体の施錠・解錠と台ごとの状態を1枚に並べる」タイルで、
+  対象の割り当て（`TileDeviceAssignmentStore`）・「更新」・「変更」を持たない（tileIdの保存をしないため、
+  2つのサービスのtileIdが重複しても保存キーの衝突は起きない）。同じタイルの複数配置は見送り（ユーザー判断、2026-11-21）。
+  - 表示規則は`core.display.SesameControlTileContent`（Android非依存、ユニットテスト対象）。`build(devices,
+    isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全台の鍵を操作」の1ボタン（`menuLabel`。登録1台のときは「鍵を操作」、
+    選ぶ画面の対象はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`。**BL-307（2026-11-21のユーザー判断）でまとめた**。
+    もとは「全施錠」（1タップで即実行）と「全解錠」（選ぶ画面）の2ボタンだったが、スマホのカードの「鍵を操作」（BL-303）と
+    考え方を揃え、どちらも選ぶ画面で押して実行する。背景は中立色`CHIP_NEUTRAL_COLOR_ARGB`、スマホ未接続のときは文字を
+    灰色（#9E9E9E）にしてタップ不可。読み上げは「全台の鍵を操作 タップして施錠・解錠を選ぶ」）、下段に台ごとの状態チップを**横に並べる**（ユーザーが選んだ
+    「全体ボタン＋台ごとの状態」の見本どおり。チップは名前（`shortName`、コードポイント単位で数え、ASCIIと半角カナ（U+FF61〜U+FF9F）を1、それ以外（全角・絵文字）を2として幅8まで、超えると先頭＋「…」。絵文字の途中では切らない）の下に
+    状態アイコン（`statusIcon`）、背景は`backgroundColorArgb`）。**寸法**: 円形192dp、1段の高さ48dp（タップ領域の最小値）、
+    段間・チップ間4dp、円の弦の両端の安全余白4dp。段ごとの可用幅は`tierWidthDp`＝「その段の中心から遠い側の辺での弦の長さ
+    −8dp」（2段構成は全段155dp、3段構成は上109・中177・下109dp）、1段のチップ数は`chipsPerRow`＝(幅+4)/(48+4)の切り捨て。
+    チップが3台までは2段構成（全体ボタン＋チップ1段、チップ幅約49dp）、4台以上は3段構成（全体ボタン＋チップ2段、中段3・下段2）で、
+    **チップ数の上限`maxChips`=5**（導出値）。割り振りは上の段が多めの均等（4台は2+2、5台は3+2）。登録が5台を超えると、
+    最後のチップを「他N台」（`overflowCount`/`ChipRow.overflowText`、N＝登録数−4）へ置き換え、タップで`MainActivity`
+    （状態一覧）を開く。0台は案内`EMPTY_MESSAGE`のみで、タップで`MainActivity`を開く（デモはSesameTileService側）。
+    スマホ未接続（`firstConnectedNodeId`がnull）なら上段のボタンとチップはタップ不可。チップのタップは状態によらず
+    （状態不明でも）選ぶ画面を開く（`SesameTileActions.listTapDecision`と同じ流儀）。レイアウトは`SesameControlTileLayout.kt`
+    （幅の狭いチップのため内側余白を`chipModifiers`の引数で2dpへ詰める）。
+  - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。上段のボタンも台のチップも`EXTRA_CHOOSE`
+    （選ぶ画面）で、**タップだけでは施錠も解錠もされない**（BL-307。以前の「全施錠」は`EXTRA_COMMAND=LOCK`で即実行していた）。
+    ピッカーの説明`tile_control_description`（「全台の鍵の操作と、台ごとの状態を1つのタイルに並べます」）も直した。
+    プレビューはBL-310で実機の画面へ差し替えた（上記）。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
+    展開は`SesameActionTargetResolver`）。
+  - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
+    **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で
+    `SesameDisplayUpdateRequester.requestUpdateAll`と`SesameResultListenerService`が`SesameControlTileService`の再描画も
+    依頼し、施錠に成功すれば施錠中の表示になる。画像リソースは使わない（`RESOURCES_VERSION`="1"）。状態の読み取りが例外で失敗しても（`CancellationException`は除く）、固定文だけをlogcatへ出し、台の一覧が読めれば状態不明・未接続（全ボタン・チップ無効）の表示でfutureを完了させる（描画が止まらない）。
+  - 実機でしか確かめられない点（別タイルとして並ぶか・両方置けるか、192dpでの押し間違い・円形の端の見切れ、
+    送信後の戻り先）はBL-297の(7)で人手検証する。
 - **未確認事項**: 上記の多重インスタンス対応はコード側では実装済みだが、実機（Wear OS 7の
   Pixel Watch、2026-08-30確認）では同一Tileを2つ以上追加できない。Watch上のタイル編集の「＋」でも
   スマホのPixel Watchアプリのタイル管理画面でも、追加済みのタイルはチェック済み扱いで再選択でき
@@ -1547,13 +1725,21 @@ mobile内の保存値と`mobile.command.SesameDeviceCommandExecutor`（BL-120）
 
 ### 施錠/解錠操作画面
 
-- `wear.action.SesameActionActivity`: Tileタップで起動。LOCKはワンタップ即送信、UNLOCKは確認画面
-  （`SesameCommandConfirmation`が要求要否を判定）を経由してから送信する。確認画面は左＝
-  「キャンセル」・右＝「施錠」または「解錠」の角丸チップ2つ（`SesameActionChip`、
+- `wear.action.SesameActionActivity`: Tileタップ・デバイス一覧の行タップで起動。LOCKの直接指定はワンタップ即送信
+  （BL-307・BL-308以降、アプリ内でLOCKを直接指定する入口は無い。外部からの起動（exported）だけが残る）。
+  一覧から開いた場合は`EXTRA_RETURN_TO_LIST`により、閉じるときに一覧を開き直す（BL-309）。
+  施錠・解錠を選ぶ依頼（`EXTRA_CHOOSE`、施錠中・一部解錠のTileタップと一覧の行タップ）とUNLOCKの直接指定
+  （`SesameCommandConfirmation`が要求と判定）は選ぶ画面を開き、押した方をそのまま送信する（BL-295）。
+  選ぶ画面は左＝「施錠」・右＝「解錠」の角丸チップ2つ（`SesameActionChip`、
   `Modifier.clip(RoundedCornerShape(12.dp))`の自作コンポーネント、Wear Compose Materialの円形
-  `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。全デバイス選択時は
-  ボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。送信はFire-and-forget方式。
-- `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`。
+  `Button`は不使用）で、Tile側のチップと同じ配色・角丸半径を用いる（BL-070）。キャンセルボタンは無く、
+  スワイプで戻る（何も送らない）。全デバイス選択時はボタンラベルが「全施錠」「全解錠」に切り替わる（BL-071）。
+  送信はFire-and-forget方式。
+- `wear.action.SesameActionCommandParser`（Android非依存）: Intent Extra文字列→`SesameCommand`、
+  選ぶ画面の依頼（`parse`の`Request.Choose` / `Request.Direct`）。
+- `wear.action.SesameActionLaunchPlanner`（Android非依存）: `SesameActionActivity`の起動時の判定。選ぶ依頼・
+  解錠（UNLOCK）の直接指定は選ぶ画面（`Plan.Chooser`）、施錠（LOCK）の直接指定は即実行（`Plan.Execute`）、
+  コマンド・uuidが無効なら閉じる（`Plan.Finish`）。ユニットテスト対象。
 - `wear.action.SesameActionTargetResolver`（Android依存の薄いアダプタ）: コマンド送信・状態更新の対象
   uuid一覧を解決する。全デバイス時のみDataItemから登録済み一覧を読み、展開は
   `core.display.SesameDeviceTargets.targetUuids`へ委ねる（全デバイス時は登録済み全uuidのリスト、
@@ -2073,7 +2259,7 @@ BL-151の着手条件だった2点（AABサイズへの影響、Amplify初期化
 
 `mobile.command.SesameDeviceCommandExecutor`が、施錠/解錠（`execute`）と状態取得（`refreshStatus`）の
 両方で経路を選ぶ（状態取得は下記「利用者の『更新』によるBLE確認」でBL-204により変更）。**利用者からは経路が見えない**（表示・操作・結果の見え方は同じで、どちらで実行したかは
-`Log.w`の診断ログにのみ残る）。
+`Log.w`の診断ログと、操作履歴の「通信の詳細」（BL-302）にのみ残る）。
 
 | クラス | 役割 | テスト |
 | --- | --- | --- |
@@ -2411,7 +2597,7 @@ BLEの接続は施錠/解錠・更新の背景で行われ利用者から見え�
 
 #### スマートフォンの「Bluetooth接続を確認」画面（BL-272、2026-11-07）
 
-デバイスカードの「接続確認」（ダイヤル操作の隣）から`mobile.radar.BleRadarActivity`を開く。
+デバイスカードの「Bluetooth」メニューの「接続確認」（BL-303。以前はダイヤル操作の隣のボタン）から`mobile.radar.BleRadarActivity`を開く。
 背景で行われるBluetooth接続を、利用者が任意のタイミングで目で確かめるための画面で、
 **距離はRSSIからの目安**（画面にもその旨を出す）。
 
@@ -2671,8 +2857,8 @@ Android非依存のクラスへ切り出し、ユニットテストで検証で�
 ### UI/UX方針（現状の実装内容）
 
 - Tileはロック状態（施錠中/解錠中/通信中/未接続/不明/混在）をアイコン・色でひと目表示する。
-- 施錠はワンタップ即実行、解錠は誤操作防止のため確認画面（左＝キャンセル、右＝施錠/解錠の角丸
-  チップ2つ）を挟む。
+- 施錠中・解錠中・一部解錠のタップは、誤操作防止のため施錠・解錠を選ぶ画面（左＝施錠、右＝解錠の
+  角丸チップ2つ。スマホはキャンセルも並べる）を開き、解錠はそこで押した明示操作で実行する（BL-295。解錠中の即施錠はBL-304でやめた）。
 - 通信中は明確な処理中表示（IN_PROGRESS状態）＋`CommandDebouncer`による2秒以内の重複コマンド無視で
   二重送信を防止する。
 - 成功/失敗をハプティクスパターンで区別する。
@@ -2725,9 +2911,9 @@ tileIdの場合はTile上に「タップして設定」等の誘導表示を出�
 
 - Sesame API: 施錠/解錠（POST）はsecretKeyによるAES-CMAC署名付きコマンドが必須（素のJSON送信では
   通らない）。状態取得（GET）はx-api-keyヘッダーのみで可能。エンドポイント・署名生成の詳細は
-  「実装済み機能要件 > Sesame APIクライアント」参照。仕様の一次情報源は参考実装pysesame3
-  (<https://github.com/mochipon/pysesame3>)のソースコードであり、CANDY HOUSE公式ドキュメント
-  そのものは未参照だが、実機疎通確認（BL-010）で最終確認済み。
+  「実装済み機能要件 > Sesame APIクライアント」参照。仕様の一次情報はCANDY HOUSE公式ドキュメント
+  （webapi.md）で、参考実装pysesame3（<https://github.com/mochipon/pysesame3>）と一致することを
+  2026-11-21に確認済み。実機疎通確認（BL-010）でも最終確認済み。
 - secretKeyは16進数文字列（32文字=16バイト）であり、Base64ではない（BL-058）。apikey/uuid/
   secretKeyはいずれも`biz.candyhouse.co`（SESAME Biz 開発者ページ）から取得する
   （`partners.candyhouse.co`ではない、BL-057, BL-059）。

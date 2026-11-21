@@ -38,3 +38,46 @@ data class SesameDiagnosticsEntry(
     val route: SesameStatusRoute? = null,
     val reason: String? = null,
 )
+
+/**
+ * 診断ログの「通信の詳細」1行（BL-302）。
+ *
+ * これまで`Log.w`（タグ`SesameApi`）にしか出していなかった行（HTTPの応答コードと本文長、失敗の理由、
+ * 経路と成否、BLEのどの段階で失敗したか）を、利用者の端末で再現したときにも操作履歴から確かめられるよう残す。
+ * logcatは利用者が取り出せないため。施錠・解錠の1件（[SesameDiagnosticsEntry]）とは別に、時刻順の行として持つ。
+ *
+ * [message]は[sanitize]を通した後の値だけを持つ（uuid・BLEアドレス・資格情報を含めない）。
+ */
+@Serializable
+data class SesameDiagnosticsDetail(
+    val epochMillis: Long,
+    val message: String,
+) {
+    companion object {
+        /** 1行の上限。想定外に長い行（例外の文言など）で保存値が膨らまないようにする。 */
+        const val MAX_MESSAGE_LENGTH = 200
+
+        // `Log.w`の行にはuuidの先頭8文字（`device=xxxxxxxx`）が入るものがある。logcatは端末から出ないが、
+        // 操作履歴は利用者がそのまま貼って送るため、uuidの断片も残さない（2026-09-20のユーザー判断と同じ方針）。
+        private val DEVICE_TOKEN = Regex("""\s*\bdevice=\S*""")
+
+        // 念のため、uuid（8-4-4-4-12の16進数）・BLEアドレス（xx:xx:xx:xx:xx:xx）・16進数16文字以上の並び
+        // （secretKeyなど）の形をした部分は伏せる。いまの呼び出し元はこれらを渡さないが、将来の行の追加で
+        // 混入しても外へ出さないため。
+        private val SENSITIVE_PATTERNS =
+            listOf(
+                Regex("""[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"""),
+                Regex("""(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"""),
+                Regex("""\b[0-9A-Fa-f]{16,}\b"""),
+            )
+
+        private const val MASK = "***"
+
+        /** 保存してよい形へ直す（`device=`の除去・資格情報らしい値の伏せ字・改行の除去・長さの上限）。 */
+        fun sanitize(message: String): String {
+            var result = DEVICE_TOKEN.replace(message, "")
+            SENSITIVE_PATTERNS.forEach { result = it.replace(result, MASK) }
+            return result.replace(Regex("""\s+"""), " ").trim().take(MAX_MESSAGE_LENGTH)
+        }
+    }
+}

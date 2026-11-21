@@ -4,7 +4,7 @@ import com.sesamiwear.core.TileDisplayState
 
 /**
  * [TileDisplayState] からTileの表示文言を決定する。Android非依存のためユニットテスト対象。
- * [statusLabel]/[actionLabel]の`isAllDevices`は、対象が単一デバイスか登録済み全デバイス
+ * [statusLabel]の`isAllDevices`は、対象が単一デバイスか登録済み全デバイス
  * （BL-071、複数デバイス一括操作）かで文言を切り替えるためのフラグ。
  * wearのTileとmobileのホーム画面ウィジェットで文言・色を食い違わせないよう、両者が参照できる
  * coreに置いている（BL-119。mobileはwearへ依存できないため）。
@@ -33,21 +33,21 @@ object SesameTileContent {
             TileDisplayState.UNLOCKED -> if (isAllDevices) "全解錠中" else "解錠中"
             // 「施錠/解錠混在」（7文字）はタイルの表示幅に収まらず「施錠/解…」と省略されていた
             // ため短縮した（BL-104）。1文字でも解錠中のデバイスがあるという、利用者にとって
-            // 行動につながる事実を残す表現にする。🔀アイコンと「タップで全施錠」が併記される。
+            // 行動につながる事実を残す表現にする。🔀アイコンと「タップで選ぶ」が併記される。
             TileDisplayState.MIXED -> "一部解錠"
             TileDisplayState.IN_PROGRESS -> "通信中..."
             TileDisplayState.DISCONNECTED -> "スマホ未接続"
             TileDisplayState.UNKNOWN -> "状態不明"
         }
 
-    fun actionLabel(
-        state: TileDisplayState,
-        isAllDevices: Boolean = false,
-    ): String? =
+    /** 施錠・解錠を選ぶ画面を開くタップの操作文言（BL-295）。 */
+    const val CHOOSE_ACTION_LABEL = "タップで選ぶ"
+
+    /** タップしたときの操作の文言。タップで操作できる状態はすべて選ぶ画面を開くため、1台・全デバイスで同じ（BL-304）。 */
+    fun actionLabel(state: TileDisplayState): String? =
         when (state) {
-            TileDisplayState.LOCKED -> if (isAllDevices) "タップで全解錠" else "タップで解錠"
-            TileDisplayState.UNLOCKED -> if (isAllDevices) "タップで全施錠" else "タップで施錠"
-            TileDisplayState.MIXED -> "タップで全施錠"
+            // 施錠中・一部解錠（BL-295）と解錠中（BL-304）のタップは、施錠・解錠を選ぶ画面を開く。
+            TileDisplayState.LOCKED, TileDisplayState.MIXED, TileDisplayState.UNLOCKED -> CHOOSE_ACTION_LABEL
             TileDisplayState.IN_PROGRESS, TileDisplayState.DISCONNECTED, TileDisplayState.UNKNOWN -> null
         }
 

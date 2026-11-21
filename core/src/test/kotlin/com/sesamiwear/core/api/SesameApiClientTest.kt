@@ -146,6 +146,55 @@ class SesameApiClientTest {
         }
 
     @Test
+    fun `send command returns the status code and body length of a 2xx response`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("""{"a":1}""").setResponseCode(HTTP_OK))
+
+            val receipt = client.sendCommand(SesameCommand.LOCK, ByteArray(16))
+
+            assertEquals(SesameCommandReceipt(httpStatusCode = HTTP_OK, bodyLength = 7), receipt)
+        }
+
+    @Test
+    fun `send command with an empty 2xx body reports zero length`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+
+            val receipt = client.sendCommand(SesameCommand.UNLOCK, ByteArray(16))
+
+            assertEquals(0, receipt.bodyLength)
+        }
+
+    @Test
+    fun `send command stops counting an oversized 2xx body at the cap`() =
+        runTest {
+            server.enqueue(MockResponse().setBody("x".repeat(OVERSIZED_BODY_BYTES)).setResponseCode(HTTP_OK))
+
+            val receipt = client.sendCommand(SesameCommand.LOCK, ByteArray(16))
+
+            assertEquals(
+                SesameCommandReceipt(httpStatusCode = HTTP_OK, bodyLength = BODY_CAP_BYTES, bodyTruncated = true),
+                receipt,
+            )
+        }
+
+    @Test
+    fun `send command still succeeds when reading the 2xx body fails`() =
+        runTest {
+            server.enqueue(
+                MockResponse()
+                    .setBody("x".repeat(SHORT_BODY_BYTES))
+                    .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY),
+            )
+
+            val receipt = client.sendCommand(SesameCommand.LOCK, ByteArray(16))
+
+            assertEquals(HTTP_OK, receipt.httpStatusCode)
+            assertNull(receipt.bodyLength)
+            assertFalse(receipt.bodyTruncated)
+        }
+
+    @Test
     fun `connection failure has no http status code`() =
         runTest {
             server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
@@ -252,6 +301,9 @@ class SesameApiClientTest {
 
     private companion object {
         const val HTTP_OK = 200
+        const val BODY_CAP_BYTES = 64 * 1024
+        const val OVERSIZED_BODY_BYTES = BODY_CAP_BYTES * 2
+        const val SHORT_BODY_BYTES = 1000
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_FORBIDDEN = 403
         const val DELTA = 0.0001

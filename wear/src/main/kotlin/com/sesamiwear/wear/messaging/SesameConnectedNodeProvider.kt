@@ -2,15 +2,18 @@ package com.sesamiwear.wear.messaging
 
 import android.content.Context
 import com.google.android.gms.wearable.Wearable
+import com.sesamiwear.core.SesameNodeSelector
 import kotlinx.coroutines.tasks.await
 
 /**
- * ペアリング済みスマホのノードIDを取得する薄いアダプタ。Android Google Play Services依存のため
+ * ペアリング済みスマホのノードIDを取得する薄いアダプタ（クラウド中継ノードは選ばない、BL-312）。Android Google Play Services依存のため
  * ユニットテスト対象外（実際の接続動作はBL-011で人手検証）。
  */
 object SesameConnectedNodeProvider {
     suspend fun firstConnectedNodeId(context: Context): String? =
-        Wearable.getNodeClient(context).connectedNodes.await().firstOrNull()?.id
+        SesameNodeSelector.selectPhoneNodeId(
+            Wearable.getNodeClient(context).connectedNodes.await().map { it.id },
+        )
 
     /**
      * ペアリング済みスマホのうち、**近くにいる**（`isNearby`）ものだけを返す（BL-276）。

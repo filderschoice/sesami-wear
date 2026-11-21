@@ -65,7 +65,7 @@ class ShowcaseBleProbe(
         return when (snapshot?.lastFailure) {
             SesameStatusFailure.BACKGROUND_RESTRICTED -> SesameBleProbeSnapshot(SesameBleProbeStage.PERMISSION_DENIED)
             SesameStatusFailure.COMMUNICATION -> SesameBleProbeSnapshot(SesameBleProbeStage.NOT_FOUND)
-            SesameStatusFailure.AUTH_OR_QUOTA -> {
+            SesameStatusFailure.AUTH_OR_QUOTA, SesameStatusFailure.NOT_REFLECTED -> {
                 onProgress(SesameBleProbeSnapshot(SesameBleProbeStage.LOGGING_IN, rssi))
                 delay(delayMillis)
                 SesameBleProbeSnapshot(SesameBleProbeStage.FAILED, rssiDbm = rssi)

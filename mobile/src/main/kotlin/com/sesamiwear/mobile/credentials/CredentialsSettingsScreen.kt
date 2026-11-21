@@ -73,6 +73,8 @@ fun CredentialsSettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val controller = remember { CredentialsScreenController(context, credentialsStore, coroutineScope) }
+    // ほかの画面で一覧が変わっていたら、戻ったときに反映する（BL-311）。
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { controller.reload() }
     val snackbarHostState = remember { SnackbarHostState() }
     var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
     var deleteTarget by remember { mutableStateOf<SesameCredentials?>(null) }
@@ -111,6 +113,7 @@ fun CredentialsSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             onEdit = { editorTarget = EditorTarget(editing = it) },
             onDelete = { deleteTarget = it },
+            onCommandResult = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
         )
     }
 }
@@ -165,6 +168,7 @@ private fun DeviceListContent(
     modifier: Modifier,
     onEdit: (SesameCredentials) -> Unit,
     onDelete: (SesameCredentials) -> Unit,
+    onCommandResult: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -181,6 +185,7 @@ private fun DeviceListContent(
                     credentials = credentials,
                     onEdit = { onEdit(credentials) },
                     onDelete = { onDelete(credentials) },
+                    onCommandResult = onCommandResult,
                 )
             }
             // まとめて接続確認（BL-280）の入口。先頭に置くとよく使うカードが下へ押されるため、カードの後ろへ置く。

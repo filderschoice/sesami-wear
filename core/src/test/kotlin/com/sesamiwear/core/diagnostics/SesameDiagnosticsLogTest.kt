@@ -118,6 +118,87 @@ class SesameDiagnosticsLogTest {
         assertTrue(shared.contains("玄関"))
     }
 
+    @Test
+    fun `details come back newest first and are formatted with the time`() {
+        log.recordDetail(NOW, "unlock accepted: HTTP 200 body=2B")
+        log.recordDetail(NOW + 1_000, "route=BLE op=LOCK detail=NOT_FOUND")
+
+        assertEquals(
+            listOf(
+                "09/20 11:30:01 route=BLE op=LOCK detail=NOT_FOUND",
+                "09/20 11:30:00 unlock accepted: HTTP 200 body=2B",
+            ),
+            log.loadDetails().map { log.formatDetail(it) },
+        )
+    }
+
+    @Test
+    fun `only the newest details are kept`() {
+        repeat(SesameDiagnosticsLog.MAX_DETAILS + 5) { index -> log.recordDetail(NOW + index, "line$index") }
+
+        val details = log.loadDetails()
+        assertEquals(SesameDiagnosticsLog.MAX_DETAILS, details.size)
+        assertEquals("line${SesameDiagnosticsLog.MAX_DETAILS + 4}", details.first().message)
+    }
+
+    @Test
+    fun `the shared text puts details after the entries`() {
+        log.record(entry(NOW, deviceName = "玄関"))
+        log.recordDetail(NOW, "lock failed: HTTP 401")
+
+        assertEquals(
+            listOf(
+                "09/20 11:30:00 玄関 施錠 成功",
+                SesameDiagnosticsLog.DETAILS_HEADING,
+                "09/20 11:30:00 lock failed: HTTP 401",
+            ),
+            log.formatAll().lines(),
+        )
+    }
+
+    @Test
+    fun `the shared text has no details heading when there are no details`() {
+        log.record(entry(NOW, deviceName = "玄関"))
+
+        assertFalse(log.formatAll().contains(SesameDiagnosticsLog.DETAILS_HEADING))
+    }
+
+    @Test
+    fun `a device token from the route log is not stored`() {
+        // SesameBleAccessの行はuuidの先頭8文字を`device=`で持つ。logcatには残すが、操作履歴には残さない。
+        log.recordDetail(NOW, "route=BLE op=LOCK device=$UUID_SAMPLE result=NG")
+
+        assertEquals("route=BLE op=LOCK result=NG", log.loadDetails().single().message)
+        assertFalse(store.values.values.joinToString("\n").contains(UUID_SAMPLE))
+    }
+
+    @Test
+    fun `credential shaped values in a detail are masked`() {
+        val uuid = "$UUID_SAMPLE-0000-4000-8000-$UUID_SAMPLE" + "0000"
+        val address = listOf("AA", "BB", "CC", "DD", "EE", "FF").joinToString(":")
+        log.recordDetail(NOW, "x $uuid y $address z $SECRET_KEY_SAMPLE")
+
+        assertEquals("x *** y *** z ***", log.loadDetails().single().message)
+    }
+
+    @Test
+    fun `a detail is flattened to one line and capped`() {
+        // 16進数に見える文字（a〜f）を続けると伏せ字になるため、伸ばす文字はxにする。
+        log.recordDetail(NOW, "a\nb   c " + "x".repeat(SesameDiagnosticsDetail.MAX_MESSAGE_LENGTH))
+
+        val message = log.loadDetails().single().message
+        assertTrue(message.startsWith("a b c x"))
+        assertEquals(SesameDiagnosticsDetail.MAX_MESSAGE_LENGTH, message.length)
+    }
+
+    @Test
+    fun `clear removes details too`() {
+        log.recordDetail(NOW, "lock failed: HTTP 401")
+        log.clear()
+
+        assertTrue(log.loadDetails().isEmpty())
+    }
+
     /** `SesameDiagnosticsEntry`をそのまま組み立てると引数が多くなるため、既定値つきの薄い包みを使う。 */
     private fun entry(
         epochMillis: Long,

@@ -50,7 +50,7 @@ class SesameStatusFailureTest {
     @Test
     fun `labels are short enough for the tile and carry guidance on the widget`() {
         SesameStatusFailure.entries.forEach { failure ->
-            assertEquals(failure.name, MAX_SHORT_LABEL_LENGTH, failure.shortLabel.length)
+            assertEquals(failure.name, true, failure.shortLabel.length <= MAX_SHORT_LABEL_LENGTH)
             assertEquals(failure.name, true, failure.detailedLabel.startsWith(failure.shortLabel))
             assertEquals(failure.name, true, failure.detailedLabel.length > failure.shortLabel.length)
         }
@@ -90,6 +90,22 @@ class SesameStatusFailureTest {
         )
         assertNull(SesameStatusFailure.worstOf(listOf(null, null)))
         assertNull(SesameStatusFailure.worstOf(emptyList()))
+    }
+
+    @Test
+    fun `not reflected is restored by name and outranks a plain communication error`() {
+        assertEquals(SesameStatusFailure.NOT_REFLECTED, SesameStatusFailure.ofNameOrNull("NOT_REFLECTED"))
+        assertEquals("未反映", SesameStatusFailure.NOT_REFLECTED.shortLabel)
+        assertEquals(
+            SesameStatusFailure.NOT_REFLECTED,
+            SesameStatusFailure.worstOf(listOf(SesameStatusFailure.COMMUNICATION, SesameStatusFailure.NOT_REFLECTED)),
+        )
+        assertEquals(
+            SesameStatusFailure.BACKGROUND_RESTRICTED,
+            SesameStatusFailure.worstOf(
+                listOf(SesameStatusFailure.NOT_REFLECTED, SesameStatusFailure.BACKGROUND_RESTRICTED),
+            ),
+        )
     }
 
     private companion object {
