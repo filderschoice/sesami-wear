@@ -68,7 +68,8 @@
     「タップで解錠」「タップで全解錠」の文言が写っているため、あわせて確認する（`docs/store/README.md`の一覧）。
     BL-298で追加した操作専用タイル（「Sesami 操作パネル」。実機の見え方はBL-297の確認後）の画像も追加する
     （2台前後の状態で、上の「全施錠」「全解錠」と台ごとの行が写るもの。`docs/store/README.md`へ一覧を足す）。
-    撮影は Skill `store-screenshot-capture` の手順で行い、`docs/store/README.md`の説明も追随させる。
+    撮影はこれまでどおり実機（Pixel 8 Pro / Pixel Watch 2）で行い（2026-11-21 ユーザー指示。エミュレータは使わない）、
+    スマホの画像は Skill `store-screenshot-masking` で加工する。`docs/store/README.md`の説明も追随させる。
     撮り直しと同時に、旧称「解錠確認」「確認画面」が残る記述も選ぶ画面の呼び方へ直す（掲載文の変更は撮り直しと同時に行い、
     それまでは本文を変えない）: `docs/store/README.md`の画像の説明（`phone_2_widget_unlock_confirm`・`wear_5_unlock_confirm`の
     行）と`docs/store/STORE_LISTING.md`155行目付近の「解錠確認」。
