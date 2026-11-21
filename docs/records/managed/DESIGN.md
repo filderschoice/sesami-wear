@@ -1462,7 +1462,11 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   `SesameCommandSenderProvider`（`Wearable.getMessageClient(context)`からのファクトリ）:
   lock/unlock/requestStatusの意図を`mobile`へ送信する（BL-006, BL-008, BL-061）。
 - `wear.messaging.SesameConnectedNodeProvider`: `NodeClient.connectedNodes`から接続先ノードID
-  取得（スマホ未接続時の判定に使用、BL-014）。
+  取得（スマホ未接続時の判定に使用、BL-014）。クラウド中継ノード（id `cloud`）は`core.SesameNodeSelector`で除き、
+  スマホのノードだけを選ぶ（BL-312）。
+- `wear.messaging.SesameResultAwaiter`: 送信前に`PATH_COMMAND_RESULT`のリスナーを登録し、送信後10秒以内に結果が返らなければ
+  失敗とする。`SesameActionActivity`が、失敗（スマホのノードが無い場合を含む）のとき失敗の振動と「スマホに届きませんでした」
+  を2.5秒出して閉じる。スマホが通信できず送信が捨てられても分かるようにするため（BL-312）。
 - `wear.messaging.SesameResultHandler`（Android非依存）/ `SesameResultListenerService`
   （`WearableListenerService`実装）: `PATH_COMMAND_RESULT`受信時にpathとpayloadから
   `HapticPattern`を判定し`SesameHapticPlayer`へ渡す。あわせてTile/Complicationの即時再描画も

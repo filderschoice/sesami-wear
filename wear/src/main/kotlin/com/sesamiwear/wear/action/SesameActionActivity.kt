@@ -44,6 +44,8 @@ import com.sesamiwear.wear.display.SesameDisplayUpdateRequester
 import com.sesamiwear.wear.haptics.SesameHapticPlayer
 import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
+import com.sesamiwear.wear.messaging.SesameResultAwaiter
+import kotlinx.coroutines.delay
 
 /**
  * Tile・操作パネル・アプリの一覧のタップから起動される施錠/解錠実行画面。
@@ -126,12 +128,17 @@ private fun SesameActionScreen(
     // directCommandが無いとき（選ぶ画面）は、ボタンで選ばれたコマンドをここへ入れる。
     var command by remember { mutableStateOf(directCommand) }
 
+    var undelivered by remember { mutableStateOf(false) }
+
     command?.let { toSend ->
         LaunchedEffect(toSend) {
             if (SesameDemoMode.isDemoDevice(deviceUuid)) {
                 applyDemoCommand(context, toSend)
-            } else {
-                sendCommand(context, toSend, deviceUuid)
+            } else if (!sendCommand(context, toSend, deviceUuid)) {
+                // スマホから結果が返らなかった（スマホが通信できない等、BL-312）。失敗を知らせてから閉じる。
+                SesameHapticPlayer(context).play(HapticPattern.FAILURE)
+                undelivered = true
+                delay(UNDELIVERED_MESSAGE_MS)
             }
             onFinished()
         }
@@ -144,26 +151,32 @@ private fun SesameActionScreen(
         )
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "送信中...")
+            Text(
+                text = if (undelivered) "スマホに届きませんでした" else "送信中...",
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
 
 /**
- * 実デバイスへのコマンド送信（Fire-and-forget）。結果は
- * [com.sesamiwear.wear.messaging.SesameResultListenerService]がmobile側から受け取る。
+ * 実デバイスへのコマンド送信。結果のハプティクスと再描画は
+ * [com.sesamiwear.wear.messaging.SesameResultListenerService]がmobile側から受け取って行う。
+ * スマホが見つからない、または[SesameResultAwaiter.TIMEOUT_MS]以内に結果が返らなければfalse（BL-312）。
  */
 private suspend fun sendCommand(
     context: Context,
     command: SesameCommand,
     deviceUuid: String,
-) {
-    val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context) ?: return
+): Boolean {
+    val nodeId = SesameConnectedNodeProvider.firstConnectedNodeId(context) ?: return false
     val sender = SesameCommandSenderProvider.create(context)
-    SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid).forEach { targetUuid ->
-        when (command) {
-            SesameCommand.LOCK -> sender.requestLock(nodeId, targetUuid)
-            SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, targetUuid)
+    return SesameResultAwaiter.sendAndAwaitResult(context) {
+        SesameActionTargetResolver.resolveDeviceUuids(context, deviceUuid).forEach { targetUuid ->
+            when (command) {
+                SesameCommand.LOCK -> sender.requestLock(nodeId, targetUuid)
+                SesameCommand.UNLOCK -> sender.requestUnlock(nodeId, targetUuid)
+            }
         }
     }
 }
@@ -234,3 +247,6 @@ private fun SesameActionChip(
 }
 
 private const val ACTION_CHIP_CORNER_RADIUS_DP = 12
+
+/** 「届きませんでした」を表示してから閉じるまでの時間（ミリ秒）。 */
+private const val UNDELIVERED_MESSAGE_MS = 2_500L

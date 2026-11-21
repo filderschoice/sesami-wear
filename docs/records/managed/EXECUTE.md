@@ -5,6 +5,31 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 20:30
+  summary: スマホが通信できないときのウォッチの施錠・解錠を、届かなければ失敗として知らせ、クラウド中継ノードへ宛てて送らないようにした（BL-312）
+  details:
+    変更内容: >-
+      ユーザーの指示（BL-312は(a)+(b)で直す、2026-11-21）による。(b) core.SesameNodeSelector を追加し、wear.messaging.SesameConnectedNodeProvider.firstConnectedNodeId が
+      クラウド中継ノード（id が cloud）を除いた先頭を返すようにした。(a) wear.messaging.SesameResultAwaiter を追加し、wear.action.SesameActionActivity が
+      送信前に PATH_COMMAND_RESULT のリスナーを登録して10秒待ち、結果が返らない・スマホのノードが無いときは失敗の振動と
+      「スマホに届きませんでした」を2.5秒出して閉じる。クラウド経由の遠隔操作は残る（結果が返れば成功扱い）。
+      タイルの描き直し間隔（d）は今回は入れていない。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/SesameNodeSelector.kt
+      - core/src/test/kotlin/com/sesamiwear/core/SesameNodeSelectorTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameConnectedNodeProvider.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/messaging/SesameResultAwaiter.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/action/SesameActionActivity.kt
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - Gradleのゲートはすべて終了コード0。実機（スマホの機内モード）での確認は未実施でBL-312へ残した。
+    関連ID:
+      - BL-312
 - date: 2026-11-21 19:30
   summary: ウォッチのタイル・アプリの一覧・コンプリケーションの取得時刻を、ウィジェットと同じ日時表記にした（BL-313）
   details:
