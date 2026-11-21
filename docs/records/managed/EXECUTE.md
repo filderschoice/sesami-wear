@@ -5,6 +5,38 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 15:30
+  summary: ウォッチのアプリの一覧の末尾の「全施錠」を「全台の鍵を操作」（全デバイスの選ぶ画面）へ変えた（BL-308）
+  details:
+    変更内容: >-
+      BL-297の実機検証中のユーザー指示（一覧の全施錠も、操作パネルの「全台の鍵を操作」と同じ形にする、2026-11-21）による。
+      wear.status.SesameStatusListContent の末尾チップを LOCK_ALL_CHIP_LABEL「全施錠」（TapAction.Command(LOCK)、1タップで送信）から
+      MENU_ALL_CHIP_LABEL「全台の鍵を操作」（TapAction.Choose）へ変え、生成されなくなった TapAction.Command を型ごと削除した。
+      SesameStatusListScreen は Command の分岐と、全施錠だけ施錠中の色にしていた分岐を削除し、末尾チップをすべて中立色にした。
+      これでウォッチからタップ1回で施錠する経路は無くなる（スマホのアプリアイコンの長押しメニューの「全施錠」だけが残る）。
+      USER_GUIDE（一覧の末尾・混在時のタップ・タップ1回で施錠したいときの案内）・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・
+      STORE_LISTING・site・UI設計書・DESIGN・BL-297の確認項目と、関係するKDocを追随させた。
+    変更ファイル:
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListScreen.kt
+      - wear/src/test/kotlin/com/sesamiwear/wear/status/SesameStatusListContentTest.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/store/STORE_LISTING.md
+      - site/index.html
+      - docs/design/UI_DESIGN.html
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。SesameStatusListContentTest は末尾チップの期待値を「全台の鍵を操作」・TapAction.Choose へ書き換え、「末尾のチップはタップで施錠・解錠を送らない」検査へ直して成功。markdownlint・validate-records・scan-secrets とも成功。実機は外したため、一覧の末尾の表示の確認はBL-297に残した。
+    関連ID:
+      - BL-308
+      - BL-297
 - date: 2026-11-21 14:30
   summary: 操作専用タイルの上段を「全台の鍵を操作」の1ボタンへまとめ、施錠・解錠を選ぶ画面で実行する形にした（BL-307）
   details:

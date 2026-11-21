@@ -28,7 +28,6 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.display.SesameTileContent
 import com.sesamiwear.wear.action.SesameActionActivity
 import com.sesamiwear.wear.action.SesameStatusRefreshActivity
@@ -110,8 +109,6 @@ private fun openTapAction(
 ) {
     val intent =
         when (action) {
-            is SesameStatusListContent.TapAction.Command ->
-                SesameActionActivity.createIntent(context, action.command, targetUuid)
             SesameStatusListContent.TapAction.Choose ->
                 SesameActionActivity.createChooserIntent(context, targetUuid)
             SesameStatusListContent.TapAction.Refresh ->
@@ -172,22 +169,16 @@ private fun DeviceStatusItem(
 }
 
 /**
- * 一覧の末尾のチップ（BL-255）。状態と無関係な操作のため、Tileの「更新」「変更」と同じ中立色にする。
- * 全施錠だけは結果の状態（施錠中）の色にし、Tileの確認画面の「施錠」チップと見た目を揃える。
+ * 一覧の末尾のチップ（BL-255）。状態と無関係な操作のため、Tileの「更新」「変更」と同じ中立色にする
+ * （「全台の鍵を操作」も選ぶ画面を開くだけなので中立色。BL-308で、施錠中の色だった「全施錠」から変えた）。
  */
 @Composable
 private fun FooterChipItem(
     chip: SesameStatusListContent.FooterChip,
     onClick: () -> Unit,
 ) {
-    val isLock = chip.action is SesameStatusListContent.TapAction.Command
-    val background =
-        if (isLock) {
-            SesameTileContent.backgroundColorArgb(TileDisplayState.LOCKED)
-        } else {
-            SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB
-        }
-    val textColor = if (isLock) SesameTileContent.statusTextColorArgb(TileDisplayState.LOCKED) else NEUTRAL_TEXT_ARGB
+    val background = SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB
+    val textColor = NEUTRAL_TEXT_ARGB
     Column(
         modifier =
             Modifier

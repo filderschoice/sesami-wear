@@ -4,7 +4,6 @@ import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameStatusSnapshot
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameStatusDetail
 import com.sesamiwear.core.display.SesameTileActions
 import com.sesamiwear.core.display.SesameTileContent
@@ -26,8 +25,9 @@ import java.time.ZoneId
  * 操作に限らず、施錠中に施錠する・一部解錠のときに解錠することもできる。選ぶ画面で解錠を押したら
  * そこで実行する（確認は重ねない）。長押しの入口は作らない。
  *
- * 一覧の末尾には、タップしたときだけ状態取得を送る「更新」と、2台以上のときの「全施錠」を置く
- * （BL-255、[footerChips]）。全解錠は置かない（BL-255。全デバイスの解錠は行ではなく選ぶ画面から）。
+ * 一覧の末尾には、タップしたときだけ状態取得を送る「更新」と、2台以上のときの「全台の鍵を操作」を置く
+ * （BL-255、[footerChips]）。「全台の鍵を操作」は全デバイスの施錠・解錠を選ぶ画面を開く（BL-308。もとは1タップで送る
+ * 「全施錠」だったが、操作パネルの上段（BL-307）・スマホのカードの「鍵を操作」と揃えた）。
  *
  * Android非依存のためユニットテスト対象。
  */
@@ -57,8 +57,8 @@ object SesameStatusListContent {
     /** 2台以上のときの末尾の状態取得チップの文言。全デバイスへ送ることを示す。 */
     const val REFRESH_ALL_CHIP_LABEL = "すべて更新"
 
-    /** 2台以上のときの末尾の一括施錠チップの文言。Tileの「全施錠」と同じ言い方にする。 */
-    const val LOCK_ALL_CHIP_LABEL = "全施錠"
+    /** 2台以上のときの末尾の、全デバイスの施錠・解錠を選ぶ画面を開くチップの文言。操作パネルの上段と同じ言い方にする（BL-308）。 */
+    const val MENU_ALL_CHIP_LABEL = "全台の鍵を操作"
 
     /**
      * 一覧の末尾に置くチップ（BL-255）。[targetUuid]は送信先（2台以上なら
@@ -72,12 +72,7 @@ object SesameStatusListContent {
 
     /** 行をタップしたときの動作（BL-254）。 */
     sealed interface TapAction {
-        /** [command]の操作画面を開く（末尾の「全施錠」チップ。施錠なので確認を挟まない）。 */
-        data class Command(
-            val command: SesameCommand,
-        ) : TapAction
-
-        /** 施錠・解錠を選ぶ画面を開く（行のタップ、BL-295）。 */
+        /** 施錠・解錠を選ぶ画面を開く（行のタップ、BL-295。末尾の「全台の鍵を操作」、BL-308）。 */
         data object Choose : TapAction
 
         /** そのデバイスの状態取得を送る。 */
@@ -133,7 +128,7 @@ object SesameStatusListContent {
 
     /**
      * 一覧の末尾に置くチップ。0台なら何も置かない（案内文だけを出す）。
-     * 1台なら「更新」だけ、2台以上なら「全施錠」「すべて更新」の順に置く。
+     * 1台なら「更新」だけ、2台以上なら「全台の鍵を操作」「すべて更新」の順に置く。
      * 一括操作を2台以上に限るのは、1台なら行のタップで足りるため（Tileの「全デバイス」と同じ条件）。
      */
     fun footerChips(devices: List<SesameDeviceSummary>): List<FooterChip> =
@@ -142,11 +137,7 @@ object SesameStatusListContent {
             1 -> listOf(FooterChip(REFRESH_CHIP_LABEL, devices.single().uuid, TapAction.Refresh))
             else ->
                 listOf(
-                    FooterChip(
-                        LOCK_ALL_CHIP_LABEL,
-                        SesameWearProtocol.ALL_DEVICES_TARGET_UUID,
-                        TapAction.Command(SesameCommand.LOCK),
-                    ),
+                    FooterChip(MENU_ALL_CHIP_LABEL, SesameWearProtocol.ALL_DEVICES_TARGET_UUID, TapAction.Choose),
                     FooterChip(REFRESH_ALL_CHIP_LABEL, SesameWearProtocol.ALL_DEVICES_TARGET_UUID, TapAction.Refresh),
                 )
         }
