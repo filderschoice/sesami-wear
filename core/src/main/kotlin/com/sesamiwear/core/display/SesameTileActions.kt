@@ -8,10 +8,12 @@ import com.sesamiwear.core.api.SesameCommand
  * wearのTileとmobileのホーム画面ウィジェットで同じ操作ルールを使うためcoreに置いている（BL-119）。
  *
  * 動作は[TapDecision]で表す（BL-295）。
- * - 施錠中・一部解錠（MIXED）: [TapDecision.OpenChooser]。施錠・解錠を選ぶ画面を開き、押したボタンをそのまま実行する。
- *   表示と逆の操作（施錠中に施錠、一部だけ施錠のときに全解錠）も選べるようにするため。
- * - 解錠中: [TapDecision.Run]で即施錠（従来どおり。施錠は安全側のため確認を挟まない）。
+ * - 施錠中・解錠中・一部解錠（MIXED）: [TapDecision.OpenChooser]。施錠・解錠を選ぶ画面を開き、押したボタンをそのまま実行する。
+ *   表示と逆の操作（施錠中に施錠、一部だけ施錠のときに全解錠）も選べるようにするため（BL-295）。解錠中のタップも
+ *   BL-304（2026-11-21のユーザー判断）で即施錠をやめ、1台・全デバイス、Tile・ウィジェット・クイック設定のすべてで選ぶ画面に統一した。
  * - 通信中・スマホ未接続・状態不明: [TapDecision.None]（タップ不可）。
+ *
+ * タップだけで実行する経路は無い（すぐに施錠したいときは、ウォッチの操作パネルの「全施錠」を使う）。
  *
  * 解錠は、選ぶ画面で「解錠」を押す明示操作を経てから実行する。タップだけで解錠する経路は作らない
  * （[com.sesamiwear.core.api.SesameCommandConfirmation]の方針を、選ぶ画面の解錠ボタンで満たす）。
@@ -19,11 +21,6 @@ import com.sesamiwear.core.api.SesameCommand
 object SesameTileActions {
     /** タップしたときの動作。 */
     sealed interface TapDecision {
-        /** 確認なしですぐに[command]を実行する（施錠のみ）。 */
-        data class Run(
-            val command: SesameCommand,
-        ) : TapDecision
-
         /** 施錠・解錠を選ぶ画面を開く。 */
         data object OpenChooser : TapDecision
 
@@ -45,8 +42,7 @@ object SesameTileActions {
     /** Tile・ホーム画面ウィジェット・クイック設定タイルのタップの動作。単体・全デバイスで同じ。 */
     fun tapDecisionForState(state: TileDisplayState): TapDecision =
         when (state) {
-            TileDisplayState.LOCKED, TileDisplayState.MIXED -> TapDecision.OpenChooser
-            TileDisplayState.UNLOCKED -> TapDecision.Run(SesameCommand.LOCK)
+            TileDisplayState.LOCKED, TileDisplayState.MIXED, TileDisplayState.UNLOCKED -> TapDecision.OpenChooser
             TileDisplayState.IN_PROGRESS, TileDisplayState.DISCONNECTED, TileDisplayState.UNKNOWN -> TapDecision.None
         }
 

@@ -239,9 +239,8 @@ class SesameTileService : TileService() {
                         .build(),
                 )
 
-        when (val decision = SesameTileActions.tapDecisionForState(state)) {
-            is SesameTileActions.TapDecision.Run ->
-                modifiersBuilder.setClickable(buildActionClickable(packageName, decision.command, deviceUuid))
+        // タップは施錠・解錠を選ぶ画面を開くだけ（BL-295 / BL-304。タップで即実行する経路は無い）。
+        when (SesameTileActions.tapDecisionForState(state)) {
             SesameTileActions.TapDecision.OpenChooser ->
                 modifiersBuilder.setClickable(buildActionClickable(packageName, null, deviceUuid))
             SesameTileActions.TapDecision.None -> Unit
@@ -418,7 +417,7 @@ private fun buildStatusColumn(
         )
     }
 
-    val actionLabel = SesameTileContent.actionLabel(state, isAllDevices)
+    val actionLabel = SesameTileContent.actionLabel(state)
     if (actionLabel != null) {
         statusColumnBuilder.addContent(
             // ProtoLayoutのTextは既定で1行のため、指定がないと「タップで全解錠」のような

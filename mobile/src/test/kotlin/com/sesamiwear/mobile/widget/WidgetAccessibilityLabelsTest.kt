@@ -33,7 +33,7 @@ class WidgetAccessibilityLabelsTest {
     @Test
     fun `all-devices status reads the aggregate wording`() {
         assertEquals(
-            "玄関、全解錠中、タップで全施錠",
+            "玄関、全解錠中、タップで選ぶ",
             WidgetAccessibilityLabels.status(
                 model(TileDisplayState.UNLOCKED, uuid = SesameWearProtocol.ALL_DEVICES_TARGET_UUID),
             ),

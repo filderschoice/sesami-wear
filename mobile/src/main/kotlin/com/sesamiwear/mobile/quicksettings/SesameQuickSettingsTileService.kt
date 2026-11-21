@@ -46,8 +46,6 @@ class SesameQuickSettingsTileService : TileService() {
                 startAndCollapse(
                     WidgetUnlockConfirmActivity.createIntent(this, NO_WIDGET, tap.deviceUuid, tap.displayName),
                 )
-            is QuickSettingsTileContent.Tap.Run ->
-                sendBroadcast(WidgetCommandReceiver.runCommandIntent(this, NO_WIDGET, tap.deviceUuid, tap.command))
             is QuickSettingsTileContent.Tap.Refresh ->
                 sendBroadcast(WidgetCommandReceiver.refreshStatusIntent(this, NO_WIDGET, tap.deviceUuid))
             QuickSettingsTileContent.Tap.None -> Unit

@@ -3,8 +3,8 @@ package com.sesamiwear.core.display
 import com.sesamiwear.core.TileDisplayState
 import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SesameTileActionsTest {
@@ -39,7 +39,7 @@ class SesameTileActionsTest {
             mapOf(
                 TileDisplayState.LOCKED to SesameTileActions.TapDecision.OpenChooser,
                 TileDisplayState.MIXED to SesameTileActions.TapDecision.OpenChooser,
-                TileDisplayState.UNLOCKED to SesameTileActions.TapDecision.Run(SesameCommand.LOCK),
+                TileDisplayState.UNLOCKED to SesameTileActions.TapDecision.OpenChooser,
                 TileDisplayState.IN_PROGRESS to SesameTileActions.TapDecision.None,
                 TileDisplayState.DISCONNECTED to SesameTileActions.TapDecision.None,
                 TileDisplayState.UNKNOWN to SesameTileActions.TapDecision.None,
@@ -50,18 +50,15 @@ class SesameTileActionsTest {
     }
 
     @Test
-    fun `no state ever unlocks on a plain tap`() {
+    fun `a plain tap never runs a command directly`() {
+        // BL-304: 解錠中の即施錠もやめたため、タップの判定は「選ぶ画面」か「なし」だけになる。
         TileDisplayState.entries.forEach { state ->
-            assertNotEquals(
+            val decision = SesameTileActions.tapDecisionForState(state)
+            assertTrue(
                 state.name,
-                SesameTileActions.TapDecision.Run(SesameCommand.UNLOCK),
-                SesameTileActions.tapDecisionForState(state),
+                decision == SesameTileActions.TapDecision.OpenChooser || decision == SesameTileActions.TapDecision.None,
             )
         }
-        assertNotEquals(
-            SesameTileActions.TapDecision.Run(SesameCommand.UNLOCK),
-            SesameTileActions.listTapDecision(),
-        )
     }
 
     @Test

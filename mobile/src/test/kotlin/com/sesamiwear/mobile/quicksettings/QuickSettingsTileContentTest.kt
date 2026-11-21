@@ -3,7 +3,6 @@ package com.sesamiwear.mobile.quicksettings
 import com.sesamiwear.core.SesameDeviceSummary
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.IconKind
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.Tap
 import com.sesamiwear.mobile.quicksettings.QuickSettingsTileContent.TileState
@@ -48,9 +47,10 @@ class QuickSettingsTileContentTest {
     }
 
     @Test
-    fun `unlocked locks at once and mixed opens the chooser`() {
+    fun `unlocked and mixed both open the chooser`() {
+        // BL-304: 解錠中も即施錠せず選ぶ画面を開く。
         assertEquals(
-            Tap.Run("uuid-front", SesameCommand.LOCK),
+            Tap.Choose("uuid-front", "玄関"),
             QuickSettingsTileContent.from(configured(TileDisplayState.UNLOCKED)).tap,
         )
         val all = SesameWearProtocol.ALL_DEVICES_TARGET_UUID

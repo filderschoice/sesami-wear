@@ -30,9 +30,10 @@ class SesameTileContentTest {
     }
 
     @Test
-    fun `action label offers lock directly and a chooser for locked`() {
+    fun `action label is the chooser for both locked and unlocked`() {
+        // BL-304: 解錠中もタップで選ぶ画面を開くため、「タップで施錠」は出さない。
         assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.LOCKED))
-        assertEquals("タップで施錠", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED))
+        assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED))
     }
 
     @Test
@@ -51,8 +52,6 @@ class SesameTileContentTest {
     fun `isAllDevices prefixes locked and unlocked labels with zen`() {
         assertEquals("全施錠中", SesameTileContent.statusLabel(TileDisplayState.LOCKED, isAllDevices = true))
         assertEquals("全解錠中", SesameTileContent.statusLabel(TileDisplayState.UNLOCKED, isAllDevices = true))
-        assertEquals("タップで選ぶ", SesameTileContent.actionLabel(TileDisplayState.LOCKED, isAllDevices = true))
-        assertEquals("タップで全施錠", SesameTileContent.actionLabel(TileDisplayState.UNLOCKED, isAllDevices = true))
     }
 
     @Test

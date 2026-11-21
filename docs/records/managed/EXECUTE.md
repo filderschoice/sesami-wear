@@ -5,6 +5,45 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 13:30
+  summary: 解錠中のタップもすぐに施錠せず、施錠・解錠を選ぶ画面を開くよう統一した（BL-304）
+  details:
+    変更内容: >-
+      ユーザーの指摘（1台のウィジェットで解錠中をタップすると、そのまま施錠に走る）と、範囲の判断（Tile・ウィジェット・
+      クイック設定タイルのすべてで統一、2026-11-21）による。core.display.SesameTileActions.tapDecisionForState の解錠中を
+      OpenChooser にし、生成されなくなった TapDecision.Run を削除した。あわせて mobile の WidgetTapAction.Run・
+      QuickSettingsTileContent.Tap.Run と、ウィジェット・クイック設定タイル・ウォッチのTile・ウォッチの一覧の Run の分岐を削除した。
+      操作ラベル SesameTileContent.actionLabel は解錠中も「タップで選ぶ」とし、1台・全デバイスで同じになったため引数 isAllDevices を外した。
+      タップ1回で施錠する経路は、ウォッチの操作パネルの「全施錠」だけになる。アプリ内ヘルプ（ウィジェットの使い方の手順3）・
+      USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・DESIGN の現行仕様の節・BL-297の確認項目を追随させた
+      （DESIGN の過去の実機検証の記録は当時の内容のまま）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileContent.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileActionsTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameTileContentTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/WidgetTapAction.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidget.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/widget/SesameWidgetModel.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContent.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/quicksettings/SesameQuickSettingsTileService.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/help/HelpContent.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetTapActionTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/widget/WidgetAccessibilityLabelsTest.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/quicksettings/QuickSettingsTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameTileService.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/status/SesameStatusListContent.kt
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel 8 Pro、撮影モード）で1台のウィジェットの解錠中タップ
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0（途中で detekt の未使用変数1件と、読み上げ文言のテスト1件の期待値を直した）。実行中にアプリ内ヘルプの文言を直したため、mobile の ktlintCheck・detekt・lintDebug・testDebugUnitTest を再実行して成功。markdownlint・validate-records・scan-secrets とも成功。実機の1台のウィジェット（玄関、解錠中）のタップで、施錠されずに選ぶ画面が開くことを確認（撮影モード。キャンセルで閉じた）。ウォッチのTileは実機で未確認（同じ core の規則のため、BL-297の確認項目に含めた）。
+    関連ID:
+      - BL-304
 - date: 2026-11-21 12:30
   summary: デバイスカードの操作を「鍵を操作」「Bluetooth」の2つのメニューへまとめた（BL-303）
   details:

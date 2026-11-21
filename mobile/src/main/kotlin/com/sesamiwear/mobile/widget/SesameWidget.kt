@@ -120,8 +120,8 @@ open class SesameWidget : GlanceAppWidget() {
 }
 
 /**
- * ウィジェット上のタップ操作（BL-122）。右側は[WidgetTapAction]の判定どおり、解錠中のタップは施錠を
- * [WidgetCommandReceiver]で即時実行、施錠中・一部解錠は施錠・解錠を選ぶ[WidgetUnlockConfirmActivity]を開く（BL-295）。
+ * ウィジェット上のタップ操作（BL-122）。右側は[WidgetTapAction]の判定どおり、施錠中・解錠中・一部解錠のいずれも
+ * 施錠・解錠を選ぶ[WidgetUnlockConfirmActivity]を開く（BL-295。解錠中の即施錠はBL-304でやめた）。
  * 操作できない状態（通信中・状態不明）では何もしない。
  * 左側の「更新」（2x1ではデバイス名）は状態取得のみ（到達実績によらずBLEを試す、BL-204）、
  * 「変更」は選択画面を開く。4x2の右上のデバイス名の帯は表示専用でタップを受けない（BL-210。
@@ -135,15 +135,9 @@ internal class WidgetActions(
     val configure: Action = SesameWidget.configureAction(context, appWidgetId)
 
     val status: Action? =
-        when (val tap = WidgetTapAction.forModel(model)) {
+        when (WidgetTapAction.forModel(model)) {
             WidgetTapAction.OpenConfiguration -> configure
             WidgetTapAction.None -> null
-            is WidgetTapAction.Run ->
-                (model as? SesameWidgetModel.Configured)?.let {
-                    actionSendBroadcast(
-                        WidgetCommandReceiver.runCommandIntent(context, appWidgetId, it.deviceUuid, tap.command),
-                    )
-                }
             WidgetTapAction.Choose ->
                 (model as? SesameWidgetModel.Configured)?.let {
                     actionStartActivity(

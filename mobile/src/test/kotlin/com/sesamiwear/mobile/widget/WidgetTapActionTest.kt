@@ -2,9 +2,8 @@ package com.sesamiwear.mobile.widget
 
 import com.sesamiwear.core.SesameWearProtocol
 import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WidgetTapActionTest {
@@ -27,11 +26,9 @@ class WidgetTapActionTest {
     }
 
     @Test
-    fun `unlocked widget locks immediately`() {
-        assertEquals(
-            WidgetTapAction.Run(SesameCommand.LOCK),
-            WidgetTapAction.forModel(model(TileDisplayState.UNLOCKED)),
-        )
+    fun `unlocked widget opens the chooser instead of locking at once`() {
+        // BL-304: 1台のウィジェットでも、解錠中のタップは即施錠せず選ぶ画面を開く。
+        assertEquals(WidgetTapAction.Choose, WidgetTapAction.forModel(model(TileDisplayState.UNLOCKED)))
     }
 
     @Test
@@ -54,13 +51,10 @@ class WidgetTapActionTest {
     }
 
     @Test
-    fun `no widget state unlocks on a plain tap`() {
+    fun `no widget state runs a command on a plain tap`() {
         TileDisplayState.entries.forEach { state ->
-            assertNotEquals(
-                state.name,
-                WidgetTapAction.Run(SesameCommand.UNLOCK),
-                WidgetTapAction.forModel(model(state)),
-            )
+            val action = WidgetTapAction.forModel(model(state))
+            assertTrue(state.name, action == WidgetTapAction.Choose || action == WidgetTapAction.None)
         }
     }
 

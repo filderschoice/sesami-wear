@@ -153,9 +153,8 @@ object SesameStatusListContent {
 
     /** 行のタップは状態によらず選ぶ画面を開く（BL-295）。 */
     fun tapActionOf(): TapAction =
-        when (val decision = SesameTileActions.listTapDecision()) {
+        when (SesameTileActions.listTapDecision()) {
             SesameTileActions.TapDecision.OpenChooser -> TapAction.Choose
-            is SesameTileActions.TapDecision.Run -> TapAction.Command(decision.command)
             SesameTileActions.TapDecision.None -> TapAction.Refresh
         }
 
