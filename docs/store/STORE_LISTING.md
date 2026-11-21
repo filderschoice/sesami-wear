@@ -138,26 +138,27 @@ Markdownを解釈しないため、転記時は見出し・箇条書きの記法
 
 ## スクリーンショット
 
-スマートフォン用8枚とWear OS用8枚（上限に合わせ `wear_3_tile_unlocked` を外した欠番あり）を [images/screenshots/](images/screenshots/) に用意済みです。
+スマートフォン用8枚とWear OS用9枚（Play Consoleへ投入するのは8枚。上限に合わせ `wear_3_tile_unlocked` を外した欠番があり、
+`wear_9_radar_all` は投入しない）を [images/screenshots/](images/screenshots/) に用意済みです。
 内訳と加工内容は [README.md](README.md)「ファイル一覧」を参照してください。
 Play Consoleのスマートフォン用の枠へ投入するのは、機能の説明文を入れた
 [images/screenshots_captioned/](images/screenshots_captioned/) の8枚です（元画像の `images/screenshots/phone_*` は
 紹介ページとウィジェットのプレビュー画像の元として残します。説明文の一覧と作り直しは README.md「説明文入りの画像」）。
 
-- スマートフォン用: `phone_4_device_list` / `phone_5_menu` は0.16.0の表示で2026-11-08に撮り直し、
-  `phone_6_radar` / `phone_7_radar_all`（Bluetooth接続の確認）を追加しました（8枚上限のため旧 `phone_6` / `phone_7` と入れ替え。
-  BL-284）。残る4枚は0.14.3の表示です。
-- スマートフォン用: 撮影はいずれも0.14.3の表示でPixel 8 Pro実機（デバッグ版の撮影モード）を使って撮影しています
-  （2026-10-17。ステータスバーはモザイク、ホーム画面の3枚はドックもモザイクにし壁紙はぼかし）。
-  0.14.3でダイヤル操作の画面（`phone_8_dial.png`）を加えました。
-- Wear OS用: `wear_7_radar` / `wear_8_radar_connected` / `wear_9_radar_all`（接続確認）は0.16.0の表示で2026-11-08にPixel Watch 2実機で撮影しました。
-  タイル3枚とデバイス選択は0.14.0の表示でPixel Watch 2実機を使って撮影しています
-  （2026-09-25）。解錠確認は表示が変わっていないため据え置き、コンプリケーションは2026-09-06撮影の
+- スマートフォン用: `phone_1`〜`phone_4`（ウィジェット2枚・施錠・解錠を選ぶ画面・主画面）は0.17.0の表示で
+  2026-11-21にPixel 8 Pro実機で撮り直しました（BL-296）。`phone_5_menu` は0.16.0の表示（2026-11-08）、
+  `phone_6_radar` / `phone_7_radar_all`（Bluetooth接続の確認）は0.16.0の表示で2026-11-08に追加（BL-284）、
+  `phone_8_dial` は0.14.3の表示（2026-10-17）です。いずれもデバッグ版の撮影モードで撮り、ステータスバーはモザイク、
+  ホーム画面の3枚はドックもモザイクにし壁紙はぼかしています。
+- Wear OS用: タイル2枚（`wear_2` / `wear_4`）と施錠・解錠を選ぶ画面（`wear_5`）は0.17.0の表示で2026-11-21に
+  Pixel Watch 2実機で撮り直し、操作専用タイル「Sesami 操作パネル」（`wear_10_control_panel`）を追加しました（BL-296）。
+  `wear_7_radar` / `wear_8_radar_connected` / `wear_9_radar_all`（接続確認）は0.16.0の表示（2026-11-08）、
+  デバイス選択（`wear_6`）は0.14.0の表示（2026-09-25）、コンプリケーションは2026-09-06撮影の
   ままです（撮影時の文字盤が手元に無いため）。
 
 0.15.0ではウォッチのアプリの一覧・ウィジェットの配置画面の表示が加わりましたが、掲載画像は撮り直していません
 （既存の画像と矛盾せず、掲載文の機能説明で足りるため。必要になったら `store-screenshot-capture` で追加します）。
 
-**0.14.3の配信時に、Play Consoleのスマートフォン用の枠の画像を差し替えてください**
-（リポジトリの画像を更新しただけでは掲載は変わりません）。差し替えるのは `phone_1`〜`phone_8` の全8枚
-（`phone_8` は追加）です。Wear OS用の枠は変わりません。
+**0.17.0の配信時に、Play Consoleの画像を差し替えてください**
+（リポジトリの画像を更新しただけでは掲載は変わりません）。スマートフォン用の枠は説明文入りの `phone_1`〜`phone_4`、
+Wear OS用の枠は `wear_2` / `wear_4` / `wear_5` を差し替え、`wear_9_radar_all` を外して `wear_10_control_panel` を加えます。

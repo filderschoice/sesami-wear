@@ -7,6 +7,24 @@
 - コード修正1件ごとの実施記録: [docs/records/managed/EXECUTE.md](docs/records/managed/EXECUTE.md)
 - 本ファイル: 上記以外（運用ルール、ドキュメント構成、ガードレールの変更）
 
+## 2026-11-21（ストア掲載画像を施錠・解錠を選ぶ画面に合わせて撮り直し）
+
+施錠・解錠を選ぶ画面（BL-295）と主画面のカードのボタンで表示が変わったため、Google Playの掲載画像を
+Pixel 8 Pro / Pixel Watch 2実機（デバッグ版の撮影モード）で撮り直しました（BL-296。BACKLOGから削除）。
+
+- `docs/store/images/screenshots/`: `phone_1`〜`phone_4`、`wear_2` / `wear_4` / `wear_5` を撮り直し、
+  操作専用タイルの `wear_10_control_panel.png` を追加。スマートフォン用はステータスバーとドックをモザイクにし、
+  壁紙はぼかした（Skill `store-screenshot-masking`）
+- `docs/store/images/screenshots_captioned/`: `scripts/caption-screenshots.py` の説明文のうち `phone_1`
+  （「ホーム画面から 施錠・解錠」）・`phone_2`（「施錠か解錠かを 選んでから実行」）・`phone_4`
+  （「セサミごとの状態を確認して アプリから施錠・解錠」）を画面に合わせて直し、作り直した。
+  Wear OS用は2026-11-19の決定どおり説明文を入れない（2026-11-21にユーザーが再確認）
+- `mobile/src/main/res/drawable-nodpi/widget_preview*.png`: `phone_1` の差し替えに合わせて作り直した
+- `docs/store/README.md` / `docs/store/STORE_LISTING.md`: 画像の説明を実際の画像に合わせ、旧称「解錠確認」を
+  選ぶ画面の呼び方へ直した。Wear OS用は9枚になったため、上限（8枚）に合わせて `wear_9_radar_all` をPlay Consoleへ
+  投入しないことにした（接続確認は `wear_7` / `wear_8` で伝わるため。既定として選んだもので、変える場合はユーザーが判断する）
+- 撮影中に見つけた選ぶ画面の「キャンセル」の折り返しは、BL-301として別のコミットで直した
+
 ## 2026-11-21（Sesame上流の定期調査をスキルとサブエージェントとして追加）
 
 Sesame公式の変更履歴・API_document・Android SDKの変更確認は今後も定期的に行うため、手順を残しました。
