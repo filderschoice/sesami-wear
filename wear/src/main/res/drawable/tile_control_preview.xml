@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   操作専用タイル（SesameControlTileService、BL-298）のTile追加ピッカー用プレビュー。実際のタイル表示を
-  再現するものではなく、レイアウトの図案（上に全施錠・全解錠の2ボタン、下に台ごとの状態の行）を示す。
+  再現するものではなく、レイアウトの図案（上に「全台の鍵を操作」の1ボタン、下に台ごとの状態の行。BL-307）を示す。
   円形・黒背景の192dpで、文字は使わず色の帯だけで表す。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -13,11 +13,8 @@
         android:fillColor="#FF000000"
         android:pathData="M96,96m-96,0a96,96 0,1 1,192 0a96,96 0,1 1,-192 0" />
     <path
-        android:fillColor="#FF4CAF50"
-        android:pathData="M38,26h48a8,8 0 0 1 8,8v28a8,8 0 0 1 -8,8h-48a8,8 0 0 1 -8,-8v-28a8,8 0 0 1 8,-8z" />
-    <path
-        android:fillColor="#FFF44336"
-        android:pathData="M106,26h48a8,8 0 0 1 8,8v28a8,8 0 0 1 -8,8h-48a8,8 0 0 1 -8,-8v-28a8,8 0 0 1 8,-8z" />
+        android:fillColor="#FF424242"
+        android:pathData="M38,26h116a8,8 0 0 1 8,8v28a8,8 0 0 1 -8,8h-116a8,8 0 0 1 -8,-8v-28a8,8 0 0 1 8,-8z" />
     <path
         android:fillColor="#FF4CAF50"
         android:pathData="M38,74h116a8,8 0 0 1 8,8v28a8,8 0 0 1 -8,8h-116a8,8 0 0 1 -8,-8v-28a8,8 0 0 1 8,-8z" />
@@ -38,8 +35,5 @@
         android:pathData="M47,148h30a3,3 0 0 1 3,3v0a3,3 0 0 1 -3,3h-30a3,3 0 0 1 -3,-3v-0a3,3 0 0 1 3,-3z" />
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M54,42h24a6,6 0 0 1 6,6v0a6,6 0 0 1 -6,6h-24a6,6 0 0 1 -6,-6v-0a6,6 0 0 1 6,-6z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M122,42h24a6,6 0 0 1 6,6v0a6,6 0 0 1 -6,6h-24a6,6 0 0 1 -6,-6v-0a6,6 0 0 1 6,-6z" />
+        android:pathData="M70,42h52a6,6 0 0 1 6,6v0a6,6 0 0 1 -6,6h-52a6,6 0 0 1 -6,-6v-0a6,6 0 0 1 6,-6z" />
 </vector>

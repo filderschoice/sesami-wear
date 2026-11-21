@@ -30,11 +30,11 @@ import kotlinx.coroutines.launch
  * タイル追加の一覧へ並ぶ。登録済みの全デバイスが対象で、デバイスの割り当て（[TileDeviceAssignmentStore]）は
  * 持たない（tileIdの保存もしない）。
  *
- * 上段に大きな「全施錠」「全解錠」（1台だけのときは「施錠」「解錠」）、下段に台ごとの状態チップを横に並べる
+ * 上段に大きな「全台の鍵を操作」（1台だけのときは「鍵を操作」）のボタン1つ、下段に台ごとの状態チップを横に並べる
  * （3台までは1段、それを超えると2段。さらに超えると末尾のチップが「他N台」）。
- * 「全施錠」は1タップで全台へ送る。「全解錠」と台のチップのタップは、施錠・解錠を選ぶ画面
- * （[com.sesamiwear.wear.action.SesameActionActivity]）を開き、そこで押した方を実行する
- * （解錠がタップだけでは実行されない）。表示の規則は[SesameControlTileContent]が持つ。
+ * 上段のボタンと台のチップのタップは、どちらも施錠・解錠を選ぶ画面
+ * （[com.sesamiwear.wear.action.SesameActionActivity]）を開き、そこで押した方を実行する（タップだけでは何も送らない）。
+ * 上段はもとは「全施錠」（1タップで実行）と「全解錠」の2ボタンだったが、BL-307で1つにまとめた。表示の規則は[SesameControlTileContent]が持つ。
  *
  * 状態は最後に同期された値を読むだけで、状態取得のリクエストは送らない（BL-142）。操作が完了すると
  * mobile側が結果とDataItemを返し、そのたびに[com.sesamiwear.wear.display.SesameDisplayUpdateRequester]等が

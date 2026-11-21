@@ -1578,7 +1578,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   **BL-304（2026-11-21のユーザー判断）で、解錠中の`Run(LOCK)`（即施錠）をやめ、`TapDecision.Run`ごと削除した**
   （1台・全デバイス、Tile・ホーム画面ウィジェット・クイック設定タイルのすべて。`WidgetTapAction.Run` /
   `QuickSettingsTileContent.Tap.Run`も削除）。操作ラベル`SesameTileContent.actionLabel`も解錠中を含めて「タップで選ぶ」になり、
-  1台・全デバイスで文言が変わらないため引数`isAllDevices`を外した。タップ1回で施錠する経路は、操作専用タイルの「全施錠」だけ。
+  1台・全デバイスで文言が変わらないため引数`isAllDevices`を外した。タップ1回で施錠する経路は、ウォッチのアプリの一覧の末尾の「全施錠」とスマホのショートカットの「全施錠」だけ
+  （操作専用タイルの「全施錠」もBL-307で選ぶ画面へまとめた）。
   `listTapDecision`はウォッチ一覧の行用で状態によらず`OpenChooser`。`commandLabel`は選ぶ画面のボタン文言
   （全デバイスは「全施錠」「全解錠」）。従来の`commandForState`（表示の逆の命令）は挙動を変えずに残している。
   **解錠の安全方針（BL-295）**: タップだけで解錠する経路は作らない。解錠は、選ぶ画面で「解錠」を押す明示操作を経て
@@ -1613,8 +1614,11 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   対象の割り当て（`TileDeviceAssignmentStore`）・「更新」・「変更」を持たない（tileIdの保存をしないため、
   2つのサービスのtileIdが重複しても保存キーの衝突は起きない）。同じタイルの複数配置は見送り（ユーザー判断、2026-11-21）。
   - 表示規則は`core.display.SesameControlTileContent`（Android非依存、ユニットテスト対象）。`build(devices,
-    isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全施錠」「全解錠」（登録1台のときは「施錠」「解錠」、
-    送信先はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`）、下段に台ごとの状態チップを**横に並べる**（ユーザーが選んだ
+    isLockedOf, phoneConnected)`が表示内容を返し、0台ならnull。上段に「全台の鍵を操作」の1ボタン（`menuLabel`。登録1台のときは「鍵を操作」、
+    選ぶ画面の対象はその台のuuid。2台以上は`ALL_DEVICES_TARGET_UUID`。**BL-307（2026-11-21のユーザー判断）でまとめた**。
+    もとは「全施錠」（1タップで即実行）と「全解錠」（選ぶ画面）の2ボタンだったが、スマホのカードの「鍵を操作」（BL-303）と
+    考え方を揃え、どちらも選ぶ画面で押して実行する。背景は中立色`CHIP_NEUTRAL_COLOR_ARGB`、スマホ未接続のときは文字を
+    灰色（#9E9E9E）にしてタップ不可。読み上げは「全台の鍵を操作 タップして施錠・解錠を選ぶ」）、下段に台ごとの状態チップを**横に並べる**（ユーザーが選んだ
     「全体ボタン＋台ごとの状態」の見本どおり。チップは名前（`shortName`、コードポイント単位で数え、ASCIIと半角カナ（U+FF61〜U+FF9F）を1、それ以外（全角・絵文字）を2として幅8まで、超えると先頭＋「…」。絵文字の途中では切らない）の下に
     状態アイコン（`statusIcon`）、背景は`backgroundColorArgb`）。**寸法**: 円形192dp、1段の高さ48dp（タップ領域の最小値）、
     段間・チップ間4dp、円の弦の両端の安全余白4dp。段ごとの可用幅は`tierWidthDp`＝「その段の中心から遠い側の辺での弦の長さ
@@ -1623,12 +1627,13 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
     **チップ数の上限`maxChips`=5**（導出値）。割り振りは上の段が多めの均等（4台は2+2、5台は3+2）。登録が5台を超えると、
     最後のチップを「他N台」（`overflowCount`/`ChipRow.overflowText`、N＝登録数−4）へ置き換え、タップで`MainActivity`
     （状態一覧）を開く。0台は案内`EMPTY_MESSAGE`のみで、タップで`MainActivity`を開く（デモはSesameTileService側）。
-    スマホ未接続（`firstConnectedNodeId`がnull）なら全体ボタンとチップは灰色でタップ不可。チップのタップは状態によらず
+    スマホ未接続（`firstConnectedNodeId`がnull）なら上段のボタンとチップはタップ不可。チップのタップは状態によらず
     （状態不明でも）選ぶ画面を開く（`SesameTileActions.listTapDecision`と同じ流儀）。レイアウトは`SesameControlTileLayout.kt`
     （幅の狭いチップのため内側余白を`chipModifiers`の引数で2dpへ詰める）。
-  - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。「全施錠」は`EXTRA_COMMAND=LOCK`で即実行、
-    「全解錠」は`EXTRA_COMMAND=UNLOCK`だが`SesameActionLaunchPlanner`が選ぶ画面へ倒すため、**タップだけでは解錠されない**
-    （解錠の安全方針BL-295を維持）。台のチップは`EXTRA_CHOOSE`。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
+  - 操作は既存の`SesameActionActivity`へ`buildActionClickable`のIntentで渡す。上段のボタンも台のチップも`EXTRA_CHOOSE`
+    （選ぶ画面）で、**タップだけでは施錠も解錠もされない**（BL-307。以前の「全施錠」は`EXTRA_COMMAND=LOCK`で即実行していた）。
+    ピッカーのプレビュー`tile_control_preview`と説明`tile_control_description`（「全台の鍵の操作と、台ごとの状態を1つのタイルに並べます」）
+    も1ボタンの図案へ直した。送信は既存の`SesameCommandSender`（`ALL_DEVICES_TARGET_UUID`の
     展開は`SesameActionTargetResolver`）。
   - 状態は`SesameDeviceListReader`と`SesameStatusSnapshotReader`のDataItem（最後に同期された値）だけを読み、
     **状態取得のリクエストは送らない**（BL-142）。操作の完了（mobileからの結果とDataItem更新）で

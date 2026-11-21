@@ -7,8 +7,6 @@ import androidx.wear.protolayout.LayoutElementBuilders
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.material.Text
 import androidx.wear.protolayout.material.Typography
-import com.sesamiwear.core.TileDisplayState
-import com.sesamiwear.core.api.SesameCommand
 import com.sesamiwear.core.display.SesameControlTileContent
 import com.sesamiwear.core.display.SesameTileContent
 
@@ -17,6 +15,9 @@ import com.sesamiwear.core.display.SesameTileContent
 // 寸法は円形192dpの画面を前提にSesameControlTileContent（core）が決める（段の高さ48dp・段間4dp・段ごとの可用幅）。
 // ここでは渡された値をそのままレイアウトへ反映する。
 internal const val TEXT_COLOR_ARGB = 0xFFFFFFFF.toInt()
+
+/** スマホ未接続で押せない上段のボタンの文字色（中立色の背景の上で薄く見せる、BL-307）。 */
+private const val DISABLED_TEXT_COLOR_ARGB = 0xFF9E9E9E.toInt()
 
 // 横並びのチップは幅が約50dpのため、内側の余白を詰めて文字の幅を確保する。
 private const val NARROW_CHIP_PADDING_DP = 2f
@@ -61,75 +62,38 @@ private fun tierRow(widthDp: Int): LayoutElementBuilders.Row.Builder =
         .setWidth(DimensionBuilders.dp(widthDp.toFloat()))
         .setHeight(DimensionBuilders.dp(SesameControlTileContent.TIER_HEIGHT_DP.toFloat()))
 
-/** 上段の「全施錠」「全解錠」。スマホ未接続のときは中立色にしてタップ不可にする。 */
+/**
+ * 上段の「全台の鍵を操作」（1台なら「鍵を操作」）。タップで施錠・解錠を選ぶ画面を開くだけで、タップだけでは何も送らない
+ * （BL-307。もとは全施錠・全解錠の2ボタン）。背景は中立色、スマホ未接続のときは文字を薄くしてタップ不可にする。
+ */
 private fun buildButtonRow(
     context: Context,
     content: SesameControlTileContent.Content,
 ): LayoutElementBuilders.LayoutElement {
     val wide = content.buttonRowWidthDp >= WIDE_BUTTON_ROW_DP
     val typography = if (wide) Typography.TYPOGRAPHY_TITLE3 else Typography.TYPOGRAPHY_CAPTION1
-    val pkg = context.packageName
     val enabled = content.buttonsEnabled
-    val lock =
-        BigButton(
-            content.lockLabel,
-            content.lockDescription,
-            TileDisplayState.LOCKED,
-            if (enabled) buildActionClickable(pkg, SesameCommand.LOCK, content.targetUuid, "lock-all") else null,
-        )
-    // 解錠はタップだけでは実行しない。選ぶ画面（SesameActionActivityの判定）で明示的に押して初めて実行する。
-    val unlock =
-        BigButton(
-            content.unlockLabel,
-            content.unlockDescription,
-            TileDisplayState.UNLOCKED,
-            if (enabled) buildActionClickable(pkg, SesameCommand.UNLOCK, content.targetUuid, "unlock-all") else null,
-        )
-    return tierRow(content.buttonRowWidthDp)
-        .addContent(buildBigButton(context, lock, typography))
-        .addContent(hGap())
-        .addContent(buildBigButton(context, unlock, typography))
-        .build()
-}
-
-private class BigButton(
-    val label: String,
-    val description: String,
-    val resultingState: TileDisplayState,
-    val clickable: ModifiersBuilders.Clickable?,
-)
-
-private fun buildBigButton(
-    context: Context,
-    button: BigButton,
-    typography: Int,
-): LayoutElementBuilders.LayoutElement {
-    val enabled = button.clickable != null
-    val background =
-        if (enabled) {
-            SesameTileContent.backgroundColorArgb(button.resultingState)
-        } else {
-            SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB
-        }
-    val textColor = if (enabled) SesameTileContent.statusTextColorArgb(button.resultingState) else TEXT_COLOR_ARGB
     val modifiers =
-        chipModifiers(background, NARROW_CHIP_PADDING_DP)
-            .setSemantics(ModifiersBuilders.Semantics.Builder().setContentDescription(button.description).build())
-    button.clickable?.let { modifiers.setClickable(it) }
-    return LayoutElementBuilders.Box.Builder()
-        .setWidth(DimensionBuilders.expand())
-        .setHeight(DimensionBuilders.expand())
-        .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
-        .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
-        .setModifiers(modifiers.build())
-        .addContent(
-            Text.Builder(context, button.label)
-                .setTypography(typography)
-                .setColor(ColorBuilders.argb(textColor))
-                .setMaxLines(1)
-                .build(),
-        )
-        .build()
+        chipModifiers(SesameTileContent.CHIP_NEUTRAL_COLOR_ARGB, NARROW_CHIP_PADDING_DP)
+            .setSemantics(ModifiersBuilders.Semantics.Builder().setContentDescription(content.menuDescription).build())
+    if (enabled) {
+        modifiers.setClickable(buildActionClickable(context.packageName, null, content.targetUuid, "choose-all"))
+    }
+    val button =
+        LayoutElementBuilders.Box.Builder()
+            .setWidth(DimensionBuilders.expand())
+            .setHeight(DimensionBuilders.expand())
+            .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+            .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+            .setModifiers(modifiers.build())
+            .addContent(
+                Text.Builder(context, content.menuLabel)
+                    .setTypography(typography)
+                    .setColor(ColorBuilders.argb(if (enabled) TEXT_COLOR_ARGB else DISABLED_TEXT_COLOR_ARGB))
+                    .setMaxLines(1)
+                    .build(),
+            ).build()
+    return tierRow(content.buttonRowWidthDp).addContent(button).build()
 }
 
 /** チップの1段。台のチップを横に並べ、最後の段で登録が上限を超えるときは末尾へ「他N台」のチップを置く。 */

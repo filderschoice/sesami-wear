@@ -69,15 +69,15 @@
     <section id="flow">
       <div class="container">
         <h2>操作の流れ</h2>
-        <p class="section-lead">タップして、施錠か解錠かを選ぶだけです。結果は振動で伝わります。全施錠だけなら、操作パネルのタイルからタップ 1 回です。</p>
+        <p class="section-lead">タップして、施錠か解錠かを選ぶだけです。結果は振動で伝わります。全台をまとめて操作するときは、操作パネルのタイルが便利です。</p>
         <div class="flow-grid">
-          <div class="demo" role="img" aria-label="ウォッチの操作イメージ。タイルをタップすると施錠・解錠を選ぶ画面が開き、全施錠か全解錠を押して実行する。全施錠だけなら操作パネルのタイルからタップ1回（約9秒で繰り返すアニメーション）">
+          <div class="demo" role="img" aria-label="ウォッチの操作イメージ。タイルをタップすると施錠・解錠を選ぶ画面が開き、全施錠か全解錠を押して実行する。全台と台ごとの操作は操作パネルのタイルにもまとまっている（約9秒で繰り返すアニメーション）">
             <img class="demo-frame f1" src="assets/wear-tile-locked.png" alt="" width="384" height="384">
             <img class="demo-frame f2" src="assets/wear-unlock-confirm.png" alt="" width="384" height="384">
             <img class="demo-frame f3" src="assets/wear-control-panel.png" alt="" width="384" height="384">
             <p class="demo-caption c1">① タイルの大きなボタンをタップ</p>
             <p class="demo-caption c2">② 「全施錠」か「全解錠」を押す</p>
-            <p class="demo-caption c3">③ 全施錠だけなら操作パネルから1タップ</p>
+            <p class="demo-caption c3">③ 操作パネルなら全台も台ごとも1枚で</p>
           </div>
           <ol class="flow-steps">
             <li><strong>タップ</strong>タイルのボタンが現在の状態を示し、タップすると施錠・解錠を選ぶ画面が開きます。</li>
@@ -106,7 +106,7 @@
           <li class="card">
             <span class="tag">タイル</span>
             <h3>タイルから施錠・解錠</h3>
-            <p>Wear OS のタイルから操作します。タップすると施錠・解錠を選ぶ画面が開き、押したときだけ実行するので誤操作を防げます。全施錠をタップ 1 回で実行できる操作専用のタイル「Sesami 操作パネル」もあります。通信中はボタンを無効にして二重送信を防ぎます。ウォッチのアプリの一覧からも、セサミの欄をタップして同じように操作でき、末尾の「更新」「全施錠」「すべて更新」でまとめて扱えます。</p>
+            <p>Wear OS のタイルから操作します。タップすると施錠・解錠を選ぶ画面が開き、押したときだけ実行するので誤操作を防げます。全台と台ごとの施錠・解錠を1枚にまとめた操作専用のタイル「Sesami 操作パネル」もあります。通信中はボタンを無効にして二重送信を防ぎます。ウォッチのアプリの一覧からも、セサミの欄をタップして同じように操作でき、末尾の「更新」「全施錠」「すべて更新」でまとめて扱えます。</p>
           </li>
           <li class="card">
             <span class="tag">振動</span>
@@ -196,9 +196,9 @@
             <p>文字盤から現在の状態を確認できます。</p>
           </li>
           <li class="card">
-            <img src="assets/wear-control-panel.png" alt="操作専用タイル「Sesami 操作パネル」。上に緑の全施錠と赤い全解錠のボタン、下に玄関・勝手口・ガレージの状態のボタンが並び、玄関だけ解錠中の赤になっている" width="384" height="384" loading="lazy">
+            <img src="assets/wear-control-panel.png" alt="操作専用タイル「Sesami 操作パネル」。上に「全台の鍵を操作」のボタン、下に玄関・勝手口・ガレージの状態のボタンが並び、玄関だけ解錠中の赤になっている" width="384" height="384" loading="lazy">
             <h3>操作パネル</h3>
-            <p>全施錠はタップ 1 回。全解錠と台ごとの操作は、選ぶ画面を経て実行します。</p>
+            <p>全台の操作も台ごとの操作も、選ぶ画面で押して実行します。</p>
           </li>
           <li class="card">
             <img src="assets/wear-6-device-select.png" alt="ウォッチのデバイス選択画面。タイルで操作する対象のデバイスを選ぶ一覧" width="384" height="384" loading="lazy">
@@ -274,7 +274,7 @@
           <li>SESAME Biz 開発者ページ（biz.candyhouse.co）で、uuid・apikey・secretKey の 3 点を確認・発行します。</li>
           <li>スマートフォンの Sesami Wear を開き、3 点とデバイス名を登録します（端末内に暗号化して保存します）。</li>
           <li>ウォッチにも Sesami Wear をインストールします（ウォッチの Google Play で検索。スマートフォンに入れただけでは入りません）。ウォッチのタイル一覧で「＋」から Sesami Wear を追加し、操作したいデバイスを選びます。ウォッチが無い場合はホーム画面にウィジェットを置きます。</li>
-          <li>ボタンをタップすると施錠・解錠を選ぶ画面が開きます。「施錠」か「解錠」を押すと実行し、成功・失敗は振動で分かります。全施錠だけなら、操作パネルのタイルからタップ 1 回です。</li>
+          <li>ボタンをタップすると施錠・解錠を選ぶ画面が開きます。「施錠」か「解錠」を押すと実行し、成功・失敗は振動で分かります。全台をまとめて操作するときは、操作パネルのタイルも使えます。</li>
         </ol>
         <p class="spaced">詳しい手順は<a href="https://github.com/filderschoice/sesami-wear/blob/main/docs/USER_GUIDE.md">利用ガイド</a>を参照してください。</p>
       </div>

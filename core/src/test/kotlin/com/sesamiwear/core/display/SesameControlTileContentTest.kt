@@ -53,8 +53,7 @@ class SesameControlTileContentTest {
     @Test
     fun `single device uses plain labels and targets that device`() {
         val content = SesameControlTileContent.build(devices(1), { true }, phoneConnected = true)!!
-        assertEquals("施錠", content.lockLabel)
-        assertEquals("解錠", content.unlockLabel)
+        assertEquals("鍵を操作", content.menuLabel)
         assertEquals("uuid-1", content.targetUuid)
         assertEquals(1, content.chips.size)
         assertEquals(1, content.chipRows.size)
@@ -64,8 +63,7 @@ class SesameControlTileContentTest {
     @Test
     fun `up to three devices sit side by side in one row`() {
         val content = SesameControlTileContent.build(devices(3), { true }, phoneConnected = true)!!
-        assertEquals("全施錠", content.lockLabel)
-        assertEquals("全解錠", content.unlockLabel)
+        assertEquals("全台の鍵を操作", content.menuLabel)
         assertEquals(SesameWearProtocol.ALL_DEVICES_TARGET_UUID, content.targetUuid)
         assertEquals(1, content.chipRows.size)
         assertEquals(listOf("uuid-1", "uuid-2", "uuid-3"), content.chipRows[0].chips.map { it.uuid })
@@ -134,7 +132,7 @@ class SesameControlTileContentTest {
         val content = SesameControlTileContent.build(devices(2), { true }, phoneConnected = false)!!
         assertFalse(content.buttonsEnabled)
         assertTrue(content.chips.all { it.state == TileDisplayState.DISCONNECTED && !it.tappable })
-        assertTrue(content.lockDescription.contains("スマホ未接続"))
+        assertTrue(content.menuDescription.contains("スマホ未接続"))
     }
 
     @Test
@@ -178,11 +176,11 @@ class SesameControlTileContentTest {
     }
 
     @Test
-    fun `descriptions use the full name and tell lock runs immediately and unlock goes through confirmation`() {
+    fun `descriptions use the full name and tell every tap opens the chooser`() {
         val named = listOf(SesameDeviceSummary(uuid = "u1", displayName = "倉庫の奥の勝手口"), device(2))
         val content = SesameControlTileContent.build(named, { true }, phoneConnected = true)!!
-        assertEquals("全施錠 タップですぐに施錠", content.lockDescription)
-        assertEquals("全解錠 タップして確認へ", content.unlockDescription)
+        // BL-307: 上段は1ボタンで、タップは選ぶ画面を開くだけ（タップ1回で施錠する経路は無い）。
+        assertEquals("全台の鍵を操作 タップして施錠・解錠を選ぶ", content.menuDescription)
         assertEquals("倉庫の奥の勝手口 施錠中 タップして施錠・解錠を選ぶ", content.chips[0].description)
         assertEquals("倉庫の…", content.chips[0].name)
     }

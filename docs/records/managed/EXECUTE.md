@@ -5,6 +5,47 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 14:30
+  summary: 操作専用タイルの上段を「全台の鍵を操作」の1ボタンへまとめ、施錠・解錠を選ぶ画面で実行する形にした（BL-307）
+  details:
+    変更内容: >-
+      BL-297の実機検証中のユーザー指摘（上段の「全解錠」をタップすると選ぶ画面が出るなら、スマホに合わせて鍵の操作としてまとめたい）と、
+      判断（1ボタンにまとめる、2026-11-21）による。core.display.SesameControlTileContent の Content を lockLabel / unlockLabel /
+      lockDescription / unlockDescription から menuLabel（2台以上「全台の鍵を操作」、1台「鍵を操作」）/ menuDescription へ変え、
+      wear.tile.SesameControlTileLayout の上段を中立色の1ボタン（タップで EXTRA_CHOOSE の選ぶ画面、スマホ未接続は文字を灰色にして
+      タップ不可）にした。不要になった BigButton を削除した。ピッカーのプレビュー tile_control_preview と説明 tile_control_description を
+      1ボタンの図案・文言へ直した。タイルからタップ1回で施錠する経路は無くなる（ウォッチのアプリの一覧の末尾の「全施錠」と
+      スマホのショートカットの「全施錠」は従来どおり）。ストア画像 wear_10_control_panel と紹介ページの画像を撮り直し、
+      USER_GUIDE・RELEASE_NOTES（0.17.0は未リリースのため書き換え）・README・STORE_LISTING・CLOSED_TEST・site・UI設計書・
+      DESIGN・BL-297の確認項目を追随させた。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameControlTileContent.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameTileActions.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameControlTileContentTest.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileLayout.kt
+      - wear/src/main/kotlin/com/sesamiwear/wear/tile/SesameControlTileService.kt
+      - wear/src/main/res/drawable/tile_control_preview.xml
+      - wear/src/main/res/values/strings.xml
+      - docs/store/images/screenshots/wear_10_control_panel.png
+      - site/assets/wear-control-panel.png
+      - site/index.html
+      - docs/design/UI_DESIGN.html
+      - docs/store/README.md
+      - docs/store/STORE_LISTING.md
+      - docs/CLOSED_TEST.md
+      - docs/USER_GUIDE.md
+      - docs/RELEASE_NOTES.md
+      - README.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py / python scripts/scan-secrets.py --require-changes / 実機（Pixel Watch 2・Pixel 8 Pro、撮影モード）で操作パネルの表示と選ぶ画面の操作
+    検証結果: >-
+      成功 - ktlintCheck・detekt・lintDebug・testDebugUnitTest test・assembleDebug を1回で実行し終了コード0。SesameControlTileContentTest は文言の検査を menuLabel / menuDescription へ書き換えて成功。markdownlint・validate-records・scan-secrets とも成功。実機（撮影モード）で、上段が「全台の鍵を操作」の1ボタンで描かれ、タップで全施錠・全解錠の選ぶ画面が開き、「全解錠」で3台とも解錠中になり、パネルへ反映されることを確認した（Claude Codeがadbで操作）。
+    関連ID:
+      - BL-307
+      - BL-297
 - date: 2026-11-21 13:30
   summary: 解錠中のタップもすぐに施錠せず、施錠・解錠を選ぶ画面を開くよう統一した（BL-304）
   details:
