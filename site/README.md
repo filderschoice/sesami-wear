@@ -21,7 +21,7 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 | `icon.svg` | アプリのアイコン | `mobile/src/main/res/drawable/ic_launcher_*.xml`（リングの `trimPath` は円弧へ置き換え） |
 | `how-it-works.svg` | 仕組みの図解 | DESIGN.md「アーキテクチャ方針」 |
 | `phone-widget.png` | ヒーローの画面（ホーム画面ウィジェット） | `docs/store/images/screenshots/phone_1_widget_locked.png` を 450x800 へ縮小 |
-| `wear-*.png` | 「操作の流れ」「画面」セクションのウォッチ画面 | `docs/store/images/screenshots/wear_1`〜`wear_6`（384x384 のまま） |
+| `wear-*.png` | 「操作の流れ」「画面」セクションのウォッチ画面 | `docs/store/images/screenshots/wear_1`〜`wear_6`・`wear_10`（384x384 のまま。`wear-control-panel.png` は `wear_10_control_panel.png`） |
 | `phone-*.png` | 「操作の流れ」「画面」セクションのスマートフォン画面 | `docs/store/images/screenshots/phone_2`〜`phone_8` を 450x800 へ縮小（`phone-widget.png` は phone_1） |
 | `radar-phone-*.png` / `radar-wear-*.png` | 「Bluetooth接続を確認」（レーダー）画面のイメージ（探索中・発見・接続OK・圏外の4状態。スマートフォン450x800、ウォッチ384x384）。**実機のスクリーンショットではなく、実装の寸法・色・文言を転記して描いたイメージ画像**で、現時点では`index.html`に掲載していない（今後の掲載・ドキュメント用） | `scripts/generate-radar-images.py`で生成（BL-277） |
 
@@ -45,7 +45,7 @@ Sesami Wear を紹介する静的な 1 ページです。Romcha（`C:\Dev\repo\p
 
 ## テンプレート（Romcha）からの差分
 
-- 「操作の流れ」セクション（`#flow`）を追加した。ウォッチのタイル→確認→解錠を CSS だけで切り替えるアニメーション
+- 「操作の流れ」セクション（`#flow`）を追加した。ウォッチのタイル→施錠・解錠を選ぶ画面→操作パネルを CSS だけで切り替えるアニメーション
   （`prefers-reduced-motion` では 3 枚の並びにする）と、ウィジェットの 3 コマを載せている。
 - 「画面」セクション（`#screens`）を追加した（ウォッチ・スマートフォンの 2 組）。機能カードと同じ `.features` の並びに、スクリーンショットを載せたカードを置く。
 - 上記のため `style.css` に `.card img` を 1 つ追加した（丸いウォッチ画面に合わせて円形に切り抜く）。
