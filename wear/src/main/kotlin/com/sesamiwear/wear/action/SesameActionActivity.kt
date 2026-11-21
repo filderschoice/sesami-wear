@@ -46,12 +46,13 @@ import com.sesamiwear.wear.messaging.SesameCommandSenderProvider
 import com.sesamiwear.wear.messaging.SesameConnectedNodeProvider
 
 /**
- * Tileタップから起動される施錠/解錠実行画面。
- * 施錠（LOCK）の直接指定はワンタップ即実行する。施錠・解錠を選ぶ依頼（[SesameActionCommandParser.EXTRA_CHOOSE]、
- * 施錠中・一部解錠のTileタップとデバイス一覧の行タップ、BL-295）と解錠（UNLOCK）の直接指定は、
+ * Tile・操作パネル・アプリの一覧のタップから起動される施錠/解錠実行画面。
+ * 施錠・解錠を選ぶ依頼（[SesameActionCommandParser.EXTRA_CHOOSE]。Tileのタップ（施錠中・解錠中・一部解錠、BL-295 / BL-304）、
+ * 操作パネルの「全台の鍵を操作」と台のチップ（BL-307）、一覧の行と末尾の「全台の鍵を操作」（BL-308））と解錠（UNLOCK）の直接指定は、
  * 施錠・解錠の2ボタンの選ぶ画面を開き、押した方をそのまま実行する（確認は重ねない。キャンセルボタンは無く、
  * スワイプで戻る＝キャンセル）。解錠はこの画面で「解錠」を押す明示操作を経て初めて実行される
- * （PLAN.mdのUX要件、[SesameCommandConfirmation]）。
+ * （PLAN.mdのUX要件、[SesameCommandConfirmation]）。施錠（LOCK）の直接指定はワンタップ即実行するが、アプリ内にその入口は無く
+ * （BL-307・BL-308で選ぶ画面へまとめた）、外部からの起動（exported）のためだけに残している。
  * コマンド送信はFire-and-forgetで行い、実行結果（成功/失敗）のリアルタイム反映とハプティクスはBL-008で扱う。
  * 操作対象デバイスのuuid（BL-053、tileIdに割り当てられたデバイス）をIntent extra経由で受け取る。
  * uuidが[SesameWearProtocol.ALL_DEVICES_TARGET_UUID]（「全デバイス」選択）の場合は登録済み
