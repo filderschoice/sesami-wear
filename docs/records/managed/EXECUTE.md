@@ -5,6 +5,27 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-21 21:00
+  summary: ウォッチのタイルの取得時刻の表記変更（BL-313）に合わせて、掲載画像 wear_2 / wear_4 とタイル追加の一覧のプレビューを実機で撮り直した
+  details:
+    変更内容: >-
+      ユーザーの指示（スクショの取り直しを確認して進める、2026-11-21）による。wear_2_tile_locked / wear_4_tile_mixed が旧表記（「たった今」「2分前」）
+      のままだったため、Pixel Watch 2実機（デバッグ版、撮影モードの見本の3台、全デバイスのタイル）で撮り直した（「11/21 17:19」「11/21 17:50」）。
+      wear_2 は tile_preview.png の元画像でもあるため同じ画像を drawable-nodpi へ写した（BL-310）。ほかの画像は時刻の文言が無く据え置き。
+      撮影用に追加したタイルは撮影後に外した。実Sesame・実資格情報は使っていない。
+    変更ファイル:
+      - docs/store/images/screenshots/wear_2_tile_locked.png
+      - docs/store/images/screenshots/wear_4_tile_mixed.png
+      - wear/src/main/res/drawable-nodpi/tile_preview.png
+      - docs/store/README.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全ゲート終了コード0。画像は実機の画面を目視で確認した。
+    関連ID:
+      - BL-313
+      - BL-310
 - date: 2026-11-21 20:30
   summary: スマホが通信できないときのウォッチの施錠・解錠を、届かなければ失敗として知らせ、クラウド中継ノードへ宛てて送らないようにした（BL-312）
   details:
