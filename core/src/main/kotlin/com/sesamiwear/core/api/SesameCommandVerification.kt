@@ -54,11 +54,11 @@ object SesameCommandVerification {
         if (timestamp >= MILLIS_THRESHOLD) timestamp / MILLIS_PER_SECOND else timestamp
 
     /**
-     * 端末時計のずれに備えた余裕（秒）の既定値。待ち時間（4秒）以内に反映された正しい状態の
-     * timestampは、送信時刻の1〜4秒後になる想定のため、それを潰さない範囲で小さく取った暫定値。
-     * 最終状態更新時刻か応答生成時刻かが未確認のため、実機で調整する（BL-294）。
+     * 端末時計のずれに備えた余裕（秒）の既定値。BL-306の実機確認（2026-11-22、Hub 3オンライン）で、
+     * timestampは秒単位の最終状態更新時刻とみられ、反映は送信の0.4〜1.2秒後だった（状態取得の4〜7秒前）。
+     * 余裕2秒だと正しい反映が毎回UNVERIFIABLEになるため0秒（送信時刻より後の秒だけを新しい値とする）にした。
      */
-    const val DEFAULT_CLOCK_SKEW_MARGIN_SECONDS = 2L
+    const val DEFAULT_CLOCK_SKEW_MARGIN_SECONDS = 0L
 
     private const val MILLIS_PER_SECOND = 1_000L
     private const val MILLIS_THRESHOLD = 100_000_000_000L

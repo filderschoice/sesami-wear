@@ -60,23 +60,23 @@ class SesameCommandVerificationTest {
         assertEquals(SesameCommandVerification.Verdict.UNVERIFIABLE, verdict)
     }
 
-    // 送信は1_700_000_005秒台。余裕2秒のため、7秒ちょうどまでは判断できず、8秒から新しい値になる。
+    // 送信は1_700_000_005秒台。既定の余裕は0秒のため、5秒ちょうどまでは判断できず、6秒から新しい値になる。
     @Test
-    fun `a timestamp exactly at the margin is unverifiable`() {
-        val verdict = judge(SesameCommand.LOCK, "unlocked", 1_700_000_007L)
+    fun `a timestamp in the same second as the send time is unverifiable`() {
+        val verdict = judge(SesameCommand.LOCK, "unlocked", 1_700_000_005L)
         assertEquals(SesameCommandVerification.Verdict.UNVERIFIABLE, verdict)
     }
 
     @Test
-    fun `a timestamp one second beyond the margin is fresh`() {
-        val verdict = judge(SesameCommand.LOCK, "unlocked", 1_700_000_008L)
+    fun `a timestamp one second after the send time is fresh`() {
+        val verdict = judge(SesameCommand.LOCK, "unlocked", 1_700_000_006L)
         assertEquals(SesameCommandVerification.Verdict.NOT_REFLECTED, verdict)
     }
 
     @Test
-    fun `a timestamp in the same second as the send time is unverifiable because of the clock margin`() {
-        val verdict = judge(SesameCommand.LOCK, "unlocked", 1_700_000_005L)
-        assertEquals(SesameCommandVerification.Verdict.UNVERIFIABLE, verdict)
+    fun `a timestamp one second after the send time confirms a matching state`() {
+        val verdict = judge(SesameCommand.LOCK, "locked", 1_700_000_006L)
+        assertEquals(SesameCommandVerification.Verdict.CONFIRMED, verdict)
     }
 
     @Test
@@ -84,11 +84,11 @@ class SesameCommandVerificationTest {
         val unlocked = status("unlocked", 1_700_000_006L)
         assertEquals(
             SesameCommandVerification.Verdict.NOT_REFLECTED,
-            SesameCommandVerification.judge(SesameCommand.LOCK, unlocked, sentAtMillis, marginSeconds = 0),
+            SesameCommandVerification.judge(SesameCommand.LOCK, unlocked, sentAtMillis, marginSeconds = 0L),
         )
         assertEquals(
             SesameCommandVerification.Verdict.UNVERIFIABLE,
-            SesameCommandVerification.judge(SesameCommand.LOCK, unlocked, sentAtMillis, marginSeconds = 1),
+            SesameCommandVerification.judge(SesameCommand.LOCK, unlocked, sentAtMillis, marginSeconds = 1L),
         )
     }
 
@@ -116,8 +116,8 @@ class SesameCommandVerificationTest {
 
     @Test
     fun `a timestamp in milliseconds is compared on the same scale`() {
-        val fresh = status("unlocked", 1_700_000_009_000L)
-        val stale = status("unlocked", 1_700_000_007_999L)
+        val fresh = status("unlocked", 1_700_000_006_000L)
+        val stale = status("unlocked", 1_700_000_005_999L)
         assertEquals(
             SesameCommandVerification.Verdict.NOT_REFLECTED,
             SesameCommandVerification.judge(SesameCommand.LOCK, fresh, sentAtMillis),

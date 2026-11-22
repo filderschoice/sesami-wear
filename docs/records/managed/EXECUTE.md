@@ -5,6 +5,32 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-22 09:30
+  summary: 送信後の状態確認の余裕値を2秒から0秒へ直し、状態取得の timestamp をログへ残すようにした（BL-306）
+  details:
+    変更内容: >-
+      ユーザーの指示（余裕値を0秒に直して入れ直す、2026-11-22）による。Pixel 8 Pro実機（デバッグ版、実鍵1台、Hub 3オンライン）で、
+      状態取得の timestamp が秒単位の最終状態更新時刻とみられ、送信の0.2〜1.2秒後であることを確かめた。余裕2秒だと正しい反映が
+      毎回 UNVERIFIABLE になったため、core.api.SesameCommandVerification.DEFAULT_CLOCK_SKEW_MARGIN_SECONDS を0へ変え、
+      境界値の単体テストを直した。mobile.command.SesameVerificationAccess は状態取得ごとに timestamp・送信時刻・状態を
+      logcat へ残す。変更後の実機確認で解錠・施錠とも confirmed になった。Hub 3オフライン時は古い状態（約13分前の timestamp）が
+      返り UNVERIFIABLE のまま鍵が動かないことを確認した（BL-315へ起票）。BL-297 の実機確認の完了を記録し、BL-297・BL-306 を削除した。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt :core:test :mobile:testDebugUnitTest / 実機での施錠・解錠（Hub 3オンライン・オフライン）とlogcat確認
+    検証結果: >-
+      成功 - ktlint・detekt・単体テストは終了コード0。実機はオンラインで confirmed、オフラインで unverified（鍵は動かず）。
+    関連ID:
+      - BL-306
+      - BL-297
+      - BL-315
 - date: 2026-11-21 21:00
   summary: ウォッチのタイルの取得時刻の表記変更（BL-313）に合わせて、掲載画像 wear_2 / wear_4 とタイル追加の一覧のプレビューを実機で撮り直した
   details:

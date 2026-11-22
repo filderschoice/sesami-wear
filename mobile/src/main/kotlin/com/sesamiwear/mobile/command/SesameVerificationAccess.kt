@@ -93,6 +93,20 @@ class SesameVerificationAccess(
         command: SesameCommand,
         status: SesameStatus,
         sentAtMillis: Long,
+    ): Result {
+        // 実機検証（BL-306）でtimestampの意味・単位を確かめるため、値そのものを残す（資格情報ではない）。
+        api.logResponse(
+            "verify ${command.name}: status timestamp=${status.timestamp} sentAtMillis=$sentAtMillis " +
+                "inLockRange=${status.isInLockRange}",
+        )
+        return judgeVerdict(api, command, status, sentAtMillis)
+    }
+
+    private fun judgeVerdict(
+        api: SesameApiAccess,
+        command: SesameCommand,
+        status: SesameStatus,
+        sentAtMillis: Long,
     ): Result =
         when (SesameCommandVerification.judge(command, status, sentAtMillis)) {
             SesameCommandVerification.Verdict.CONFIRMED -> {
