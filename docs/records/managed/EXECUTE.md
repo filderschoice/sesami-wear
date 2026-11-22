@@ -16,7 +16,9 @@
       Web API送信の直前（BLE成功時は取らない）に呼ぶ。送信前の取得に失敗したときは従来の端末時計との比較へ戻る。
       Web APIの消費が命令ごとに2回増えるため、設定の説明文（core.display.SesameVerifyLabel）を「2回多く」へ直した。
       単体テストを追加・更新した（core の判定6件、executor の照合テストを送信前の取得を含む形へ）。
-      実機（Hub 3のオンライン・オフライン）での再確認はまだ（人手検証）。
+      実機（Pixel 8 Pro、実鍵1台）で確認した（2026-11-22、操作はユーザー）: Hub 3オンラインの解錠・施錠は confirmed、
+      Hub 3オフラインで鍵が動かない解錠は「未反映」（アプリの表示・操作履歴の失敗を確認）、すでに施錠中への施錠は
+      判断できない扱いで成功のまま。
     変更ファイル:
       - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
       - core/src/main/kotlin/com/sesamiwear/core/display/SesameVerifyLabel.kt

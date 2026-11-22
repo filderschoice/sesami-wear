@@ -1316,7 +1316,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
   `timestamp`が進んでいれば更新された（命令と一致なら`CONFIRMED`、食い違いなら`NOT_REFLECTED`）。進んでいない場合は、
   状態が命令と食い違っていれば実機へ届いていない（Hub 3のオフライン等）として`NOT_REFLECTED`、すでに命令どおりの状態なら
   更新が起きなくて当然なので`UNVERIFIABLE`。反映が待ち時間（4秒）より遅いと動いたのに`NOT_REFLECTED`になりうる
-  （実機では約1秒以内）。月間上限の消費は命令ごとに2回増える。
+  （実機では約1秒以内）。月間上限の消費は命令ごとに2回増える。実機確認済み（2026-11-22）: Hub 3オンラインは`CONFIRMED`、
+  オフラインで動かない命令は`NOT_REFLECTED`（表示・操作履歴の失敗）、すでに命令どおりの状態への命令は`UNVERIFIABLE`（成功のまま）。
 - 照合の流れ（`SesameDeviceCommandExecutor.execute`）: Web API経由で2xxを受け、送信時点の状態（送った命令どおり）を
   保存・通知した後、`SesameVerificationAccess.verify`が`waitMillis`（初期値4秒、仕様の3〜5秒の中央）待って
   `getStatus`を1回呼ぶ（`recordApiCall`で数える）。BLE経由・デモ・資格情報なし・命令の失敗では何もしない。
