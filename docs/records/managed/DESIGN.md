@@ -1309,7 +1309,14 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
 - 設定: `mobile.command.SesameVerifyAfterSendStore`（`SesameKeyValueStore`、キー`verify_after_send`、既定false。
   BLEの到達実績と同じ非暗号化ファイル）。設定画面の「接続」区分の「送信後の状態確認」（`credentials.VerifyAfterSendState`、
   オン・オフのスイッチと説明のダイアログ）で切り替え、操作のたびに読み直す。文言は`core.display.SesameVerifyLabel`
-  （命令ごとにWeb APIを1回多く使い月間上限（BL-141）に効くこと、結果が数秒遅れること、Bluetoothでは確認しないこと）。
+  （命令ごとにWeb APIを2回多く使い月間上限（BL-141）に効くこと、結果が数秒遅れること、Bluetoothでは確認しないこと）。
+- 送信前の状態（BL-315）: Web API経由で送る直前（BLEが成功したときは取らない）に`SesameVerificationAccess.captureBaseline`が
+  状態を1回取り、`timestamp`（秒）を`Baseline`へ残す。取得に失敗してもnullのまま送信へ進み、下の照合は端末時計との比較へ戻る。
+  送信後の`timestamp`と比べる`SesameCommandVerification.judgeAgainstBaseline`（サーバの値どうしの比較で端末時計に依存しない）:
+  `timestamp`が進んでいれば更新された（命令と一致なら`CONFIRMED`、食い違いなら`NOT_REFLECTED`）。進んでいない場合は、
+  状態が命令と食い違っていれば実機へ届いていない（Hub 3のオフライン等）として`NOT_REFLECTED`、すでに命令どおりの状態なら
+  更新が起きなくて当然なので`UNVERIFIABLE`。反映が待ち時間（4秒）より遅いと動いたのに`NOT_REFLECTED`になりうる
+  （実機では約1秒以内）。月間上限の消費は命令ごとに2回増える。
 - 照合の流れ（`SesameDeviceCommandExecutor.execute`）: Web API経由で2xxを受け、送信時点の状態（送った命令どおり）を
   保存・通知した後、`SesameVerificationAccess.verify`が`waitMillis`（初期値4秒、仕様の3〜5秒の中央）待って
   `getStatus`を1回呼ぶ（`recordApiCall`で数える）。BLE経由・デモ・資格情報なし・命令の失敗では何もしない。
@@ -1325,7 +1332,8 @@ Web APIの2xxはクラウドが受理しただけで実機の動作を保証し�
     0.2〜1.2秒後の値で、応答生成時刻なら取得時刻と同じになるはずなのに一致しなかった）。単位の判定（1e11境界）は据え置く。
     オンライン時の反映は約1秒以内で、待ち時間（4秒）は据え置く。
   - Hub 3がオフラインのときは、施錠・解錠がHTTP 200で受理され状態取得も成功するが、オフライン前の古い状態を返す
-    （`timestamp`が約13分前）ため`UNVERIFIABLE`になり、「未反映」は出ない（鍵は動かない）。検知方法はBL-315で検討する。
+    （`timestamp`が約13分前）。端末時計との比較（上記の余裕0秒）では`UNVERIFIABLE`になり検知できないため、送信前の状態との
+    比較（BL-315、上記「送信前の状態」）で`NOT_REFLECTED`にする。
   - 検証用に、`SesameVerificationAccess`は状態取得のたびに`verify ...: status timestamp=… sentAtMillis=… inLockRange=…`を
     logcat（タグ`SesameApi`）へ残す（資格情報ではない値だけ）。
 - 扱い（既定値で決めた）: `NOT_REFLECTED`のときだけ、実際の状態を保存し直し（電池・角度も反映）、

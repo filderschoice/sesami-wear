@@ -7,7 +7,7 @@ import org.junit.Test
 class SesameVerifyLabelTest {
     @Test
     fun `the description tells that each command uses one more API request`() {
-        assertTrue(SesameVerifyLabel.DESCRIPTION.contains("1回多く"))
+        assertTrue(SesameVerifyLabel.DESCRIPTION.contains("2回多く"))
         assertTrue(SesameVerifyLabel.DESCRIPTION.contains("月間"))
     }
 

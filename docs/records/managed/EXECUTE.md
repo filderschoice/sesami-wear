@@ -5,6 +5,37 @@
 
 <!-- COPILOT_RECORDS:BEGIN -->
 ```yaml
+- date: 2026-11-22 11:00
+  summary: 送信後の状態確認で、Web APIで送る直前の状態も取り、timestamp が進んだかで照合するようにした（Hub 3オフラインの検知、BL-315）
+  details:
+    変更内容: >-
+      ユーザーの指示（BL-315は案(b)で進める、2026-11-22）による。core.api.SesameCommandVerification に judgeAgainstBaseline と
+      timestampSecondsOf を追加した。送信前の状態の timestamp より送信後が進んでいれば更新済み（命令と一致なら確認済み、食い違いなら未反映）、
+      進んでいなければ状態が命令と食い違うとき未反映（Hub 3のオフライン等）、すでに命令どおりなら判断できない扱い。
+      mobile.command.SesameVerificationAccess に Baseline と captureBaseline を追加し、SesameDeviceCommandExecutor が
+      Web API送信の直前（BLE成功時は取らない）に呼ぶ。送信前の取得に失敗したときは従来の端末時計との比較へ戻る。
+      Web APIの消費が命令ごとに2回増えるため、設定の説明文（core.display.SesameVerifyLabel）を「2回多く」へ直した。
+      単体テストを追加・更新した（core の判定6件、executor の照合テストを送信前の取得を含む形へ）。
+      実機（Hub 3のオンライン・オフライン）での再確認はまだ（人手検証）。
+    変更ファイル:
+      - core/src/main/kotlin/com/sesamiwear/core/api/SesameCommandVerification.kt
+      - core/src/main/kotlin/com/sesamiwear/core/display/SesameVerifyLabel.kt
+      - core/src/test/kotlin/com/sesamiwear/core/api/SesameCommandVerificationTest.kt
+      - core/src/test/kotlin/com/sesamiwear/core/display/SesameVerifyLabelTest.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerificationAccess.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutor.kt
+      - mobile/src/main/kotlin/com/sesamiwear/mobile/command/SesameVerifyAfterSendStore.kt
+      - mobile/src/test/kotlin/com/sesamiwear/mobile/command/SesameDeviceCommandExecutorVerificationTest.kt
+      - docs/USER_GUIDE.md
+      - docs/records/managed/BACKLOG.md
+      - docs/records/managed/DESIGN.md
+      - docs/records/managed/EXECUTE.md
+    検証コマンド: >-
+      ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest test assembleDebug / npx markdownlint-cli2 "**/*.md" / python scripts/validate-records.py
+    検証結果: >-
+      成功 - 全ゲート終了コード0。
+    関連ID:
+      - BL-315
 - date: 2026-11-22 09:30
   summary: 送信後の状態確認の余裕値を2秒から0秒へ直し、状態取得の timestamp をログへ残すようにした（BL-306）
   details:

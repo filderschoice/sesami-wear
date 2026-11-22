@@ -144,4 +144,62 @@ class SesameCommandVerificationTest {
         assertEquals(1_700_000_009L, withTimestamp.timestamp)
         assertNull(without.timestamp)
     }
+
+    private fun againstBaseline(
+        command: SesameCommand,
+        lockStatus: String,
+        timestamp: Long?,
+    ) = SesameCommandVerification.judgeAgainstBaseline(command, status(lockStatus, timestamp), baselineSeconds = 100L)
+
+    @Test
+    fun `against a baseline an advanced timestamp with a matching state is confirmed`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.CONFIRMED,
+            againstBaseline(SesameCommand.LOCK, "locked", 101L),
+        )
+    }
+
+    @Test
+    fun `against a baseline an advanced timestamp with a mismatching state is not reflected`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.NOT_REFLECTED,
+            againstBaseline(SesameCommand.LOCK, "unlocked", 101L),
+        )
+    }
+
+    @Test
+    fun `against a baseline an unchanged timestamp with a mismatching state is not reflected`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.NOT_REFLECTED,
+            againstBaseline(SesameCommand.UNLOCK, "locked", 100L),
+        )
+    }
+
+    @Test
+    fun `against a baseline an unchanged timestamp that already matches is unverifiable`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.UNVERIFIABLE,
+            againstBaseline(SesameCommand.UNLOCK, "unlocked", 100L),
+        )
+    }
+
+    @Test
+    fun `against a baseline a missing timestamp is unverifiable`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.UNVERIFIABLE,
+            againstBaseline(SesameCommand.LOCK, "unlocked", null),
+        )
+    }
+
+    @Test
+    fun `against a baseline milliseconds are compared in seconds`() {
+        assertEquals(
+            SesameCommandVerification.Verdict.CONFIRMED,
+            SesameCommandVerification.judgeAgainstBaseline(
+                SesameCommand.LOCK,
+                status("locked", 1_700_000_101_000L),
+                baselineSeconds = 1_700_000_100L,
+            ),
+        )
+    }
 }

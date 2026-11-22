@@ -50,6 +50,32 @@ object SesameCommandVerification {
         }
     }
 
+    /**
+     * 送信前に取った状態の[baselineSeconds]（[timestampSecondsOf]）と比べて判定する（BL-315）。
+     *
+     * サーバの値どうしの比較なので端末の時計に依存しない。送信後の`timestamp`が進んでいれば、状態が更新された
+     * （命令が実機へ届いた）ので、命令と一致なら[Verdict.CONFIRMED]、食い違いなら[Verdict.NOT_REFLECTED]。
+     * 進んでいない場合、状態が命令と食い違っていれば、実機へ届いていない（Hub 3のオフライン等）として
+     * [Verdict.NOT_REFLECTED]、すでに命令どおりの状態なら更新が起きなくて当然なので[Verdict.UNVERIFIABLE]。
+     * 反映が待ち時間より遅いと、動いたのに[Verdict.NOT_REFLECTED]になりうる（実機では約1秒以内だった）。
+     */
+    fun judgeAgainstBaseline(
+        command: SesameCommand,
+        status: SesameStatus,
+        baselineSeconds: Long,
+    ): Verdict {
+        val timestampSeconds = timestampSecondsOf(status) ?: return Verdict.UNVERIFIABLE
+        val matches = status.isInLockRange == (command == SesameCommand.LOCK)
+        return when {
+            timestampSeconds > baselineSeconds -> if (matches) Verdict.CONFIRMED else Verdict.NOT_REFLECTED
+            matches -> Verdict.UNVERIFIABLE
+            else -> Verdict.NOT_REFLECTED
+        }
+    }
+
+    /** [status]の`timestamp`を秒へそろえた値。無ければnull。 */
+    fun timestampSecondsOf(status: SesameStatus): Long? = status.timestamp?.let(::toSeconds)
+
     private fun toSeconds(timestamp: Long): Long =
         if (timestamp >= MILLIS_THRESHOLD) timestamp / MILLIS_PER_SECOND else timestamp
 

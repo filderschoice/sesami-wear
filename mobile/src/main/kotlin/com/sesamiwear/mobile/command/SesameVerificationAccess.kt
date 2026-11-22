@@ -46,19 +46,44 @@ class SesameVerificationAccess(
         data class NotReflected(val reading: SesameStatusReading) : Result
     }
 
+    /** 送信前の状態の`timestamp`（秒）を入れる入れ物（BL-315）。取れなかった・取らなかったときはnullのまま。 */
+    class Baseline {
+        var timestampSeconds: Long? = null
+    }
+
+    /**
+     * Web APIで送る前に状態を1回取り、`timestamp`を[baseline]へ残す（BL-315）。設定がOFFなら何もしない。
+     * 取得に失敗しても例外は漏らさず、nullのまま送信へ進む（照合は端末時計との比較へ戻る）。
+     */
+    suspend fun captureBaseline(
+        api: SesameApiAccess,
+        credentials: SesameCredentials,
+        baseline: Baseline,
+    ) {
+        if (!isEnabled()) return
+        api.recordApiCall()
+        baseline.timestampSeconds =
+            fetchStatusOrNull(api, credentials)?.let(SesameCommandVerification::timestampSecondsOf)
+    }
+
     /** [command]を[sentAtMillis]に送った[credentials]のデバイスを、設定がONなら照合する。 */
     suspend fun verify(
         api: SesameApiAccess,
         credentials: SesameCredentials,
         command: SesameCommand,
         sentAtMillis: Long,
+        baseline: Baseline = Baseline(),
     ): Result {
         if (!isEnabled()) return Result.Skipped
         return try {
             pause(waitMillis)
             api.recordApiCall()
             val status = fetchStatusOrNull(api, credentials)
-            if (status == null) unverified(api, command, "fetch failed") else judge(api, command, status, sentAtMillis)
+            if (status == null) {
+                unverified(api, command, "fetch failed")
+            } else {
+                judge(api, command, status, sentAtMillis, baseline.timestampSeconds)
+            }
         } catch (e: CancellationException) {
             // 照合が終わらないまま呼び出しが取り消された。照合できなかったことをlogcatで区別できるようにする。
             api.logResponse("verify ${command.name}: cancelled")
@@ -93,13 +118,14 @@ class SesameVerificationAccess(
         command: SesameCommand,
         status: SesameStatus,
         sentAtMillis: Long,
+        baselineSeconds: Long?,
     ): Result {
         // 実機検証（BL-306）でtimestampの意味・単位を確かめるため、値そのものを残す（資格情報ではない）。
         api.logResponse(
             "verify ${command.name}: status timestamp=${status.timestamp} sentAtMillis=$sentAtMillis " +
                 "inLockRange=${status.isInLockRange}",
         )
-        return judgeVerdict(api, command, status, sentAtMillis)
+        return judgeVerdict(api, command, status, sentAtMillis, baselineSeconds)
     }
 
     private fun judgeVerdict(
@@ -107,8 +133,9 @@ class SesameVerificationAccess(
         command: SesameCommand,
         status: SesameStatus,
         sentAtMillis: Long,
+        baselineSeconds: Long?,
     ): Result =
-        when (SesameCommandVerification.judge(command, status, sentAtMillis)) {
+        when (verdictOf(command, status, sentAtMillis, baselineSeconds)) {
             SesameCommandVerification.Verdict.CONFIRMED -> {
                 api.logResponse("verify ${command.name}: confirmed")
                 Result.Confirmed
@@ -129,6 +156,18 @@ class SesameVerificationAccess(
                 )
             }
         }
+
+    /** 送信前の状態があればそれと、無ければ端末時計の送信時刻と比べる。 */
+    private fun verdictOf(
+        command: SesameCommand,
+        status: SesameStatus,
+        sentAtMillis: Long,
+        baselineSeconds: Long?,
+    ) = if (baselineSeconds != null) {
+        SesameCommandVerification.judgeAgainstBaseline(command, status, baselineSeconds)
+    } else {
+        SesameCommandVerification.judge(command, status, sentAtMillis)
+    }
 
     private fun unverified(
         api: SesameApiAccess,

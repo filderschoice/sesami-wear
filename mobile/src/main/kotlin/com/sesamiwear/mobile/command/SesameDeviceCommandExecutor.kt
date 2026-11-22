@@ -76,8 +76,9 @@ class SesameDeviceCommandExecutor(
             return Outcome.DEBOUNCED
         }
         val sentAtMillis = nowMillis()
+        val baseline = SesameVerificationAccess.Baseline()
         val measurement =
-            if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command)
+            if (SesameDemoMode.isDemoDevice(uuid)) SesameStatusMeasurement() else sendCommand(uuid, command, baseline)
         if (measurement != null) {
             // 送信したコマンドが意図した状態をそのまま保存する（BL-015の簡略化ロジックを維持）。
             updateLockState(uuid, isLocked = command == SesameCommand.LOCK, measurement = measurement)
@@ -87,7 +88,7 @@ class SesameDeviceCommandExecutor(
             // 送信後の状態確認（BL-293）。設定がOFF（既定）なら資格情報の再検索も含め何も追加しない。
             // BLE経由・デモでは、設定がONでも照合しない（[verifyOverApi]）。
             if (measurement != null && routes.verification.isEnabled()) {
-                val actual = routes.verifyOverApi(findCredentials(uuid), measurement, command, sentAtMillis)
+                val actual = routes.verifyOverApi(findCredentials(uuid), measurement, command, sentAtMillis, baseline)
                 if (actual != null) {
                     // 実際の状態を保存し直し、「未反映」の失敗として通知する（ウォッチは失敗の振動を鳴らす）。
                     lockStateStore.save(uuid, actual.isLocked, nowMillis(), actual.measurement)
@@ -117,11 +118,14 @@ class SesameDeviceCommandExecutor(
     private suspend fun sendCommand(
         uuid: String,
         command: SesameCommand,
+        baseline: SesameVerificationAccess.Baseline,
     ): SesameStatusMeasurement? {
         val credentials = findCredentials(uuid)
         val secretKey = credentials?.secretKeyBytesOrNull ?: return null
         return routes.ble.tryCommand(credentials, command, nowMillis())
             ?: routes.ble.withReachabilityProbe(credentials, nowMillis()) {
+                // 送信後の状態確認がONなら、Web APIで送る直前の状態を取る（BL-315。BLEが成功したときは取らない）。
+                routes.verification.captureBaseline(routes.api, credentials, baseline)
                 // Web API経由の施錠/解錠は状態を返さないため、分かるのは経路だけ（BL-166）。
                 if (sendCommandOverApi(credentials, secretKey, command)) {
                     SesameStatusMeasurement.ofRoute(SesameStatusRoute.WEB_API)
@@ -405,10 +409,11 @@ private suspend fun SesameRouteAccess.verifyOverApi(
     sent: SesameStatusMeasurement,
     command: SesameCommand,
     sentAtMillis: Long,
+    baseline: SesameVerificationAccess.Baseline,
 ): SesameStatusReading? =
     if (credentials != null && sent.route == SesameStatusRoute.WEB_API) {
-        (verification.verify(api, credentials, command, sentAtMillis) as? SesameVerificationAccess.Result.NotReflected)
-            ?.reading
+        val result = verification.verify(api, credentials, command, sentAtMillis, baseline)
+        (result as? SesameVerificationAccess.Result.NotReflected)?.reading
     } else {
         null
     }
