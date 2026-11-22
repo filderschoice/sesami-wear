@@ -47,6 +47,12 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
         return """{"batteryVoltage":5.8,"position":11,"CHSesame2Status":"$lockStatus"$timestampField}"""
     }
 
+    /** 送信前の状態取得（BL-315）の応答を積む。 */
+    private fun enqueueBaseline(
+        lockStatus: String,
+        timestamp: Long?,
+    ) = server.enqueue(MockResponse().setResponseCode(HTTP_OK).setBody(statusBody(lockStatus, timestamp)))
+
     @Test
     fun `off by default does not fetch the status and behaves as before`() =
         runTest {
@@ -64,6 +70,7 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
     @Test
     fun `on and matching status is a success after waiting once`() =
         runTest {
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
             server.enqueue(MockResponse().setResponseCode(HTTP_OK))
             server.enqueue(MockResponse().setResponseCode(HTTP_OK).setBody(statusBody("locked", FRESH_TIMESTAMP)))
 
@@ -71,7 +78,9 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
 
             assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
             assertEquals(listOf(WAIT_MILLIS), waits)
-            assertEquals(2, apiCalls)
+            assertEquals(3, apiCalls)
+            // 送信前の状態取得 → 命令 → 送信後の状態取得の順。
+            assertEquals("/$DEVICE_UUID", server.takeRequest().path)
             assertEquals("/$DEVICE_UUID/cmd", server.takeRequest().path)
             assertEquals("/$DEVICE_UUID", server.takeRequest().path)
             assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
@@ -79,8 +88,9 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
         }
 
     @Test
-    fun `on and mismatching fresh status saves the real state and reports not reflected`() =
+    fun `on and mismatching updated status saves the real state and reports not reflected`() =
         runTest {
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
             server.enqueue(MockResponse().setResponseCode(HTTP_OK))
             server.enqueue(MockResponse().setResponseCode(HTTP_OK).setBody(statusBody("unlocked", FRESH_TIMESTAMP)))
 
@@ -97,8 +107,38 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
         }
 
     @Test
-    fun `on and a stale status is not adopted and the command stays a success`() =
+    fun `on and an unchanged mismatching status reports not reflected as when the hub is offline`() =
         runTest {
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
+
+            val outcome = verifyingExecutor(enabled = true).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.FAILURE, outcome)
+            assertEquals(false, lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertEquals(SesameStatusFailure.NOT_REFLECTED, lockStateStore.load(DEVICE_UUID)?.lastFailure)
+        }
+
+    @Test
+    fun `on and an unchanged status that already matches stays a success`() =
+        runTest {
+            enqueueBaseline("locked", BASELINE_TIMESTAMP)
+            server.enqueue(MockResponse().setResponseCode(HTTP_OK))
+            enqueueBaseline("locked", BASELINE_TIMESTAMP)
+
+            val outcome = verifyingExecutor(enabled = true).execute(DEVICE_UUID, SesameCommand.LOCK)
+
+            assertEquals(SesameDeviceCommandExecutor.Outcome.SUCCESS, outcome)
+            assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
+            assertNull(lockStateStore.load(DEVICE_UUID)?.lastFailure)
+            assertEquals(SesameDiagnosticsOutcome.SUCCESS, diagnostics.single().outcome)
+        }
+
+    @Test
+    fun `on and a failed baseline falls back to the device clock and a stale status stays a success`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(HTTP_SERVER_ERROR))
             server.enqueue(MockResponse().setResponseCode(HTTP_OK))
             server.enqueue(MockResponse().setResponseCode(HTTP_OK).setBody(statusBody("unlocked", STALE_TIMESTAMP)))
 
@@ -113,6 +153,7 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
     @Test
     fun `on and a failed status fetch keeps the command a success`() =
         runTest {
+            enqueueBaseline("locked", BASELINE_TIMESTAMP)
             server.enqueue(MockResponse().setResponseCode(HTTP_OK))
             server.enqueue(MockResponse().setResponseCode(HTTP_SERVER_ERROR))
 
@@ -143,12 +184,14 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
     @Test
     fun `on and a failed command does not verify`() =
         runTest {
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
             server.enqueue(MockResponse().setResponseCode(HTTP_FORBIDDEN))
 
             val outcome = verifyingExecutor(enabled = true).execute(DEVICE_UUID, SesameCommand.LOCK)
 
             assertEquals(SesameDeviceCommandExecutor.Outcome.FAILURE, outcome)
-            assertEquals(1, server.requestCount)
+            // 送信前の状態取得と命令の2回だけで、送信後の照合はしない。
+            assertEquals(2, server.requestCount)
             assertTrue(waits.isEmpty())
         }
 
@@ -185,6 +228,7 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
     @Test
     fun `on and a cancelled wait leaves a cancelled log and rethrows`() =
         runTest {
+            enqueueBaseline("unlocked", BASELINE_TIMESTAMP)
             server.enqueue(MockResponse().setResponseCode(HTTP_OK))
             val executor = verifyingExecutor(enabled = true, pause = { throw CancellationException("cancelled") })
 
@@ -196,7 +240,7 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
             // 送信時点の状態は保存済みで、診断ログも欠けない。
             assertEquals(true, lockStateStore.load(DEVICE_UUID)?.isLocked)
             assertEquals(SesameDiagnosticsOutcome.SUCCESS, diagnostics.single().outcome)
-            assertEquals(1, server.requestCount)
+            assertEquals(2, server.requestCount)
         }
 
     private companion object {
@@ -204,6 +248,9 @@ class SesameDeviceCommandExecutorVerificationTest : SesameDeviceCommandExecutorT
 
         // 固定の現在時刻は10,000ms（10秒）。それ以上は新しい値、未満は古い値のtimestamp（秒）。
         const val FRESH_TIMESTAMP = 20L
+
+        // 送信前の状態の timestamp（秒）。送信後にこれより大きければ更新された、同じなら更新されていない。
+        const val BASELINE_TIMESTAMP = 15L
         const val STALE_TIMESTAMP = 5L
     }
 }

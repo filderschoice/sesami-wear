@@ -7,7 +7,7 @@ import com.sesamiwear.core.SesameKeyValueStore
  *
  * **既定はOFF。** BL-142で自動の状態取得を廃止し、Sesame Web APIの月間リクエスト上限（BL-141）の消費を
  * 利用者のタップ回数と等しくした方針を維持するため。ONにした利用者だけが、施錠/解錠のたびに
- * APIを1回多く使うことを受け入れる。
+ * APIを2回多く使うことを受け入れる。
  *
  * 全デバイス共通の値を1つ持つだけで機密情報を含まないため、BLEの到達実績と同じ非暗号化のファイルを
  * 別のキーで共有する（[com.sesamiwear.mobile.ble.SesameRouteNotificationStore]と同じ構成）。
